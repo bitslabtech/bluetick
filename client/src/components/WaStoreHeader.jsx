@@ -223,7 +223,7 @@ export default function WaStoreHeader({
                                 <button
                                     aria-label="My Account"
                                     onClick={() => navigate(`/store/${slug}/account${storeCustomer ? '' : '/login'}`)}
-                                    className="relative flex items-center justify-center p-2 text-black hover:bg-black/5 rounded-full transition-colors group"
+                                    className="relative hidden md:flex items-center justify-center p-2 text-black hover:bg-black/5 rounded-full transition-colors group"
                                 >
                                     <User className="w-5 h-5 stroke-[1.5] group-hover:scale-105 transition-transform" />
                                     {storeCustomer && (
@@ -619,6 +619,35 @@ export default function WaStoreHeader({
                             </div>
 
                             <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
+                                {/* Account Actions */}
+                                {authEnabled && (
+                                    <div className="flex items-center gap-3 w-full">
+                                        {storeCustomer ? (
+                                            <button 
+                                                onClick={() => { navigate(`/store/${slug}/account`); setIsMobileMenuOpen(false); }}
+                                                className="flex-1 bg-black dark:bg-white text-white dark:text-black py-3 rounded-xl font-semibold text-center transition-opacity hover:opacity-90 flex items-center justify-center gap-2"
+                                            >
+                                                <User className="w-5 h-5" />
+                                                My Account
+                                            </button>
+                                        ) : (
+                                            <>
+                                                <button 
+                                                    onClick={() => { navigate(`/store/${slug}/login`); setIsMobileMenuOpen(false); }}
+                                                    className={`flex-1 py-3 rounded-xl font-semibold text-center transition-colors ${theme.categoryTab}`}
+                                                >
+                                                    Login
+                                                </button>
+                                                <button 
+                                                    onClick={() => { navigate(`/store/${slug}/register`); setIsMobileMenuOpen(false); }}
+                                                    className="flex-1 bg-black dark:bg-white text-white dark:text-black py-3 rounded-xl font-semibold text-center transition-opacity hover:opacity-90"
+                                                >
+                                                    Register
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
                                 {/* Home Button */}
                                 <button 
                                     onClick={() => { 
@@ -630,6 +659,75 @@ export default function WaStoreHeader({
                                     <Home className="w-5 h-5" />
                                     <span>Home</span>
                                 </button>
+
+                                {/* Custom Navigation (Mega Menu) */}
+                                {store.megaMenu && store.megaMenu.length > 0 && (
+                                    <div className="space-y-4">
+                                        {store.megaMenu.map(menuItem => (
+                                            <div key={menuItem.id} className="border border-gray-100 dark:border-white/10 rounded-2xl overflow-hidden">
+                                                {menuItem.children && menuItem.children.length > 0 ? (
+                                                    <>
+                                                        <button 
+                                                            onClick={() => setExpandedMobileSections(p => ({ ...p, [`nav_${menuItem.id}`]: !p[`nav_${menuItem.id}`] }))}
+                                                            className={`w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-white/[0.02] ${theme.text} font-bold`}
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <FileText className="w-5 h-5 opacity-70" />
+                                                                <span>{menuItem.title}</span>
+                                                            </div>
+                                                            {expandedMobileSections[`nav_${menuItem.id}`] ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                                                        </button>
+                                                        <div className={`transition-all overflow-hidden ${expandedMobileSections[`nav_${menuItem.id}`] ? 'max-h-[1000px] border-t border-gray-100 dark:border-white/10' : 'max-h-0'}`}>
+                                                            <div className="p-2 space-y-1 bg-white dark:bg-black/20">
+                                                                {menuItem.children.map(child => (
+                                                                    <button
+                                                                        key={child.id}
+                                                                        onClick={() => {
+                                                                            setIsMobileMenuOpen(false);
+                                                                            if (!child.link) return;
+                                                                            if (child.link.startsWith('/?cat=')) {
+                                                                                navigate(`/store/${slug}/category/${encodeURIComponent(child.link.split('=')[1])}`);
+                                                                            } else if (child.link.startsWith('/')) {
+                                                                                let target = child.link;
+                                                                                if (!target.startsWith('/store/')) target = target === '/' ? `/store/${slug}` : `/store/${slug}${target}`;
+                                                                                navigate(target);
+                                                                            } else {
+                                                                                window.location.href = child.link;
+                                                                            }
+                                                                        }}
+                                                                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left font-medium transition-all ${theme.categoryTab}`}
+                                                                    >
+                                                                        {child.title}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <button 
+                                                        onClick={() => {
+                                                            setIsMobileMenuOpen(false);
+                                                            if (!menuItem.link) return;
+                                                            if (menuItem.link.startsWith('/?cat=')) {
+                                                                navigate(`/store/${slug}/category/${encodeURIComponent(menuItem.link.split('=')[1])}`);
+                                                            } else if (menuItem.link.startsWith('/')) {
+                                                                let target = menuItem.link;
+                                                                if (!target.startsWith('/store/')) target = target === '/' ? `/store/${slug}` : `/store/${slug}${target}`;
+                                                                navigate(target);
+                                                            } else {
+                                                                window.location.href = menuItem.link;
+                                                            }
+                                                        }}
+                                                        className={`w-full flex items-center gap-3 p-4 bg-gray-50 dark:bg-white/[0.02] ${theme.text} font-bold`}
+                                                    >
+                                                        <FileText className="w-5 h-5 opacity-70" />
+                                                        <span>{menuItem.title}</span>
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
 
                                 {/* Product Categories Accordion */}
                                 {categories.length > 0 && (
@@ -768,6 +866,8 @@ export default function WaStoreHeader({
                 setIsCartOpen={setIsCartOpen}
                 setIsSearchOpen={setIsSearchOpen}
                 setIsMobileMenuOpen={setIsMobileMenuOpen}
+                authEnabled={authEnabled}
+                storeCustomer={storeCustomer}
             />
         </>
     );

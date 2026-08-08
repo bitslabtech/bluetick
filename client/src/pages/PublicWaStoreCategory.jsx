@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ShoppingBag, ShoppingCart, X, Plus, Minus, Search, Home, ChevronRight, Menu, Filter, MessageCircle, Check } from 'lucide-react';

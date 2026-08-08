@@ -8,7 +8,7 @@ const admin = require('../middleware/admin');
 router.get('/', [auth, admin], async (req, res) => {
     try {
         const notifications = await AdminNotification.findAll({
-            order: [['createdAt', 'DESC']],
+            order: [['lastOccurredAt', 'DESC']],
             limit: 50
         });
 
@@ -35,7 +35,11 @@ router.put('/:id/read', [auth, admin], async (req, res) => {
 // 3. PUT /api/admin-notifications/read-all - Mark All Read
 router.put('/read-all', [auth, admin], async (req, res) => {
     try {
-        await AdminNotification.update({ isRead: true }, { where: { isRead: false } });
+        const { Op } = require('sequelize');
+        await AdminNotification.update(
+            { isRead: true },
+            { where: { isRead: false, type: { [Op.ne]: 'SYSTEM_ERROR' } } }
+        );
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: 'Server Error' });
@@ -81,12 +85,26 @@ router.post('/public/crash-report', async (req, res) => {
         });
 
         if (existing) {
-            // Deduplicate: increment occurrences
             const data = existing.data || {};
             const count = (data.occurrences || 1) + 1;
+            
+            // Rate limit (debounce): if less than 60s ago, just increment count silently
+            const lastSeen = existing.lastOccurredAt || existing.createdAt;
+            const timeSinceLast = Date.now() - new Date(lastSeen).getTime();
+
+            if (timeSinceLast < 60000) {
+                await existing.update({
+                    data: { ...data, occurrences: count, lastUrl: url }
+                    // don't bump lastOccurredAt or unread state
+                });
+                return res.json({ success: true, deduplicated: true, occurrences: count, ratelimited: true });
+            }
+
+            // More than 60s passed: bump it and alert admin again
             await existing.update({
-                data: { ...data, occurrences: count, lastSeen: new Date(), lastUrl: url },
-                isRead: false // Mark unread again to bring it to admin's attention
+                data: { ...data, occurrences: count, lastUrl: url },
+                isRead: false, // Mark unread again to bring it to admin's attention
+                lastOccurredAt: new Date()
             });
             return res.json({ success: true, deduplicated: true, occurrences: count });
         }

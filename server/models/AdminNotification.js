@@ -22,6 +22,10 @@ const AdminNotification = sequelize.define('AdminNotification', {
     isRead: {
         type: DataTypes.BOOLEAN,
         defaultValue: false
+    },
+    lastOccurredAt: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW
     }
 }, {
     timestamps: true

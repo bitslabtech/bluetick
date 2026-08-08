@@ -2,7 +2,7 @@ import React from 'react';
 import { Home, Search, ShoppingCart, MessageCircle, Menu, FileText, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-export default function WaStoreMobileBottomMenu({ store, theme, cartCount, setIsCartOpen, setIsSearchOpen, setIsMobileMenuOpen }) {
+export default function WaStoreMobileBottomMenu({ store, theme, cartCount, setIsCartOpen, setIsSearchOpen, setIsMobileMenuOpen, authEnabled, storeCustomer }) {
     const navigate = useNavigate();
 
     // Default configuration if not saved yet
@@ -13,7 +13,12 @@ export default function WaStoreMobileBottomMenu({ store, theme, cartCount, setIs
         { id: 'whatsapp', enabled: true }
     ];
 
-    const enabledItems = config.filter(item => item.enabled);
+    let enabledItems = config.filter(item => item.enabled);
+
+    if (authEnabled) {
+        enabledItems = enabledItems.filter(item => item.id !== 'profile');
+        enabledItems.push({ id: 'profile', enabled: true });
+    }
 
     if (enabledItems.length === 0) return null;
 
@@ -41,7 +46,8 @@ export default function WaStoreMobileBottomMenu({ store, theme, cartCount, setIs
                 if (setIsMobileMenuOpen) setIsMobileMenuOpen(true);
                 break;
             case 'profile':
-                if (setIsMobileMenuOpen) setIsMobileMenuOpen(true);
+                navigate(`/store/${store.slug}/account${storeCustomer ? '' : '/login'}`);
+                window.scrollTo(0, 0);
                 break;
             default:
                 break;

@@ -42,7 +42,7 @@ const AdminAlerts = () => {
     const handleMarkAllRead = async () => {
         try {
             await axios.put(`${import.meta.env.VITE_API_URL}/api/admin-notifications/read-all`);
-            setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+            setNotifications(prev => prev.map(n => n.type === 'SYSTEM_ERROR' ? n : { ...n, isRead: true }));
             showToast('All marked as read', 'success');
         } catch (err) {
             showToast('Failed to update', 'error');
@@ -148,10 +148,16 @@ const AdminAlerts = () => {
                                             </p>
                                             <div className="flex flex-col items-end whitespace-nowrap ml-2">
                                                 <span className="text-xs font-medium text-slate-400">
-                                                    {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                                                    {n.type === 'SYSTEM_ERROR' && n.lastOccurredAt 
+                                                        ? `Last seen: ${formatDistanceToNow(new Date(n.lastOccurredAt), { addSuffix: true })}`
+                                                        : formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
                                                 </span>
                                                 <span className="text-[10px] text-slate-500 mt-0.5">
-                                                    {new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    {n.type === 'SYSTEM_ERROR' && n.lastOccurredAt ? (
+                                                        <>First seen: {new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</>
+                                                    ) : (
+                                                        <>{new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</>
+                                                    )}
                                                 </span>
                                             </div>
                                         </div>
@@ -162,9 +168,9 @@ const AdminAlerts = () => {
                                             {!n.isRead && (
                                                 <button
                                                     onClick={() => handleMarkRead(n.id)}
-                                                    className="text-xs text-indigo-500 hover:underline"
+                                                    className={`text-xs hover:underline ${n.type === 'SYSTEM_ERROR' ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-indigo-500'}`}
                                                 >
-                                                    Mark Read
+                                                    {n.type === 'SYSTEM_ERROR' ? 'Resolve' : 'Mark Read'}
                                                 </button>
                                             )}
                                         </div>

@@ -16,7 +16,7 @@ export default function WaStoreNavigation() {
     const { store, setParentStore } = useOutletContext();
     const [megaMenu, setMegaMenu] = useState(store?.megaMenu || []);
     const [saving, setSaving] = useState(false);
-    
+
     const categories = React.useMemo(() => {
         const cats = store?.categories || [];
         if (typeof cats === 'string') {
@@ -142,12 +142,12 @@ export default function WaStoreNavigation() {
         e.stopPropagation();
         if (draggedParentIndex === null || draggedParentIndex === index) return;
         setDraggedOverParentIndex(index);
-        
+
         const newMenu = [...megaMenu];
         const draggedItem = newMenu[draggedParentIndex];
         newMenu.splice(draggedParentIndex, 1);
         newMenu.splice(index, 0, draggedItem);
-        
+
         setDraggedParentIndex(index);
         setMegaMenu(newMenu);
     };
@@ -173,14 +173,14 @@ export default function WaStoreNavigation() {
         if (draggedChildParentIndex !== parentIndex) return;
         if (draggedChildIndex === null || draggedChildIndex === childIndex) return;
         setDraggedOverChildIndex(childIndex);
-        
+
         const newMenu = [...megaMenu];
         const children = newMenu[parentIndex].children;
         const draggedItem = children[draggedChildIndex];
-        
+
         children.splice(draggedChildIndex, 1);
         children.splice(childIndex, 0, draggedItem);
-        
+
         setDraggedChildIndex(childIndex);
         setMegaMenu(newMenu);
     };
@@ -196,11 +196,11 @@ export default function WaStoreNavigation() {
     // Helper to render the link input based on linkType
     const renderLinkInput = (item, updateFn) => {
         const type = item.linkType || 'url';
-        
+
         return (
             <div className="flex gap-2 w-full">
-                <select 
-                    value={type} 
+                <select
+                    value={type}
                     onChange={(e) => updateFn('linkType', e.target.value)}
                     className="w-1/3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-white/10 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white transition-all font-medium"
                 >
@@ -216,25 +216,25 @@ export default function WaStoreNavigation() {
                             <CheckCircle2 className="w-4 h-4 shrink-0" /> Links to your main store page.
                         </div>
                     )}
-                    
+
                     {type === 'url' && (
                         <>
                             <LinkIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                            <input 
-                                type="text" 
-                                value={item.link} 
+                            <input
+                                type="text"
+                                value={item.link}
                                 onChange={(e) => updateFn('link', e.target.value)}
                                 placeholder="https://..."
                                 className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white transition-all"
                             />
                         </>
                     )}
-                    
+
                     {type === 'category' && (
                         <>
                             <ListTree className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                            <select 
-                                value={item.link.replace('/?cat=', '')} 
+                            <select
+                                value={item.link.replace('/?cat=', '')}
                                 onChange={(e) => updateFn('link', `/?cat=${e.target.value}`)}
                                 className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white transition-all appearance-none"
                             >
@@ -247,8 +247,8 @@ export default function WaStoreNavigation() {
                     {type === 'internal' && (
                         <>
                             <FileText className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                            <select 
-                                value={item.link} 
+                            <select
+                                value={item.link}
                                 onChange={(e) => updateFn('link', e.target.value)}
                                 className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white transition-all appearance-none"
                             >
@@ -333,7 +333,7 @@ export default function WaStoreNavigation() {
                                                 <ChevronDown className="w-3.5 h-3.5 ml-1.5 opacity-50 transition-transform group-hover:rotate-180" />
                                             )}
                                         </div>
-                                        
+
                                         {/* Dropdown */}
                                         {menuItem.children && menuItem.children.length > 0 && (
                                             <div className="absolute top-[100%] left-1/2 -translate-x-1/2 w-56 bg-white border border-gray-100 shadow-2xl rounded-xl py-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top translate-y-2 group-hover:translate-y-0 z-50">
@@ -355,7 +355,7 @@ export default function WaStoreNavigation() {
                     </div>
                 </header>
             </div>
-            
+
             <div className="bg-slate-50 dark:bg-black/50 p-3 text-center text-xs text-slate-400 font-medium tracking-wide uppercase border-t border-slate-200 dark:border-white/10">
                 Live Preview (Hover to see dropdowns)
             </div>
@@ -407,8 +407,8 @@ export default function WaStoreNavigation() {
                     ) : (
                         <div className="space-y-4">
                             {megaMenu.map((parent, pIndex) => (
-                                <div 
-                                    key={parent.id} 
+                                <div
+                                    key={parent.id}
                                     draggable
                                     onDragStart={(e) => onParentDragStart(e, pIndex)}
                                     onDragEnter={(e) => onParentDragEnter(e, pIndex)}
@@ -424,9 +424,9 @@ export default function WaStoreNavigation() {
                                         <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <div className="md:col-span-1">
                                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Menu Title</label>
-                                                <input 
-                                                    type="text" 
-                                                    value={parent.title} 
+                                                <input
+                                                    type="text"
+                                                    value={parent.title}
                                                     onChange={(e) => updateParent(pIndex, 'title', e.target.value)}
                                                     placeholder="e.g. Collections"
                                                     className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:text-white transition-all font-medium"
@@ -452,7 +452,7 @@ export default function WaStoreNavigation() {
                                             >
                                                 {collapsedMenus[parent.id] ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => removeParent(pIndex)}
                                                 className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
                                                 title="Delete Menu"
@@ -466,48 +466,48 @@ export default function WaStoreNavigation() {
                                     {!collapsedMenus[parent.id] && (
                                         <div className="bg-slate-50/50 dark:bg-slate-800/20 border-t border-slate-200 dark:border-white/10 p-4 rounded-b-xl">
                                             <div className="space-y-2 mb-3 pl-10">
-                                            {parent.children && parent.children.map((child, cIndex) => (
-                                                <div 
-                                                    key={child.id}
-                                                    draggable
-                                                    onDragStart={(e) => onChildDragStart(e, pIndex, cIndex)}
-                                                    onDragEnter={(e) => onChildDragEnter(e, pIndex, cIndex)}
-                                                    onDragEnd={onChildDragEnd}
-                                                    onDragOver={(e) => e.preventDefault()}
-                                                    className={`flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-white dark:bg-surface-dark border transition-all rounded-lg p-2.5 ${draggedChildParentIndex === pIndex && draggedChildIndex === cIndex ? 'border-indigo-400 shadow-sm' : 'border-slate-200 dark:border-white/10'}`}
-                                                >
-                                                    <div className="flex items-center gap-2 w-full sm:w-1/4">
-                                                        <div className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 p-1">
-                                                            <GripVertical className="w-4 h-4" />
+                                                {parent.children && parent.children.map((child, cIndex) => (
+                                                    <div
+                                                        key={child.id}
+                                                        draggable
+                                                        onDragStart={(e) => onChildDragStart(e, pIndex, cIndex)}
+                                                        onDragEnter={(e) => onChildDragEnter(e, pIndex, cIndex)}
+                                                        onDragEnd={onChildDragEnd}
+                                                        onDragOver={(e) => e.preventDefault()}
+                                                        className={`flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-white dark:bg-surface-dark border transition-all rounded-lg p-2.5 ${draggedChildParentIndex === pIndex && draggedChildIndex === cIndex ? 'border-indigo-400 shadow-sm' : 'border-slate-200 dark:border-white/10'}`}
+                                                    >
+                                                        <div className="flex items-center gap-2 w-full sm:w-1/4">
+                                                            <div className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 p-1">
+                                                                <GripVertical className="w-4 h-4" />
+                                                            </div>
+                                                            <input
+                                                                type="text"
+                                                                value={child.title}
+                                                                onChange={(e) => updateChild(pIndex, cIndex, 'title', e.target.value)}
+                                                                placeholder="Sub-item Title"
+                                                                className="flex-1 bg-transparent border-none text-sm focus:outline-none focus:ring-0 dark:text-white px-1 font-medium"
+                                                            />
                                                         </div>
-                                                        <input 
-                                                            type="text" 
-                                                            value={child.title} 
-                                                            onChange={(e) => updateChild(pIndex, cIndex, 'title', e.target.value)}
-                                                            placeholder="Sub-item Title"
-                                                            className="flex-1 bg-transparent border-none text-sm focus:outline-none focus:ring-0 dark:text-white px-1 font-medium"
-                                                        />
+
+                                                        <div className="flex-1 w-full pl-6 sm:pl-0 flex items-center gap-2">
+                                                            {renderLinkInput(child, (field, value) => updateChild(pIndex, cIndex, field, value))}
+
+                                                            <button
+                                                                onClick={() => removeChild(pIndex, cIndex)}
+                                                                className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-md transition-colors shrink-0 ml-auto"
+                                                            >
+                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                    
-                                                    <div className="flex-1 w-full pl-6 sm:pl-0 flex items-center gap-2">
-                                                        {renderLinkInput(child, (field, value) => updateChild(pIndex, cIndex, field, value))}
-                                                        
-                                                        <button 
-                                                            onClick={() => removeChild(pIndex, cIndex)}
-                                                            className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-md transition-colors shrink-0 ml-auto"
-                                                        >
-                                                            <Trash2 className="w-3.5 h-3.5" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
+                                                ))}
+                                            </div>
                                             <div className="pl-10">
-                                                <button 
+                                                <button
                                                     onClick={() => addChildItem(pIndex)}
                                                     className="text-xs font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1.5 transition-colors bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 px-3 py-1.5 rounded-md"
                                                 >
-                                                    <Plus className="w-3.5 h-3.5" /> Add Sub-item
+                                                    <Plus className="w-3.5 h-3.5" /> Add Sub-Category
                                                 </button>
                                             </div>
                                         </div>
@@ -515,7 +515,7 @@ export default function WaStoreNavigation() {
                                 </div>
                             ))}
 
-                            <button 
+                            <button
                                 onClick={addParentItem}
                                 className="w-full py-4 border-2 border-dashed border-slate-300 dark:border-white/20 rounded-xl text-slate-500 hover:text-indigo-600 hover:border-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-500/5 transition-all flex flex-col items-center justify-center gap-2 font-medium"
                             >
