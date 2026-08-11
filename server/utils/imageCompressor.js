@@ -61,9 +61,31 @@ async function compressImage(buffer, mimetype, config = {}) {
     const originalSize = buffer.length;
 
     try {
-        // Create the Sharp pipeline
-        let pipeline = sharp(buffer, { failOn: 'none' }) // failOn: 'none' = don't crash on slightly corrupt images
-            .rotate(); // Auto-rotate based on EXIF orientation
+        // ── Animated image detection ──────────────────────────────────────────
+        // Animated WebP / GIF files have multiple frames (pages > 1).
+        // Sharp strips animation frames when re-encoding without explicit animated:true,
+        // which corrupts the output and causes broken images in browsers.
+        // Safest fix: skip compression entirely for animated images.
+        if (mimetype === 'image/webp' || mimetype === 'image/gif') {
+            try {
+                const meta = await sharp(buffer, { failOn: 'none' }).metadata();
+                if (meta.pages && meta.pages > 1) {
+                    console.log(`[IMAGE COMPRESSOR] Skipping animated ${mimetype} (${meta.pages} frames) — passing through original.`);
+                    return { buffer, compressed: false, originalSize, compressedSize: originalSize };
+                }
+            } catch (metaErr) {
+                // If metadata read fails, skip compression to be safe
+                console.warn('[IMAGE COMPRESSOR] Could not read metadata, skipping compression:', metaErr.message);
+                return { buffer, compressed: false };
+            }
+        }
+
+        // ── Build the Sharp pipeline ──────────────────────────────────────────
+        // animated:true ensures animated WebP/GIF frames are preserved if they somehow
+        // pass the check above (e.g. single-frame animation tagged as animated).
+        const isAnimated = mimetype === 'image/webp' || mimetype === 'image/gif';
+        let pipeline = sharp(buffer, { failOn: 'none', animated: isAnimated })
+            .rotate(); // Auto-rotate based on EXIF orientation (safe for statics)
 
         // Resize if larger than max dimensions (maintains aspect ratio)
         pipeline = pipeline.resize(opts.maxWidth, opts.maxHeight, {
@@ -92,8 +114,9 @@ async function compressImage(buffer, mimetype, config = {}) {
                 .png({ compressionLevel: opts.pngCompressionLevel, adaptiveFiltering: true })
                 .toBuffer();
         } else if (mimetype === 'image/webp') {
+            // animated:true preserves all frames when re-compressing a (single-page) WebP
             outputBuffer = await pipeline
-                .webp({ quality: opts.webpQuality })
+                .webp({ quality: opts.webpQuality, animated: true })
                 .toBuffer();
         } else {
             // Should not reach here due to COMPRESSIBLE_MIMES check, but just in case
