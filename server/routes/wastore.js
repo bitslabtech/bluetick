@@ -1114,13 +1114,32 @@ router.get('/:storeId/products/import-template', async (req, res) => {
 
         const catHint = existingCategories.length > 0 ? existingCategories[0] : 'Electronics';
 
+        // Column headers — price=MRP/regular price, salePrice=discounted selling price (optional, leave blank for no discount)
         const headers = ['name','description','price','salePrice','category','sku','inStock','stockQuantity','trackQuantity','lowStockThreshold','taxRate','imageUrls','metaTitle','metaDescription'];
-        const sample1 = ['Blue T-Shirt','Comfortable cotton t-shirt','699','499', catHint, 'TSHIRT-BLU-M','yes','100','yes','10','18','https://example.com/image1.jpg','Blue T-Shirt | Buy Online','Premium blue t-shirt for everyday wear'];
-        const sample2 = ['Black Jeans','Slim fit denim jeans','1799','1299', catHint, 'JEANS-BLK-32','yes','50','yes','5','18','https://example.com/jeans1.jpg,https://example.com/jeans2.jpg','Black Slim Jeans','Stylish black jeans'];
+        // Sample rows: price=MRP (strikethrough), salePrice=actual selling price (optional)
+        const sample1 = ['Blue T-Shirt','Comfortable cotton t-shirt in size M','699','499', catHint, 'TSHIRT-BLU-M','yes','100','yes','10','18','https://example.com/image1.jpg','Blue T-Shirt | Buy Online','Premium blue t-shirt for everyday wear'];
+        const sample2 = ['Black Jeans','Slim fit stretch denim jeans size 32','1799','1299', catHint, 'JEANS-BLK-32','yes','50','yes','5','18','https://example.com/jeans1.jpg,https://example.com/jeans2.jpg','Black Slim Jeans','Stylish black jeans'];
         const sample3 = ['Gold Ring','18k gold ring with diamond','4999','','Jewelry','RING-GOLD-18K','yes','20','no','3','3','','Gold Diamond Ring','Premium 18k gold ring'];
+        // Hint row explaining each column
+        const hint = [
+            'REQUIRED: Product name',
+            'Optional: Product description',
+            'REQUIRED: MRP / Regular price (shown with strikethrough if salePrice is set)',
+            'Optional: Discounted/Sale price (leave blank if no discount)',
+            'Optional: Category name',
+            'Optional: SKU code (must be unique)',
+            'yes or no',
+            'Number of items in stock',
+            'yes or no (track inventory)',
+            'Number (low stock alert threshold)',
+            'Tax rate % e.g. 18',
+            'Image URL(s) comma-separated',
+            'SEO title (optional)',
+            'SEO description (optional)'
+        ];
 
         const toCSVRow = (arr) => arr.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
-        const csv = [toCSVRow(headers), toCSVRow(sample1), toCSVRow(sample2), toCSVRow(sample3)].join('\r\n');
+        const csv = [toCSVRow(headers), toCSVRow(hint), toCSVRow(sample1), toCSVRow(sample2), toCSVRow(sample3)].join('\r\n');
 
         res.setHeader('Content-Type', 'text/csv');
         res.setHeader('Content-Disposition', 'attachment; filename="products_import_template.csv"');
@@ -1170,16 +1189,20 @@ router.post('/:storeId/products/import/parse', async (req, res) => {
             if (!name) errors.name = 'Product name is required';
             else if (name.length > 200) errors.name = `Name too long (${name.length}/200 chars)`;
 
-            // ── Price ──
+            // ── Price (MRP / Regular Price) ──
+            // `price` column = the regular/MRP price (shown as strikethrough when salePrice is set)
             const price = parseFloat(String(row.price || '').replace(/[^0-9.]/g, ''));
             if (isNaN(price) || String(row.price || '').trim() === '') errors.price = 'Price is required and must be a number';
             else if (price < 0) errors.price = 'Price cannot be negative';
 
-            // ── Sale Price (optional — if set, price is discounted; regular price shows strikethrough) ──
+            // ── Sale Price (optional — the actual SELLING price; leave blank if no discount) ──
+            // If salePrice is set: DB price = salePrice (what customer pays), DB compareAtPrice = price (MRP strikethrough)
+            // If salePrice is blank: DB price = price column value, no strikethrough
             let salePrice = null;
             if (row.salePrice && String(row.salePrice).trim() !== '') {
                 const sp = parseFloat(String(row.salePrice).replace(/[^0-9.]/g, ''));
-                if (isNaN(sp)) errors.salePrice = 'Must be a number';
+                if (isNaN(sp)) errors.salePrice = 'Sale price must be a number';
+                else if (sp >= price) errors.salePrice = `Sale price (${sp}) must be less than regular price (${price})`;
                 else salePrice = sp;
             }
 
@@ -1258,8 +1281,8 @@ router.post('/:storeId/products/import/parse', async (req, res) => {
             const metaTitle = String(row.metaTitle || '').trim();
             if (metaTitle.length > 160) errors.metaTitle = `Too long (${metaTitle.length}/160 chars)`;
 
-            // ── Description ──
-            const description = String(row.description || '').trim();
+            // ── Description (preserve internal whitespace, only trim leading/trailing) ──
+            const description = String(row.description || '').replace(/^\s+|\s+$/g, '');
             if (description.length > 5000) errors.description = `Too long (${description.length}/5000 chars)`;
 
             // ── Meta Description ──
@@ -1274,9 +1297,10 @@ router.post('/:storeId/products/import/parse', async (req, res) => {
                 _warnings: warnings,
                 name,
                 description,
-                // WooCommerce mapping: if salePrice set → price=salePrice, compareAtPrice=regularPrice
+                // price column = MRP/regular, salePrice column = actual selling price
+                // In DB: price = what customer pays, compareAtPrice = MRP (strikethrough)
                 price: salePrice !== null ? salePrice : (isNaN(price) ? 0 : price),
-                compareAtPrice: salePrice !== null ? (isNaN(price) ? 0 : price) : null,
+                compareAtPrice: salePrice !== null ? (isNaN(price) ? null : price) : null,
                 category: resolvedCategory,
                 sku: sku || null,
                 inStock,
