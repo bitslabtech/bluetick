@@ -740,7 +740,6 @@ async function generateAndDeliverInvoice(transactionId, options = { silent: fals
     // ── 11. Send WhatsApp to user ──────────────────────────────────────────────
     const userPhone = buyerPhone;
     if (options.silent) {
-        await invoice.update({ whatsappStatus: 'skipped_silent' });
         console.log(`[INVOICE] WA delivery skipped for user ${userPhone} (Silent mode)`);
     } else if (userPhone) {
         const waResult = await sendInvoiceWhatsApp(userPhone, invoiceData, ic, pdfPublicUrl);
@@ -758,7 +757,6 @@ async function generateAndDeliverInvoice(transactionId, options = { silent: fals
     // ── 12. Send CC copies to admin numbers ────────────────────────────────────
     const ccNumbers = ic.ccNumbers || [];
     if (options.silent) {
-        await invoice.update({ adminCcStatus: 'skipped_silent' });
         console.log(`[INVOICE] CC copies skipped (Silent mode)`);
     } else if (ic.sendCcOnPurchase && ccNumbers.length > 0) {
         let ccFailed = 0;
