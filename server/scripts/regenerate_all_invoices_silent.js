@@ -39,7 +39,7 @@ async function run() {
         for (const tx of transactions) {
             console.log(`\n[+] Generating invoice for Transaction: ${tx.id}`);
             try {
-                await generateAndDeliverInvoice(tx.id, { silent: true });
+                await generateAndDeliverInvoice(tx.id, { silent: true, invoiceDate: new Date('2026-07-26T12:00:00Z') });
                 console.log(`    -> Success! Invoice generated for TX: ${tx.id}`);
                 generatedCount++;
             } catch (err) {
