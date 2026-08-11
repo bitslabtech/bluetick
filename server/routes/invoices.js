@@ -405,10 +405,12 @@ router.post('/my/:id/resend', auth, async (req, res) => {
 router.post('/preview', auth, admin, async (req, res) => {
     try {
         const { generatePdf } = require('../services/InvoiceService');
+        const { formatInvoiceNumber } = require('../utils/invoiceNumber');
         const ic = req.body.invoiceConfig || {};
         
+        const currentCounter = ic.invoiceStartNumber || 1;
         const mockInv = {
-            invoiceNumber: `${ic.invoicePrefix || 'INV-'}${ic.invoiceCounter || '0001'}`,
+            invoiceNumber: formatInvoiceNumber(ic, currentCounter),
             invoiceType: 'tax_invoice',
             invoiceDate: new Date(),
             buyerName: 'Preview Client LLC',

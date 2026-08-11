@@ -145,6 +145,8 @@ const SystemConfig = sequelize.define('SystemConfig', {
             // ─── Invoice & GST Configuration ─────────────────────────────────────
             invoiceConfig: {
                 invoiceType: 'tax_invoice',       // 'tax_invoice' | 'quotation'
+                invoiceFormat: '{PREFIX}-{YYYY}-{SEQ}', // Dynamic format template
+                invoiceSequencePadding: 4,        // Number of digits for {SEQ} zero-padding
                 invoicePrefix: 'INV',
                 invoiceStartNumber: 1,
                 currentInvoiceSequence: 1,

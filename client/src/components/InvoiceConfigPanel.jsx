@@ -267,20 +267,67 @@ const InvoiceConfigPanel = () => {
                     <option value="tax_invoice">Tax Invoice (with GST breakdown)</option>
                     <option value="quotation">Quotation (no GST breakdown)</option>
                 </SelectField>
-                <div className="flex flex-col justify-between group">
-                    <Label text="Invoice Prefix & Counter" />
-                    <div className="flex gap-3">
-                        <input value={form.invoicePrefix || 'INV'} onChange={e => updateIc('invoicePrefix', e.target.value)}
-                            className="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50/50 focus:bg-white dark:bg-black/20 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500/50 transition-all font-mono font-bold"
-                            placeholder="INV" maxLength={10} />
-                        <div>
-                            <input type="number" value={form.invoiceStartNumber || 1}
-                                onChange={e => updateIc('invoiceStartNumber', parseInt(e.target.value))}
+                <div className="flex flex-col justify-between group md:col-span-2">
+                    <Label text="Invoice Prefix & Format" />
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-2">
+                        <div className="md:col-span-1">
+                            <Input label="" value={form.invoicePrefix || 'INV'} onChange={v => updateIc('invoicePrefix', v)} placeholder="Prefix (e.g. BLTK)" />
+                        </div>
+                        <div className="md:col-span-2">
+                            <input value={form.invoiceFormat || '{PREFIX}-{YYYY}-{SEQ}'} onChange={e => updateIc('invoiceFormat', e.target.value)}
+                                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50/50 focus:bg-white dark:bg-black/20 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500/50 transition-all font-mono font-bold"
+                                placeholder="{PREFIX}/{FY}/{SEQ}" />
+                        </div>
+                        <div className="md:col-span-1 flex gap-2">
+                            <input type="number" value={form.currentInvoiceSequence || form.invoiceStartNumber || 1}
+                                onChange={e => {
+                                    updateIc('invoiceStartNumber', parseInt(e.target.value));
+                                    updateIc('currentInvoiceSequence', parseInt(e.target.value));
+                                }}
+                                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50/50 focus:bg-white dark:bg-black/20 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500/50 transition-all font-mono"
+                                min="1" placeholder="Start #" title="Next Sequence Number" />
+                            <input type="number" value={form.invoiceSequencePadding || 4}
+                                onChange={e => updateIc('invoiceSequencePadding', parseInt(e.target.value))}
                                 className="w-24 px-4 py-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50/50 focus:bg-white dark:bg-black/20 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500/50 transition-all font-mono"
-                                min="1" placeholder="Start #" />
+                                min="1" max="10" placeholder="Digits" title="Sequence Digit Length (e.g. 3 for 001)" />
                         </div>
                     </div>
-                    <div className="text-xs font-semibold text-slate-400 mt-2 ml-1">Example: {form.invoicePrefix || 'INV'}-{new Date().getFullYear()}-{String(form.currentInvoiceSequence || 1).padStart(4, '0')}</div>
+                    
+                    <div className="text-xs font-semibold text-slate-400 ml-1 mb-2">
+                        Available variables: <span className="font-mono text-indigo-500">{"{PREFIX}"}</span>, <span className="font-mono text-indigo-500">{"{FY}"}</span> (Financial Year e.g. 26-27), <span className="font-mono text-indigo-500">{"{YYYY}"}</span>, <span className="font-mono text-indigo-500">{"{MM}"}</span>, <span className="font-mono text-indigo-500">{"{SEQ}"}</span>
+                    </div>
+                    
+                    <div className="p-3 bg-slate-50 dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-xl flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-500 uppercase">Live Preview</span>
+                        <span className="font-mono font-black text-indigo-600 dark:text-indigo-400">
+                            {(() => {
+                                const prefix = form.invoicePrefix || 'INV';
+                                const format = form.invoiceFormat || '{PREFIX}-{YYYY}-{SEQ}';
+                                const padding = parseInt(form.invoiceSequencePadding) || 4;
+                                const current = form.invoiceStartNumber || 1;
+                                
+                                const date = new Date();
+                                const year = date.getFullYear();
+                                const month = date.getMonth();
+                                let fyStartYear = year;
+                                if (month < 3) fyStartYear = year - 1;
+                                const fyEndYear = (fyStartYear + 1).toString().slice(-2);
+                                const fyString = `${fyStartYear.toString().slice(-2)}-${fyEndYear}`;
+                                
+                                const placeholders = {
+                                    '{PREFIX}': prefix,
+                                    '{YYYY}': year,
+                                    '{YY}': year.toString().slice(-2),
+                                    '{MM}': String(month + 1).padStart(2, '0'),
+                                    '{DD}': String(date.getDate()).padStart(2, '0'),
+                                    '{FY}': fyString,
+                                    '{SEQ}': String(current).padStart(padding, '0')
+                                };
+                                
+                                return format.replace(/{PREFIX}|{YYYY}|{YY}|{MM}|{DD}|{FY}|{SEQ}/g, match => placeholders[match]);
+                            })()}
+                        </span>
+                    </div>
                 </div>
             </Section>
 
