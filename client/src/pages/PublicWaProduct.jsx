@@ -356,6 +356,11 @@ export default function PublicWaProduct({ customSlug }) {
     const checkoutShippingCost = (flatShippingRate > 0 && (freeShippingThreshold === 0 || (checkoutSubtotal + checkoutEstimatedTax) < freeShippingThreshold)) ? flatShippingRate : 0;
     const checkoutTotal = checkoutSubtotal + checkoutShippingCost;
 
+    const crossSellProducts = React.useMemo(() => {
+        if (!store || store.showCrossSells === false || !product || !product.category || !allProducts.length) return [];
+        return allProducts.filter(p => p.category === product.category && p.id !== product.id).slice(0, 8);
+    }, [store, product, allProducts]);
+
     return (
         <div className={`flex flex-col min-h-screen overflow-x-hidden w-full ${theme.pageBg} font-sans ${theme.text} selection:bg-black selection:text-white pb-[140px] md:pb-0`} style={{ fontFamily: theme.fontFamily }}>
             {/* ─── MODERN HEADER ─── */}
@@ -759,66 +764,65 @@ export default function PublicWaProduct({ customSlug }) {
                                     }}
                                 >
                                     <div className={`pb-4 text-sm leading-relaxed ${theme.textMuted} whitespace-pre-line`} style={{width:'100%', overflowWrap:'break-word', wordBreak:'break-word'}}>
-                                        {product.description || 'This product does not have a description yet. Contact the store for more details.'}
+                                        {product.description || product.name}
                                     </div>
                                 </div>
                             </div>
 
-                            {/* DELIVERY ACCORDION */}
-                            <div className="border-b border-gray-100">
-                                <button
-                                    onClick={() => toggleAccordion('delivery')}
-                                    className={`w-full flex items-center justify-between text-xs font-bold uppercase tracking-wider ${theme.text} py-3`}
-                                >
-                                    <span>WhatsApp Delivery</span>
-                                    {openAccordions.delivery ? <Minus className="w-3.5 h-3.5 text-gray-400 shrink-0" /> : <Plus className="w-3.5 h-3.5 text-gray-400 shrink-0" />}
-                                </button>
-                                <div
-                                    style={{
-                                        maxHeight: openAccordions.delivery ? '600px' : '0',
-                                        overflow: 'hidden',
-                                        transition: 'max-height 0.25s ease',
-                                        width: '100%',
-                                    }}
-                                >
-                                    <div className={`pb-4 text-sm leading-relaxed ${theme.textMuted} space-y-2`} style={{width:'100%', overflowWrap:'break-word', wordBreak:'break-word'}}>
-                                        <p>We process all orders directly through WhatsApp to provide a customized shipping quote and confirm product availability.</p>
-                                        <ul className="list-disc pl-4 space-y-1 mt-2">
-                                            <li>Direct chat with the merchant</li>
-                                            <li>Customized shipping options</li>
-                                            <li>Live tracking and direct customer support</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
 
-                            {/* SECURE CHECKOUT ACCORDION */}
-                            <div className="border-b border-gray-100">
-                                <button
-                                    onClick={() => toggleAccordion('details')}
-                                    className={`w-full flex items-center justify-between text-xs font-bold uppercase tracking-wider ${theme.text} py-3`}
-                                >
-                                    <span>Secure Checkout & Support</span>
-                                    {openAccordions.details ? <Minus className="w-3.5 h-3.5 text-gray-400 shrink-0" /> : <Plus className="w-3.5 h-3.5 text-gray-400 shrink-0" />}
-                                </button>
-                                <div
-                                    style={{
-                                        maxHeight: openAccordions.details ? '600px' : '0',
-                                        overflow: 'hidden',
-                                        transition: 'max-height 0.25s ease',
-                                        width: '100%',
-                                    }}
-                                >
-                                    <div className={`pb-4 text-sm leading-relaxed ${theme.textMuted} space-y-2`} style={{width:'100%', overflowWrap:'break-word', wordBreak:'break-word'}}>
-                                        <p>Shop with confidence. Your messages are encrypted and payment/delivery details are processed securely and manually verified.</p>
-                                        <p>Need support or looking for a customization? Just proceed to checkout and chat with us.</p>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
 
                     </div>
                 </div>
+
+                {/* ─── CROSS-SELLS ─── */}
+                {crossSellProducts.length > 0 && (
+                    <div className="mt-16 pt-8 border-t border-gray-100 w-full">
+                        <h4 className={`text-sm font-bold uppercase tracking-widest ${theme.text} mb-6`}>You May Also Like</h4>
+                        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x" style={{ scrollbarWidth: 'none' }}>
+                            {crossSellProducts.map(p => (
+                                <div
+                                    key={p.id}
+                                    onClick={() => {
+                                        navigate(`/store/${slug}/product/${slugifyProduct(p)}`);
+                                    }}
+                                    className="shrink-0 w-36 md:w-44 cursor-pointer group/cs snap-start"
+                                >
+                                    <div className="aspect-square rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 mb-3 relative">
+                                        {p.imageUrls && p.imageUrls[0] ? (
+                                            <img
+                                                src={imgUrl(p.imageUrls[0])}
+                                                alt={p.name}
+                                                className="w-full h-full object-contain mix-blend-multiply group-hover/cs:scale-105 transition-transform duration-500"
+                                                onError={e => e.target.style.display = 'none'}
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center"><ShoppingBag className="w-8 h-8 text-gray-200" /></div>
+                                        )}
+                                        {p.compareAtPrice && (
+                                            <div className="absolute top-2 left-2 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">Sale</div>
+                                        )}
+                                    </div>
+                                    <p className={`text-sm font-medium ${theme.text} line-clamp-2 leading-snug mb-1 opacity-80 group-hover/cs:opacity-100`}>{p.name}</p>
+                                    <p className={`text-sm font-bold ${theme.text}`}>
+                                        {getCurrencySymbol(store.currency)}{getDisplayPrice(p.price, p).toFixed(2)}
+                                    </p>
+                                </div>
+                            ))}
+                            {/* View All Card */}
+                            <div 
+                                onClick={() => navigate(`/store/${slug}?cat=${encodeURIComponent(product.category)}`)}
+                                className="shrink-0 w-36 md:w-44 cursor-pointer group/cs snap-start flex flex-col items-center justify-center"
+                            >
+                                <div className="aspect-square w-full rounded-2xl overflow-hidden bg-gray-50 hover:bg-gray-100 border border-gray-100 mb-3 flex flex-col items-center justify-center transition-colors">
+                                    <ArrowRight className="w-6 h-6 text-gray-400 group-hover/cs:text-black mb-2 transition-colors" />
+                                    <span className="text-xs font-bold uppercase tracking-widest text-gray-500 group-hover/cs:text-black transition-colors">View All</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
             </main>
             {/* ─── CHECKOUT MODAL ─── */}
             {isCheckoutModalOpen && (

@@ -422,8 +422,13 @@ const storageProvider = (folderName, options = {}) => {
                                 }
                             }
 
-                            // Step 5: Sanitize filename
-                            const safeName = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+                            // Step 5: Sanitize filename + make it unique
+                            // R2/S3 are flat-key stores — if two uploads share the same filename
+                            // the second one silently overwrites the first, causing 404s.
+                            // Prefix with timestamp + random hex so every stored file is unique.
+                            const rawName = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+                            const uid = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+                            const safeName = `${uid}_${rawName}`;
 
                             // Step 6: Save to storage
                             let fileKey = null;
@@ -696,8 +701,10 @@ const processAndStoreBuffer = async (buffer, originalname, mimetype, folderName,
         }
     }
 
-    // Sanitize filename
-    const safeName = originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+    // Sanitize filename + make it unique (same logic as storageProvider middleware)
+    const rawName = originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const uid = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const safeName = `${uid}_${rawName}`;
     let publicUrl = null;
     let fileKey = null;
     let size = fileBuffer.length;

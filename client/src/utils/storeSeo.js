@@ -65,19 +65,21 @@ export function injectCanonical(href) {
  * Inject or update the favicon.
  */
 export function injectFavicon(logoUrl) {
-    if (!logoUrl) return;
     let faviconUrl = logoUrl;
-    if (faviconUrl.startsWith('/uploads')) {
+    if (!faviconUrl) {
+        faviconUrl = '/vite.svg';
+    } else if (faviconUrl.startsWith('/uploads')) {
         const apiBase = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env.VITE_API_URL : '';
         faviconUrl = `${apiBase}${faviconUrl}`;
     }
+    
     let link = document.querySelector("link[rel~='icon']");
     if (!link) {
         link = document.createElement('link');
         link.rel = 'icon';
         document.head.appendChild(link);
     }
-    link.type = 'image/x-icon';
+    link.type = faviconUrl.endsWith('.svg') ? 'image/svg+xml' : 'image/x-icon';
     link.href = faviconUrl;
 }
 
