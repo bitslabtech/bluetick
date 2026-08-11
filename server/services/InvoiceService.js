@@ -512,46 +512,48 @@ async function sendInvoiceWhatsApp(toPhone, inv, ic, pdfPublicUrl) {
 
         if (!normalizedTo) return { success: false, error: 'Invalid phone number' };
 
+        if (!ic.invoiceWaTemplateName) {
+            return { success: false, error: 'WhatsApp template for invoices is not configured in Settings' };
+        }
+
         // Step 1: Send template message with PDF document header
-        if (ic.invoiceWaTemplateName) {
-            const components = [];
+        const components = [];
 
-            if (pdfPublicUrl) {
-                components.push({
-                    type: 'header',
-                    parameters: [
-                        {
-                            type: 'document',
-                            document: {
-                                link: pdfPublicUrl,
-                                filename: `Invoice-${inv.invoiceNumber}.pdf`
-                            }
-                        }
-                    ]
-                });
-            }
-
+        if (pdfPublicUrl) {
             components.push({
-                type: 'body',
+                type: 'header',
                 parameters: [
-                    { type: 'text', text: inv.buyerName || 'Customer' }
+                    {
+                        type: 'document',
+                        document: {
+                            link: pdfPublicUrl,
+                            filename: `Invoice-${inv.invoiceNumber}.pdf`
+                        }
+                    }
                 ]
             });
-
-            await axios.post(apiUrl, {
-                messaging_product: 'whatsapp',
-                recipient_type: 'individual',
-                to: normalizedTo,
-                type: 'template',
-                template: {
-                    name: ic.invoiceWaTemplateName,
-                    language: { code: ic.invoiceWaLanguageCode || 'en' },
-                    components: components
-                }
-            }, {
-                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-            });
         }
+
+        components.push({
+            type: 'body',
+            parameters: [
+                { type: 'text', text: inv.buyerName || 'Customer' }
+            ]
+        });
+
+        await axios.post(apiUrl, {
+            messaging_product: 'whatsapp',
+            recipient_type: 'individual',
+            to: normalizedTo,
+            type: 'template',
+            template: {
+                name: ic.invoiceWaTemplateName,
+                language: { code: ic.invoiceWaLanguageCode || 'en' },
+                components: components
+            }
+        }, {
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+        });
 
         return { success: true };
     } catch (err) {
@@ -590,7 +592,7 @@ function buildDescription(planName, ic) {
  *
  * @param {string} transactionId - UUID of the COMPLETED Transaction record
  */
-async function generateAndDeliverInvoice(transactionId) {
+async function generateAndDeliverInvoice(transactionId, options = { silent: false }) {
     const Invoice = require('../models/Invoice');
     const Transaction = require('../models/Transaction');
     const User = require('../models/User');
@@ -737,7 +739,10 @@ async function generateAndDeliverInvoice(transactionId) {
 
     // ── 11. Send WhatsApp to user ──────────────────────────────────────────────
     const userPhone = buyerPhone;
-    if (userPhone) {
+    if (options.silent) {
+        await invoice.update({ whatsappStatus: 'skipped_silent' });
+        console.log(`[INVOICE] WA delivery skipped for user ${userPhone} (Silent mode)`);
+    } else if (userPhone) {
         const waResult = await sendInvoiceWhatsApp(userPhone, invoiceData, ic, pdfPublicUrl);
         await invoice.update({
             whatsappStatus: waResult.success ? 'sent' : 'failed',
@@ -752,7 +757,10 @@ async function generateAndDeliverInvoice(transactionId) {
 
     // ── 12. Send CC copies to admin numbers ────────────────────────────────────
     const ccNumbers = ic.ccNumbers || [];
-    if (ic.sendCcOnPurchase && ccNumbers.length > 0) {
+    if (options.silent) {
+        await invoice.update({ adminCcStatus: 'skipped_silent' });
+        console.log(`[INVOICE] CC copies skipped (Silent mode)`);
+    } else if (ic.sendCcOnPurchase && ccNumbers.length > 0) {
         let ccFailed = 0;
         for (const ccPhone of ccNumbers) {
             if (!ccPhone) continue;
@@ -862,5 +870,6 @@ module.exports = {
     sendTestInvoice,
     computeGst,         // Exported for unit testing
     generatePdf,        // Exported for custom PDF generation
+    savePdf,            // Exported for manual PDF regeneration
     numberToWords       // Exported for use in frontend/preview
 };
