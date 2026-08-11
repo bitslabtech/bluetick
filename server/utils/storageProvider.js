@@ -422,17 +422,16 @@ const storageProvider = (folderName, options = {}) => {
                                 }
                             }
 
-                            // Step 5: Generate unique filename
-                            const uniqueSuffix = Date.now().toString() + '-' + Math.round(Math.random() * 1e9);
+                            // Step 5: Sanitize filename
+                            const safeName = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
 
                             // Step 6: Save to storage
                             let fileKey = null;
                             if (storageConf.type === 's3') {
                                 // ── S3 Upload ──
-                                const safeName = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
                                 const key = folderName
-                                    ? `${folderName}/${uniqueSuffix}-${safeName}`
-                                    : `${uniqueSuffix}-${safeName}`;
+                                    ? `${folderName}/${safeName}`
+                                    : `${safeName}`;
 
                                 await storageConf.s3Client.send(new PutObjectCommand({
                                     Bucket: storageConf.s3Conf.bucket,
@@ -468,10 +467,9 @@ const storageProvider = (folderName, options = {}) => {
 
                             } else if (storageConf.type === 'r2') {
                                 // ── Cloudflare R2 Upload (no ACL — R2 does not support it) ──
-                                const safeName = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
                                 const key = folderName
-                                    ? `${folderName}/${uniqueSuffix}-${safeName}`
-                                    : `${uniqueSuffix}-${safeName}`;
+                                    ? `${folderName}/${safeName}`
+                                    : `${safeName}`;
 
                                 await storageConf.s3Client.send(new PutObjectCommand({
                                     Bucket: storageConf.r2Conf.bucket,
@@ -498,7 +496,7 @@ const storageProvider = (folderName, options = {}) => {
 
                             } else {
                                 // ── Local Disk Upload ──
-                                const filename = uniqueSuffix + path.extname(req.file.originalname);
+                                const filename = safeName;
                                 const filePath = path.join(storageConf.uploadDir, filename);
 
                                 // Write buffer to disk
@@ -698,14 +696,14 @@ const processAndStoreBuffer = async (buffer, originalname, mimetype, folderName,
         }
     }
 
-    const uniqueSuffix = Date.now().toString() + '-' + Math.round(Math.random() * 1e9);
+    // Sanitize filename
+    const safeName = originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
     let publicUrl = null;
     let fileKey = null;
     let size = fileBuffer.length;
 
     if (storageConf.type === 's3') {
-        const safeName = originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const key = folderName ? `${folderName}/${uniqueSuffix}-${safeName}` : `${uniqueSuffix}-${safeName}`;
+        const key = folderName ? `${folderName}/${safeName}` : `${safeName}`;
         await storageConf.s3Client.send(new PutObjectCommand({
             Bucket: storageConf.s3Conf.bucket,
             Key: key,
@@ -722,8 +720,7 @@ const processAndStoreBuffer = async (buffer, originalname, mimetype, folderName,
         }
         fileKey = key;
     } else if (storageConf.type === 'r2') {
-        const safeName = originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const key = folderName ? `${folderName}/${uniqueSuffix}-${safeName}` : `${uniqueSuffix}-${safeName}`;
+        const key = folderName ? `${folderName}/${safeName}` : `${safeName}`;
         await storageConf.s3Client.send(new PutObjectCommand({
             Bucket: storageConf.r2Conf.bucket,
             Key: key,
@@ -733,7 +730,7 @@ const processAndStoreBuffer = async (buffer, originalname, mimetype, folderName,
         publicUrl = buildR2Location(storageConf.r2Conf, storageConf.endpoint, key);
         fileKey = key;
     } else {
-        const filename = uniqueSuffix + path.extname(originalname);
+        const filename = safeName;
         const filePath = path.join(storageConf.uploadDir, filename);
         fs.writeFileSync(filePath, fileBuffer);
         const subPath = folderName ? `${folderName}/${filename}` : filename;
