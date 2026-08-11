@@ -221,7 +221,7 @@ export default function ProductImportModal({ storeId, storeCategories = [], onCl
             );
             const url = URL.createObjectURL(res.data);
             const a = document.createElement('a');
-            a.href = url; a.download = 'products_import_template.csv'; a.click();
+            a.href = url; a.download = 'products_import_template.xlsx'; a.click();
             URL.revokeObjectURL(url);
         } catch { toast.error('Failed to download template'); }
     };

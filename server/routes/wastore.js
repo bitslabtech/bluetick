@@ -1102,53 +1102,79 @@ router.delete('/:id', async (req, res) => {
 // PRODUCT IMPORT ROUTES
 // ==========================================
 
-// GET /:storeId/products/import-template — Download CSV template
+// GET /:storeId/products/import-template — Download XLSX template
 router.get('/:storeId/products/import-template', async (req, res) => {
     try {
+        const XLSX = require('xlsx');
         const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
         if (!store) return res.status(404).json({ error: 'Store not found' });
 
         // Gather existing categories so template can show them as hints
         let existingCategories = [];
         try { existingCategories = typeof store.categories === 'string' ? JSON.parse(store.categories) : (store.categories || []); } catch (e) {}
-
         const catHint = existingCategories.length > 0 ? existingCategories[0] : 'Electronics';
 
-        // Column headers — price=MRP/regular price, salePrice=discounted selling price (optional, leave blank for no discount)
-        const headers = ['name','description','price','salePrice','category','sku','inStock','stockQuantity','trackQuantity','lowStockThreshold','taxRate','imageUrls','metaTitle','metaDescription'];
-        // Sample rows: price=MRP (strikethrough), salePrice=actual selling price (optional)
-        const sample1 = ['Blue T-Shirt','Comfortable cotton t-shirt in size M','699','499', catHint, 'TSHIRT-BLU-M','yes','100','yes','10','18','https://example.com/image1.jpg','Blue T-Shirt | Buy Online','Premium blue t-shirt for everyday wear'];
-        const sample2 = ['Black Jeans','Slim fit stretch denim jeans size 32','1799','1299', catHint, 'JEANS-BLK-32','yes','50','yes','5','18','https://example.com/jeans1.jpg,https://example.com/jeans2.jpg','Black Slim Jeans','Stylish black jeans'];
-        const sample3 = ['Gold Ring','18k gold ring with diamond','4999','','Jewelry','RING-GOLD-18K','yes','20','no','3','3','','Gold Diamond Ring','Premium 18k gold ring'];
-        // Hint row explaining each column
-        const hint = [
-            'REQUIRED: Product name',
-            'Optional: Product description',
-            'REQUIRED: MRP / Regular price (shown with strikethrough if salePrice is set)',
-            'Optional: Discounted/Sale price (leave blank if no discount)',
-            'Optional: Category name',
-            'Optional: SKU code (must be unique)',
-            'yes or no',
-            'Number of items in stock',
-            'yes or no (track inventory)',
-            'Number (low stock alert threshold)',
-            'Tax rate % e.g. 18',
-            'Image URL(s) comma-separated',
-            'SEO title (optional)',
-            'SEO description (optional)'
+        // ── Column definitions ──────────────────────────────────────────────
+        const columns = [
+            { key: 'name',              label: 'name',              hint: 'REQUIRED – Product name' },
+            { key: 'description',       label: 'description',       hint: 'Optional – Full product description (commas & line breaks are fine)' },
+            { key: 'price',             label: 'price',             hint: 'REQUIRED – MRP / Regular price. If salePrice is set this shows as strikethrough.' },
+            { key: 'salePrice',         label: 'salePrice',         hint: 'Optional – Actual selling/discounted price. Leave blank if no discount.' },
+            { key: 'category',          label: 'category',          hint: 'Optional – Category name (e.g. Electronics, Clothing)' },
+            { key: 'sku',               label: 'sku',               hint: 'Optional – Unique stock-keeping unit code' },
+            { key: 'inStock',           label: 'inStock',           hint: 'yes or no' },
+            { key: 'stockQuantity',     label: 'stockQuantity',     hint: 'Number – Current stock count' },
+            { key: 'trackQuantity',     label: 'trackQuantity',     hint: 'yes or no – Enable inventory tracking' },
+            { key: 'lowStockThreshold', label: 'lowStockThreshold', hint: 'Number – Alert when stock falls below this' },
+            { key: 'taxRate',           label: 'taxRate',           hint: 'Number – GST/Tax % e.g. 18' },
+            { key: 'imageUrls',         label: 'imageUrls',         hint: 'Image URL(s) – separate multiple URLs with a comma' },
+            { key: 'metaTitle',         label: 'metaTitle',         hint: 'Optional – SEO page title' },
+            { key: 'metaDescription',   label: 'metaDescription',   hint: 'Optional – SEO meta description' },
         ];
 
-        const toCSVRow = (arr) => arr.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
-        const csv = [toCSVRow(headers), toCSVRow(hint), toCSVRow(sample1), toCSVRow(sample2), toCSVRow(sample3)].join('\r\n');
+        // ── Rows ────────────────────────────────────────────────────────────
+        const headerRow   = columns.map(c => c.label);
+        const hintRow     = columns.map(c => c.hint);
+        const sample1     = ['Blue T-Shirt', 'Comfortable cotton t-shirt, available in size M. Contains vitamin E, magnesium, potassium.', 699, 499, catHint, 'TSHIRT-BLU-M', 'yes', 100, 'yes', 10, 18, 'https://example.com/image1.jpg', 'Blue T-Shirt | Buy Online', 'Premium blue t-shirt for everyday wear'];
+        const sample2     = ['Black Jeans',  'Slim fit stretch denim jeans, size 32. Comfortable & durable.', 1799, 1299, catHint, 'JEANS-BLK-32', 'yes', 50, 'yes', 5, 18, 'https://example.com/jeans1.jpg', 'Black Slim Jeans', 'Stylish black jeans'];
+        const sample3     = ['Gold Ring',    '18k gold ring with diamond.', 4999, '', 'Jewelry', 'RING-GOLD-18K', 'yes', 20, 'no', 3, 3, '', 'Gold Diamond Ring', 'Premium 18k gold ring'];
 
-        res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', 'attachment; filename="products_import_template.csv"');
-        res.send(csv);
+        const wsData = [headerRow, hintRow, sample1, sample2, sample3];
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+        // ── Column widths ───────────────────────────────────────────────────
+        ws['!cols'] = [
+            { wch: 25 }, // name
+            { wch: 50 }, // description
+            { wch: 12 }, // price
+            { wch: 12 }, // salePrice
+            { wch: 18 }, // category
+            { wch: 18 }, // sku
+            { wch: 10 }, // inStock
+            { wch: 14 }, // stockQuantity
+            { wch: 14 }, // trackQuantity
+            { wch: 18 }, // lowStockThreshold
+            { wch: 10 }, // taxRate
+            { wch: 45 }, // imageUrls
+            { wch: 25 }, // metaTitle
+            { wch: 35 }, // metaDescription
+        ];
+
+        XLSX.utils.book_append_sheet(wb, ws, 'Products');
+
+        const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename="products_import_template.xlsx"');
+        res.send(buf);
     } catch (error) {
         console.error('Import template error:', error);
         res.status(500).json({ error: 'Failed to generate template' });
     }
 });
+
 
 // POST /:storeId/products/import/parse — Parse & validate (NO DB write)
 router.post('/:storeId/products/import/parse', async (req, res) => {
