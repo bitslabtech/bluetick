@@ -1179,7 +1179,31 @@ router.post('/:storeId/products/import/parse', async (req, res) => {
         const matchedCategories = [];
         const validatedRows = [];
 
-        rawRows.forEach((row, idx) => {
+        // ── Normalize incoming row keys ──────────────────────────────────────────────
+        // Frontend sends lowercase keys (e.g. 'saleprice', 'instock') after our BOM/lowercase fix.
+        // Map any case variant to the canonical camelCase field name the rest of this route expects.
+        const KEY_MAP = {
+            name: 'name', description: 'description', price: 'price',
+            saleprice: 'salePrice', salesprice: 'salePrice',
+            category: 'category', sku: 'sku',
+            instock: 'inStock', stockquantity: 'stockQuantity', stockqty: 'stockQuantity',
+            trackquantity: 'trackQuantity', trackqty: 'trackQuantity',
+            lowstockthreshold: 'lowStockThreshold', lowstock: 'lowStockThreshold',
+            taxrate: 'taxRate', tax: 'taxRate',
+            imageurls: 'imageUrls', imageurl: 'imageUrls', images: 'imageUrls',
+            metatitle: 'metaTitle', metadescription: 'metaDescription',
+        };
+        const normalizeRow = (row) => {
+            const out = {};
+            Object.keys(row).forEach(k => {
+                const canonical = KEY_MAP[k.toLowerCase().replace(/[^a-z]/g, '')] || k;
+                out[canonical] = row[k];
+            });
+            return out;
+        };
+
+        rawRows.forEach((rawRow, idx) => {
+            const row = normalizeRow(rawRow);
             const rowNum = idx + 1;
             const errors = {};
             const warnings = {};
