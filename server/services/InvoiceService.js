@@ -670,7 +670,7 @@ async function generateAndDeliverInvoice(transactionId, options = { silent: fals
     const invoiceData = {
         invoiceNumber,
         invoiceType: ic.invoiceType || 'tax_invoice',
-        invoiceDate: new Date(),
+        invoiceDate: options.invoiceDate || txn.createdAt || new Date(),
         transactionId,
         userId: user.id,
 
