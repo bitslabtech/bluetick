@@ -296,6 +296,11 @@ export default function PublicWaProduct({ customSlug }) {
         setCart([]);
     };
 
+    const crossSellProducts = React.useMemo(() => {
+        if (!store || store.showCrossSells === false || !product || !product.category || !allProducts.length) return [];
+        return allProducts.filter(p => p.category === product.category && p.id !== product.id).slice(0, 8);
+    }, [store, product, allProducts]);
+
     if (loading) return (
         <div className="h-screen flex items-center justify-center bg-white">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black" />
@@ -355,11 +360,6 @@ export default function PublicWaProduct({ customSlug }) {
         : 0;
     const checkoutShippingCost = (flatShippingRate > 0 && (freeShippingThreshold === 0 || (checkoutSubtotal + checkoutEstimatedTax) < freeShippingThreshold)) ? flatShippingRate : 0;
     const checkoutTotal = checkoutSubtotal + checkoutShippingCost;
-
-    const crossSellProducts = React.useMemo(() => {
-        if (!store || store.showCrossSells === false || !product || !product.category || !allProducts.length) return [];
-        return allProducts.filter(p => p.category === product.category && p.id !== product.id).slice(0, 8);
-    }, [store, product, allProducts]);
 
     return (
         <div className={`flex flex-col min-h-screen overflow-x-hidden w-full ${theme.pageBg} font-sans ${theme.text} selection:bg-black selection:text-white pb-[140px] md:pb-0`} style={{ fontFamily: theme.fontFamily }}>
