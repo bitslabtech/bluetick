@@ -92,24 +92,36 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
         fetchFiles(1, activeMediaTab);
     }, [fetchSource, token]);
 
-    const handleFileUpload = async (fileObj) => {
-        if (!fileObj) return;
+    const handleFilesUpload = async (fileList) => {
+        if (!fileList || fileList.length === 0) return;
         setUploading(true);
-        try {
-            const form = new FormData();
-            form.append("file", fileObj);
-            const uploadUrl = `${import.meta.env.VITE_API_URL}/api/media/upload?source=${fetchSource}`;
-            await axios.post(uploadUrl, form, {
-                headers: { ...getHeaders(), "Content-Type": "multipart/form-data" }
-            });
-            showToast("File uploaded successfully!", "success");
-            await Promise.all([fetchFiles(1, activeMediaTab), fetchUsage()]);
-        } catch (e) {
-            const errMsg = e.response?.data?.error || "Upload failed";
-            showToast(errMsg, "error");
-        } finally {
-            setUploading(false);
+        let successCount = 0;
+        let failCount = 0;
+        
+        for (let i = 0; i < fileList.length; i++) {
+            const fileObj = fileList[i];
+            try {
+                const form = new FormData();
+                form.append("file", fileObj);
+                const uploadUrl = `${import.meta.env.VITE_API_URL}/api/media/upload?source=${fetchSource}`;
+                await axios.post(uploadUrl, form, {
+                    headers: { ...getHeaders(), "Content-Type": "multipart/form-data" }
+                });
+                successCount++;
+            } catch (e) {
+                console.error("Upload failed for", fileObj.name, e);
+                failCount++;
+            }
         }
+        
+        if (successCount > 0) {
+            showToast(`${successCount} file(s) uploaded successfully!`, "success");
+            await Promise.all([fetchFiles(1, activeMediaTab), fetchUsage()]);
+        }
+        if (failCount > 0) {
+            showToast(`${failCount} file(s) failed to upload`, "error");
+        }
+        setUploading(false);
     };
 
     const handleDelete = (id) => {
@@ -176,8 +188,8 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
     const handleDrop = (e) => {
         e.preventDefault();
         setDragOver(false);
-        const file = e.dataTransfer.files[0];
-        if (file) handleFileUpload(file);
+        const files = e.dataTransfer.files;
+        if (files && files.length > 0) handleFilesUpload(files);
     };
 
     // Filtered files by search
@@ -219,9 +231,10 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                         {uploading ? "Uploading..." : "Upload File"}
                         <input
                             type="file"
+                            multiple
                             accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml,video/mp4,video/webm,application/pdf,text/csv,text/plain,.docx"
                             className="hidden"
-                            onChange={e => handleFileUpload(e.target.files[0])}
+                            onChange={e => handleFilesUpload(e.target.files)}
                             disabled={uploading}
                         />
                     </label>
@@ -375,9 +388,10 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                 <input
                     ref={dropZoneInputRef}
                     type="file"
+                    multiple
                     accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml,video/mp4,video/webm,application/pdf,text/csv,text/plain,.docx"
                     className="hidden"
-                    onChange={e => { if (e.target.files[0]) { handleFileUpload(e.target.files[0]); e.target.value = ''; } }}
+                    onChange={e => { if (e.target.files.length > 0) { handleFilesUpload(e.target.files); e.target.value = ''; } }}
                     disabled={uploading}
                 />
                 <div className="flex flex-col items-center gap-2">
