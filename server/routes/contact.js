@@ -85,7 +85,44 @@ router.post('/demo', async (req, res) => {
                 ...parseTags(bookDemoConfig.crmGroups)
             ];
 
-            // Find or create contact for this owner
+            // 1. Instantly validate by sending the template if configured
+            if (triggerTemplate) {
+                try {
+                    const Template = require('../models/Template');
+                    const { sendSystemMessage } = require('../services/systemMessenger');
+                    
+                    const template = await Template.findOne({ where: { userId: linkedAdminUserId, name: triggerTemplate } });
+                    if (template) {
+                        const result = await sendSystemMessage(fullPhone, 'template', {
+                            templateName: template.name,
+                            languageCode: template.language || 'en',
+                            components: []
+                        });
+                        
+                        // If the message fails to send (e.g. invalid number), block the submission
+                        if (!result || !result.success) {
+                            // Check if the error is specifically about the number being invalid
+                            const errCode = result?.error?.error?.code;
+                            
+                            // 131026: Message Undeliverable (not on WA / blocked)
+                            // 131009: Parameter invalid (bad phone format)
+                            // 133010: Phone number not registered
+                            if (errCode === 131026 || errCode === 131009 || errCode === 133010) {
+                                return res.status(400).json({ error: 'Please enter a valid WhatsApp number.' });
+                            }
+                            
+                            // For other errors (e.g. 131048 Healthy Ecosystem, Rate Limits, or Payment issues),
+                            // we DO NOT block the user. We log the issue and gracefully continue to save the lead!
+                            console.warn('[Demo Route] Template send skipped (Non-fatal error):', errCode || result?.error);
+                        }
+                    }
+                } catch (tempErr) {
+                    console.error('Demo trigger template error:', tempErr);
+                    return res.status(400).json({ error: 'Please enter a valid WhatsApp number.' });
+                }
+            }
+
+            // 2. Since validation passed (or wasn't configured), find or create contact
             let contact = await Contact.findOne({ where: { userId: primaryOwnerId, phone: fullPhone } });
             
             if (contact) {
@@ -104,7 +141,7 @@ router.post('/demo', async (req, res) => {
                 });
             }
 
-            // Optional: Notify admin
+            // 3. Notify admin
             await AdminNotification.create({
                 type: 'SYSTEM_ALERT',
                 message: `New demo request from ${name} (${fullPhone})`,
@@ -112,21 +149,6 @@ router.post('/demo', async (req, res) => {
             try {
                 await sendAdminAlert('contact_inquiry', `New Demo Request from ${name} (${fullPhone})`, { name, message: 'Demo Request' });
             } catch (e) {}
-
-            // Send template if configured
-            if (triggerTemplate) {
-                try {
-                    const Template = require('../models/Template');
-                    const { sendTemplateMessage } = require('../services/whatsapp');
-                    
-                    const template = await Template.findOne({ where: { userId: linkedAdminUserId, name: triggerTemplate } });
-                    if (template) {
-                        await sendTemplateMessage(linkedAdminUserId, fullPhone, template.name, template.language, []);
-                    }
-                } catch (tempErr) {
-                    console.error('Demo trigger template error:', tempErr);
-                }
-            }
         }
 
         res.status(201).json({ success: true, message: 'Demo request received!' });

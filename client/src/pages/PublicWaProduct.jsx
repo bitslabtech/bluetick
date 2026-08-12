@@ -475,7 +475,7 @@ export default function PublicWaProduct({ customSlug }) {
 
                         {/* Main Image Viewport */}
                         <div 
-                            className="flex-1 max-w-[500px] aspect-square bg-gray-50 border border-gray-100 rounded-2xl overflow-hidden relative group flex items-center justify-center cursor-zoom-in cursor-pointer" 
+                            className="w-full max-w-[500px] mx-auto lg:mx-0 aspect-square bg-gray-50 border border-gray-100 rounded-2xl overflow-hidden relative group flex items-center justify-center cursor-zoom-in cursor-pointer" 
                             onClick={() => setIsLightboxOpen(true)}
                             onTouchStart={(e) => {
                                 touchStartX.current = e.targetTouches[0].clientX;

@@ -15,9 +15,16 @@ function CategoryModal({ mode, initial, onSave, onClose, onOpenPicker }) {
     const [description, setDescription] = useState(initial?.description || '');
     const [metaTitle, setMetaTitle] = useState(initial?.metaTitle || '');
     const [metaDesc, setMetaDesc] = useState(initial?.metaDesc || '');
+    useEffect(() => {
+        const handleSelect = (e) => setImageUrl(e.detail.url);
+        window.addEventListener('mediapicker:select', handleSelect);
+        return () => window.removeEventListener('mediapicker:select', handleSelect);
+    }, []);
+
     const handleSave = () => {
         const trimmed = name.trim();
         if (!trimmed) { toast.error('Category name is required'); return; }
+        if (!imageUrl) { toast.error('Category image is required'); return; }
         onSave({ 
             name: trimmed, 
             image: imageUrl,
@@ -81,7 +88,7 @@ function CategoryModal({ mode, initial, onSave, onClose, onOpenPicker }) {
                         {/* Image Upload */}
                         <div className="space-y-2">
                             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                                Category Image <span className="font-normal text-slate-400">(optional)</span>
+                                Category Image <span className="text-rose-500">*</span>
                             </label>
 
                             {resolvedImage ? (

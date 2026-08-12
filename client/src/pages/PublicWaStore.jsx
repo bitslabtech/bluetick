@@ -165,12 +165,16 @@ export default function PublicWaStore({ customSlug }) {
         };
 
         categoryAutoplayTimer.current = setInterval(scrollNext, 3500);
+        let resumeTimeout = null;
 
         // Pause on user touch
         const pause = () => {
             clearInterval(categoryAutoplayTimer.current);
+            if (resumeTimeout) clearTimeout(resumeTimeout);
+            
             // Resume after 6s of inactivity
-            setTimeout(() => {
+            resumeTimeout = setTimeout(() => {
+                clearInterval(categoryAutoplayTimer.current); // double check
                 categoryAutoplayTimer.current = setInterval(scrollNext, 3500);
             }, 6000);
         };
@@ -178,6 +182,7 @@ export default function PublicWaStore({ customSlug }) {
 
         return () => {
             clearInterval(categoryAutoplayTimer.current);
+            if (resumeTimeout) clearTimeout(resumeTimeout);
             el.removeEventListener('touchstart', pause);
         };
     }, [store?.categoryAutoplay, store]);
@@ -565,7 +570,7 @@ export default function PublicWaStore({ customSlug }) {
                                 className="flex overflow-x-auto hide-scrollbar gap-3 sm:gap-6 pb-6 px-4 sm:px-6 lg:px-8 -mx-4 sm:-mx-6 lg:-mx-8 snap-x md:justify-center"
                             >
                                 {/* Left Spacer to ensure first item doesn't stick to edge */}
-                                <div className="w-1 shrink-0 md:hidden"></div>
+                                <div className="w-1 shrink-0 hidden md:block"></div>
 
                                 {/* INDIVIDUAL CATEGORIES */}
                                 {categories.filter(c => {
@@ -580,12 +585,16 @@ export default function PublicWaStore({ customSlug }) {
                                         catImage = imgs[cat];
                                     } catch (e) { }
 
+                                    const shapeClass = store.categoryDisplayConfig?.shape === 'circle' ? 'rounded-full' : 'rounded-2xl';
+                                    const mobileCols = store.categoryDisplayConfig?.mobileLayout || 3;
+                                    const mobileWidthClass = mobileCols === 2 ? 'w-[calc(50%-6px)]' : mobileCols === 4 ? 'w-[calc(25%-9px)]' : 'w-[calc(33.333%-8px)]';
+
                                     return (
                                         <button
                                             key={cat} onClick={() => navigate(`/store/${slug}/category/${encodeURIComponent(cat)}`)}
-                                            className="flex flex-col items-center gap-2 sm:gap-4 shrink-0 group w-24 sm:w-44 snap-start"
+                                            className={`flex flex-col items-center gap-2 sm:gap-4 shrink-0 group ${mobileWidthClass} md:w-44 md:snap-start`}
                                         >
-                                            <div className={`w-24 h-24 sm:w-44 sm:h-44 overflow-hidden rounded-full flex items-center justify-center transition-all duration-300 relative border-2 border-zinc-900 dark:border-white bg-zinc-100 dark:bg-zinc-800 group-hover:shadow-md`}>
+                                            <div className={`w-full aspect-square md:w-44 md:h-44 overflow-hidden ${shapeClass} flex items-center justify-center transition-all duration-300 relative border-2 border-zinc-900 dark:border-white bg-zinc-100 dark:bg-zinc-800 group-hover:shadow-md`}>
                                                 {catImage ? (
                                     <img
                                         // Category circle: ~96px mobile / ~176px desktop
@@ -600,7 +609,7 @@ export default function PublicWaStore({ customSlug }) {
                                                 )}
                                                 <div className={`absolute inset-0 transition-opacity duration-500 bg-transparent group-hover:bg-black/10`}></div>
                                             </div>
-                                            <span className={`text-sm sm:text-lg tracking-[0.15em] uppercase text-center font-light text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white`}>
+                                            <span className={`text-[10px] md:text-sm sm:text-lg tracking-[0.15em] uppercase text-center font-light text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white`}>
                                                 {cat}
                                             </span>
                                         </button>
@@ -628,12 +637,16 @@ export default function PublicWaStore({ customSlug }) {
                                         catImage = imgs[cat];
                                     } catch (e) { }
 
+                                    const shapeClass = store.categoryDisplayConfig?.shape === 'circle' ? 'rounded-full' : 'rounded-2xl';
+                                    const mobileCols = store.categoryDisplayConfig?.mobileLayout || 3;
+                                    const mobileWidthClass = mobileCols === 2 ? 'w-[calc(50%-6px)]' : mobileCols === 4 ? 'w-[calc(25%-9px)]' : 'w-[calc(33.333%-8px)]';
+
                                     return (
                                         <button
                                             key={cat} onClick={() => navigate(`/store/${slug}/category/${encodeURIComponent(cat)}`)}
-                                            className="flex flex-col items-center gap-2 sm:gap-4 shrink-0 group w-24 sm:w-44"
+                                            className={`flex flex-col items-center gap-2 sm:gap-4 shrink-0 group ${mobileWidthClass} md:w-44`}
                                         >
-                                            <div className={`w-24 h-24 sm:w-44 sm:h-44 ${theme.categoryImageShape || 'rounded-full'} overflow-hidden flex items-center justify-center transition-all duration-300 bg-black/5 group-hover:bg-black/10 group-hover:scale-105`}>
+                                            <div className={`w-full aspect-square md:w-44 md:h-44 ${shapeClass} overflow-hidden flex items-center justify-center transition-all duration-300 bg-black/5 group-hover:bg-black/10 group-hover:scale-105`}>
                                                 {catImage ? (
                                                     <img
                                                         // Category circle: ~96px mobile / ~176px desktop

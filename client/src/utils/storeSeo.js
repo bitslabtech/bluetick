@@ -64,12 +64,21 @@ export function injectCanonical(href) {
 /**
  * Inject or update the favicon.
  */
-export function injectFavicon(logoUrl) {
+export async function injectFavicon(logoUrl) {
     let faviconUrl = logoUrl;
+    const apiBase = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env.VITE_API_URL : '';
+
     if (!faviconUrl) {
-        faviconUrl = '/vite.svg';
-    } else if (faviconUrl.startsWith('/uploads')) {
-        const apiBase = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env.VITE_API_URL : '';
+        try {
+            const { getPublicSettings } = await import('./publicSettings');
+            const data = await getPublicSettings();
+            faviconUrl = data?.faviconUrl || data?.logoUrl || '/vite.svg';
+        } catch (e) {
+            faviconUrl = '/vite.svg';
+        }
+    }
+
+    if (faviconUrl.startsWith('/uploads')) {
         faviconUrl = `${apiBase}${faviconUrl}`;
     }
     

@@ -110,6 +110,11 @@ const WaStore = sequelize.define('WaStore', {
         defaultValue: {},
         comment: 'Map of category names to detail objects { description, metaTitle, metaDesc }'
     },
+    categoryAutoplay: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: 'Auto-scroll categories on mobile'
+    },
     megaMenu: {
         type: DataTypes.JSON,
         defaultValue: [],
@@ -237,6 +242,11 @@ const WaStore = sequelize.define('WaStore', {
         type: DataTypes.JSON,
         defaultValue: { mode: 'none' },
         comment: 'Store product listing pagination mode: none, pagination, load_more'
+    },
+    categoryDisplayConfig: {
+        type: DataTypes.JSON,
+        defaultValue: { mobileLayout: 3, shape: 'round' },
+        comment: 'Settings for category display: mobileLayout (2, 3, 4), shape (round, circle)'
     }
 }, {
     timestamps: true

@@ -524,6 +524,24 @@ const startServer = async () => {
 
         require('./models/WaStoreCoupon'); // Ensure WaStoreCoupon is loaded before sync
         require('./models/MediaFile');     // Ensure MediaFile is loaded before sync
+        
+        // Ensure SYSTEM_ALERT is added to the enum for Postgres databases
+        // since sequelize.sync({ alter: true }) often fails to update ENUMs dynamically
+        try {
+            await sequelize.query(`ALTER TYPE "enum_AdminNotifications_type" ADD VALUE IF NOT EXISTS 'SYSTEM_ALERT';`);
+            console.log('Added SYSTEM_ALERT to AdminNotifications type enum.');
+        } catch (e) {
+            // Postgres < 12 doesn't support IF NOT EXISTS, or the type might be named differently
+            // Ignore error if it already exists or if it's not a postgres dialect
+            if (e.message && !e.message.includes('already exists') && !e.message.includes('syntax error')) {
+                // For older postgres versions without IF NOT EXISTS:
+                try {
+                    await sequelize.query(`ALTER TYPE "enum_AdminNotifications_type" ADD VALUE 'SYSTEM_ALERT';`);
+                    console.log('Added SYSTEM_ALERT to AdminNotifications type enum (legacy fallback).');
+                } catch (err) {}
+            }
+        }
+
         await sequelize.sync({ alter: { drop: false } }); // Sync models — never drop constraints/columns
         console.log('Database synced.');
 

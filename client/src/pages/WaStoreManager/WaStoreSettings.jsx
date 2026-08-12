@@ -83,6 +83,7 @@ export default function WaStoreSettings() {
         { id: 'policies', enabled: false },
         { id: 'profile', enabled: false }
     ]);
+    const [categoryDisplayConfig, setCategoryDisplayConfig] = useState({ mobileLayout: 3, shape: 'round' });
     const [savingGrid, setSavingGrid] = useState(false);
 
     const [checkoutMode, setCheckoutMode] = useState('whatsapp');
@@ -134,6 +135,7 @@ export default function WaStoreSettings() {
                 setStore(myStore);
                 if (myStore?.customDomain) setCustomDomain(myStore.customDomain);
                 if (myStore?.gridColumns) setGridColumns(myStore.gridColumns);
+                if (myStore?.categoryDisplayConfig) setCategoryDisplayConfig(prev => ({ ...prev, ...myStore.categoryDisplayConfig }));
                 if (myStore?.paginationConfig) setPaginationConfig(myStore.paginationConfig);
                 if (myStore?.showCrossSells !== undefined) setShowCrossSells(myStore.showCrossSells);
                 if (myStore?.mobileBottomMenu) setMobileBottomMenu(myStore.mobileBottomMenu);
@@ -200,6 +202,7 @@ export default function WaStoreSettings() {
         try {
             await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, {
                 gridColumns,
+                categoryDisplayConfig,
                 paginationConfig,
                 showCrossSells,
                 mobileBottomMenu
@@ -488,6 +491,74 @@ export default function WaStoreSettings() {
                                     <span className={`text-xs font-bold ${gridColumns.mobile === n ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500'}`}>{n} col</span>
                                 </button>
                             ))}
+                        </div>
+                    </div>
+
+                    {/* Category Display Settings */}
+                    <div className="pt-4 border-t border-slate-100 dark:border-white/5">
+                        <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                            <LayoutGrid className="w-4 h-4 text-indigo-400" /> Category Layout & Shape
+                        </label>
+                        <p className="text-xs text-slate-500 mb-4">Control how categories are displayed on mobile and their shape.</p>
+
+                        <div className="grid grid-cols-1 gap-6">
+                            {/* Category Mobile Columns */}
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-3">
+                                    <Smartphone className="inline w-3 h-3 mr-1" /> Category Mobile Columns
+                                </label>
+                                <div className="flex gap-2">
+                                    {[2, 3, 4].map(n => (
+                                        <button
+                                            key={n}
+                                            type="button"
+                                            onClick={() => setCategoryDisplayConfig(c => ({ ...c, mobileLayout: n }))}
+                                            className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${categoryDisplayConfig.mobileLayout === n
+                                                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                                                    : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300'
+                                                }`}
+                                        >
+                                            <div className="grid gap-0.5" style={{ gridTemplateColumns: `repeat(${n}, 1fr)`, width: 52 }}>
+                                                {Array(n).fill(0).map((_, i) => (
+                                                    <div key={i} className={`h-4 ${categoryDisplayConfig.shape === 'circle' ? 'rounded-full' : 'rounded-sm'} ${categoryDisplayConfig.mobileLayout === n ? 'bg-indigo-400' : 'bg-slate-200 dark:bg-slate-700'}`} />
+                                                ))}
+                                            </div>
+                                            <span className={`text-xs font-bold ${categoryDisplayConfig.mobileLayout === n ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500'}`}>{n} col</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Category Shape */}
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-3">
+                                    Category Shape (All Devices)
+                                </label>
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setCategoryDisplayConfig(c => ({ ...c, shape: 'round' }))}
+                                        className={`flex flex-col items-center gap-2 p-2 rounded-xl border-2 transition-all flex-1 ${categoryDisplayConfig.shape === 'round'
+                                                ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                                                : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300'
+                                            }`}
+                                    >
+                                        <div className={`w-8 h-8 rounded-lg ${categoryDisplayConfig.shape === 'round' ? 'bg-indigo-400' : 'bg-slate-200 dark:bg-slate-700'}`} />
+                                        <span className={`text-xs font-bold ${categoryDisplayConfig.shape === 'round' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500'}`}>Rounded</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setCategoryDisplayConfig(c => ({ ...c, shape: 'circle' }))}
+                                        className={`flex flex-col items-center gap-2 p-2 rounded-xl border-2 transition-all flex-1 ${categoryDisplayConfig.shape === 'circle'
+                                                ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                                                : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300'
+                                            }`}
+                                    >
+                                        <div className={`w-8 h-8 rounded-full ${categoryDisplayConfig.shape === 'circle' ? 'bg-indigo-400' : 'bg-slate-200 dark:bg-slate-700'}`} />
+                                        <span className={`text-xs font-bold ${categoryDisplayConfig.shape === 'circle' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500'}`}>Circle</span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
