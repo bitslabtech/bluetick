@@ -567,11 +567,8 @@ export default function PublicWaStore({ customSlug }) {
                         {theme.id === 'vogue' ? (
                             <div
                                 ref={categoryScrollRef}
-                                className="flex overflow-x-auto hide-scrollbar gap-3 sm:gap-6 pb-6 px-4 sm:px-6 lg:px-8 -mx-4 sm:-mx-6 lg:-mx-8 snap-x md:justify-center"
+                                className="flex overflow-x-auto hide-scrollbar gap-3 sm:gap-6 pb-6 snap-x md:justify-center"
                             >
-                                {/* Left Spacer to ensure first item doesn't stick to edge */}
-                                <div className="w-1 shrink-0 hidden md:block"></div>
-
                                 {/* INDIVIDUAL CATEGORIES */}
                                 {categories.filter(c => {
                                     if (c === 'All') return false;
@@ -619,11 +616,8 @@ export default function PublicWaStore({ customSlug }) {
                         ) : (
                             <div
                                 ref={categoryScrollRef}
-                                className="flex overflow-x-auto hide-scrollbar gap-3 sm:gap-6 py-4 px-4 sm:px-6 lg:px-8 -mx-4 sm:-mx-6 lg:-mx-8 md:justify-center"
+                                className="flex overflow-x-auto hide-scrollbar gap-3 sm:gap-6 py-4 md:justify-center"
                             >
-                                {/* Left Spacer to ensure first item doesn't stick to edge */}
-                                <div className="w-1 shrink-0 md:hidden"></div>
-
                                 {/* INDIVIDUAL CATEGORIES */}
                                 {categories.filter(c => {
                                     if (c === 'All') return false;
@@ -852,10 +846,10 @@ export default function PublicWaStore({ customSlug }) {
 
                             {/* Pagination / Load More UI */}
                             {store?.paginationConfig?.mode === 'load_more' && hasMoreProducts && (
-                                <div className="flex justify-center mt-12">
+                                <div className="flex justify-center mt-12 w-full">
                                     <button 
                                         onClick={() => setCurrentPage(p => p + 1)}
-                                        className={`px-8 py-3 rounded-xl font-bold transition-all flex items-center gap-2 ${theme.buttonStyle}`}
+                                        className={`px-8 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${theme.buttonStyle} !w-auto mx-auto`}
                                     >
                                         Load More Products
                                         <ChevronDown className="w-5 h-5" />
