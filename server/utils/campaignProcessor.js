@@ -83,10 +83,33 @@ const processCampaign = async (campaignId, isRecovery = false) => {
         // Update status to SENDING if starting now
         await message.update({ status: 'SENDING' });
 
-        // Prepare Variables
-        const variableMatches = template.content.match(/\{\{([^}]+)\}\}/g) || [];
-        const variables = variableMatches.map(v => v.replace(/\{\{|\}\}/g, ''));
+        // ── Prepare Variables ──────────────────────────────────────────────────
+        // FIX (#132012): Variables must be split by component — header vars go into
+        // the header component, body vars go into the body component.
+        // Previously ALL vars were extracted from body text only and sent as body
+        // parameters, which caused a format mismatch when the template had a TEXT
+        // header with its own {{variable}}.
+
         const userParams = params || {};
+        const stdHeaderType = (template.headerType || '').toUpperCase();
+
+        // Extract header variables (only relevant for TEXT headers with {{...}} placeholders)
+        const headerVarMatches = (stdHeaderType === 'TEXT' && template.headerContent)
+            ? (template.headerContent.match(/\{\{([^}]+)\}\}/g) || [])
+            : [];
+        const headerVariables = headerVarMatches.map(v => v.replace(/\{\{|\}\}/g, ''));
+
+        // Extract body variables from template body content
+        const bodyVarMatches = template.content.match(/\{\{([^}]+)\}\}/g) || [];
+        const variables = bodyVarMatches.map(v => v.replace(/\{\{|\}\}/g, ''));
+
+        console.log(`[CAMPAIGN:${campaignId}] Template debug →`,
+            `name="${template.name}"`,
+            `| headerType="${stdHeaderType}"`,
+            `| headerVars=[${headerVariables.join(', ')}]`,
+            `| bodyVars=[${variables.join(', ')}]`,
+            `| userParamKeys=[${Object.keys(userParams).join(', ')}]`
+        );
 
         // ── Dynamic field resolver ─────────────────────────────────────────────
         // If a param value starts with "__col__" it means the user picked a
@@ -139,7 +162,15 @@ const processCampaign = async (campaignId, isRecovery = false) => {
                 try {
                     let phone = contact.phone.replace(/\D/g, '');
 
+                    // FIX (#132012): Body parameters only contain BODY variables.
+                    // Header variables are handled separately below in the TEXT header block.
                     const bodyParameters = variables.map(v => ({
+                        type: "text",
+                        text: resolveParam(v, contact)
+                    }));
+
+                    // Resolve header parameters (for TEXT headers with {{variables}})
+                    const headerParameters = headerVariables.map(v => ({
                         type: "text",
                         text: resolveParam(v, contact)
                     }));
@@ -232,12 +263,15 @@ const processCampaign = async (campaignId, isRecovery = false) => {
                         // ── Standard template — build all applicable components ──────────────
                         const components = [];
 
-                        // 1. Header component (IMAGE / VIDEO / DOCUMENT)
-                        //    The frontend uploads the file and stores the media ID in
-                        //    params['headerMediaId']. Documents also carry a filename.
-                        const stdHeaderType = (template.headerType || '').toUpperCase();
+                        // 1. Header component
+                        //    Handles three cases:
+                        //    a) IMAGE / VIDEO / DOCUMENT — uses a media ID uploaded at send-time
+                        //    b) TEXT with {{variables}}  — FIX (#132012): was completely missing before
+                        //    c) TEXT without variables   — static text, no runtime parameters needed
                         const stdHeaderMediaId = userParams['headerMediaId'];
+
                         if (stdHeaderMediaId && ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(stdHeaderType)) {
+                            // 1a. Media header
                             const mediaType = stdHeaderType.toLowerCase(); // 'image' | 'video' | 'document'
                             const mediaParam = { id: stdHeaderMediaId };
                             if (mediaType === 'document') {
@@ -248,10 +282,32 @@ const processCampaign = async (campaignId, isRecovery = false) => {
                                 type: 'header',
                                 parameters: [{ type: mediaType, [mediaType]: mediaParam }]
                             });
+                            console.log(`[CAMPAIGN:${campaignId}] [${phone}] Header → ${stdHeaderType} media id=${stdHeaderMediaId}`);
+
+                        } else if (stdHeaderType === 'TEXT' && headerParameters.length > 0) {
+                            // 1b. TEXT header WITH dynamic variables — FIX (#132012)
+                            //     Previously this block did not exist, causing Meta to receive
+                            //     no header component when the template's header had {{variables}}.
+                            components.push({
+                                type: 'header',
+                                parameters: headerParameters
+                            });
+                            console.log(`[CAMPAIGN:${campaignId}] [${phone}] Header → TEXT with ${headerParameters.length} variable(s):`,
+                                headerParameters.map(p => `"${p.text}"`).join(', '));
+
+                        } else if (stdHeaderType === 'TEXT') {
+                            // 1c. TEXT header with no variables — static text, no component needed at runtime
+                            console.log(`[CAMPAIGN:${campaignId}] [${phone}] Header → TEXT static (no runtime params needed)`);
                         }
 
                         // 2. Body component
                         if (bodyParameters.length > 0) {
+                            // Sanity guard: warn if any param resolved to empty string (can cause #132012)
+                            bodyParameters.forEach((p, i) => {
+                                if (!p.text || p.text.trim() === '') {
+                                    console.warn(`[CAMPAIGN:${campaignId}] [${phone}] WARN: Body param[${i}] (var "${variables[i]}") resolved to empty string. This may cause Meta #132012.`);
+                                }
+                            });
                             components.push({ type: 'body', parameters: bodyParameters });
                         }
 
@@ -284,6 +340,9 @@ const processCampaign = async (campaignId, isRecovery = false) => {
                         if (components.length > 0) {
                             payload.template.components = components;
                         }
+
+                        // Pre-send debug log — prints the full outgoing payload shape to server logs
+                        console.log(`[CAMPAIGN:${campaignId}] [${phone}] Sending payload →`, JSON.stringify(payload, null, 2));
                     }
 
                     const metaRes = await fetch(`https://graph.facebook.com/v21.0/${settings.metaPhoneNumberId}/messages`, {
@@ -298,15 +357,39 @@ const processCampaign = async (campaignId, isRecovery = false) => {
                     const data = await metaRes.json();
 
                     if (!metaRes.ok) {
-                        console.error(`[CAMPAIGN] Meta API Error for ${phone}:`, JSON.stringify(data, null, 2));
-                        console.error(`[CAMPAIGN] Payload that failed:`, JSON.stringify(payload, null, 2));
-                        
                         const metaErrorMsg = data.error?.message || 'Meta API Error';
                         const metaErrorCode = data.error?.code;
+                        const metaErrorSubCode = data.error?.error_subcode;
 
-                        // Map Meta error codes to clear, user-friendly messages
+                        // ── Structured error log — visible only in server logs ─────────────────
+                        console.error(`[CAMPAIGN:${campaignId}] ❌ Meta API Error for ${phone}`);
+                        console.error(`[CAMPAIGN:${campaignId}]    Code       : ${metaErrorCode}`);
+                        console.error(`[CAMPAIGN:${campaignId}]    Sub-code   : ${metaErrorSubCode || 'N/A'}`);
+                        console.error(`[CAMPAIGN:${campaignId}]    Message    : ${metaErrorMsg}`);
+                        console.error(`[CAMPAIGN:${campaignId}]    Full error : ${JSON.stringify(data.error, null, 2)}`);
+                        console.error(`[CAMPAIGN:${campaignId}]    Payload sent ↓`);
+                        console.error(JSON.stringify(payload, null, 2));
+
+                        // Extra diagnostic for #132012 — Parameter format mismatch
+                        if (metaErrorCode === 132012) {
+                            console.error(`[CAMPAIGN:${campaignId}] ⚠️  ERROR #132012 DETECTED — Parameter format mismatch.`);
+                            console.error(`[CAMPAIGN:${campaignId}]    This means the components/parameters sent at runtime do NOT match`);
+                            console.error(`[CAMPAIGN:${campaignId}]    what was registered on Meta when the template was created.`);
+                            console.error(`[CAMPAIGN:${campaignId}]    Template name    : "${template.name}"`);
+                            console.error(`[CAMPAIGN:${campaignId}]    Template headerType : ${stdHeaderType}`);
+                            console.error(`[CAMPAIGN:${campaignId}]    headerVariables  : [${headerVariables.join(', ')}]`);
+                            console.error(`[CAMPAIGN:${campaignId}]    bodyVariables    : [${variables.join(', ')}]`);
+                            console.error(`[CAMPAIGN:${campaignId}]    Resolved headerParameters :`, JSON.stringify(headerParameters));
+                            console.error(`[CAMPAIGN:${campaignId}]    Resolved bodyParameters   :`, JSON.stringify(bodyParameters));
+                            console.error(`[CAMPAIGN:${campaignId}]    → Check that the number of {{variables}} in your local template`);
+                            console.error(`[CAMPAIGN:${campaignId}]      body/header matches exactly what was submitted to Meta.`);
+                        }
+                        // ──────────────────────────────────────────────────────────────────────
+
+                        // Map Meta error codes to clear, user-friendly messages (shown in broadcast history UI)
                         const getFriendlyError = (code, rawMsg) => {
                             switch (code) {
+                                case 132012: return 'Template parameter mismatch — variable count/format sent does not match Meta\'s registered template. Check template variables.';
                                 case 131026: return 'Number is not on WhatsApp';
                                 case 131009: return 'Invalid WhatsApp number';
                                 case 131021: return 'Recipient opted out of messages';
