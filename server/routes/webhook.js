@@ -23,6 +23,7 @@ const { applyAutoTags } = require('../services/AutoTagger'); // Auto-Tagging Eng
 const { processAndStoreBuffer } = require('../utils/storageProvider');
 const path = require('path');
 const fs = require('fs');
+const { MAX_RETRIES, RETRY_DELAYS_HOURS } = require('../utils/retryConfig'); // Bug #13 — single source of truth
 
 // GET /api/webhook/:userId - Webhook Verification
 router.get('/:userId', async (req, res) => {
@@ -366,13 +367,10 @@ router.post('/:userId', (req, res, next) => {
                                     const log131049 = await MessageLog.findOne({ where: { messageId: metaMessageId } });
                                     if (log131049) {
                                         const currentRetryCount = log131049.retryCount || 0;
-                                        const MAX_RETRIES = 3;
 
-                                        // Progressive delay: Retry 1=8h, Retry 2=16h, Retry 3=24h
-                                        const RETRY_DELAYS_HOURS = [8, 16, 24];
-
+                                        // Progressive delay: Retry 1=8h, Retry 2=16h, Retry 3=24h (from retryConfig.js)
                                         if (currentRetryCount < MAX_RETRIES) {
-                                            const delayHours = RETRY_DELAYS_HOURS[currentRetryCount]; // 0-indexed: 8h, 16h, 24h
+                                            const delayHours = RETRY_DELAYS_HOURS[currentRetryCount];
                                             const retryAfter = new Date(Date.now() + delayHours * 60 * 60 * 1000);
                                             const nextRetryCount = currentRetryCount + 1;
 
@@ -384,6 +382,29 @@ router.post('/:userId', (req, res, next) => {
                                                 error: `Frequency cap hit (131049). Retry ${nextRetryCount}/${MAX_RETRIES} scheduled in ${delayHours}h.`
                                             });
                                             console.log(`[WEBHOOK 131049] Scheduled retry ${nextRetryCount}/${MAX_RETRIES} for msgId ${metaMessageId} at ${retryAfter.toISOString()} (+${delayHours}h)`);
+
+                                            // Bug #11 FIX: Update ChatMessage status to 'retry_pending' instead
+                                            // of leaving it as 'failed' in the inbox. When the retry succeeds,
+                                            // retryProcessor will flip it to 'sent' and emit a socket update.
+                                            try {
+                                                const chatMsg131049 = await ChatMessage.findOne({ where: { messageId: metaMessageId } });
+                                                if (chatMsg131049) {
+                                                    chatMsg131049.status = 'retry_pending';
+                                                    await chatMsg131049.save();
+                                                    // Notify inbox UI of the status change
+                                                    try {
+                                                        getIo().to(userId).emit('message_status_update', {
+                                                            messageId: metaMessageId,
+                                                            conversationId: chatMsg131049.conversationId,
+                                                            status: 'retry_pending'
+                                                        });
+                                                    } catch (_se) { /* socket optional */ }
+                                                    console.log(`[WEBHOOK 131049] ChatMessage ${chatMsg131049.id} set to retry_pending`);
+                                                }
+                                            } catch (chatErr) {
+                                                console.error('[WEBHOOK 131049] Failed to update ChatMessage to retry_pending:', chatErr.message);
+                                            }
+
                                         } else {
                                             // All retries exhausted — permanently fail
                                             await log131049.update({

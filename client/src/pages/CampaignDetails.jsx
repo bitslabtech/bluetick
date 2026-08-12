@@ -163,9 +163,22 @@ export default function CampaignDetails() {
                     }
                 });
 
-                // Smart polling: fast for active campaigns, slow for finished ones
+                // Smart polling strategy:
+                //  - Fast (3s)  when campaign is actively SENDING
+                //  - Slow (30s) when COMPLETED but has RETRY_PENDING logs (next retry up to 24h away)
+                //  - Stop       when COMPLETED + zero RETRY_PENDING logs (Bug #6 fix)
                 const status = (msg.status || '').toLowerCase();
+                const hasRetryPending = normalizedLogs.some(l => l.status === 'RETRY_PENDING');
                 const isActive = ['sending', 'active', 'queued', 'scheduled'].includes(status);
+                const isFullyDone = !isActive && !hasRetryPending;
+
+                if (isFullyDone) {
+                    // Nothing left to poll for — clear interval and stop
+                    clearInterval(intervalRef.current?.id);
+                    intervalRef.current = null;
+                    return;
+                }
+
                 const nextInterval = isActive ? FAST_POLL_MS : SLOW_POLL_MS;
 
                 if (intervalRef.current?.speed !== nextInterval) {
@@ -637,10 +650,13 @@ export default function CampaignDetails() {
                                                 ) : log.status === 'RETRY_PENDING' ? (
                                                     <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
                                                         <RefreshCcw className="w-3 h-3" />
-                                                        {log.retryAfter
-                                                            ? `Retry at ${new Date(log.retryAfter).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · ${new Date(log.retryAfter).toLocaleDateString()}`
-                                                            : 'Retry scheduled'
-                                                        }
+                                                        {log.retryAfter ? (() => {
+                                                            const d = new Date(log.retryAfter);
+                                                            const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                                            const dateStr = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                                                            const tzStr = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                                                            return `Retry at ${timeStr} · ${dateStr} (${tzStr})`;
+                                                        })() : 'Retry scheduled'}
                                                     </span>
                                                 ) : (
                                                     <span className="text-xs text-slate-300 dark:text-text-secondary">-</span>
