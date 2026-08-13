@@ -433,7 +433,7 @@ export default function PublicWaProduct({ customSlug }) {
                         box-sizing: border-box !important;
                     }
                 `}</style>
-                <div className="product-detail-grid grid grid-cols-1 gap-8 items-start w-full">
+                <div className="product-detail-grid grid grid-cols-1 gap-8 items-start w-full overflow-hidden">
                     
                     {/* Left: Immersive Image Gallery */}
                     <div className="flex flex-col lg:flex-row gap-6 lg:justify-center lg:self-start lg:items-start w-full min-w-0 overflow-hidden">
@@ -477,7 +477,7 @@ export default function PublicWaProduct({ customSlug }) {
 
                         {/* Main Image Viewport */}
                         <div 
-                            className="w-full lg:flex-1 max-w-[500px] mx-auto lg:mx-0 aspect-square bg-white isolate border border-gray-100 rounded-2xl overflow-hidden relative group flex items-center justify-center cursor-zoom-in cursor-pointer shrink-0 lg:shrink" 
+                            className="w-full min-w-0 lg:flex-1 max-w-full lg:max-w-[500px] mx-auto lg:mx-0 aspect-square bg-white isolate border border-gray-100 rounded-2xl overflow-hidden relative group flex items-center justify-center cursor-zoom-in cursor-pointer" 
                             onClick={() => setIsLightboxOpen(true)}
                             onTouchStart={(e) => {
                                 touchStartX.current = e.targetTouches[0].clientX;
@@ -782,7 +782,7 @@ export default function PublicWaProduct({ customSlug }) {
                     // All cards including the "View All" card
                     const totalCards = crossSellProducts.length + 1;
                     return (
-                        <div className="mt-16 pt-8 border-t border-gray-100 w-full">
+                        <div className="mt-16 pt-8 border-t border-gray-100 w-full overflow-hidden">
                             <h4 className={`text-sm font-bold uppercase tracking-widest ${theme.text} mb-6`}>You May Also Like</h4>
 
                             {/* Scroll Container */}
@@ -796,8 +796,8 @@ export default function PublicWaProduct({ customSlug }) {
                                     const idx = Math.round(el.scrollLeft / cardWidth);
                                     setCrossSellDotIdx(Math.min(idx, totalCards - 1));
                                 }}
-                                className="flex gap-4 overflow-x-scroll pb-2 snap-x snap-mandatory"
-                                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
+                                className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory w-full"
+                                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}
                             >
                                 <style>{`
                                     .crosssell-scroll::-webkit-scrollbar { display: none; }
@@ -808,7 +808,7 @@ export default function PublicWaProduct({ customSlug }) {
                                         onClick={() => {
                                             navigate(`/store/${slug}/product/${slugifyProduct(p)}`);
                                         }}
-                                        className="shrink-0 w-36 md:w-44 cursor-pointer group/cs snap-start"
+                                        className="shrink-0 w-36 cursor-pointer group/cs snap-start"
                                     >
                                         <div className="aspect-square rounded-2xl overflow-hidden bg-white isolate border border-gray-100 mb-3 relative">
                                             {p.imageUrls && p.imageUrls[0] ? (
@@ -834,7 +834,7 @@ export default function PublicWaProduct({ customSlug }) {
                                 {/* View All Card */}
                                 <div
                                     onClick={() => navigate(`/store/${slug}?cat=${encodeURIComponent(product.category)}`)}
-                                    className="shrink-0 w-36 md:w-44 cursor-pointer group/cs snap-start flex flex-col"
+                                    className="shrink-0 w-36 cursor-pointer group/cs snap-start flex flex-col"
                                 >
                                     <div className="aspect-square w-full rounded-2xl overflow-hidden bg-gray-50 hover:bg-gray-100 border border-gray-100 mb-3 flex flex-col items-center justify-center transition-colors">
                                         <ArrowRight className="w-6 h-6 text-gray-400 group-hover/cs:text-black mb-2 transition-colors" />

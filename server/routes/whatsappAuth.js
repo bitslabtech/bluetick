@@ -770,5 +770,51 @@ router.get('/quality-insights', auth, async (req, res) => {
     }
 });
 
-module.exports = router;
+// POST /api/whatsapp/log-onboarding-error
+// Intercepts Meta Embedded Signup errors from the frontend popup and logs them to ActivityLog
+router.post('/log-onboarding-error', auth, async (req, res) => {
+    try {
+        const { errorPayload } = req.body;
+        if (!errorPayload) {
+            return res.status(400).json({ error: 'Missing error payload' });
+        }
 
+        let rawError = errorPayload.error_message || errorPayload.errorMessage || JSON.stringify(errorPayload);
+        let rootCause = 'Unknown Meta API Error';
+        let fixAction = 'Please ensure your Meta App permissions and Business Manager roles are correctly configured.';
+
+        // Meta Error Dictionary
+        if (rawError.includes('1349246') || rawError.includes('assets were not granted')) {
+            rootCause = 'Permission Denied: User lacks Admin rights, OR Meta App lacks Advanced Access.';
+            fixAction = 'Ensure the Facebook user logging in is a Full Admin of their Meta Business Manager. If they are, ensure your Meta App has "Advanced Access" for the business_management permission in App Review.';
+        } else if (rawError.includes('113') || rawError.includes('User cannot access')) {
+            rootCause = 'Access Denied: The user does not have access to this WABA or App.';
+            fixAction = 'Verify the user has access to the WhatsApp Business Account in Business Manager.';
+        } else if (rawError.includes('1349139') || rawError.includes('User must verify their identity')) {
+            rootCause = 'Identity Verification Required';
+            fixAction = 'The user must go to business.facebook.com/support and complete identity verification or resolve restrictions on their account.';
+        }
+
+        const details = JSON.stringify({
+            rawError,
+            rootCause,
+            fixAction,
+            fullPayload: errorPayload
+        }, null, 2);
+
+        const ActivityLog = require('../models/ActivityLog');
+        await ActivityLog.create({
+            userId: req.user.id,
+            action: 'WHATSAPP_ONBOARDING_ERROR',
+            details: details,
+            ip: req.ip || req.connection.remoteAddress
+        });
+
+        res.json({ success: true, message: 'Error logged for admin review.' });
+    } catch (err) {
+        console.error('[WA DEBUG] Failed to log onboarding error:', err.message);
+        res.status(500).json({ error: 'Failed to log error' });
+    }
+});
+
+module.exports = router;

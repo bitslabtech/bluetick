@@ -781,6 +781,19 @@ const Settings = () => {
                     } else if (data.event === 'ERROR') {
                         window.removeEventListener('message', fbMessageListener);
                         setFbLoading(false);
+                        
+                        // Send error to backend for logging
+                        axios.post(`${import.meta.env.VITE_API_URL}/api/whatsapp/log-onboarding-error`, {
+                            errorPayload: data.data || data
+                        }, { withCredentials: true }).catch(err => {
+                            console.error('Failed to log Meta error', err);
+                        });
+
+                        showToast({
+                            type: 'error',
+                            title: 'WhatsApp Setup Failed',
+                            message: 'An error occurred during Meta onboarding. Support has been notified.'
+                        });
                     }
                 }
             } catch (e) {

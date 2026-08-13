@@ -588,9 +588,9 @@ export default function PublicWaStore() {
 
                             {/* ─── CROSS-SELLS ─── */}
                             {crossSellProducts.length > 0 && (
-                                <div className="mt-8 pt-6 border-t border-gray-100">
+                                <div className="mt-8 pt-6 border-t border-gray-100 overflow-hidden">
                                     <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">You May Also Like</h4>
-                                    <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
+                                    <div className="flex gap-3 overflow-x-auto pb-2 w-full" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}>
                                         {crossSellProducts.map(p => (
                                             <div
                                                 key={p.id}
