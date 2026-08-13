@@ -95,6 +95,7 @@ const WaStoreTopBar = React.lazy(() => import('./pages/WaStoreManager/WaStoreTop
 const WaStorePolicies = React.lazy(() => import('./pages/WaStoreManager/WaStorePolicies'));
 const WaStoreAnalytics = React.lazy(() => import('./pages/WaStoreManager/WaStoreAnalytics'));
 const WaStoreNotifications = React.lazy(() => import('./pages/WaStoreManager/WaStoreNotifications'));
+const WaStoreCustomers = React.lazy(() => import('./pages/WaStoreManager/WaStoreCustomers'));
 const PublicWaStore = React.lazy(() => import('./pages/PublicWaStore'));
 const PublicWaStoreCategory = React.lazy(() => import('./pages/PublicWaStoreCategory'));
 const PublicWaProduct = React.lazy(() => import('./pages/PublicWaProduct'));
@@ -434,6 +435,7 @@ function App() {
                                                     <Route path="inventory" element={<WaStoreInventory />} />
                                                     <Route path="categories" element={<WaStoreCategories />} />
                                                     <Route path="orders" element={<WaStoreOrders />} />
+                                                    <Route path="customers" element={<WaStoreCustomers />} />
                                                     <Route path="pos" element={<WaStorePOS />} />
                                                     <Route path="notifications" element={<WaStoreNotifications />} />
                                                     <Route path="coupons" element={<WaStoreCoupons />} />

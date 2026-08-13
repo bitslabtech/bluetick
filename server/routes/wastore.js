@@ -977,6 +977,101 @@ router.post('/', async (req, res) => {
     }
 });
 
+// GET /api/wastore/:storeId/customers  — Owner: list all registered store customers
+router.get('/:storeId/customers', async (req, res) => {
+    try {
+        const StoreCustomer = require('../models/StoreCustomer');
+        const { Op, fn, col, literal } = require('sequelize');
+
+        // Verify the store belongs to the requesting user
+        const store = await WaStore.findOne({
+            where: { id: req.params.storeId, userId: req.user.id }
+        });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+
+        const page   = parseInt(req.query.page)  || 1;
+        const limit  = parseInt(req.query.limit) || 25;
+        const search = req.query.search || '';
+        const offset = (page - 1) * limit;
+
+        const whereClause = { storeId: store.id };
+        if (search) {
+            whereClause[Op.or] = [
+                { name:  { [Op.iLike]: `%${search}%` } },
+                { email: { [Op.iLike]: `%${search}%` } },
+                { phone: { [Op.iLike]: `%${search}%` } },
+            ];
+        }
+
+        // Fetch paginated customers
+        const { count, rows: customers } = await StoreCustomer.findAndCountAll({
+            where: whereClause,
+            attributes: ['id', 'name', 'email', 'phone', 'isVerified', 'createdAt'],
+            order: [['createdAt', 'DESC']],
+            limit,
+            offset,
+        });
+
+        // For each customer, attach order count + total spend
+        const startOfMonth = new Date();
+        startOfMonth.setDate(1);
+        startOfMonth.setHours(0, 0, 0, 0);
+
+        const customerIds = customers.map(c => c.id);
+
+        // Bulk-fetch order stats for this page of customers
+        const orderStats = await WaOrder.findAll({
+            where: {
+                storeId: store.id,
+                storeCustomerId: { [Op.in]: customerIds },
+            },
+            attributes: [
+                'storeCustomerId',
+                [fn('COUNT', col('id')), 'orderCount'],
+                [fn('SUM', col('total')), 'totalSpend'],
+            ],
+            group: ['storeCustomerId'],
+            raw: true,
+        });
+
+        const statsMap = {};
+        orderStats.forEach(s => {
+            statsMap[s.storeCustomerId] = {
+                orderCount: parseInt(s.orderCount) || 0,
+                totalSpend: parseFloat(s.totalSpend) || 0,
+            };
+        });
+
+        const enriched = customers.map(c => ({
+            ...c.toJSON(),
+            orderCount: statsMap[c.id]?.orderCount || 0,
+            totalSpend: statsMap[c.id]?.totalSpend  || 0,
+        }));
+
+        // Summary metrics
+        const totalCustomers  = await StoreCustomer.count({ where: { storeId: store.id } });
+        const newThisMonth    = await StoreCustomer.count({
+            where: { storeId: store.id, createdAt: { [Op.gte]: startOfMonth } }
+        });
+
+        res.json({
+            customers: enriched,
+            total: count,
+            page,
+            totalPages: Math.ceil(count / limit),
+            summary: {
+                totalCustomers,
+                newThisMonth,
+            }
+        });
+    } catch (error) {
+        console.error('Fetch store customers error:', error);
+        res.status(500).json({ error: 'Failed to fetch customers' });
+    }
+});
+
+
+
 // Update store
 router.put('/:id', async (req, res) => {
     try {

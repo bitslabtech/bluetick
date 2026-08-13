@@ -670,20 +670,23 @@ export default function PublicWaStore({ customSlug }) {
                 </div>
 
                 {/* Filters / Sort */}
-                <div className="flex items-center justify-start mb-4 sm:mb-8">
-                    <div className="flex items-center gap-2 bg-white dark:bg-zinc-900/50 border border-gray-200 dark:border-gray-800 rounded-xl px-4 py-2.5 shadow-sm hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-md transition-all cursor-pointer relative group">
-                        <Filter className="w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-black dark:group-hover:text-white transition-colors" />
-                        <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:block">Sort By</span>
+                <div className="flex items-center justify-between mb-6 sm:mb-8 w-full border-b border-gray-100 dark:border-zinc-800/50 pb-4">
+                    <div className={`text-sm font-medium ${theme.textMuted} hidden sm:block`}>
+                        Showing {filteredAndSortedProducts.length} {filteredAndSortedProducts.length === 1 ? 'product' : 'products'}
+                    </div>
+                    <div className="flex items-center gap-2 bg-gray-50/50 hover:bg-gray-100 dark:bg-zinc-900/50 dark:hover:bg-zinc-800 border border-gray-200 dark:border-zinc-800 rounded-full px-4 py-2 transition-all cursor-pointer relative group shadow-sm ml-auto">
+                        <Filter className={`w-4 h-4 ${theme.textMuted} group-hover:${theme.text} transition-colors`} />
+                        <span className={`text-[11px] font-bold ${theme.textMuted} uppercase tracking-wider hidden sm:block`}>Sort</span>
                         <select
                             value={sortBy} onChange={(e) => setSortBy(e.target.value)}
                             aria-label="Sort products"
-                            className="bg-transparent text-[13px] md:text-sm font-bold text-gray-800 dark:text-gray-200 outline-none cursor-pointer border-none focus:ring-0 appearance-none pr-6 z-10"
+                            className={`bg-transparent text-[13px] font-semibold ${theme.text} outline-none cursor-pointer border-none focus:ring-0 appearance-none pr-5 z-10`}
                         >
                             <option value="newest" className="text-gray-900 font-medium">New Arrivals</option>
                             <option value="price-asc" className="text-gray-900 font-medium">Price: Low to High</option>
                             <option value="price-desc" className="text-gray-900 font-medium">Price: High to Low</option>
                         </select>
-                        <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-3.5 group-hover:text-black dark:group-hover:text-white transition-colors pointer-events-none" />
+                        <ChevronDown className={`w-4 h-4 ${theme.textMuted} absolute right-3 pointer-events-none group-hover:${theme.text} transition-colors`} />
                     </div>
                 </div>
 

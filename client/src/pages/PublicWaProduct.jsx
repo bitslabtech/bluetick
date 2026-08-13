@@ -71,6 +71,8 @@ export default function PublicWaProduct({ customSlug }) {
     });
     const touchStartX = React.useRef(null);
     const touchEndX = React.useRef(null);
+    const crossSellRef = React.useRef(null);
+    const [crossSellDotIdx, setCrossSellDotIdx] = React.useState(0);
 
     const toggleAccordion = (sec) => {
         setOpenAccordions(prev => ({ ...prev, [sec]: !prev[sec] }));
@@ -448,7 +450,7 @@ export default function PublicWaProduct({ customSlug }) {
                                             type="button"
                                             onClick={() => setActiveImageIdx(idx)}
                                             title={linkedLabel ? `Variant: ${linkedLabel}` : ''}
-                                            className={`w-20 h-20 rounded-xl overflow-hidden bg-gray-50 border transition-all duration-300 relative ${
+                                            className={`w-20 h-20 rounded-xl overflow-hidden bg-white isolate border transition-all duration-300 relative ${
                                                 activeImageIdx === idx
                                                     ? 'border-black ring-1 ring-black scale-[1.02]'
                                                     : 'border-gray-200 opacity-60 hover:opacity-100'
@@ -475,7 +477,7 @@ export default function PublicWaProduct({ customSlug }) {
 
                         {/* Main Image Viewport */}
                         <div 
-                            className="w-full lg:flex-1 max-w-[500px] mx-auto lg:mx-0 aspect-square bg-gray-50 border border-gray-100 rounded-2xl overflow-hidden relative group flex items-center justify-center cursor-zoom-in cursor-pointer shrink-0 lg:shrink" 
+                            className="w-full lg:flex-1 max-w-[500px] mx-auto lg:mx-0 aspect-square bg-white isolate border border-gray-100 rounded-2xl overflow-hidden relative group flex items-center justify-center cursor-zoom-in cursor-pointer shrink-0 lg:shrink" 
                             onClick={() => setIsLightboxOpen(true)}
                             onTouchStart={(e) => {
                                 touchStartX.current = e.targetTouches[0].clientX;
@@ -563,7 +565,7 @@ export default function PublicWaProduct({ customSlug }) {
                                             type="button"
                                             onClick={() => setActiveImageIdx(idx)}
                                             title={linkedLabel ? `Variant: ${linkedLabel}` : ''}
-                                            className={`shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-gray-50 border snap-start relative ${
+                                            className={`shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-white isolate border snap-start relative ${
                                                 activeImageIdx === idx
                                                     ? 'border-black ring-1 ring-black'
                                                     : 'border-transparent opacity-60'
@@ -776,52 +778,98 @@ export default function PublicWaProduct({ customSlug }) {
                 </div>
 
                 {/* ─── CROSS-SELLS ─── */}
-                {crossSellProducts.length > 0 && (
-                    <div className="mt-16 pt-8 border-t border-gray-100 w-full">
-                        <h4 className={`text-sm font-bold uppercase tracking-widest ${theme.text} mb-6`}>You May Also Like</h4>
-                        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x" style={{ scrollbarWidth: 'none' }}>
-                            {crossSellProducts.map(p => (
-                                <div
-                                    key={p.id}
-                                    onClick={() => {
-                                        navigate(`/store/${slug}/product/${slugifyProduct(p)}`);
-                                    }}
-                                    className="shrink-0 w-36 md:w-44 cursor-pointer group/cs snap-start"
-                                >
-                                    <div className="aspect-square rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 mb-3 relative">
-                                        {p.imageUrls && p.imageUrls[0] ? (
-                                            <img
-                                                src={imgUrl(p.imageUrls[0])}
-                                                alt={p.name}
-                                                className="w-full h-full object-contain mix-blend-multiply group-hover/cs:scale-105 transition-transform duration-500"
-                                                onError={e => e.target.style.display = 'none'}
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center"><ShoppingBag className="w-8 h-8 text-gray-200" /></div>
-                                        )}
-                                        {p.compareAtPrice && (
-                                            <div className="absolute top-2 left-2 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">Sale</div>
-                                        )}
-                                    </div>
-                                    <p className={`text-sm font-medium ${theme.text} line-clamp-2 leading-snug mb-1 opacity-80 group-hover/cs:opacity-100`}>{p.name}</p>
-                                    <p className={`text-sm font-bold ${theme.text}`}>
-                                        {getCurrencySymbol(store.currency)}{getDisplayPrice(p.price, p).toFixed(2)}
-                                    </p>
-                                </div>
-                            ))}
-                            {/* View All Card */}
-                            <div 
-                                onClick={() => navigate(`/store/${slug}?cat=${encodeURIComponent(product.category)}`)}
-                                className="shrink-0 w-36 md:w-44 cursor-pointer group/cs snap-start flex flex-col items-center justify-center"
+                {crossSellProducts.length > 0 && (() => {
+                    // All cards including the "View All" card
+                    const totalCards = crossSellProducts.length + 1;
+                    return (
+                        <div className="mt-16 pt-8 border-t border-gray-100 w-full">
+                            <h4 className={`text-sm font-bold uppercase tracking-widest ${theme.text} mb-6`}>You May Also Like</h4>
+
+                            {/* Scroll Container */}
+                            <div
+                                ref={crossSellRef}
+                                onScroll={() => {
+                                    const el = crossSellRef.current;
+                                    if (!el) return;
+                                    // Each card is 144px wide (w-36) + 16px gap = 160px
+                                    const cardWidth = el.scrollWidth / totalCards;
+                                    const idx = Math.round(el.scrollLeft / cardWidth);
+                                    setCrossSellDotIdx(Math.min(idx, totalCards - 1));
+                                }}
+                                className="flex gap-4 overflow-x-scroll pb-2 snap-x snap-mandatory"
+                                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
                             >
-                                <div className="aspect-square w-full rounded-2xl overflow-hidden bg-gray-50 hover:bg-gray-100 border border-gray-100 mb-3 flex flex-col items-center justify-center transition-colors">
-                                    <ArrowRight className="w-6 h-6 text-gray-400 group-hover/cs:text-black mb-2 transition-colors" />
-                                    <span className="text-xs font-bold uppercase tracking-widest text-gray-500 group-hover/cs:text-black transition-colors">View All</span>
+                                <style>{`
+                                    .crosssell-scroll::-webkit-scrollbar { display: none; }
+                                `}</style>
+                                {crossSellProducts.map(p => (
+                                    <div
+                                        key={p.id}
+                                        onClick={() => {
+                                            navigate(`/store/${slug}/product/${slugifyProduct(p)}`);
+                                        }}
+                                        className="shrink-0 w-36 md:w-44 cursor-pointer group/cs snap-start"
+                                    >
+                                        <div className="aspect-square rounded-2xl overflow-hidden bg-white isolate border border-gray-100 mb-3 relative">
+                                            {p.imageUrls && p.imageUrls[0] ? (
+                                                <img
+                                                    src={imgUrl(p.imageUrls[0])}
+                                                    alt={p.name}
+                                                    className="w-full h-full object-contain mix-blend-multiply group-hover/cs:scale-105 transition-transform duration-500"
+                                                    onError={e => e.target.style.display = 'none'}
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center"><ShoppingBag className="w-8 h-8 text-gray-200" /></div>
+                                            )}
+                                            {p.compareAtPrice && (
+                                                <div className="absolute top-2 left-2 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">Sale</div>
+                                            )}
+                                        </div>
+                                        <p className={`text-sm font-medium ${theme.text} line-clamp-2 leading-snug mb-1 opacity-80 group-hover/cs:opacity-100`}>{p.name}</p>
+                                        <p className={`text-sm font-bold ${theme.text}`}>
+                                            {getCurrencySymbol(store.currency)}{getDisplayPrice(p.price, p).toFixed(2)}
+                                        </p>
+                                    </div>
+                                ))}
+                                {/* View All Card */}
+                                <div
+                                    onClick={() => navigate(`/store/${slug}?cat=${encodeURIComponent(product.category)}`)}
+                                    className="shrink-0 w-36 md:w-44 cursor-pointer group/cs snap-start flex flex-col"
+                                >
+                                    <div className="aspect-square w-full rounded-2xl overflow-hidden bg-gray-50 hover:bg-gray-100 border border-gray-100 mb-3 flex flex-col items-center justify-center transition-colors">
+                                        <ArrowRight className="w-6 h-6 text-gray-400 group-hover/cs:text-black mb-2 transition-colors" />
+                                        <span className="text-xs font-bold uppercase tracking-widest text-gray-500 group-hover/cs:text-black transition-colors">View All</span>
+                                    </div>
+                                    {/* Spacer rows to match product card height */}
+                                    <p className={`text-sm font-medium ${theme.text} leading-snug mb-1 opacity-60`}>Browse more</p>
+                                    <p className={`text-sm font-bold ${theme.text} opacity-0`}>—</p>
                                 </div>
                             </div>
+
+                            {/* Dot Indicators — visible only on mobile */}
+                            <div className="md:hidden flex items-center justify-center gap-2 mt-4">
+                                {Array.from({ length: totalCards }).map((_, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => {
+                                            const el = crossSellRef.current;
+                                            if (!el) return;
+                                            const cardWidth = el.scrollWidth / totalCards;
+                                            el.scrollTo({ left: cardWidth * idx, behavior: 'smooth' });
+                                            setCrossSellDotIdx(idx);
+                                        }}
+                                        className={`rounded-full transition-all duration-300 ${
+                                            crossSellDotIdx === idx
+                                                ? 'w-5 h-2 bg-black dark:bg-white'
+                                                : 'w-2 h-2 bg-gray-300 dark:bg-white/30 hover:bg-gray-400'
+                                        }`}
+                                        aria-label={`Go to item ${idx + 1}`}
+                                    />
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                )}
+                    );
+                })()}
 
             </main>
             {/* ─── CHECKOUT MODAL ─── */}
@@ -1059,9 +1107,9 @@ export default function PublicWaProduct({ customSlug }) {
             >
                 {/* Price Display */}
                 <div className="flex flex-col justify-center shrink-0 mr-auto pl-1">
-                    <span className="text-[9px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider leading-none mb-1">Total</span>
-                    <span className="text-xs sm:text-sm font-bold text-black dark:text-white leading-none whitespace-nowrap">
-                        {getCurrencySymbol(store.currency)}{(getDisplayPrice(product.price, product) * qty).toFixed(2)}
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider leading-none mb-1">Total</span>
+                    <span className="text-base sm:text-lg font-extrabold text-black dark:text-white leading-none whitespace-nowrap">
+                        {getCurrencySymbol(store.currency)}{(getDisplayPrice(currentVariantPrice, product) * qty).toFixed(2)}
                     </span>
                 </div>
 

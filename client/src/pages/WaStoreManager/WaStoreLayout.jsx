@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { Package, LayoutTemplate, Settings, ArrowLeft, ExternalLink, Phone, Globe, Info, ShoppingBag, Tag, FileText, Search, BarChart2, X, Camera, Loader2, ArrowRight, Bell, ClipboardList, Image, Megaphone } from 'lucide-react';
+import { Package, LayoutTemplate, Settings, ArrowLeft, ExternalLink, Phone, Globe, Info, ShoppingBag, Tag, FileText, Search, BarChart2, X, Camera, Loader2, ArrowRight, Bell, ClipboardList, Image, Megaphone, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function WaStoreLayout() {
@@ -16,6 +16,82 @@ export default function WaStoreLayout() {
     const [debugInfo, setDebugInfo] = useState({});
     const coverInputRef = useRef(null);
     const location = useLocation();
+
+    const menuGroups = [
+        {
+            group: 'Overview',
+            items: [
+                { path: `/online-store/${slug}/analytics`, icon: <BarChart2 className="w-5 h-5" />, label: 'Analytics' }
+            ]
+        },
+        {
+            group: 'Catalog',
+            items: [
+                { path: `/online-store/${slug}/products`, icon: <Package className="w-5 h-5" />, label: 'Products' },
+                { path: `/online-store/${slug}/categories`, icon: <Tag className="w-5 h-5" />, label: 'Categories' },
+                { path: `/online-store/${slug}/inventory`, icon: <ClipboardList className="w-5 h-5" />, label: 'Inventory' },
+                { path: `/online-store/${slug}/media`, icon: <Image className="w-5 h-5" />, label: 'Media Manager' }
+            ]
+        },
+        {
+            group: 'Sales & Orders',
+            items: [
+                { path: `/online-store/${slug}/orders`, icon: <ShoppingBag className="w-5 h-5" />, label: 'Orders' },
+                { path: `/online-store/${slug}/pos`, icon: <ShoppingBag className="w-5 h-5" />, label: 'POS' }
+            ]
+        },
+        {
+            group: 'Customers & CRM',
+            items: [
+                { path: `/online-store/${slug}/customers`, icon: <Users className="w-5 h-5" />, label: 'Customers' }
+            ]
+        },
+        {
+            group: 'Marketing',
+            items: [
+                { path: `/online-store/${slug}/coupons`, icon: <Tag className="w-5 h-5" />, label: 'Promo Codes' },
+                { path: `/online-store/${slug}/notifications`, icon: <Bell className="w-5 h-5" />, label: 'Notifications' },
+                { path: `/online-store/${slug}/seo`, icon: <Search className="w-5 h-5" />, label: 'SEO & Tracking' }
+            ]
+        },
+        {
+            group: 'Website Design',
+            items: [
+                { path: `/online-store/${slug}/themes`, icon: <LayoutTemplate className="w-5 h-5" />, label: 'Themes' },
+                { path: `/online-store/${slug}/navigation`, icon: <LayoutTemplate className="w-5 h-5" />, label: 'Navigation' },
+                { path: `/online-store/${slug}/topbar`, icon: <Megaphone className="w-5 h-5" />, label: 'Top Bar' }
+            ]
+        },
+        {
+            group: 'Store Settings',
+            items: [
+                { path: `/online-store/${slug}/details`, icon: <Info className="w-5 h-5" />, label: 'Basic Details' },
+                { path: `/online-store/${slug}/policies`, icon: <FileText className="w-5 h-5" />, label: 'Policies' },
+                { path: `/online-store/${slug}/settings`, icon: <Settings className="w-5 h-5" />, label: 'Settings' }
+            ]
+        }
+    ];
+
+    // Collapsible sidebar state (collapsed by default unless active)
+    const [collapsedGroups, setCollapsedGroups] = useState(() => {
+        const initial = {};
+        menuGroups.forEach(g => {
+            if (g.group === 'Overview') {
+                initial[g.group] = false;
+            } else {
+                const hasActiveItem = g.items.some(item => location.pathname.startsWith(item.path));
+                initial[g.group] = !hasActiveItem; // true = collapsed
+            }
+        });
+        return initial;
+    });
+
+    const toggleGroup = (groupName) => {
+        setCollapsedGroups(prev => ({
+            ...prev,
+            [groupName]: !prev[groupName]
+        }));
+    };
 
     // Scroll to top when changing tabs
     useEffect(() => {
@@ -85,24 +161,10 @@ export default function WaStoreLayout() {
         }
     };
 
-    const navItems = [
-        { path: `/online-store/${slug}/analytics`, icon: <BarChart2 className="w-5 h-5" />, label: 'Analytics' },
-        { path: `/online-store/${slug}/details`, icon: <Info className="w-5 h-5" />, label: 'Basic Details' },
-        { path: `/online-store/${slug}/navigation`, icon: <LayoutTemplate className="w-5 h-5" />, label: 'Navigation' },
-        { path: `/online-store/${slug}/topbar`, icon: <Megaphone className="w-5 h-5" />, label: 'Top Bar' },
-        { path: `/online-store/${slug}/categories`, icon: <Tag className="w-5 h-5" />, label: 'Categories' },
-        { path: `/online-store/${slug}/products`, icon: <Package className="w-5 h-5" />, label: 'Products' },
-        { path: `/online-store/${slug}/inventory`, icon: <ClipboardList className="w-5 h-5" />, label: 'Inventory' },
-        { path: `/online-store/${slug}/orders`, icon: <ShoppingBag className="w-5 h-5" />, label: 'Orders' },
-        { path: `/online-store/${slug}/media`, icon: <Image className="w-5 h-5" />, label: 'Media Manager' },
-        { path: `/online-store/${slug}/themes`, icon: <LayoutTemplate className="w-5 h-5" />, label: 'Themes' },
-        { path: `/online-store/${slug}/pos`, icon: <ShoppingBag className="w-5 h-5" />, label: 'POS' },
-        { path: `/online-store/${slug}/notifications`, icon: <Bell className="w-5 h-5" />, label: 'Notifications' },
-        { path: `/online-store/${slug}/coupons`, icon: <Tag className="w-5 h-5" />, label: 'Promo Codes' },
-        { path: `/online-store/${slug}/seo`, icon: <Search className="w-5 h-5" />, label: 'SEO & Tracking' },
-        { path: `/online-store/${slug}/policies`, icon: <FileText className="w-5 h-5" />, label: 'Policies' },
-        { path: `/online-store/${slug}/settings`, icon: <Settings className="w-5 h-5" />, label: 'Settings' },
-    ];
+
+
+    // Flatten for mobile view
+    const flatNavItems = menuGroups.flatMap(g => g.items);
 
     if (loading) return <div className="p-4 md:p-8 animate-pulse text-slate-500">Loading store manager...</div>;
     if (!store) return <div className="p-4 md:p-8 text-rose-500">Store not found. Debug: URL Slug = "{debugInfo.slug ? debugInfo.slug : 'UNDEFINED'}", Path = {window.location.pathname}, Params = {JSON.stringify(params)}, Available Slugs = "{debugInfo.allSlugs}"</div>;
@@ -110,7 +172,7 @@ export default function WaStoreLayout() {
     const storeUrl = `${window.location.origin}/store/${store.slug}`;
 
     return (
-        <div className="flex flex-col gap-6 w-full lg:w-[85%] max-w-[1600px] mx-auto px-4 lg:px-0 pb-7 sm:pb-20">
+        <div className="flex flex-col gap-6 w-full max-w-[1700px] mx-auto px-2 md:px-6 xl:px-10 pb-7 sm:pb-20">
             {/* Animated Gradient CSS */}
             <style>{`
                 @keyframes coverGradientShift {
@@ -285,7 +347,7 @@ export default function WaStoreLayout() {
                         <div className="relative bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-1.5 shadow-sm">
                             <div className="absolute right-1 top-1 bottom-1 w-8 bg-gradient-to-l from-white dark:from-surface-dark pointer-events-none rounded-r-xl z-10" />
                             <nav className="flex overflow-x-auto hide-scrollbar gap-1 snap-x px-0.5">
-                                {navItems.map((item) => (
+                                {flatNavItems.map((item) => (
                                     <NavLink
                                         key={item.path}
                                         to={item.path}
@@ -305,25 +367,47 @@ export default function WaStoreLayout() {
                         </div>
                     </div>
 
-                    {/* Desktop: Vertical Sidebar */}
-                    <div className="hidden md:block bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-3 overflow-y-auto max-h-[calc(100vh-7rem)] shadow-sm">
-                        <nav className="flex flex-col gap-1">
-                            {navItems.map((item) => (
-                                <NavLink
-                                    key={item.path}
-                                    to={item.path}
-                                    className={({ isActive }) =>
-                                        `flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
-                                            isActive 
-                                                ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' 
-                                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
-                                        }`
-                                    }
-                                >
-                                    {item.icon}
-                                    {item.label}
-                                </NavLink>
-                            ))}
+                    {/* Desktop: Vertical Sidebar with Categories */}
+                    <div className="hidden md:block bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-y-auto max-h-[calc(100vh-7rem)] shadow-sm">
+                        <nav className="flex flex-col">
+                            {menuGroups.map((group, groupIdx) => {
+                                const isCollapsed = collapsedGroups[group.group];
+                                return (
+                                    <div key={group.group} className={`${groupIdx !== 0 ? 'border-t border-slate-100 dark:border-white/5 mt-1 pt-1' : ''}`}>
+                                        {group.group !== 'Overview' && (
+                                            <button 
+                                                onClick={() => toggleGroup(group.group)}
+                                                className={`w-full flex items-center justify-between px-3 py-2.5 mt-2 transition-colors rounded-xl group/btn ${isCollapsed ? 'hover:bg-slate-50 dark:hover:bg-white/5' : 'bg-slate-50 dark:bg-white/5'}`}
+                                            >
+                                                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                                                    {group.group}
+                                                </p>
+                                                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isCollapsed ? '-rotate-90' : 'rotate-0'}`} />
+                                            </button>
+                                        )}
+                                        <div 
+                                            className={`flex flex-col gap-0.5 px-2 overflow-hidden transition-all duration-300 ease-in-out ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[1000px] opacity-100 mt-1 pb-1'}`}
+                                        >
+                                                {group.items.map((item) => (
+                                                    <NavLink
+                                                        key={item.path}
+                                                        to={item.path}
+                                                        className={({ isActive }) =>
+                                                            `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                                                                isActive 
+                                                                    ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' 
+                                                                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
+                                                            }`
+                                                        }
+                                                    >
+                                                        {item.icon}
+                                                        {item.label}
+                                                    </NavLink>
+                                                ))}
+                                            </div>
+                                    </div>
+                                );
+                            })}
                         </nav>
                     </div>
                 </div>
