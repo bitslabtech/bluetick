@@ -433,7 +433,7 @@ export default function PublicWaProduct({ customSlug }) {
                         box-sizing: border-box !important;
                     }
                 `}</style>
-                <div className="product-detail-grid grid grid-cols-1 gap-8 items-start w-full overflow-hidden">
+                <div className="product-detail-grid grid grid-cols-1 gap-8 items-start w-full">
                     
                     {/* Left: Immersive Image Gallery */}
                     <div className="flex flex-col lg:flex-row gap-6 lg:justify-center lg:self-start lg:items-start w-full min-w-0 overflow-hidden">
@@ -554,8 +554,8 @@ export default function PublicWaProduct({ customSlug }) {
 
                     {/* Mobile Thumbnail Strip (hidden on desktop) */}
                     {product.imageUrls && product.imageUrls.length > 1 && (
-                        <div className="lg:hidden w-full mt-2 flex justify-center">
-                            <div className="mobile-thumb-strip flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x max-w-full px-1">
+                        <div className="lg:hidden w-full min-w-0 mt-2 flex justify-center overflow-hidden">
+                            <div className="mobile-thumb-strip flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x w-full px-1" style={{ touchAction: 'pan-x' }}>
                                 {product.imageUrls.map((url, idx) => {
                                     const linkedVariant = (product.variants || []).find(v => v.imageUrl === url);
                                     const linkedLabel = linkedVariant ? Object.values(linkedVariant.combo).join(' / ') : null;
