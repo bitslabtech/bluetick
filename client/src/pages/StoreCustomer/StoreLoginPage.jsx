@@ -122,7 +122,7 @@ export default function StoreLoginPage({ store, products = [] }) {
                                             layoutId="loginTabPill"
                                             className="absolute inset-0 rounded-xl shadow-sm"
                                             style={{ backgroundColor: themeColor }}
-                                            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                                            transition={{ type: 'tween', duration: 0.2, ease: 'easeOut' }}
                                         />
                                     )}
                                     <span className="relative z-10">Email Login</span>
@@ -139,7 +139,7 @@ export default function StoreLoginPage({ store, products = [] }) {
                                             layoutId="loginTabPill"
                                             className="absolute inset-0 rounded-xl shadow-sm"
                                             style={{ backgroundColor: themeColor }}
-                                            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                                            transition={{ type: 'tween', duration: 0.2, ease: 'easeOut' }}
                                         />
                                     )}
                                     <span className="relative z-10">WhatsApp OTP</span>
@@ -326,8 +326,9 @@ export default function StoreLoginPage({ store, products = [] }) {
                                         </button>
                                     </>
                                 )}
-                            </form>
+                            </motion.form>
                         )}
+                        </AnimatePresence>
 
                         {/* Register link */}
                         {hasEmail && (
