@@ -375,7 +375,7 @@ export default function PublicWaProduct({ customSlug }) {
                 cartCount={cartCount} 
                 setIsCartOpen={setIsCartOpen} 
             />
-            <main className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-12 pt-4 pb-10 md:py-10">
+            <main className="max-w-[1440px] w-full min-w-0 overflow-hidden mx-auto px-4 md:px-8 lg:px-12 pt-4 pb-10 md:py-10">
                 
                 {/* ─── VISUAL BREADCRUMB ─── */}
                 <nav aria-label="Breadcrumb" className="mb-4 md:mb-8">
@@ -433,7 +433,7 @@ export default function PublicWaProduct({ customSlug }) {
                         box-sizing: border-box !important;
                     }
                 `}</style>
-                <div className="product-detail-grid grid grid-cols-1 gap-8 items-start w-full">
+                <div className="product-detail-grid grid grid-cols-1 gap-8 items-start w-full min-w-0 overflow-hidden">
                     
                     {/* Left: Immersive Image Gallery */}
                     <div className="flex flex-col lg:flex-row gap-6 lg:justify-center lg:self-start lg:items-start w-full min-w-0 overflow-hidden">
@@ -477,7 +477,7 @@ export default function PublicWaProduct({ customSlug }) {
 
                         {/* Main Image Viewport */}
                         <div 
-                            className="w-full min-w-0 lg:flex-1 max-w-full lg:max-w-[500px] mx-auto lg:mx-0 aspect-square bg-white isolate border border-gray-100 rounded-2xl overflow-hidden relative group flex items-center justify-center cursor-zoom-in cursor-pointer" 
+                            className="w-full min-w-0 lg:flex-1 max-w-[500px] mx-auto lg:mx-0 aspect-square bg-white isolate border border-gray-100 rounded-2xl overflow-hidden relative group flex items-center justify-center cursor-zoom-in cursor-pointer" 
                             onClick={() => setIsLightboxOpen(true)}
                             onTouchStart={(e) => {
                                 touchStartX.current = e.targetTouches[0].clientX;
@@ -777,12 +777,16 @@ export default function PublicWaProduct({ customSlug }) {
                     </div>
                 </div>
 
-                {/* ─── CROSS-SELLS ─── */}
-                {crossSellProducts.length > 0 && (() => {
-                    // All cards including the "View All" card
-                    const totalCards = crossSellProducts.length + 1;
-                    return (
-                        <div className="mt-16 pt-8 border-t border-gray-100 w-full overflow-hidden">
+
+            </main>
+
+            {/* ─── CROSS-SELLS (outside main to avoid overflow-hidden clipping the scroll) ─── */}
+            {crossSellProducts.length > 0 && (() => {
+                // All cards including the "View All" card
+                const totalCards = crossSellProducts.length + 1;
+                return (
+                    <div className="max-w-[1440px] w-full mx-auto px-4 md:px-8 lg:px-12 mt-0 pb-10">
+                        <div className="pt-8 border-t border-gray-100 w-full">
                             <h4 className={`text-sm font-bold uppercase tracking-widest ${theme.text} mb-6`}>You May Also Like</h4>
 
                             {/* Scroll Container */}
@@ -791,13 +795,12 @@ export default function PublicWaProduct({ customSlug }) {
                                 onScroll={() => {
                                     const el = crossSellRef.current;
                                     if (!el) return;
-                                    // Each card is 144px wide (w-36) + 16px gap = 160px
                                     const cardWidth = el.scrollWidth / totalCards;
                                     const idx = Math.round(el.scrollLeft / cardWidth);
                                     setCrossSellDotIdx(Math.min(idx, totalCards - 1));
                                 }}
-                                className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory w-full"
-                                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}
+                                className="crosssell-scroll flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory w-full"
+                                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
                             >
                                 <style>{`
                                     .crosssell-scroll::-webkit-scrollbar { display: none; }
@@ -847,7 +850,7 @@ export default function PublicWaProduct({ customSlug }) {
                             </div>
 
                             {/* Dot Indicators — visible only on mobile */}
-                            <div className="md:hidden flex items-center justify-center gap-2 mt-4">
+                            <div className="md:hidden flex items-center justify-center gap-2 mt-4 w-full">
                                 {Array.from({ length: totalCards }).map((_, idx) => (
                                     <button
                                         key={idx}
@@ -868,10 +871,9 @@ export default function PublicWaProduct({ customSlug }) {
                                 ))}
                             </div>
                         </div>
-                    );
-                })()}
-
-            </main>
+                    </div>
+                );
+            })()}
             {/* ─── CHECKOUT MODAL ─── */}
             {isCheckoutModalOpen && (
                 <WaStoreCheckoutModal 
