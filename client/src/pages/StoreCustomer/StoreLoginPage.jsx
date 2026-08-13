@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Smartphone, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useStoreCustomer } from '../../context/StoreCustomerContext';
 import { getThemeConfig } from '../../utils/wastoreThemes';
+import { countryCodes, validatePhone } from '../../utils/phoneUtils';
 import toast from 'react-hot-toast';
 
 export default function StoreLoginPage({ store, products = [] }) {
@@ -22,6 +24,8 @@ export default function StoreLoginPage({ store, products = [] }) {
 
     // OTP state
     const [phone, setPhone] = useState('');
+    const [dialCode, setDialCode] = useState('+91');
+    const [phoneError, setPhoneError] = useState('');
     const [otp, setOtp] = useState('');
     const [otpSent, setOtpSent] = useState(false);
     const [otpCooldown, setOtpCooldown] = useState(0);
@@ -47,10 +51,13 @@ export default function StoreLoginPage({ store, products = [] }) {
     };
 
     const handleSendOtp = async () => {
-        if (!phone || phone.length < 7) { toast.error('Enter a valid phone number.'); return; }
+        const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+        if (!cleanPhone) { setPhoneError('Enter a phone number'); return; }
+        if (!validatePhone(dialCode, cleanPhone)) { setPhoneError('Invalid phone format'); return; }
+
         setSubmitting(true);
         try {
-            await sendOtp(phone);
+            await sendOtp(`${dialCode}${cleanPhone}`);
             setOtpSent(true);
             toast.success('OTP sent to your WhatsApp!');
             // 60-second cooldown
@@ -67,8 +74,9 @@ export default function StoreLoginPage({ store, products = [] }) {
     const handleVerifyOtp = async (e) => {
         e.preventDefault();
         setSubmitting(true);
+        const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
         try {
-            await verifyOtp(phone, otp);
+            await verifyOtp(`${dialCode}${cleanPhone}`, otp);
             toast.success('Logged in successfully!');
             navigate(`/store/${slug}/account`);
         } catch (err) {
@@ -101,35 +109,58 @@ export default function StoreLoginPage({ store, products = [] }) {
                     <div className="bg-white rounded-3xl shadow-xl shadow-slate-900/5 border border-slate-200/80 p-6 sm:p-8">
                         {/* Auth method tabs */}
                         {hasEmail && hasOtp && (
-                            <div className="flex rounded-2xl overflow-hidden border border-slate-200 p-1 bg-slate-50 mb-6">
+                            <div className="relative flex p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 mb-6">
                                 <button 
                                     type="button"
                                     onClick={() => setTab('email')}
-                                    className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all ${
-                                        tab === 'email' ? 'text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                                    className={`relative z-10 flex-1 py-2 text-xs font-bold rounded-xl transition-colors duration-200 ${
+                                        tab === 'email' ? 'text-white' : 'text-slate-500 hover:text-slate-800'
                                     }`}
-                                    style={tab === 'email' ? { background: themeColor } : {}}
                                 >
-                                    Email &amp; Password
+                                    {tab === 'email' && (
+                                        <motion.div
+                                            layoutId="loginTabPill"
+                                            className="absolute inset-0 rounded-xl shadow-sm"
+                                            style={{ backgroundColor: themeColor }}
+                                            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                                        />
+                                    )}
+                                    <span className="relative z-10">Email Login</span>
                                 </button>
                                 <button 
                                     type="button"
                                     onClick={() => setTab('otp')}
-                                    className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all ${
-                                        tab === 'otp' ? 'text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                                    className={`relative z-10 flex-1 py-2 text-xs font-bold rounded-xl transition-colors duration-200 ${
+                                        tab === 'otp' ? 'text-white' : 'text-slate-500 hover:text-slate-800'
                                     }`}
-                                    style={tab === 'otp' ? { background: themeColor } : {}}
                                 >
-                                    WhatsApp OTP
+                                    {tab === 'otp' && (
+                                        <motion.div
+                                            layoutId="loginTabPill"
+                                            className="absolute inset-0 rounded-xl shadow-sm"
+                                            style={{ backgroundColor: themeColor }}
+                                            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                                        />
+                                    )}
+                                    <span className="relative z-10">WhatsApp OTP</span>
                                 </button>
                             </div>
                         )}
 
                         {/* ── Email + Password Form ── */}
-                        {tab === 'email' && (
-                            <form onSubmit={handleEmailLogin} className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-700 mb-1">Email Address</label>
+                        <AnimatePresence mode="wait">
+                            {tab === 'email' && (
+                                <motion.form 
+                                    key="email"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.12, ease: 'easeInOut' }}
+                                    onSubmit={handleEmailLogin} 
+                                    className="space-y-4"
+                                >
+                                    <div>
+                                    <label className="block text-xs font-semibold text-slate-700 mb-1">Email Address or WhatsApp Number</label>
                                     <div className="relative">
                                         <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                                         <input 
@@ -182,26 +213,68 @@ export default function StoreLoginPage({ store, products = [] }) {
                                     {submitting ? <Loader2 size={16} className="animate-spin" /> : null}
                                     {submitting ? 'Signing in…' : 'Sign In'}
                                 </button>
-                            </form>
-                        )}
+                                </motion.form>
+                            )}
 
-                        {/* ── WhatsApp OTP Form ── */}
-                        {tab === 'otp' && (
-                            <form onSubmit={handleVerifyOtp} className="space-y-4">
+                            {/* ── WhatsApp OTP Form ── */}
+                            {tab === 'otp' && (
+                                <motion.form 
+                                    key="otp"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.12, ease: 'easeInOut' }}
+                                    onSubmit={handleVerifyOtp} 
+                                    className="space-y-4"
+                                >
+                                    {/* Phone */}
                                 <div>
                                     <label className="block text-xs font-semibold text-slate-700 mb-1">WhatsApp Number</label>
-                                    <div className="relative">
-                                        <Smartphone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                                        <input 
-                                            type="tel" 
-                                            value={phone} 
-                                            onChange={e => setPhone(e.target.value)}
-                                            placeholder="+1 234 567 8900" 
-                                            required 
-                                            disabled={otpSent}
-                                            className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 disabled:bg-slate-50" 
-                                        />
+                                    <div className="flex gap-2">
+                                        <div className="w-[100px] shrink-0">
+                                            <select 
+                                                value={dialCode}
+                                                onChange={e => {
+                                                    setDialCode(e.target.value);
+                                                    if (phone) {
+                                                        const isValid = validatePhone(e.target.value, phone);
+                                                        setPhoneError(isValid ? '' : 'Invalid format for selected country');
+                                                    }
+                                                }}
+                                                disabled={otpSent}
+                                                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 bg-slate-50 appearance-none disabled:opacity-70"
+                                                style={{ '--tw-ring-color': themeColor }}
+                                            >
+                                                {countryCodes.map(c => (
+                                                    <option key={c.code} value={c.dialCode}>
+                                                        {c.code} ({c.dialCode})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="relative flex-1 min-w-0">
+                                            <Smartphone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                                            <input 
+                                                type="tel" 
+                                                value={phone} 
+                                                onChange={e => {
+                                                    setPhone(e.target.value);
+                                                    if (e.target.value) {
+                                                        const isValid = validatePhone(dialCode, e.target.value);
+                                                        setPhoneError(isValid ? '' : 'Invalid format');
+                                                    } else {
+                                                        setPhoneError('');
+                                                    }
+                                                }}
+                                                placeholder="9876543210"
+                                                required
+                                                disabled={otpSent}
+                                                className={`w-full pl-10 pr-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 disabled:bg-slate-50 ${phoneError ? 'border-red-300 focus:ring-red-200' : 'border-slate-200'}`} 
+                                                style={{ '--tw-ring-color': phoneError ? '#fca5a5' : themeColor }}
+                                            />
+                                        </div>
                                     </div>
+                                    {phoneError && <p className="text-[10px] text-red-500 mt-1 font-medium">{phoneError}</p>}
                                 </div>
 
                                 {!otpSent ? (

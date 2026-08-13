@@ -156,6 +156,7 @@ router.get('/config', async (req, res) => {
             methods: cfg.methods || ['email_password'],
             allowGuestCheckout: cfg.allowGuestCheckout !== false,
             requireLoginForCheckout: cfg.requireLoginForCheckout || false,
+            whatsappRequirement: cfg.whatsappRequirement || 'optional'
         });
     } catch (err) {
         res.status(500).json({ error: 'Server error' });
@@ -175,23 +176,32 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ error: 'Email/password registration is not enabled for this store.' });
         }
 
-        if (!name || !email || !password) {
-            return res.status(400).json({ error: 'Name, email, and password are required.' });
+        if (!name || !password) {
+            return res.status(400).json({ error: 'Name and password are required.' });
+        }
+        if (!email && !phone) {
+            return res.status(400).json({ error: 'Either email or WhatsApp number is required.' });
         }
         if (password.length < 6) {
             return res.status(400).json({ error: 'Password must be at least 6 characters.' });
         }
 
-        // Check duplicate email in this store
-        const existing = await StoreCustomer.findOne({ where: { storeId: store.id, email } });
-        if (existing) return res.status(409).json({ error: 'An account with this email already exists.' });
+        // Check duplicate email or phone in this store
+        if (email) {
+            const existingEmail = await StoreCustomer.findOne({ where: { storeId: store.id, email } });
+            if (existingEmail) return res.status(409).json({ error: 'An account with this email already exists.' });
+        }
+        if (phone) {
+            const existingPhone = await StoreCustomer.findOne({ where: { storeId: store.id, phone: normalizePhone(phone) } });
+            if (existingPhone) return res.status(409).json({ error: 'An account with this WhatsApp number already exists.' });
+        }
 
         const passwordHash = await bcrypt.hash(password, 10);
 
         const customer = await StoreCustomer.create({
             storeId: store.id,
             name,
-            email,
+            email: email || null,
             phone: phone ? normalizePhone(phone) : null,
             password: passwordHash,
             isVerified: true, // auto-verify on registration (no email OTP step)
@@ -221,11 +231,25 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ error: 'Email/password login is not enabled for this store.' });
         }
 
-        if (!email || !password) return res.status(400).json({ error: 'Email and password are required.' });
+        if (!email || !password) return res.status(400).json({ error: 'Email (or phone) and password are required.' });
 
-        const customer = await StoreCustomer.findOne({ where: { storeId: store.id, email } });
+        // email variable could be a phone number if the user didn't provide an email. 
+        // We'll search for either exact email or exact phone match.
+        const searchPhone = normalizePhone(email);
+        
+        const { Op } = require('sequelize');
+        const customer = await StoreCustomer.findOne({ 
+            where: { 
+                storeId: store.id, 
+                [Op.or]: [
+                    { email: email },
+                    { phone: searchPhone }
+                ]
+            } 
+        });
+        
         if (!customer || !customer.password) {
-            return res.status(401).json({ error: 'Invalid email or password.' });
+            return res.status(401).json({ error: 'Invalid credentials or account uses OTP.' });
         }
 
         const isMatch = await bcrypt.compare(password, customer.password);

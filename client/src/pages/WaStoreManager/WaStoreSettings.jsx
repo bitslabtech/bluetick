@@ -1420,6 +1420,24 @@ export default function WaStoreSettings() {
                                 </button>
                             </label>
                         </div>
+
+                        {/* WhatsApp Requirement Setting */}
+                        <div className="mt-3">
+                            <label className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700">
+                                <div>
+                                    <p className="text-sm font-medium text-slate-800 dark:text-white">WhatsApp Number in Registration</p>
+                                    <p className="text-xs text-slate-500">Should users be forced to provide WhatsApp number when signing up?</p>
+                                </div>
+                                <select
+                                    value={customerAuthConfig.whatsappRequirement || 'optional'}
+                                    onChange={e => setCustomerAuthConfig(prev => ({ ...prev, whatsappRequirement: e.target.value }))}
+                                    className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 bg-white dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                >
+                                    <option value="optional">Optional</option>
+                                    <option value="mandatory">Mandatory</option>
+                                </select>
+                            </label>
+                        </div>
                     </div>
                 )}
 

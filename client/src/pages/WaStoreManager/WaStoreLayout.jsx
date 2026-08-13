@@ -55,7 +55,7 @@ export default function WaStoreLayout() {
             ]
         },
         {
-            group: 'Website Design',
+            group: 'Store Themes & Menu',
             items: [
                 { path: `/online-store/${slug}/themes`, icon: <LayoutTemplate className="w-5 h-5" />, label: 'Themes' },
                 { path: `/online-store/${slug}/navigation`, icon: <LayoutTemplate className="w-5 h-5" />, label: 'Navigation' },
@@ -135,7 +135,7 @@ export default function WaStoreLayout() {
             const form = new FormData();
             form.append('cover', file);
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/wastore/upload/cover`, form, {
-                headers: {  'Content-Type': 'multipart/form-data' }
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
             const newUrl = res.data.url;
 
@@ -209,13 +209,12 @@ export default function WaStoreLayout() {
                     )}
 
                     {/* Hover / Drag overlay */}
-                    <div className={`absolute inset-0 flex flex-col items-center justify-center gap-2 transition-all duration-300 ${
-                        coverDragOver
-                            ? 'bg-indigo-600/60 backdrop-blur-sm'
-                            : coverHover
-                                ? 'bg-black/40 backdrop-blur-[2px]'
-                                : 'bg-transparent pointer-events-none'
-                    }`}>
+                    <div className={`absolute inset-0 flex flex-col items-center justify-center gap-2 transition-all duration-300 ${coverDragOver
+                        ? 'bg-indigo-600/60 backdrop-blur-sm'
+                        : coverHover
+                            ? 'bg-black/40 backdrop-blur-[2px]'
+                            : 'bg-transparent pointer-events-none'
+                        }`}>
                         {coverUploading ? (
                             <Loader2 className={`w-8 h-8 text-white animate-spin ${!coverHover && !coverDragOver ? 'opacity-0' : ''}`} />
                         ) : (
@@ -256,7 +255,7 @@ export default function WaStoreLayout() {
                         onChange={(e) => { if (e.target.files?.[0]) handleCoverFile(e.target.files[0]); e.target.value = ''; }}
                     />
                 </div>
-                
+
                 {/* Store Details */}
                 <div className="relative px-6 pb-6 sm:px-4 md:px-8">
                     <div className="flex flex-col sm:flex-row sm:items-end gap-6 -mt-12 sm:-mt-16 mb-4">
@@ -282,7 +281,7 @@ export default function WaStoreLayout() {
                                         </span>
                                     </div>
                                 </div>
-                                <a 
+                                <a
                                     href={storeUrl}
                                     target="_blank"
                                     rel="noreferrer"
@@ -330,13 +329,13 @@ export default function WaStoreLayout() {
             <div className="flex flex-col md:flex-row gap-6">
                 {/* Sidebar */}
                 <div className="w-full md:w-64 flex-shrink-0 self-start sticky top-0">
-                    <button 
+                    <button
                         onClick={() => navigate('/online-store')}
                         className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 dark:hover:text-white mb-6 transition-colors font-medium px-2"
                     >
                         <ArrowLeft className="w-4 h-4" /> Back to Stores
                     </button>
-                    
+
                     {/* Mobile: Horizontal Swipe Menu */}
                     <div className="md:hidden flex flex-col gap-1.5 mb-4">
                         <div className="flex items-center justify-end px-2">
@@ -352,10 +351,9 @@ export default function WaStoreLayout() {
                                         key={item.path}
                                         to={item.path}
                                         className={({ isActive }) =>
-                                            `flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all shrink-0 snap-start ${
-                                                isActive 
-                                                    ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 shadow-sm border border-indigo-100 dark:border-indigo-500/20' 
-                                                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 border border-transparent'
+                                            `flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all shrink-0 snap-start ${isActive
+                                                ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 shadow-sm border border-indigo-100 dark:border-indigo-500/20'
+                                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 border border-transparent'
                                             }`
                                         }
                                     >
@@ -375,7 +373,7 @@ export default function WaStoreLayout() {
                                 return (
                                     <div key={group.group} className={`${groupIdx !== 0 ? 'border-t border-slate-100 dark:border-white/5 mt-1 pt-1' : ''}`}>
                                         {group.group !== 'Overview' && (
-                                            <button 
+                                            <button
                                                 onClick={() => toggleGroup(group.group)}
                                                 className={`w-full flex items-center justify-between px-3 py-2.5 mt-2 transition-colors rounded-xl group/btn ${isCollapsed ? 'hover:bg-slate-50 dark:hover:bg-white/5' : 'bg-slate-50 dark:bg-white/5'}`}
                                             >
@@ -385,26 +383,25 @@ export default function WaStoreLayout() {
                                                 <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isCollapsed ? '-rotate-90' : 'rotate-0'}`} />
                                             </button>
                                         )}
-                                        <div 
+                                        <div
                                             className={`flex flex-col gap-0.5 px-2 overflow-hidden transition-all duration-300 ease-in-out ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[1000px] opacity-100 mt-1 pb-1'}`}
                                         >
-                                                {group.items.map((item) => (
-                                                    <NavLink
-                                                        key={item.path}
-                                                        to={item.path}
-                                                        className={({ isActive }) =>
-                                                            `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-                                                                isActive 
-                                                                    ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' 
-                                                                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
-                                                            }`
-                                                        }
-                                                    >
-                                                        {item.icon}
-                                                        {item.label}
-                                                    </NavLink>
-                                                ))}
-                                            </div>
+                                            {group.items.map((item) => (
+                                                <NavLink
+                                                    key={item.path}
+                                                    to={item.path}
+                                                    className={({ isActive }) =>
+                                                        `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${isActive
+                                                            ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
+                                                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
+                                                        }`
+                                                    }
+                                                >
+                                                    {item.icon}
+                                                    {item.label}
+                                                </NavLink>
+                                            ))}
+                                        </div>
                                     </div>
                                 );
                             })}

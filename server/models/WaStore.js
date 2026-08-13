@@ -222,6 +222,7 @@ const WaStore = sequelize.define('WaStore', {
             methods: ['email_password'], // 'email_password' | 'whatsapp_otp' | both
             allowGuestCheckout: true,
             requireLoginForCheckout: false,
+            whatsappRequirement: 'optional' // 'optional' | 'mandatory'
         },
         comment: 'Per-store customer account settings: enable/disable, auth methods, etc.'
     },
