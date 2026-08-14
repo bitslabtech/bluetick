@@ -826,8 +826,16 @@ const Settings = () => {
                     window.removeEventListener('message', fbMessageListener);
                     setFbLoading(false);
                     if (response.status === 'unknown') {
+                        // Log popup blocked / unknown error to activity log
+                        axios.post(`${import.meta.env.VITE_API_URL}/api/whatsapp/log-onboarding-error`, {
+                            errorPayload: { error_message: 'FB.login returned status "unknown" — popup was likely blocked or closed by browser', response_status: response.status }
+                        }, { withCredentials: true }).catch(console.error);
                         showToast({ type: 'warning', title: 'Popup Blocked?', message: 'The login popup may have been blocked. Please allow popups for this site and try again.' });
                     } else {
+                        // Log cancellation/no-auth to activity log
+                        axios.post(`${import.meta.env.VITE_API_URL}/api/whatsapp/log-onboarding-error`, {
+                            errorPayload: { error_message: 'FB.login completed without authResponse — user cancelled or denied permissions', response_status: response.status || 'no_status' }
+                        }, { withCredentials: true }).catch(console.error);
                         showToast({ type: 'warning', message: 'WhatsApp connection was cancelled.' });
                     }
                 }
@@ -835,6 +843,10 @@ const Settings = () => {
         } catch (err) {
             window.removeEventListener('message', fbMessageListener);
             setFbLoading(false);
+            // Log FB.login JS exception to activity log
+            axios.post(`${import.meta.env.VITE_API_URL}/api/whatsapp/log-onboarding-error`, {
+                errorPayload: { error_message: `FB.login threw exception: ${err.message || err}`, stack: err.stack || '' }
+            }, { withCredentials: true }).catch(console.error);
         }
 
         setFbLoading(true);
@@ -868,6 +880,14 @@ const Settings = () => {
             await fetchSettings();
         } catch (error) {
             const errorMessage = error.response?.data?.error || error.response?.data?.details || 'Failed to connect WhatsApp account.';
+            // Log exchange-token failure to activity log for superadmin visibility
+            axios.post(`${import.meta.env.VITE_API_URL}/api/whatsapp/log-onboarding-error`, {
+                errorPayload: {
+                    error_message: `exchange-token API call failed: ${errorMessage}`,
+                    response_status: error.response?.status || 'network_error',
+                    response_data: error.response?.data || null
+                }
+            }, { withCredentials: true }).catch(console.error);
             showModal({ type: 'error', title: 'Connection Failed', message: errorMessage, confirmText: 'Close' });
         } finally {
             setFbLoading(false);

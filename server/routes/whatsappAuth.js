@@ -802,6 +802,9 @@ router.post('/log-onboarding-error', auth, async (req, res) => {
             fullPayload: errorPayload
         }, null, 2);
 
+        // Log to server console so it appears in Railway/Docker logs too
+        console.warn('[WA ONBOARDING ERROR]', { userId: req.user.id, rootCause, rawError });
+
         const ActivityLog = require('../models/ActivityLog');
         await ActivityLog.create({
             userId: req.user.id,

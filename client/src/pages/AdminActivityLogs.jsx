@@ -112,7 +112,7 @@ const AdminActivityLogs = () => {
                                 </button>
                                 <div className="absolute right-0 top-full pt-2 w-48 hidden group-hover:block z-20">
                                     <div className="bg-white dark:bg-surface-dark rounded-xl shadow-xl border border-slate-100 dark:border-white/10 p-1">
-                                        {['All', 'User', 'Plan', 'Login', 'Impersonation', 'KB', 'Ticket', 'Setting', 'Broadcast', 'Tokens'].map(type => (
+                                        {['All', 'User', 'Plan', 'Login', 'Impersonation', 'KB', 'Ticket', 'Setting', 'Broadcast', 'Tokens', 'Error'].map(type => (
                                             <button
                                                 key={type}
                                                 onClick={() => setFilterAction(type)}
