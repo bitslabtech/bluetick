@@ -103,6 +103,11 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
     const headerUrlRef = useRef(null);
     useEffect(() => {
         if (formData.headerFile) {
+            // Media Manager sets a plain object {name: '...'} — not a real File/Blob
+            // In that case, the preview URL is already set directly by handleMediaPickerSelect
+            if (!(formData.headerFile instanceof File) && !(formData.headerFile instanceof Blob)) {
+                return; // skip createObjectURL — preview already set via setHeaderPreviewUrl(url)
+            }
             const url = URL.createObjectURL(formData.headerFile);
             setHeaderPreviewUrl(url);
             headerUrlRef.current = url;
@@ -153,9 +158,20 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
     };
 
     useEffect(() => {
-        const urls = formData.cards.map(card => card.mediaFile ? URL.createObjectURL(card.mediaFile) : null);
+        const urlsToRevoke = [];
+        const urls = formData.cards.map((card, i) => {
+            if (!card.mediaFile) return null;
+            // Media Manager sets a plain object — not a real File/Blob
+            // In that case, cardPreviewUrls[i] is already set by handleMediaPickerSelect
+            if (!(card.mediaFile instanceof File) && !(card.mediaFile instanceof Blob)) {
+                return cardPreviewUrls[i] || null; // preserve the already-set Media Manager URL
+            }
+            const url = URL.createObjectURL(card.mediaFile);
+            urlsToRevoke.push(url);
+            return url;
+        });
         setCardPreviewUrls(urls);
-        return () => urls.forEach(u => u && URL.revokeObjectURL(u));
+        return () => urlsToRevoke.forEach(u => URL.revokeObjectURL(u));
     }, [formData.cards.map(c => c.mediaFile).join(',')]);
 
     const handleEnhanceAI = async (textToEnhance, type = 'content', cardIndex = -1) => {
@@ -464,16 +480,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
         }
     };
 
-    const uploadMedia = async (file) => {
-        const fd = new FormData();
-        fd.append('file', file);
-        const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/templates/upload`, fd, {
-            headers: {
-                'Content-Type': 'multipart/form-data'
-            }
-        });
-        return res.data.handle;
-    };
+
 
     const validateForm = () => {
         const errors = {};
@@ -499,10 +506,10 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
             }
         }
 
-        // 4. Header media upload required
+        // 4. Header media selection required
         if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(formData.headerType) && !formData.headerFile) {
             const typeLabel = formData.headerType === 'IMAGE' ? 'image (JPG/PNG)' : formData.headerType === 'VIDEO' ? 'video (MP4)' : 'document (PDF)';
-            errors.headerMedia = `Please upload a ${typeLabel} for the header. Meta requires a real media file.`;
+            errors.headerMedia = `Please select a ${typeLabel} for the header from the Media Manager.`;
         }
 
         // 5. Header TEXT content required
@@ -535,7 +542,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
             formData.cards.forEach((card, i) => {
                 if (!card.content.trim()) cardErrors.push(`Card ${i + 1}: Body text is required.`);
                 if (['IMAGE', 'VIDEO'].includes(card.headerType) && !card.mediaFile) {
-                    cardErrors.push(`Card ${i + 1}: Media upload is required.`);
+                    cardErrors.push(`Card ${i + 1}: Please select media from the Media Manager.`);
                 }
                 card.buttons.forEach((btn, bi) => {
                     if (!btn.text.trim()) cardErrors.push(`Card ${i + 1}, Button ${bi + 1}: Label is required.`);
@@ -564,22 +571,14 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
         setValidationErrors({});
         setIsSubmitting(true);
         try {
-            // 1. Process Media Uploads to Meta's Resumable API
-            let uploadedHeaderHandle = formData.headerHandle || null; // Use pre-fetched handle from Media Manager if exists
-            if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(formData.headerType) && formData.headerFile && !uploadedHeaderHandle) {
-                showToast({ type: 'info', title: 'Processing', message: 'Uploading master header media...' });
-                uploadedHeaderHandle = await uploadMedia(formData.headerFile);
-            }
+            // 1. Get pre-fetched Media Manager handle
+            let uploadedHeaderHandle = formData.headerHandle || null;
 
             const processedCards = [];
             if (selectedArchetype?.id === 'carousel' && formData.cards.length > 0) {
                 for (let i = 0; i < formData.cards.length; i++) {
                     const card = formData.cards[i];
                     let cardHeaderHandle = card.headerHandle || null;
-                    if (['IMAGE', 'VIDEO'].includes(card.headerType) && card.mediaFile && !cardHeaderHandle) {
-                        showToast({ type: 'info', title: 'Processing', message: `Uploading media for Card ${i + 1}...` });
-                        cardHeaderHandle = await uploadMedia(card.mediaFile);
-                    }
                     processedCards.push({
                         ...card,
                         headerHandle: cardHeaderHandle
@@ -1008,75 +1007,22 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                     <ImageIcon className="w-6 h-6" />
                                                 </div>
                                                 <h4 className="text-slate-900 dark:text-white font-semibold mb-1">
-                                                    {formData.headerFile ? formData.headerFile.name : `Upload ${formData.headerType.toLowerCase()} header`}
+                                                    {formData.headerFile ? formData.headerFile.name : `Select ${formData.headerType.toLowerCase()} from Media Manager`}
                                                 </h4>
-                                                <p className="text-sm text-slate-500 dark:text-text-secondary">Click or drag a file here to upload to Meta's servers.</p>
-                                                <p className="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-wider">
+                                                <p className="text-sm text-slate-500 dark:text-text-secondary mb-4">
                                                     {formData.headerType === 'IMAGE' ? 'Supported: JPG, PNG (Max 5MB)' : formData.headerType === 'VIDEO' ? 'Supported: MP4 (Max 16MB)' : 'Supported: PDF (Max 100MB)'}
                                                 </p>
-
-                                                <input
-                                                    type="file"
-                                                    id="header-media-upload"
-                                                    className="hidden"
-                                                    accept={formData.headerType === 'IMAGE' ? 'image/jpeg, image/png, image/jpg' : formData.headerType === 'VIDEO' ? 'video/mp4' : 'application/pdf'}
-                                                    onChange={(e) => {
-                                                        const file = e.target.files[0];
-                                                        if (!file) return;
-
-                                                        let valid = true;
-                                                        let allowedExts = [];
-                                                        let maxSizeMB = 0;
-
-                                                        if (formData.headerType === 'IMAGE') {
-                                                            if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) valid = false;
-                                                            allowedExts = ['JPG', 'PNG'];
-                                                            maxSizeMB = 5;
-                                                        } else if (formData.headerType === 'VIDEO') {
-                                                            if (file.type !== 'video/mp4') valid = false;
-                                                            allowedExts = ['MP4'];
-                                                            maxSizeMB = 16;
-                                                        } else if (formData.headerType === 'DOCUMENT') {
-                                                            if (file.type !== 'application/pdf') valid = false;
-                                                            allowedExts = ['PDF'];
-                                                            maxSizeMB = 100;
-                                                        }
-
-                                                        if (!valid) {
-                                                            showToast({ type: 'error', title: 'Invalid File Type', message: `Meta only allows ${allowedExts.join(', ')} files for this header type.` });
-                                                            e.target.value = '';
-                                                            return;
-                                                        }
-
-                                                        if (file.size > maxSizeMB * 1024 * 1024) {
-                                                            showToast({ type: 'error', title: 'File Too Large', message: `Maximum allowed size is ${maxSizeMB}MB.` });
-                                                            e.target.value = '';
-                                                            return;
-                                                        }
-
-                                                        setFormData({ ...formData, headerFile: file });
-                                                    }}
-                                                />
-                                                <div className="flex items-center gap-3 mt-4">
-                                                    <label
-                                                        htmlFor="header-media-upload"
-                                                        className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white px-4 py-2 rounded-lg text-sm font-semibold hover:border-primary transition-colors cursor-pointer inline-block"
-                                                    >
-                                                        {formData.headerFile ? 'Change File' : 'Upload File'}
-                                                    </label>
-                                                    <span className="text-slate-400 text-xs font-bold">OR</span>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setMediaPickerConfig({
-                                                            isOpen: true,
-                                                            target: 'header',
-                                                            mimeConstraints: formData.headerType === 'IMAGE' ? ['image/jpeg', 'image/png'] : formData.headerType === 'VIDEO' ? ['video/mp4'] : ['application/pdf']
-                                                        })}
-                                                        className="bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
-                                                    >
-                                                        Browse Media Manager
-                                                    </button>
-                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setMediaPickerConfig({
+                                                        isOpen: true,
+                                                        target: 'header',
+                                                        mimeConstraints: formData.headerType === 'IMAGE' ? ['image/jpeg', 'image/png'] : formData.headerType === 'VIDEO' ? ['video/mp4'] : ['application/pdf']
+                                                    })}
+                                                    className="bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+                                                >
+                                                    {formData.headerFile ? 'Change Media' : 'Browse Media Manager'}
+                                                </button>
                                                 {validationErrors.headerMedia && (
                                                     <div className="w-full mt-3 flex items-start gap-2 text-red-500 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg px-3 py-2">
                                                         <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -1449,47 +1395,14 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                 {/* Card Header (Image/Video) */}
                                                 <div className="mb-4">
                                                     <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">Card Media</label>
-                                                        <div className="flex flex-col gap-3 w-full">
-                                                            <label htmlFor={`card-media-upload-${activeCardIndex}`} className="w-full p-4 md:p-6 border-2 border-dashed border-slate-300 dark:border-white/20 rounded-xl flex flex-col items-center justify-center bg-white dark:bg-white/5 text-center transition-colors hover:border-primary cursor-pointer">
-                                                                <div className="bg-primary/10 text-primary p-2 rounded-full mb-3">
-                                                                    <ImageIcon className="w-5 h-5" />
-                                                                </div>
-                                                                <h4 className="text-slate-900 dark:text-white text-sm font-semibold">
-                                                                    {formData.cards[activeCardIndex].mediaFile ? formData.cards[activeCardIndex].mediaFile.name : 'Upload Local Image/Video'}
-                                                                </h4>
-                                                                <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-bold">Supported: JPG, PNG, MP4</p>
-                                                                <input
-                                                                    type="file"
-                                                                    id={`card-media-upload-${activeCardIndex}`}
-                                                                    className="hidden"
-                                                                    accept="image/jpeg, image/png, image/jpg, video/mp4"
-                                                                    onChange={(e) => {
-                                                                        const file = e.target.files[0];
-                                                                        if (!file) return;
-
-                                                                        if (!['image/jpeg', 'image/png', 'image/jpg', 'video/mp4'].includes(file.type)) {
-                                                                            showToast({ type: 'error', title: 'Invalid File Type', message: 'Meta only allows JPG, PNG, or MP4 files for carousel cards.' });
-                                                                            e.target.value = '';
-                                                                            return;
-                                                                        }
-
-                                                                        const isVid = file.type === 'video/mp4';
-                                                                        const maxSize = isVid ? 16 : 5;
-                                                                        
-                                                                        if (file.size > maxSize * 1024 * 1024) {
-                                                                            showToast({ type: 'error', title: 'File Too Large', message: `Maximum allowed size is ${maxSize}MB.` });
-                                                                            e.target.value = '';
-                                                                            return;
-                                                                        }
-
-                                                                        const newCards = [...formData.cards];
-                                                                        newCards[activeCardIndex].mediaFile = file;
-                                                                        newCards[activeCardIndex].headerHandle = null; // reset if they uploaded a new local file
-                                                                        newCards[activeCardIndex].headerType = isVid ? 'VIDEO' : 'IMAGE'; 
-                                                                        setFormData({ ...formData, cards: newCards });
-                                                                    }}
-                                                                />
-                                                            </label>
+                                                    <div className="flex flex-col gap-3 w-full">
+                                                        <div className="w-full p-4 md:p-6 border-2 border-dashed border-slate-300 dark:border-white/20 rounded-xl flex flex-col items-center justify-center bg-white dark:bg-white/5 text-center">
+                                                            <div className="bg-primary/10 text-primary p-2 rounded-full mb-3">
+                                                                <ImageIcon className="w-5 h-5" />
+                                                            </div>
+                                                            <h4 className="text-slate-900 dark:text-white text-sm font-semibold mb-3">
+                                                                {formData.cards[activeCardIndex].mediaFile ? formData.cards[activeCardIndex].mediaFile.name : 'Select Image or Video'}
+                                                            </h4>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => setMediaPickerConfig({
@@ -1497,11 +1410,12 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                                     target: `card-${activeCardIndex}`,
                                                                     mimeConstraints: ['image/jpeg', 'image/png', 'video/mp4']
                                                                 })}
-                                                                className="w-full bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                                                                className="bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2"
                                                             >
-                                                                <ImageIcon className="w-4 h-4" /> Browse Media Manager
+                                                                <ImageIcon className="w-4 h-4" /> {formData.cards[activeCardIndex].mediaFile ? 'Change Media' : 'Browse Media Manager'}
                                                             </button>
                                                         </div>
+                                                    </div>
                                                 </div>
 
                                                 {/* Card Body */}

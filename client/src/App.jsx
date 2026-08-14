@@ -211,23 +211,26 @@ class ErrorBoundary extends React.Component {
             if (now - lastReload > 10000) {
                 sessionStorage.setItem('last_chunk_error_reload', now.toString());
                 window.location.reload(true);
-                return;
+                return; // ← skip crash report — this is a self-healing deploy update, not a real crash
             }
+            // If we already reloaded recently and still failing, fall through and report it
         }
         
         console.error("Uncaught error:", error, errorInfo);
         this.setState({ errorInfo });
 
-        // Report crash to backend silently
-        try {
-            axios.post(`${import.meta.env.VITE_API_URL}/api/admin-notifications/public/crash-report`, {
-                message: error.toString(),
-                stack: errorInfo.componentStack,
-                url: window.location.href,
-                userId: localStorage.getItem('user_id') || 'unknown' // optional tracking
-            }).catch(e => console.error("Failed to report crash:", e));
-        } catch (e) {
-            // Ignore reporting errors to avoid infinite loops
+        // Report crash to backend silently (skip for chunk load errors — they self-heal via reload)
+        if (!this.state.isChunkLoadError) {
+            try {
+                axios.post(`${import.meta.env.VITE_API_URL}/api/admin-notifications/public/crash-report`, {
+                    message: error.toString(),
+                    stack: errorInfo.componentStack,
+                    url: window.location.href,
+                    userId: localStorage.getItem('user_id') || 'unknown'
+                }).catch(e => console.error("Failed to report crash:", e));
+            } catch (e) {
+                // Ignore reporting errors to avoid infinite loops
+            }
         }
     }
 
