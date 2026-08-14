@@ -1445,6 +1445,11 @@ export default function WaStoreSettings() {
                     type="button"
                     disabled={savingAuth}
                     onClick={async () => {
+                        if (customerAuthConfig?.methods?.includes('whatsapp_otp') && !customerAuthConfig?.otpTemplateName) {
+                            toast.error('Please select a WhatsApp Template for OTP before saving.');
+                            return;
+                        }
+                        
                         setSavingAuth(true);
                         try {
                             await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, { customerAuthConfig });

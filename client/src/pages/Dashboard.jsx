@@ -323,6 +323,9 @@ const Dashboard = () => {
                         window.removeEventListener('error', fbErrorListener);
                         setFbLoading(false);
                     } else if (data.event === 'ERROR') {
+                        // Log error to backend ActivityLog
+                        axios.post(`${import.meta.env.VITE_API_URL}/api/whatsapp/log-onboarding-error`, { errorPayload: data }).catch(console.error);
+
                         window.removeEventListener('message', fbMessageListener);
                         window.removeEventListener('error', fbErrorListener);
                         setFbLoading(false);
