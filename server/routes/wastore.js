@@ -15,6 +15,7 @@ const { deleteStorageFile } = require('../utils/storageProvider');
 const { Op, fn, col, literal } = require('sequelize');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { fireCAPIEvent } = require('../utils/capi');
+const dns = require('dns').promises;
 
 // #5 — Rate limiter for the public orders endpoint (prevents spam/fake orders)
 const publicOrderLimiter = rateLimit({
@@ -1088,6 +1089,49 @@ router.put('/:id', async (req, res) => {
             }
         }
 
+        // ── Custom domain sanitization & validation ──────────────────────────
+        if (req.body.customDomain !== undefined) {
+            let domain = (req.body.customDomain || '').trim().toLowerCase();
+            // Strip protocol (http:// or https://)
+            domain = domain.replace(/^https?:\/\//, '');
+            // Strip trailing slashes and paths
+            domain = domain.split('/')[0];
+            // Strip port numbers
+            domain = domain.split(':')[0];
+            // Remove leading/trailing dots
+            domain = domain.replace(/^\.+|\.+$/g, '');
+
+            if (domain) {
+                // Basic hostname format validation
+                const hostnameRegex = /^(?!-)[A-Za-z0-9-]+([\-.][A-Za-z0-9]+)*\.[A-Za-z]{2,}$/;
+                if (!hostnameRegex.test(domain)) {
+                    return res.status(400).json({ error: 'Invalid domain format. Please enter a valid domain like "www.example.com" or "shop.example.com".' });
+                }
+
+                // Block platform domains
+                const blockedDomains = ['bluetick.cloud', 'www.bluetick.cloud', 'localhost'];
+                if (blockedDomains.includes(domain)) {
+                    return res.status(400).json({ error: 'This domain cannot be used as a custom domain.' });
+                }
+
+                // Check uniqueness — another store shouldn't already claim this domain
+                if (domain !== store.customDomain) {
+                    const existingDomain = await WaStore.findOne({ where: { customDomain: domain, id: { [Op.ne]: store.id } } });
+                    if (existingDomain) {
+                        return res.status(400).json({ error: 'This domain is already connected to another store.' });
+                    }
+                    // Reset verification status when domain changes
+                    req.body.domainStatus = 'pending';
+                    req.body.domainVerifiedAt = null;
+                }
+            } else {
+                // User is clearing the domain
+                req.body.domainStatus = null;
+                req.body.domainVerifiedAt = null;
+            }
+            req.body.customDomain = domain || null;
+        }
+
         const updates = { ...req.body };
         delete updates.id;
         delete updates.userId;
@@ -1145,6 +1189,105 @@ router.put('/:id', async (req, res) => {
         res.json(store);
     } catch (error) {
         res.status(500).json({ error: 'Failed to update store' });
+    }
+});
+
+// ── Verify Custom Domain DNS ─────────────────────────────────────────────────
+// Checks if the user's custom domain actually points to bluetick.cloud
+router.post('/:id/verify-domain', auth, async (req, res) => {
+    try {
+        const store = await WaStore.findOne({
+            where: { id: req.params.id, userId: req.user.id }
+        });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+        if (!store.customDomain) return res.status(400).json({ error: 'No custom domain configured for this store.' });
+
+        const domain = store.customDomain;
+        const targetDomain = 'bluetick.cloud';
+        let verified = false;
+        let method = null;
+        let details = '';
+
+        // 1. Try CNAME lookup (works for subdomains like www.example.com)
+        try {
+            const cnameRecords = await dns.resolveCname(domain);
+            if (cnameRecords && cnameRecords.length > 0) {
+                const matchesCname = cnameRecords.some(r => 
+                    r.toLowerCase() === targetDomain || r.toLowerCase() === targetDomain + '.'
+                );
+                if (matchesCname) {
+                    verified = true;
+                    method = 'CNAME';
+                    details = `CNAME record found: ${cnameRecords[0]} → ${targetDomain}`;
+                } else {
+                    details = `CNAME record found but points to "${cnameRecords[0]}" instead of "${targetDomain}". Please update your CNAME record.`;
+                }
+            }
+        } catch (cnameErr) {
+            // CNAME lookup failed — not necessarily an error, domain might use A record
+        }
+
+        // 2. If CNAME didn't verify, try A record (works for root/apex domains)
+        if (!verified) {
+            try {
+                // Resolve our target domain's IP to compare against
+                const targetIPs = await dns.resolve4(targetDomain);
+                const domainIPs = await dns.resolve4(domain);
+
+                if (domainIPs && domainIPs.length > 0 && targetIPs && targetIPs.length > 0) {
+                    const matchesIP = domainIPs.some(ip => targetIPs.includes(ip));
+                    if (matchesIP) {
+                        verified = true;
+                        method = 'A';
+                        details = `A record verified: ${domain} → ${domainIPs[0]} (matches ${targetDomain})`;
+                    } else if (!details) {
+                        details = `A record found (${domainIPs[0]}) but does not match our server IP (${targetIPs[0]}). Please update your A record.`;
+                    }
+                }
+            } catch (aErr) {
+                if (!details) {
+                    details = `Could not resolve DNS for "${domain}". Please verify that you have added the correct DNS records at your domain provider. DNS changes can take up to 48 hours to propagate.`;
+                }
+            }
+        }
+
+        // Update store status
+        await store.update({
+            domainStatus: verified ? 'verified' : 'failed',
+            domainVerifiedAt: verified ? new Date() : store.domainVerifiedAt
+        });
+
+        res.json({
+            verified,
+            method,
+            details,
+            domain,
+            domainStatus: verified ? 'verified' : 'failed'
+        });
+    } catch (error) {
+        console.error('[Domain Verify] Error:', error.message);
+        res.status(500).json({ error: 'Failed to verify domain DNS. Please try again.' });
+    }
+});
+
+// ── Remove Custom Domain ─────────────────────────────────────────────────────
+router.delete('/:id/domain', auth, async (req, res) => {
+    try {
+        const store = await WaStore.findOne({
+            where: { id: req.params.id, userId: req.user.id }
+        });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+
+        await store.update({
+            customDomain: null,
+            domainStatus: null,
+            domainVerifiedAt: null
+        });
+
+        res.json({ success: true, message: 'Custom domain removed successfully.' });
+    } catch (error) {
+        console.error('[Domain Remove] Error:', error.message);
+        res.status(500).json({ error: 'Failed to remove custom domain.' });
     }
 });
 

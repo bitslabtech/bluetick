@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Settings, Trash2, AlertTriangle, BarChart2, Eye, Globe, Info, ChevronDown, ChevronUp, LayoutGrid, Smartphone, Monitor, ShoppingBag, FileText, ClipboardList, Sparkles } from 'lucide-react';
+import { Settings, Trash2, AlertTriangle, BarChart2, Eye, Globe, Info, ChevronDown, ChevronUp, LayoutGrid, Smartphone, Monitor, ShoppingBag, FileText, ClipboardList, Sparkles, CheckCircle, XCircle, Copy, ExternalLink, RefreshCw, Shield, Zap, ArrowRight, Clock, HelpCircle, Link2, Unlink, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const INDIAN_STATES = [
@@ -71,6 +71,13 @@ export default function WaStoreSettings() {
     const [confirmText, setConfirmText] = useState('');
     const [customDomain, setCustomDomain] = useState('');
     const [showDnsInstructions, setShowDnsInstructions] = useState(false);
+    const [domainStatus, setDomainStatus] = useState(null); // null | 'pending' | 'verified' | 'failed'
+    const [domainVerifiedAt, setDomainVerifiedAt] = useState(null);
+    const [verifyingDomain, setVerifyingDomain] = useState(false);
+    const [verifyResult, setVerifyResult] = useState(null);
+    const [removingDomain, setRemovingDomain] = useState(false);
+    const [domainType, setDomainType] = useState('subdomain'); // 'root' or 'subdomain'
+    const [copiedField, setCopiedField] = useState(null);
     const [gridColumns, setGridColumns] = useState({ desktop: 4, mobile: 2 });
     const [paginationConfig, setPaginationConfig] = useState({ mode: 'none' });
     const [showCrossSells, setShowCrossSells] = useState(true);
@@ -134,6 +141,8 @@ export default function WaStoreSettings() {
                 const myStore = res.data.find(s => s.id === storeId);
                 setStore(myStore);
                 if (myStore?.customDomain) setCustomDomain(myStore.customDomain);
+                if (myStore?.domainStatus) setDomainStatus(myStore.domainStatus);
+                if (myStore?.domainVerifiedAt) setDomainVerifiedAt(myStore.domainVerifiedAt);
                 if (myStore?.gridColumns) setGridColumns(myStore.gridColumns);
                 if (myStore?.categoryDisplayConfig) setCategoryDisplayConfig(prev => ({ ...prev, ...myStore.categoryDisplayConfig }));
                 if (myStore?.paginationConfig) setPaginationConfig(myStore.paginationConfig);
@@ -184,17 +193,80 @@ export default function WaStoreSettings() {
     };
 
     const handleSaveDomain = async () => {
+        if (!customDomain.trim()) {
+            toast.error('Please enter a domain name.');
+            return;
+        }
         setSavingDomain(true);
+        setVerifyResult(null);
         try {
-            await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, {
+            const res = await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, {
                 customDomain: customDomain
             });
-            toast.success('Custom domain updated successfully.');
+            const savedDomain = res.data.customDomain || customDomain;
+            const savedStatus = res.data.domainStatus || 'pending';
+            setCustomDomain(savedDomain);
+            setDomainStatus(savedStatus);
+            // Update local store object so store?.customDomain references in JSX reflect immediately
+            setStore(prev => prev ? { ...prev, customDomain: savedDomain, domainStatus: savedStatus } : prev);
+            setShowDnsInstructions(true);
+            // Auto-detect domain type from input
+            const parts = savedDomain.split('.');
+            setDomainType(parts.length <= 2 ? 'root' : 'subdomain');
+            toast.success('Domain saved! Now configure your DNS records below.');
         } catch (error) {
             toast.error(error.response?.data?.error || 'Failed to update custom domain');
         } finally {
             setSavingDomain(false);
         }
+    };
+
+    const handleVerifyDomain = async () => {
+        setVerifyingDomain(true);
+        setVerifyResult(null);
+        try {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}/verify-domain`);
+            setVerifyResult(res.data);
+            setDomainStatus(res.data.domainStatus);
+            if (res.data.verified) {
+                setDomainVerifiedAt(new Date().toISOString());
+                toast.success('🎉 Domain verified successfully! Your store is now live on your custom domain.');
+            } else {
+                toast.error('DNS verification failed. Check the details below.');
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.error || 'Verification failed. Please try again.');
+        } finally {
+            setVerifyingDomain(false);
+        }
+    };
+
+    const handleRemoveDomain = async () => {
+        if (!window.confirm('Are you sure you want to disconnect this custom domain? Your store will only be accessible via the default URL.')) return;
+        setRemovingDomain(true);
+        try {
+            await axios.delete(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}/domain`);
+            setCustomDomain('');
+            setDomainStatus(null);
+            setDomainVerifiedAt(null);
+            setVerifyResult(null);
+            setShowDnsInstructions(false);
+            // Clear from local store object so wizard/disconnect button disappear immediately
+            setStore(prev => prev ? { ...prev, customDomain: null, domainStatus: null, domainVerifiedAt: null } : prev);
+            toast.success('Custom domain removed.');
+        } catch (error) {
+            toast.error(error.response?.data?.error || 'Failed to remove domain');
+        } finally {
+            setRemovingDomain(false);
+        }
+    };
+
+    const copyToClipboard = (text, field) => {
+        navigator.clipboard.writeText(text).then(() => {
+            setCopiedField(field);
+            toast.success('Copied to clipboard!');
+            setTimeout(() => setCopiedField(null), 2000);
+        }).catch(() => toast.error('Failed to copy'));
     };
 
     const handleSaveGrid = async () => {
@@ -348,83 +420,376 @@ export default function WaStoreSettings() {
             {/* Custom Domain Mapping */}
             <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
                 <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
-                    <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <Globe className="w-4 h-4 text-indigo-400" /> Custom Domain Mapping
+                    <div className="flex items-center justify-between">
+                        <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <Globe className="w-4 h-4 text-indigo-400" /> Custom Domain Mapping
+                        </h3>
+                        {/* Domain Status Badge */}
+                        {domainStatus && (
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                                domainStatus === 'verified' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' :
+                                domainStatus === 'pending' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' :
+                                'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                            }`}>
+                                {domainStatus === 'verified' && <CheckCircle className="w-3 h-3" />}
+                                {domainStatus === 'pending' && <Clock className="w-3 h-3" />}
+                                {domainStatus === 'failed' && <XCircle className="w-3 h-3" />}
+                                {domainStatus === 'verified' ? 'Connected' : domainStatus === 'pending' ? 'Pending Verification' : 'DNS Not Found'}
+                            </span>
+                        )}
+                    </div>
+                </div>
+                <div className="p-4 md:p-6 space-y-6">
+                    <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Connect your own domain (e.g., <strong className="text-slate-700 dark:text-slate-300">yourbrand.com</strong> or <strong className="text-slate-700 dark:text-slate-300">shop.yourbrand.com</strong>) to your online store. Customers will visit your domain and see your store.
+                    </p>
+
+                    {/* Domain Input */}
+                    <div>
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Your Domain Name</label>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <div className="relative w-full sm:flex-1">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <Link2 className="w-4 h-4 text-slate-400" />
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="www.yourdomain.com or yourdomain.com"
+                                    value={customDomain}
+                                    onChange={e => {
+                                        let val = e.target.value.toLowerCase().replace(/^https?:\/\//, '').split('/')[0];
+                                        setCustomDomain(val);
+                                    }}
+                                    className="w-full pl-10 pr-4 py-3 sm:py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-slate-900 dark:text-white text-sm"
+                                />
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={handleSaveDomain}
+                                    disabled={savingDomain || !customDomain.trim()}
+                                    className="flex-1 sm:flex-none px-5 py-3 sm:py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold sm:font-semibold transition-all text-sm shadow-sm flex items-center justify-center gap-2"
+                                >
+                                    {savingDomain ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
+                                    {savingDomain ? 'Saving...' : (store?.customDomain ? 'Update' : 'Connect Domain')}
+                                </button>
+                                {store?.customDomain && (
+                                    <button
+                                        onClick={handleRemoveDomain}
+                                        disabled={removingDomain}
+                                        className="px-3 py-2.5 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 rounded-xl transition-all border border-red-200 dark:border-red-800"
+                                        title="Disconnect domain"
+                                    >
+                                        <Unlink className="w-4 h-4" />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-1.5">Enter your domain without http:// or https://. Example: <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">www.mystore.in</code></p>
+                    </div>
+
+                    {/* Verified Domain Info */}
+                    {domainStatus === 'verified' && store?.customDomain && (
+                        <div className="bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/30 rounded-xl p-4">
+                            <div className="flex items-start gap-3">
+                                <CheckCircle className="w-5 h-5 text-emerald-500 mt-0.5 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">Domain is connected and live!</p>
+                                    <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                                        Your store is accessible at <a href={`https://${store.customDomain}`} target="_blank" rel="noopener noreferrer" className="underline font-semibold inline-flex items-center gap-1">
+                                            {store.customDomain} <ExternalLink className="w-3 h-3" />
+                                        </a>
+                                    </p>
+                                    {domainVerifiedAt && (
+                                        <p className="text-[10px] text-emerald-500/70 mt-1">Verified on {new Date(domainVerifiedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={handleVerifyDomain}
+                                    disabled={verifyingDomain}
+                                    className="shrink-0 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 hover:bg-emerald-200 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-700 rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                                >
+                                    {verifyingDomain ? <RefreshCw className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                                    Re-verify
+                                </button>
+                            </div>
+                            {/* Show re-verify result even when domain is verified */}
+                            {verifyResult && (
+                                <div className={`mt-3 rounded-lg p-3 text-xs border ${verifyResult.verified ? 'bg-emerald-100 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400' : 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-700 text-red-600 dark:text-red-400'}`}>
+                                    {verifyResult.details}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                </div>
+            </div>
+
+            {/* Step-by-Step DNS Setup Guide */}
+            {store?.customDomain && domainStatus !== 'verified' && (
+            <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
+                <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-gradient-to-r from-indigo-50 to-violet-50 dark:from-indigo-900/10 dark:to-violet-900/10">
+                    <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-sm">
+                        <Zap className="w-4 h-4 text-indigo-500" /> Setup Guide — Connect <code className="bg-white dark:bg-slate-800 px-2 py-0.5 rounded text-indigo-600 dark:text-indigo-400 text-xs font-bold">{store.customDomain}</code>
                     </h3>
                 </div>
-                <div className="p-4 md:p-6 space-y-4">
-                    <p className="text-sm text-slate-500">
-                        Map your own domain name (e.g., <strong>yourbrand.com</strong>) to your Online Store.
-                    </p>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Domain Name</label>
-                        <div className="flex flex-col sm:flex-row gap-3">
-                            <input
-                                type="text"
-                                placeholder="shop.example.com"
-                                value={customDomain}
-                                onChange={e => setCustomDomain(e.target.value.toLowerCase())}
-                                className="w-full sm:flex-1 px-4 py-3 sm:py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white text-sm"
-                            />
+                <div className="p-4 md:p-6 space-y-6">
+
+                    {/* Step 1: Choose Domain Type */}
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
+                            <h4 className="font-bold text-slate-900 dark:text-white text-sm">What type of domain are you connecting?</h4>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 ml-8">
                             <button
-                                onClick={handleSaveDomain}
-                                disabled={savingDomain}
-                                className="w-full sm:w-auto px-5 py-3 sm:py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-bold sm:font-medium transition-all text-sm shadow-sm"
+                                type="button"
+                                onClick={() => setDomainType('subdomain')}
+                                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                                    domainType === 'subdomain'
+                                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 ring-1 ring-indigo-500/20'
+                                        : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-700'
+                                }`}
                             >
-                                {savingDomain ? 'Saving...' : 'Save Domain'}
+                                <p className="font-bold text-sm text-slate-900 dark:text-white">Subdomain</p>
+                                <p className="text-xs text-slate-500 mt-1">e.g., <span className="font-mono font-bold">www</span>.yourdomain.com or <span className="font-mono font-bold">shop</span>.yourdomain.com</p>
+                                <span className="inline-block mt-2 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full">✓ Recommended — Easiest Setup</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setDomainType('root')}
+                                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                                    domainType === 'root'
+                                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 ring-1 ring-indigo-500/20'
+                                        : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-700'
+                                }`}
+                            >
+                                <p className="font-bold text-sm text-slate-900 dark:text-white">Root / Apex Domain</p>
+                                <p className="text-xs text-slate-500 mt-1">e.g., yourdomain.com <span className="text-slate-400">(without www)</span></p>
+                                <span className="inline-block mt-2 text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">Requires A Record</span>
                             </button>
                         </div>
                     </div>
 
-                    <div className="mt-6 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
-                        <button
-                            onClick={() => setShowDnsInstructions(!showDnsInstructions)}
-                            className="w-full flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                        >
-                            <h4 className="font-semibold text-slate-900 dark:text-white text-sm flex items-center gap-2">
-                                <Info className="w-4 h-4 text-indigo-500" /> How to configure your DNS
-                            </h4>
-                            {showDnsInstructions ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
-                        </button>
+                    {/* Step 2: DNS Records */}
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shrink-0">2</span>
+                            <h4 className="font-bold text-slate-900 dark:text-white text-sm">Add these DNS records at your domain provider</h4>
+                        </div>
+                        <div className="ml-8 space-y-4">
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                                Log into your domain provider's DNS management panel and add the following record{domainType === 'root' ? 's' : ''}:
+                            </p>
 
-                        {showDnsInstructions && (
-                            <div className="p-5 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
-                                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
-                                    To make your custom domain work, you need to log into your domain provider (e.g. GoDaddy, Namecheap, Route53) and add the following record to your DNS settings.
-                                </p>
-
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm text-left border-collapse">
-                                        <thead>
-                                            <tr className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                                                <th className="px-4 py-2 font-medium border border-slate-200 dark:border-slate-700">Type</th>
-                                                <th className="px-4 py-2 font-medium border border-slate-200 dark:border-slate-700">Name / Host</th>
-                                                <th className="px-4 py-2 font-medium border border-slate-200 dark:border-slate-700">Value / Target</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td className="px-4 py-3 border border-slate-200 dark:border-slate-700 font-mono text-xs">CNAME</td>
-                                                <td className="px-4 py-3 border border-slate-200 dark:border-slate-700">
-                                                    <span className="font-mono text-xs bg-slate-50 dark:bg-slate-950 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">www</span> or <span className="font-mono text-xs bg-slate-50 dark:bg-slate-950 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">shop</span>
+                            {/* DNS Records Table */}
+                            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+                                <table className="w-full text-sm text-left">
+                                    <thead>
+                                        <tr className="bg-slate-100 dark:bg-slate-800">
+                                            <th className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Type</th>
+                                            <th className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Name / Host</th>
+                                            <th className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Value / Target</th>
+                                            <th className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider w-16">Copy</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                                        {domainType === 'subdomain' ? (
+                                            <tr className="bg-white dark:bg-slate-900">
+                                                <td className="px-4 py-3">
+                                                    <span className="font-mono text-xs font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded">CNAME</span>
                                                 </td>
-                                                <td className="px-4 py-3 border border-slate-200 dark:border-slate-700 font-mono text-xs select-all text-indigo-600 dark:text-indigo-400">
-                                                    {window.location.hostname}
+                                                <td className="px-4 py-3">
+                                                    <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">{(store.customDomain || customDomain).split('.')[0]}</span>
+                                                    <p className="text-[10px] text-slate-400 mt-0.5">The subdomain prefix (e.g., www, shop)</p>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">bluetick.cloud</span>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <button onClick={() => copyToClipboard('bluetick.cloud', 'cname')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" title="Copy value">
+                                                        {copiedField === 'cname' ? <CheckCircle className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-slate-400" />}
+                                                    </button>
                                                 </td>
                                             </tr>
-                                            <tr className="bg-slate-50/50 dark:bg-slate-800/30">
-                                                <td colSpan="3" className="px-4 py-2 text-xs text-slate-500 border border-slate-200 dark:border-slate-700">
-                                                    * Note: If you are using an apex domain (e.g. <code>yourdomain.com</code> without the www), create an <strong>A Record</strong> pointing to our server IP instead. DNS changes may take up to 24-48 hours to propagate globally.
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
+                                        ) : (
+                                            <>
+                                                <tr className="bg-white dark:bg-slate-900">
+                                                    <td className="px-4 py-3">
+                                                        <span className="font-mono text-xs font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-1 rounded">A</span>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">@</span>
+                                                        <p className="text-[10px] text-slate-400 mt-0.5">@ means root domain</p>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">Get IP by running: nslookup bluetick.cloud</span>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <button onClick={() => copyToClipboard('nslookup bluetick.cloud', 'arec')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" title="Copy command">
+                                                            {copiedField === 'arec' ? <CheckCircle className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-slate-400" />}
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr className="bg-slate-50/50 dark:bg-slate-800/30">
+                                                    <td className="px-4 py-3">
+                                                        <span className="font-mono text-xs font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded">CNAME</span>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">www</span>
+                                                        <p className="text-[10px] text-slate-400 mt-0.5">Also add for www subdomain</p>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">bluetick.cloud</span>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <button onClick={() => copyToClipboard('bluetick.cloud', 'cnameroot')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" title="Copy value">
+                                                            {copiedField === 'cnameroot' ? <CheckCircle className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-slate-400" />}
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </>
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
-                        )}
+
+                            {/* Cloudflare Special Note */}
+                            {domainType === 'root' && (
+                                <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/30 rounded-xl p-3">
+                                    <p className="text-xs text-blue-700 dark:text-blue-400 font-medium flex items-start gap-2">
+                                        <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                                        <span><strong>Using Cloudflare?</strong> You can add a CNAME for <code className="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">@</code> pointing to <code className="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">bluetick.cloud</code> — Cloudflare auto-flattens it, so no A record or IP address needed!</span>
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Important Note */}
+                            <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-xl p-3">
+                                <p className="text-xs text-amber-700 dark:text-amber-400 font-medium flex items-start gap-2">
+                                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                                    <span><strong>Important:</strong> Delete any existing A or CNAME records for the same host name before adding new ones, otherwise they will conflict and DNS won't resolve correctly.</span>
+                                </p>
+                            </div>
+
+                            {/* Registrar-Specific Tips */}
+                            <details className="group">
+                                <summary className="cursor-pointer flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors py-1">
+                                    <HelpCircle className="w-4 h-4" />
+                                    Registrar-specific instructions
+                                    <ChevronDown className="w-3 h-3 group-open:rotate-180 transition-transform" />
+                                </summary>
+                                <div className="mt-3 space-y-3">
+                                    {[
+                                        { name: 'GoDaddy', steps: ['Log in to GoDaddy → My Products → DNS', 'Click "Add" next to DNS Records', 'Select type (CNAME or A), enter Name and Value from above', 'Save and wait for propagation'] },
+                                        { name: 'Namecheap', steps: ['Log in → Domain List → Manage → Advanced DNS', 'Click "Add New Record"', 'Choose record type, enter Host and Value', 'Save all changes'] },
+                                        { name: 'Cloudflare', steps: ['Log in → Select your domain → DNS', 'Click "Add record"', 'For root domain: use CNAME with @ → bluetick.cloud (enable proxy)', 'For subdomain: CNAME with www/shop → bluetick.cloud'] },
+                                        { name: 'DotPe / Other', steps: ['Log into your DNS management panel', 'Navigate to DNS records section', 'Add the record(s) shown in the table above', 'Save and allow 5 minutes to 48 hours for propagation'] }
+                                    ].map(reg => (
+                                        <details key={reg.name} className="bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                                            <summary className="cursor-pointer px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400">{reg.name}</summary>
+                                            <ol className="px-4 pb-3 pt-1 space-y-1.5">
+                                                {reg.steps.map((step, i) => (
+                                                    <li key={i} className="text-xs text-slate-500 dark:text-slate-400 flex items-start gap-2">
+                                                        <span className="text-indigo-500 font-bold shrink-0">{i + 1}.</span> {step}
+                                                    </li>
+                                                ))}
+                                            </ol>
+                                        </details>
+                                    ))}
+                                </div>
+                            </details>
+                        </div>
+                    </div>
+
+                    {/* Step 3: Verify */}
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shrink-0">3</span>
+                            <h4 className="font-bold text-slate-900 dark:text-white text-sm">Verify your DNS configuration</h4>
+                        </div>
+                        <div className="ml-8 space-y-3">
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                                After adding the DNS records, click the button below to verify. DNS changes can take <strong>5 minutes to 48 hours</strong> to propagate globally.
+                            </p>
+                            <button
+                                onClick={handleVerifyDomain}
+                                disabled={verifyingDomain}
+                                className={`w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-sm ${
+                                    domainStatus === 'verified'
+                                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                        : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                                } disabled:opacity-50`}
+                            >
+                                {verifyingDomain ? (
+                                    <><RefreshCw className="w-4 h-4 animate-spin" /> Checking DNS...</>
+                                ) : domainStatus === 'verified' ? (
+                                    <><CheckCircle className="w-4 h-4" /> Re-verify Domain</>
+                                ) : (
+                                    <><Search className="w-4 h-4" /> Verify DNS Configuration</>
+                                )}
+                            </button>
+
+                            {/* Verification Result */}
+                            {verifyResult && (
+                                <div className={`rounded-xl p-4 border ${
+                                    verifyResult.verified
+                                        ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800/30'
+                                        : 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800/30'
+                                }`}>
+                                    <div className="flex items-start gap-3">
+                                        {verifyResult.verified ? (
+                                            <CheckCircle className="w-5 h-5 text-emerald-500 mt-0.5 shrink-0" />
+                                        ) : (
+                                            <XCircle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
+                                        )}
+                                        <div>
+                                            <p className={`text-sm font-bold ${verifyResult.verified ? 'text-emerald-800 dark:text-emerald-300' : 'text-red-800 dark:text-red-300'}`}>
+                                                {verifyResult.verified ? '✅ Domain Verified Successfully!' : '❌ DNS Verification Failed'}
+                                            </p>
+                                            <p className={`text-xs mt-1 ${verifyResult.verified ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                {verifyResult.details}
+                                            </p>
+                                            {verifyResult.method && (
+                                                <p className="text-[10px] text-slate-500 mt-1">Verification method: {verifyResult.method} record</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
+            )}
+
+            {/* Troubleshooting Tips */}
+            {store?.customDomain && (
+            <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
+                <details className="group">
+                    <summary className="cursor-pointer px-4 md:px-6 py-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
+                        <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-sm">
+                            <HelpCircle className="w-4 h-4 text-amber-500" /> Troubleshooting & FAQ
+                        </h3>
+                        <ChevronDown className="w-4 h-4 text-slate-400 group-open:rotate-180 transition-transform" />
+                    </summary>
+                    <div className="px-4 md:px-6 pb-5 space-y-3 border-t border-slate-100 dark:border-white/5 pt-4">
+                        {[
+                            { q: 'How long does DNS take to propagate?', a: 'DNS changes typically take 5 minutes to 2 hours, but can take up to 48 hours in rare cases. You can check propagation status at dnschecker.org.' },
+                            { q: 'Can I use my root domain (without www)?', a: 'Yes! Use an A record pointing to our server IP. If your DNS provider is Cloudflare, you can use a CNAME for @ and Cloudflare will auto-flatten it.' },
+                            { q: 'Domain was working but stopped?', a: 'This can happen if the DNS records were changed or if your domain expired. Re-verify your DNS to check the current status.' },
+                            { q: 'Can I use Cloudflare proxy (orange cloud)?', a: 'Yes! Cloudflare proxy is fully compatible and recommended — it adds DDoS protection and free SSL to your store.' },
+                            { q: 'Do I need an SSL certificate?', a: 'SSL is handled automatically. If you use Cloudflare, their free SSL works out of the box. Otherwise, our server handles SSL via Let\'s Encrypt.' },
+                            { q: 'My old website was on this domain. What happens?', a: 'Once you change the DNS records to point to Bluetick, your old website will stop loading on that domain. Make sure to back up your old site first.' }
+                        ].map((item, i) => (
+                            <details key={i} className="bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                                <summary className="cursor-pointer px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300">{item.q}</summary>
+                                <p className="px-4 pb-3 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{item.a}</p>
+                            </details>
+                        ))}
+                    </div>
+                </details>
+            </div>
+            )}
             </>
             )}
             {activeTab === 'layout' && (

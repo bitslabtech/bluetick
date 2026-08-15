@@ -124,17 +124,17 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
     const handleMediaPickerSelect = async (url) => {
         setMediaPickerConfig({ ...mediaPickerConfig, isOpen: false });
         showToast({ type: 'info', title: 'Importing Media', message: 'Fetching from Media Manager and uploading to Meta...' });
-        
+
         try {
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/templates/upload-url`, { url });
             const handle = res.data.handle;
-            
+
             if (mediaPickerConfig.target === 'header') {
                 setFormData(prev => ({ ...prev, headerHandle: handle, headerFile: { name: 'Linked from Media Manager' } }));
                 setHeaderPreviewUrl(url); // Override preview
             } else if (mediaPickerConfig.target.startsWith('card-')) {
                 const cardIndex = parseInt(mediaPickerConfig.target.split('-')[1]);
-                
+
                 // Auto-detect type
                 const ext = url.split('.').pop().toLowerCase();
                 const headerType = ['mp4'].includes(ext) ? 'VIDEO' : 'IMAGE';
@@ -143,9 +143,9 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                 newCards[cardIndex].headerHandle = handle;
                 newCards[cardIndex].mediaFile = { name: 'Linked from Media Manager' };
                 newCards[cardIndex].headerType = headerType;
-                
+
                 setFormData(prev => ({ ...prev, cards: newCards }));
-                
+
                 const newPreviewUrls = [...cardPreviewUrls];
                 newPreviewUrls[cardIndex] = url;
                 setCardPreviewUrls(newPreviewUrls);
@@ -177,17 +177,17 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
     const handleEnhanceAI = async (textToEnhance, type = 'content', cardIndex = -1) => {
         const sectionId = type === 'content' ? 'content' : `card-content-${cardIndex}`;
         if (!textToEnhance?.trim()) return showToast({ type: 'error', title: 'Error', message: 'Please enter some text to enhance first.' });
-        
+
         setIsEnhancing(true);
         setEnhancingSection(sectionId);
         try {
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/templates/enhance-ai`, 
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/templates/enhance-ai`,
                 { text: textToEnhance }
             );
-            
+
             const enhancedText = res.data.enhancedText;
             showToast({ type: 'success', title: 'AI Enhancement', message: `Text optimized! Used ${res.data.tokensDeducted} AI Tokens.` });
-            
+
             if (type === 'content') {
                 setFormData(prev => ({ ...prev, content: enhancedText }));
                 // update body variables
@@ -202,7 +202,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                 newCards[cardIndex].content = enhancedText;
                 setFormData(prev => ({ ...prev, cards: newCards }));
             }
-            
+
             setEnhancedSuccess(sectionId);
             setTimeout(() => setEnhancedSuccess(null), 2500);
 
@@ -223,7 +223,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
             if (editTemplateData) {
                 const matchingArchetype = TEMPLATE_ARCHETYPES.find(a => a.id === editTemplateData.archetype) || TEMPLATE_ARCHETYPES[0];
                 setSelectedArchetype(matchingArchetype);
-                
+
                 setFormData({
                     name: editTemplateData.name || '',
                     category: editTemplateData.category || 'MARKETING',
@@ -236,22 +236,22 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                     buttons: editTemplateData.buttons || [],
                     cards: editTemplateData.cards || []
                 });
-                
+
                 // We'll extract variables but not prefill their exact example values since they aren't fully stored locally right now
                 const vars = extractVariables(editTemplateData.content || '');
                 const initVars = {};
                 vars.forEach(v => { initVars[v] = ''; });
                 setBodyVariables(initVars);
-                
+
                 setHeaderVariables({});
                 setActiveCardIndex(0);
-                
+
                 setStep(2);
             } else if (initialDraft) {
                 // Set the mapped archetype
                 const matchingArchetype = TEMPLATE_ARCHETYPES.find(a => a.id === initialDraft.archetype) || TEMPLATE_ARCHETYPES[0];
                 setSelectedArchetype(matchingArchetype);
-                
+
                 // Hydrate Form Data
                 setFormData({
                     name: initialDraft.name || '',
@@ -264,12 +264,12 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                     buttons: initialDraft.buttons || [],
                     cards: initialDraft.cards || []
                 });
-                
+
                 // Hydrate Body Variables
                 setBodyVariables(initialDraft.bodyVariables || {});
                 setHeaderVariables({});
                 setActiveCardIndex(0);
-                
+
                 // Auto-advance to Step 2
                 setStep(2);
             } else {
@@ -376,7 +376,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
         if (type === 'PHONE_NUMBER' && currentPhones >= 1) return showToast({ type: 'error', title: 'Limit Reached', message: 'Max 1 Phone button allowed.' });
         if (type === 'COPY_CODE' && currentCopyCodes >= 1) return showToast({ type: 'error', title: 'Limit Reached', message: 'Max 1 Copy Code button allowed.' });
 
-        const newBtn = { type, text: type === 'COPY_CODE' ? 'Copy offer code' : '', url: '', phoneNumber: '', couponCode: '' };
+        const newBtn = { type, text: type === 'COPY_CODE' ? 'Copy code' : '', url: '', phoneNumber: '', couponCode: '' };
         setFormData({ ...formData, buttons: [...formData.buttons, newBtn] });
     };
 
@@ -495,7 +495,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
         // 3. Body Variables - all sample values must be filled
         const unfilledVars = Object.entries(bodyVariables).filter(([, v]) => !v.trim());
         if (unfilledVars.length > 0) errors.bodyVariables = `Please fill in sample values for: ${unfilledVars.map(([k]) => `{{${k}}}`).join(', ')}`;
-        
+
         // Authentication specific variable validation
         if (selectedArchetype?.id === 'authentication') {
             const varCount = Object.keys(bodyVariables).length;
@@ -770,9 +770,9 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                             </p>
                                         )}
                                         {!validationErrors.name && (
-                                        <p className="text-xs text-slate-500 dark:text-text-secondary mt-1.5 flex items-center gap-1">
-                                            <AlertCircle className="w-3.5 h-3.5" /> Lowercase letters, numbers, and underscores only.
-                                        </p>
+                                            <p className="text-xs text-slate-500 dark:text-text-secondary mt-1.5 flex items-center gap-1">
+                                                <AlertCircle className="w-3.5 h-3.5" /> Lowercase letters, numbers, and underscores only.
+                                            </p>
                                         )}
                                     </div>
 
@@ -885,7 +885,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                 <div className="flex items-center gap-3">
                                                     <button onClick={() => handleEnhanceAI(formData.content, 'content')} disabled={isEnhancing && enhancingSection !== 'content'} className={`relative flex items-center gap-1.5 text-[10px] bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 px-2 py-1 rounded-md font-bold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all duration-300 disabled:opacity-50 ${enhancingSection === 'content' ? 'shadow-[0_0_15px_rgba(99,102,241,0.5)] scale-105 border-indigo-400 dark:border-indigo-400 overflow-hidden' : ''}`} type="button">
                                                         {enhancingSection === 'content' && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 dark:via-white/20 to-transparent translate-x-[-100%] animate-[shimmer_1.5s_infinite]"></div>}
-                                                        <Sparkles className={`w-3 h-3 ${enhancingSection === 'content' ? 'animate-spin text-amber-500' : ''}`} /> 
+                                                        <Sparkles className={`w-3 h-3 ${enhancingSection === 'content' ? 'animate-spin text-amber-500' : ''}`} />
                                                         {enhancingSection === 'content' ? 'Enhancing...' : 'Enhance with AI'}
                                                     </button>
                                                     <span className="text-xs text-slate-400 font-mono">{formData.content.length}/1024</span>
@@ -1063,7 +1063,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                 <div className="flex items-center gap-3">
                                                     <button onClick={() => handleEnhanceAI(formData.content, 'content')} disabled={isEnhancing && enhancingSection !== 'content'} className={`relative flex items-center gap-1.5 text-[10px] bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 px-2 py-1 rounded-md font-bold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all duration-300 disabled:opacity-50 ${enhancingSection === 'content' ? 'shadow-[0_0_15px_rgba(99,102,241,0.5)] scale-105 border-indigo-400 dark:border-indigo-400 overflow-hidden' : ''}`} type="button">
                                                         {enhancingSection === 'content' && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 dark:via-white/20 to-transparent translate-x-[-100%] animate-[shimmer_1.5s_infinite]"></div>}
-                                                        <Sparkles className={`w-3 h-3 ${enhancingSection === 'content' ? 'animate-spin text-amber-500' : ''}`} /> 
+                                                        <Sparkles className={`w-3 h-3 ${enhancingSection === 'content' ? 'animate-spin text-amber-500' : ''}`} />
                                                         {enhancingSection === 'content' ? 'Enhancing...' : 'Enhance with AI'}
                                                     </button>
                                                     <span className="text-xs text-slate-400 font-mono">{formData.content.length}/1024</span>
@@ -1133,11 +1133,10 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                 value={formData.footer}
                                                 onChange={(e) => { setFormData({ ...formData, footer: e.target.value }); if (validationErrors.footer) setValidationErrors(p => ({ ...p, footer: undefined })); }}
                                                 maxLength={60}
-                                                className={`w-full bg-slate-50 dark:bg-background-dark border rounded-xl px-4 py-2.5 text-slate-900 dark:text-white focus:ring-1 outline-none transition-all ${
-                                                    validationErrors.footer
+                                                className={`w-full bg-slate-50 dark:bg-background-dark border rounded-xl px-4 py-2.5 text-slate-900 dark:text-white focus:ring-1 outline-none transition-all ${validationErrors.footer
                                                         ? 'border-red-400 dark:border-red-500 focus:border-red-400 focus:ring-red-400/30'
                                                         : 'border-slate-200 dark:border-white/10 focus:border-primary focus:ring-primary'
-                                                }`}
+                                                    }`}
                                                 placeholder="Reply STOP to unsubscribe."
                                             />
                                             {validationErrors.footer ? (
@@ -1238,9 +1237,9 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                         <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                                                             {btn.type === 'QUICK_REPLY' ? 'Quick Reply Button'
                                                                 : btn.type === 'URL' ? 'Visit Website Button'
-                                                                : btn.type === 'COPY_CODE' ? '🎟 Copy Code Button'
-                                                                : btn.type === 'MARKETING_OPT_OUT' ? 'Opt-Out (Stop)'
-                                                                : 'Call Phone Button'}
+                                                                    : btn.type === 'COPY_CODE' ? '🎟 Copy Code Button'
+                                                                        : btn.type === 'MARKETING_OPT_OUT' ? 'Opt-Out (Stop)'
+                                                                            : 'Call Phone Button'}
                                                         </span>
                                                     </div>
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1249,7 +1248,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                             <input
                                                                 type="text"
                                                                 required
-                                                                placeholder={btn.type === 'QUICK_REPLY' ? 'e.g. Yes, please!' : btn.type === 'URL' ? 'e.g. Visit Website' : btn.type === 'COPY_CODE' ? 'e.g. Copy Offer Code' : btn.type === 'MARKETING_OPT_OUT' ? 'Stop promotions' : 'e.g. Call Us'}
+                                                                placeholder={btn.type === 'QUICK_REPLY' ? 'e.g. Yes, please!' : btn.type === 'URL' ? 'e.g. Visit Website' : btn.type === 'COPY_CODE' ? 'e.g. Copy Code' : btn.type === 'MARKETING_OPT_OUT' ? 'Stop promotions' : 'e.g. Call Us'}
                                                                 value={btn.type === 'MARKETING_OPT_OUT' && !btn.text ? 'Stop promotions' : btn.text}
                                                                 disabled={btn.type === 'COPY_CODE'}
                                                                 onChange={(e) => { handleButtonChange(idx, 'text', e.target.value); if (validationErrors.buttons) setValidationErrors(p => ({ ...p, buttons: undefined })); }}
@@ -1425,7 +1424,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                         <div className="flex items-center gap-3">
                                                             <button onClick={() => handleEnhanceAI(formData.cards[activeCardIndex].content, 'card-content', activeCardIndex)} disabled={isEnhancing && enhancingSection !== `card-content-${activeCardIndex}`} className={`relative flex items-center gap-1.5 text-[10px] bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 px-2 py-1 rounded-md font-bold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all duration-300 disabled:opacity-50 ${enhancingSection === `card-content-${activeCardIndex}` ? 'shadow-[0_0_15px_rgba(99,102,241,0.5)] scale-105 border-indigo-400 dark:border-indigo-400 overflow-hidden' : ''}`} type="button">
                                                                 {enhancingSection === `card-content-${activeCardIndex}` && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 dark:via-white/20 to-transparent translate-x-[-100%] animate-[shimmer_1.5s_infinite]"></div>}
-                                                                <Sparkles className={`w-3 h-3 ${enhancingSection === `card-content-${activeCardIndex}` ? 'animate-spin text-amber-500' : ''}`} /> 
+                                                                <Sparkles className={`w-3 h-3 ${enhancingSection === `card-content-${activeCardIndex}` ? 'animate-spin text-amber-500' : ''}`} />
                                                                 {enhancingSection === `card-content-${activeCardIndex}` ? 'Enhancing...' : 'Enhance'}
                                                             </button>
                                                             <span className="text-[10px] text-slate-400 font-mono">{(formData.cards[activeCardIndex].content || '').length}/160</span>
@@ -1635,7 +1634,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                             )}
                                                             <div className="absolute inset-0 flex items-center justify-center">
                                                                 <div className="bg-black/40 rounded-full p-2">
-                                                                    <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                                                    <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -1716,7 +1715,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                                                             <video src={cardPreviewUrls[i]} className="w-full h-full object-cover" muted playsInline />
                                                                             <div className="absolute inset-0 flex items-center justify-center">
                                                                                 <div className="bg-black/40 rounded-full p-1.5">
-                                                                                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                                                                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
                                                                                 </div>
                                                                             </div>
                                                                         </div>
@@ -1759,7 +1758,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                                     ) : (
                                         /* Fallback empty state */
                                         ((!formData.content && !formData.cards?.[0]?.content) && (<div className="flex flex-col items-center justify-center h-full text-slate-400 text-sm italic py-4">Start typing to preview
-                                                                                        </div>))
+                                        </div>))
                                     )}
                                 </div>
                             </div>

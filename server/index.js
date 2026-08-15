@@ -450,6 +450,110 @@ img{display:block;vertical-align:middle}
         }
     });
 
+    // ── Custom Domain SSR Middleware ─────────────────────────────────────────────
+    // When a visitor arrives via a custom domain (e.g., www.mystore.com), this
+    // middleware resolves the domain → store mapping and serves the same
+    // SSR-optimized HTML (LCP preload, OG meta, embedded data) as /store/:slug.
+    // MUST come before the generic SPA catch-all.
+    const PLATFORM_HOSTS = new Set([
+        'localhost', '127.0.0.1', 'bluetick.cloud', 'www.bluetick.cloud'
+    ]);
+
+    app.get('*', async (req, res, next) => {
+        // Skip API routes — they're handled by their own routers
+        if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/') || req.path.startsWith('/n/')) {
+            return next();
+        }
+
+        const hostname = (req.hostname || req.headers.host || '').split(':')[0].toLowerCase();
+
+        // Skip platform domains and local development
+        if (PLATFORM_HOSTS.has(hostname) || hostname.includes('ngrok.io') || hostname.includes('railway.app')) {
+            return next();
+        }
+
+        // It's a custom domain — look up the store
+        try {
+            const WaStoreModel = require('./models/WaStore');
+            const WaProductModel = require('./models/WaProduct');
+            const { warmCache } = require('./routes/imgProxy');
+
+            const store = await WaStoreModel.findOne({
+                where: { customDomain: hostname, isActive: true }
+            });
+
+            if (!store) {
+                // Domain not mapped — fall through to SPA (will show "domain not recognized")
+                return next();
+            }
+
+            // Serve SSR-optimized HTML — same as /store/:slug handler
+            let html = fs.readFileSync(distIndex, 'utf8');
+
+            // Determine LCP image URL
+            const slides = Array.isArray(store.heroSlides) ? store.heroSlides : [];
+            let lcpImageUrl = slides[0]?.imageUrl || store.coverImage || store.logo;
+
+            // Run products query and LCP cache warming in parallel
+            const [{ count: totalProducts, rows: products }] = await Promise.all([
+                WaProductModel.findAndCountAll({
+                    where: { storeId: store.id },
+                    order: [['createdAt', 'DESC']],
+                    limit: 24
+                }),
+                lcpImageUrl ? warmCache(lcpImageUrl, { width: 800, quality: 92, format: 'webp', fit: 'contain' }).catch(() => {}) : Promise.resolve()
+            ]);
+
+            const injections = [];
+            if (lcpImageUrl) {
+                const safeUrl = lcpImageUrl.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+                injections.push(`<link rel="preload" as="image" href="${safeUrl}" fetchpriority="high">`);
+                try {
+                    const proxyOrigin = new URL(lcpImageUrl).origin;
+                    injections.push(`<link rel="preconnect" href="${proxyOrigin}" crossorigin>`);
+                    injections.push(`<link rel="dns-prefetch" href="${proxyOrigin}">`);
+                } catch (e) {}
+            }
+
+            // OG / SEO meta tags — use custom domain as canonical
+            const title = store.name ? `${store.name} | Shop Online` : 'Online Store';
+            const desc = store.description || `Shop at ${store.name || 'our store'} — fast checkout via WhatsApp.`;
+            const ogImg = store.logo || lcpImageUrl || '';
+
+            injections.push(`<title>${title}</title>`);
+            injections.push(`<meta name="description" content="${desc.replace(/"/g, '&quot;').substring(0, 160)}">`);
+            injections.push(`<meta property="og:title" content="${title}">`);
+            injections.push(`<meta property="og:description" content="${desc.replace(/"/g, '&quot;').substring(0, 200)}">`);
+            if (ogImg) injections.push(`<meta property="og:image" content="${ogImg}">`);
+            injections.push(`<meta property="og:type" content="website">`);
+            injections.push(`<link rel="canonical" href="https://${hostname}${req.path}">`);
+
+            // Inject head tags
+            html = html.replace('</head>', `${injections.join('\n  ')}\n</head>`);
+
+            // Embed initial store + products data to eliminate API call on first render
+            const storeJson = store.toJSON();
+            const productsJson = products.map(p => p.toJSON());
+            const safeJson = JSON.stringify({ store: storeJson, products: productsJson, totalProducts })
+                .replace(/</g, '\\u003c')
+                .replace(/>/g, '\\u003e')
+                .replace(/&/g, '\\u0026');
+
+            html = html.replace(
+                /<script type="module"/,
+                `<script>window.__STORE_INITIAL_DATA__=${safeJson};</script>\n  <script type="module"`
+            );
+
+            res.set('Content-Type', 'text/html; charset=utf-8');
+            res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=600');
+            res.send(html);
+        } catch (err) {
+            console.error('[Custom Domain SSR] Error:', err.message);
+            // Fallback to SPA — CustomDomainRouter in React will handle it
+            next();
+        }
+    });
+
     // General SPA catch-all for all non-API routes (enables React Router)
     // Explicitly skip /api/ so backend routes are never swallowed by the SPA handler
     app.get('*', (req, res) => {
@@ -541,6 +645,15 @@ const startServer = async () => {
                 } catch (err) {}
             }
         }
+
+        // ── WaStore custom domain status migration ──────────────────────────────
+        // MUST run BEFORE sequelize.sync() so that sync sees the columns already
+        // exist and does NOT try to generate its own broken ENUM ALTER SQL.
+        // Each statement has its own try-catch so errors (column/type already exists)
+        // are silently ignored.
+        try { await sequelize.query(`CREATE TYPE "enum_WaStores_domainStatus" AS ENUM('pending', 'verified', 'failed');`); } catch(e) { /* already exists — ignore */ }
+        try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN "domainStatus" "enum_WaStores_domainStatus" DEFAULT NULL;`); } catch(e) { /* already exists — ignore */ }
+        try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN "domainVerifiedAt" TIMESTAMP WITH TIME ZONE DEFAULT NULL;`); } catch(e) { /* already exists — ignore */ }
 
         await sequelize.sync({ alter: { drop: false } }); // Sync models — never drop constraints/columns
         console.log('Database synced.');

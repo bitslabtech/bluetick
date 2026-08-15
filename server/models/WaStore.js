@@ -148,6 +148,17 @@ const WaStore = sequelize.define('WaStore', {
         allowNull: true,
         comment: 'Optional custom domain mapping (e.g. shop.mystore.com)'
     },
+    domainStatus: {
+        type: DataTypes.ENUM('pending', 'verified', 'failed'),
+        defaultValue: null,
+        allowNull: true,
+        comment: 'DNS verification status: pending (saved, not verified), verified (DNS confirmed), failed (DNS check failed)'
+    },
+    domainVerifiedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: 'Timestamp of last successful DNS verification'
+    },
     seoConfig: {
         type: DataTypes.JSON,
         defaultValue: {},
