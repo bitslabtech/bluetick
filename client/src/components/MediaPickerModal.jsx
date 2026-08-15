@@ -175,8 +175,7 @@ export default function MediaPickerModal({
      * Example: ["image/jpeg", "image/png"] for WhatsApp templates.
      */
     mimeConstraints = null,
-    returnType = "url",
-    hideUpload = false
+    returnType = "url"
 }) {
     const { user } = useAuth();
     const { showToast } = useUI();
@@ -418,34 +417,32 @@ export default function MediaPickerModal({
                 )}
 
                 {/* Upload area */}
-                {!hideUpload && (
-                    <div className="px-4 pb-2 flex-shrink-0">
-                        <div
-                            onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-                            onDragLeave={() => setDragOver(false)}
-                            onDrop={e => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleUpload(f); }}
-                            onClick={() => !uploading && uploadInputRef.current?.click()}
-                            className={`cursor-pointer border-2 border-dashed rounded-xl py-3 px-4 flex items-center gap-3 transition-all duration-150 ${dragOver ? "border-primary bg-primary/5" : "border-slate-200 dark:border-white/10 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-white/5"} ${uploading ? "opacity-60 cursor-not-allowed" : ""} cursor-pointer`}
-                        >
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${dragOver ? "bg-primary text-white" : uploading ? "bg-primary/20 text-primary" : "bg-slate-100 dark:bg-white/10 text-slate-400"}`}>
-                                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-slate-600 dark:text-slate-300">{uploading ? "Uploading..." : dragOver ? "Drop to upload" : "Upload new file"}</p>
-                                <p className="text-xs text-slate-400 truncate">
-                                    {constraintLabel ? `Accepted: ${constraintLabel}` : (ALLOWED_TYPES[allowedTypes] || ALLOWED_TYPES.all).label}
-                                    {" · Max "}{MAX_FILE_SIZE_MB} MB
-                                </p>
-                            </div>
-                            <input ref={uploadInputRef} type="file" accept={acceptStr} className="hidden" onChange={e => { if (e.target.files[0]) handleUpload(e.target.files[0]); }} disabled={uploading} />
+                <div className="px-4 pb-2 flex-shrink-0">
+                    <div
+                        onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+                        onDragLeave={() => setDragOver(false)}
+                        onDrop={e => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleUpload(f); }}
+                        onClick={() => !uploading && uploadInputRef.current?.click()}
+                        className={`cursor-pointer border-2 border-dashed rounded-xl py-3 px-4 flex items-center gap-3 transition-all duration-150 ${dragOver ? "border-primary bg-primary/5" : "border-slate-200 dark:border-white/10 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-white/5"} ${uploading ? "opacity-60 cursor-not-allowed" : ""} cursor-pointer`}
+                    >
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${dragOver ? "bg-primary text-white" : uploading ? "bg-primary/20 text-primary" : "bg-slate-100 dark:bg-white/10 text-slate-400"}`}>
+                            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                         </div>
-                        {uploadError && (
-                            <div className="flex items-center gap-2 mt-2 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
-                                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />{uploadError}
-                            </div>
-                        )}
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-600 dark:text-slate-300">{uploading ? "Uploading..." : dragOver ? "Drop to upload" : "Upload new file"}</p>
+                            <p className="text-xs text-slate-400 truncate">
+                                {constraintLabel ? `Accepted: ${constraintLabel}` : (ALLOWED_TYPES[allowedTypes] || ALLOWED_TYPES.all).label}
+                                {" · Max "}{MAX_FILE_SIZE_MB} MB
+                            </p>
+                        </div>
+                        <input ref={uploadInputRef} type="file" accept={acceptStr} className="hidden" onChange={e => { if (e.target.files[0]) handleUpload(e.target.files[0]); }} disabled={uploading} />
                     </div>
-                )}
+                    {uploadError && (
+                        <div className="flex items-center gap-2 mt-2 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
+                            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />{uploadError}
+                        </div>
+                    )}
+                </div>
 
                 {/* Files grid / list */}
                 <div className="flex-1 overflow-y-auto px-4 pb-2 custom-scrollbar">

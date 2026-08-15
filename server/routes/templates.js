@@ -144,23 +144,18 @@ router.post('/upload-url', async (req, res) => {
             return res.status(500).json({ error: 'FB_CLIENT_ID is not configured in server environment.' });
         }
 
-        // Require axios here or at the top of the file
-        const axios = require('axios');
-        // Encode URL to prevent "Request path contains unescaped characters" errors
-        const safeUrl = encodeURI(url);
-
         // 1. Fetch file buffer and mimetype from the URL
-        const fileStreamRes = await axios.get(safeUrl, { responseType: 'arraybuffer' });
+        const fileStreamRes = await axios.get(url, { responseType: 'arraybuffer' });
         let fileBuffer = Buffer.from(fileStreamRes.data, 'binary');
         let mimeType = fileStreamRes.headers['content-type'] || 'application/octet-stream';
         let fileSize = fileBuffer.length;
 
         // Ensure basic mimetypes are resolved if server returns generic stream (AWS/S3 sometimes does)
         if (mimeType === 'application/octet-stream') {
-            if (safeUrl.toLowerCase().endsWith('.jpg') || safeUrl.toLowerCase().endsWith('.jpeg')) mimeType = 'image/jpeg';
-            else if (safeUrl.toLowerCase().endsWith('.png')) mimeType = 'image/png';
-            else if (safeUrl.toLowerCase().endsWith('.mp4')) mimeType = 'video/mp4';
-            else if (safeUrl.toLowerCase().endsWith('.pdf')) mimeType = 'application/pdf';
+            if (url.toLowerCase().endsWith('.jpg') || url.toLowerCase().endsWith('.jpeg')) mimeType = 'image/jpeg';
+            else if (url.toLowerCase().endsWith('.png')) mimeType = 'image/png';
+            else if (url.toLowerCase().endsWith('.mp4')) mimeType = 'video/mp4';
+            else if (url.toLowerCase().endsWith('.pdf')) mimeType = 'application/pdf';
         }
 
         // Validate types

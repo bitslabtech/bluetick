@@ -1809,7 +1809,6 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess, showToast, initialDra
                 onClose={() => setMediaPickerConfig({ ...mediaPickerConfig, isOpen: false })}
                 onSelect={handleMediaPickerSelect}
                 mimeConstraints={mediaPickerConfig.mimeConstraints}
-                hideUpload={true}
             />
         </div>
     );
