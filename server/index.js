@@ -259,8 +259,8 @@ app.use(async (err, req, res, next) => {
     res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
 });
 
-app.get('/', (req, res) => {
-    res.send('Bluetick Backend Running (PostgreSQL)');
+app.get('/health', (req, res) => {
+    res.status(200).send('Bluetick Backend Running (PostgreSQL)');
 });
 
 // SPA catch-all — serve React index.html for all non-API routes (enables React Router)

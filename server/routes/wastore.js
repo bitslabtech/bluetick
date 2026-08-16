@@ -182,8 +182,12 @@ router.get('/public/domain/:domain', async (req, res) => {
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
 
+        const lookupDomain = domain.startsWith('www.') ? domain.slice(4) : domain;
         const store = await WaStore.findOne({
-            where: { customDomain: domain, isActive: true }
+            where: { 
+                customDomain: [lookupDomain, `www.${lookupDomain}`], 
+                isActive: true 
+            }
         });
 
         if (!store) {
