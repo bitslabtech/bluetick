@@ -1205,8 +1205,11 @@ router.post('/:id/verify-domain', auth, async (req, res) => {
         const domain = store.customDomain;
         const targetDomain = 'bluetick.cloud';
         // Resolve target IPs dynamically — never hardcoded so IP changes don't break verification
-        let targetIPs = [];
-        try { targetIPs = await dns.resolve4(targetDomain); } catch(e) { targetIPs = []; }
+        let targetIPs = ['187.127.171.15']; // Always accept the direct server IP
+        try { 
+            const resolvedIps = await dns.resolve4(targetDomain);
+            targetIPs = [...targetIPs, ...resolvedIps]; 
+        } catch(e) { }
         let verified = false;
         let method = null;
         let details = '';
