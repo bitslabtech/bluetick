@@ -520,27 +520,41 @@ export default function WaStoreSettings() {
                             )}
                         </div>
                     )}
+                    
+                    <hr className="border-slate-200 dark:border-white/10" />
 
-                </div>
-            </div>
+                    {/* Step-by-Step DNS Setup Guide */}
+                    {store?.customDomain && domainStatus !== 'verified' && (
+                        <div className="mt-8 pt-8 border-t border-slate-200 dark:border-white/10">
+                            <div className="mb-6">
+                                <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-base">
+                                    <Zap className="w-5 h-5 text-indigo-500" /> DNS Setup Guide
+                                </h3>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Follow these steps to connect <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-indigo-600 dark:text-indigo-400 font-bold">{store.customDomain || customDomain}</code> to your store</p>
+                            </div>
 
-            {/* Step-by-Step DNS Setup Guide */}
-            {store?.customDomain && domainStatus !== 'verified' && (
-            <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
-                <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-gradient-to-r from-indigo-50 to-violet-50 dark:from-indigo-900/10 dark:to-violet-900/10">
-                    <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-sm">
-                        <Zap className="w-4 h-4 text-indigo-500" /> Setup Guide — Connect <code className="bg-white dark:bg-slate-800 px-2 py-0.5 rounded text-indigo-600 dark:text-indigo-400 text-xs font-bold">{store.customDomain}</code>
-                    </h3>
-                </div>
-                <div className="p-4 md:p-6 space-y-6">
-
-                    {/* Step 1: Choose Domain Type */}
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-2">
+                            {/* Step 1: Choose Domain Type */}
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2">
                             <span className="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
                             <h4 className="font-bold text-slate-900 dark:text-white text-sm">What type of domain are you connecting?</h4>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 ml-8">
+                            {/* Root Domain — first/left */}
+                            <button
+                                type="button"
+                                onClick={() => setDomainType('root')}
+                                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                                    domainType === 'root'
+                                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 ring-1 ring-indigo-500/20'
+                                        : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-700'
+                                }`}
+                            >
+                                <p className="font-bold text-sm text-slate-900 dark:text-white">Root Domain</p>
+                                <p className="text-xs text-slate-500 mt-1">e.g., <span className="font-mono font-bold">yourdomain.com</span></p>
+                                <span className="inline-block mt-2 text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">Requires A Record</span>
+                            </button>
+                            {/* Subdomain — second/right */}
                             <button
                                 type="button"
                                 onClick={() => setDomainType('subdomain')}
@@ -553,19 +567,6 @@ export default function WaStoreSettings() {
                                 <p className="font-bold text-sm text-slate-900 dark:text-white">Subdomain</p>
                                 <p className="text-xs text-slate-500 mt-1">e.g., <span className="font-mono font-bold">www</span>.yourdomain.com or <span className="font-mono font-bold">shop</span>.yourdomain.com</p>
                                 <span className="inline-block mt-2 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full">✓ Recommended — Easiest Setup</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setDomainType('root')}
-                                className={`p-4 rounded-xl border-2 text-left transition-all ${
-                                    domainType === 'root'
-                                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 ring-1 ring-indigo-500/20'
-                                        : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-700'
-                                }`}
-                            >
-                                <p className="font-bold text-sm text-slate-900 dark:text-white">Root / Apex Domain</p>
-                                <p className="text-xs text-slate-500 mt-1">e.g., yourdomain.com <span className="text-slate-400">(without www)</span></p>
-                                <span className="inline-block mt-2 text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">Requires A Record</span>
                             </button>
                         </div>
                     </div>
@@ -622,10 +623,10 @@ export default function WaStoreSettings() {
                                                         <p className="text-[10px] text-slate-400 mt-0.5">@ means root domain</p>
                                                     </td>
                                                     <td className="px-4 py-3">
-                                                        <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">Get IP by running: nslookup bluetick.cloud</span>
+                                                        <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">187.127.171.15</span>
                                                     </td>
                                                     <td className="px-4 py-3">
-                                                        <button onClick={() => copyToClipboard('nslookup bluetick.cloud', 'arec')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" title="Copy command">
+                                                        <button onClick={() => copyToClipboard('187.127.171.15', 'arec')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" title="Copy value">
                                                             {copiedField === 'arec' ? <CheckCircle className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-slate-400" />}
                                                         </button>
                                                     </td>
@@ -759,8 +760,9 @@ export default function WaStoreSettings() {
                         </div>
                     </div>
                 </div>
-            </div>
             )}
+            </div>
+        </div>
 
             {/* Troubleshooting Tips */}
             {store?.customDomain && (

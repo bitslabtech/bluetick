@@ -1204,52 +1204,66 @@ router.post('/:id/verify-domain', auth, async (req, res) => {
 
         const domain = store.customDomain;
         const targetDomain = 'bluetick.cloud';
+        // Resolve target IPs dynamically — never hardcoded so IP changes don't break verification
+        let targetIPs = [];
+        try { targetIPs = await dns.resolve4(targetDomain); } catch(e) { targetIPs = []; }
         let verified = false;
         let method = null;
         let details = '';
 
-        // 1. Try CNAME lookup (works for subdomains like www.example.com)
-        try {
-            const cnameRecords = await dns.resolveCname(domain);
-            if (cnameRecords && cnameRecords.length > 0) {
-                const matchesCname = cnameRecords.some(r => 
-                    r.toLowerCase() === targetDomain || r.toLowerCase() === targetDomain + '.'
-                );
-                if (matchesCname) {
-                    verified = true;
-                    method = 'CNAME';
-                    details = `CNAME record found: ${cnameRecords[0]} → ${targetDomain}`;
-                } else {
-                    details = `CNAME record found but points to "${cnameRecords[0]}" instead of "${targetDomain}". Please update your CNAME record.`;
-                }
-            }
-        } catch (cnameErr) {
-            // CNAME lookup failed — not necessarily an error, domain might use A record
-        }
+        // Build both variants to check: root and www
+        const rootDomain = domain.startsWith('www.') ? domain.slice(4) : domain;
+        const wwwDomain  = domain.startsWith('www.') ? domain : `www.${domain}`;
+        const domainsToCheck = [domain, domain === rootDomain ? wwwDomain : rootDomain];
 
-        // 2. If CNAME didn't verify, try A record (works for root/apex domains)
-        if (!verified) {
+
+        // 1. Try CNAME lookup on both variants (www.mydomain.in + mydomain.in)
+        for (const d of domainsToCheck) {
+            if (verified) break;
             try {
-                // Resolve our target domain's IP to compare against
-                const targetIPs = await dns.resolve4(targetDomain);
-                const domainIPs = await dns.resolve4(domain);
-
-                if (domainIPs && domainIPs.length > 0 && targetIPs && targetIPs.length > 0) {
-                    const matchesIP = domainIPs.some(ip => targetIPs.includes(ip));
-                    if (matchesIP) {
+                const cnameRecords = await dns.resolveCname(d);
+                if (cnameRecords && cnameRecords.length > 0) {
+                    const matchesCname = cnameRecords.some(r =>
+                        r.toLowerCase() === targetDomain || r.toLowerCase() === targetDomain + '.'
+                    );
+                    if (matchesCname) {
                         verified = true;
-                        method = 'A';
-                        details = `A record verified: ${domain} → ${domainIPs[0]} (matches ${targetDomain})`;
+                        method = 'CNAME';
+                        details = `CNAME record found: ${d} → ${targetDomain} ✓`;
                     } else if (!details) {
-                        details = `A record found (${domainIPs[0]}) but does not match our server IP (${targetIPs[0]}). Please update your A record.`;
+                        details = `CNAME for ${d} points to "${cnameRecords[0]}" instead of "${targetDomain}". Please update your CNAME record.`;
                     }
                 }
-            } catch (aErr) {
-                if (!details) {
-                    details = `Could not resolve DNS for "${domain}". Please verify that you have added the correct DNS records at your domain provider. DNS changes can take up to 48 hours to propagate.`;
-                }
+            } catch (cnameErr) { /* not a CNAME record — try next */ }
+        }
+
+        // 2. If CNAME didn't verify, try A record on both variants
+        if (!verified) {
+            for (const d of domainsToCheck) {
+                if (verified) break;
+                try {
+                    const domainIPs = await dns.resolve4(d);
+                    if (domainIPs && domainIPs.length > 0) {
+                        // Match against dynamically resolved bluetick.cloud IPs
+                        const matchesIP = targetIPs.length > 0
+                            ? domainIPs.some(ip => targetIPs.includes(ip))
+                            : false;
+                        if (matchesIP) {
+                            verified = true;
+                            method = 'A';
+                            details = `A record verified: ${d} → ${domainIPs[0]} ✓`;
+                        } else if (!details) {
+                            details = `A record for ${d} points to "${domainIPs[0]}" instead of our server (${targetIPs[0] || targetDomain}). Please update your A record.`;
+                        }
+                    }
+                } catch (aErr) { /* domain not resolvable yet */ }
+            }
+            if (!verified && !details) {
+                details = `Could not resolve DNS for "${domain}". Please add the correct DNS records and wait up to 48 hours for propagation.`;
             }
         }
+
+
 
         // Update store status
         await store.update({

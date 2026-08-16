@@ -478,14 +478,23 @@ img{display:block;vertical-align:middle}
             const WaProductModel = require('./models/WaProduct');
             const { warmCache } = require('./routes/imgProxy');
 
+            // Normalize hostname: strip www. so that both "mydomain.in" and
+            // "www.mydomain.in" resolve to the same store (store owner only
+            // needs to register the root domain once).
+            const lookupHostname = hostname.startsWith('www.') ? hostname.slice(4) : hostname;
+
             const store = await WaStoreModel.findOne({
-                where: { customDomain: hostname, isActive: true }
+                where: {
+                    customDomain: [lookupHostname, `www.${lookupHostname}`],
+                    isActive: true
+                }
             });
 
             if (!store) {
                 // Domain not mapped — fall through to SPA (will show "domain not recognized")
                 return next();
             }
+
 
             // Serve SSR-optimized HTML — same as /store/:slug handler
             let html = fs.readFileSync(distIndex, 'utf8');
