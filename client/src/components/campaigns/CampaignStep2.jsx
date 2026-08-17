@@ -260,7 +260,7 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
                                     </div>
                                 </div>
                             );
-                        })}
+                        })
                         )}
                     </div>
                 </div>
