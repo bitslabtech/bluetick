@@ -88,8 +88,71 @@ app.use(helmet({
 // Gzip compression — reduces response sizes by ~75%
 app.use(compression());
 
+// ── Dynamic CORS for Custom Domain Support ───────────────────────────────────
+// Allows API calls from:
+//   1. The main platform frontend (FRONTEND_URL)
+//   2. Any verified custom domain (e.g., www.amardryfruits.in) — cached 60s
+//   3. Local development
+// When a customer visits a store on their custom domain, the React SPA still
+// makes API calls (add to cart, orders, etc.) with Origin: https://custom.domain.
+// Without dynamic CORS, ALL those requests are blocked with a CORS error.
+const _corsCache = { domains: new Set(), refreshedAt: 0 };
+// Expose on process so the verify-domain route can bust the cache immediately
+// when a domain is verified (avoids circular require between index.js and wastore.js)
+process._btCorsCacheRef = _corsCache;
+
+const _getAllowedOrigins = async () => {
+    const now = Date.now();
+    // Refresh the cache at most once every 60 seconds
+    if (now - _corsCache.refreshedAt > 60_000) {
+        try {
+            const WaStoreModel = require('./models/WaStore');
+            const rows = await WaStoreModel.findAll({
+                where: { domainStatus: 'verified' },
+                attributes: ['customDomain'],
+                raw: true,
+            });
+            _corsCache.domains = new Set(
+                rows
+                    .map(r => r.customDomain)
+                    .filter(Boolean)
+                    .flatMap(d => {
+                        // Accept both www and non-www variants
+                        const root = d.startsWith('www.') ? d.slice(4) : d;
+                        return [`https://${root}`, `https://www.${root}`, `http://${root}`, `http://www.${root}`];
+                    })
+            );
+            _corsCache.refreshedAt = now;
+        } catch (e) {
+            // Non-fatal — keep using last known set if DB fails
+        }
+    }
+    return _corsCache.domains;
+};
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173', // Restrict CORS in production
+    origin: async (origin, callback) => {
+        // Allow server-to-server calls (no Origin header) and same-origin requests
+        if (!origin) return callback(null, true);
+
+        // Always allow the primary frontend
+        const primaryOrigin = process.env.FRONTEND_URL || 'http://localhost:5173';
+        if (origin === primaryOrigin) return callback(null, true);
+
+        // Allow local development
+        if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
+            return callback(null, true);
+        }
+
+        // Check against verified custom domains (cache refreshed every 60s)
+        try {
+            const allowed = await _getAllowedOrigins();
+            if (allowed.has(origin)) return callback(null, true);
+        } catch (e) {}
+
+        // Not in the allowed list
+        callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
     exposedHeaders: ['x-csrf-token']
 }));
@@ -465,7 +528,10 @@ img{display:block;vertical-align:middle}
             return next();
         }
 
-        const hostname = (req.hostname || req.headers.host || '').split(':')[0].toLowerCase();
+        // x-forwarded-host is set by our Cloudflare Worker, which rewrites custom domain
+        // traffic to api.bluetick.cloud while preserving the original domain in this header.
+        // Fallback to req.hostname for direct traffic (e.g. testing without the Worker).
+        const hostname = (req.headers['x-forwarded-host'] || req.hostname || req.headers.host || '').split(':')[0].toLowerCase();
 
         // Skip platform domains and local development
         if (PLATFORM_HOSTS.has(hostname) || hostname.includes('ngrok.io') || hostname.includes('railway.app')) {

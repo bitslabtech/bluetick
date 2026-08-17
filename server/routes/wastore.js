@@ -17,6 +17,42 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { fireCAPIEvent } = require('../utils/capi');
 const dns = require('dns').promises;
 
+// ── Cloudflare Custom Hostname Helper ────────────────────────────────────────
+// Manages Custom Hostnames in Cloudflare for SaaS so SSL is auto-provisioned
+// when a store owner links their custom domain. Requires env vars:
+//   CLOUDFLARE_ZONE_ID  — Zone ID of bluetick.cloud (from Cloudflare overview)
+//   CLOUDFLARE_API_TOKEN — API Token with "Edit Zone" permission
+const _cfCustomHostname = async (action, hostname) => {
+    const CF_ZONE_ID = process.env.CLOUDFLARE_ZONE_ID;
+    const CF_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
+    if (!CF_ZONE_ID || !CF_API_TOKEN) {
+        console.warn('[Cloudflare] CLOUDFLARE_ZONE_ID or CLOUDFLARE_API_TOKEN not set — skipping auto-provisioning.');
+        return;
+    }
+    const cfBase = `https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/custom_hostnames`;
+    const cfHeaders = { Authorization: `Bearer ${CF_API_TOKEN}`, 'Content-Type': 'application/json' };
+
+    if (action === 'create') {
+        // Register hostname with HTTP validation — no TXT records needed from the store owner
+        await axios.post(cfBase, {
+            hostname,
+            ssl: { method: 'http', type: 'dv', settings: { min_tls_version: '1.2' } }
+        }, { headers: cfHeaders });
+        console.log(`[Cloudflare] Custom hostname created: ${hostname}`);
+    } else if (action === 'delete') {
+        // Find the hostname by name first, then delete by its internal Cloudflare ID
+        const listRes = await axios.get(
+            `${cfBase}?hostname=${encodeURIComponent(hostname)}`,
+            { headers: cfHeaders }
+        );
+        const hostnameId = listRes.data?.result?.[0]?.id;
+        if (hostnameId) {
+            await axios.delete(`${cfBase}/${hostnameId}`, { headers: cfHeaders });
+            console.log(`[Cloudflare] Custom hostname deleted: ${hostname}`);
+        }
+    }
+};
+
 // #5 — Rate limiter for the public orders endpoint (prevents spam/fake orders)
 const publicOrderLimiter = rateLimit({
     windowMs: 10 * 60 * 1000, // 10 minutes
@@ -1094,6 +1130,8 @@ router.put('/:id', async (req, res) => {
         }
 
         // ── Custom domain sanitization & validation ──────────────────────────
+        // Capture old domain BEFORE any changes so we can clean up Cloudflare
+        const _oldCustomDomain = store.customDomain || null;
         if (req.body.customDomain !== undefined) {
             let domain = (req.body.customDomain || '').trim().toLowerCase();
             // Strip protocol (http:// or https://)
@@ -1190,6 +1228,27 @@ router.put('/:id', async (req, res) => {
         }
 
         await store.update(updates);
+
+        // ── Cloudflare Custom Hostname automation ─────────────────────────────────
+        // Only fires when the customDomain field was explicitly included in the request
+        if (req.body.customDomain !== undefined) {
+            const _newCustomDomain = updates.customDomain || null;
+            if (_newCustomDomain !== _oldCustomDomain) {
+                // Delete old Custom Hostname from Cloudflare (fire-and-forget)
+                if (_oldCustomDomain) {
+                    _cfCustomHostname('delete', _oldCustomDomain).catch(e =>
+                        console.warn('[Cloudflare] Failed to delete old hostname:', e.message)
+                    );
+                }
+                // Register new Custom Hostname — triggers automatic SSL provisioning
+                if (_newCustomDomain) {
+                    _cfCustomHostname('create', _newCustomDomain).catch(e =>
+                        console.warn('[Cloudflare] Failed to create hostname:', e.message)
+                    );
+                }
+            }
+        }
+
         res.json(store);
     } catch (error) {
         res.status(500).json({ error: 'Failed to update store' });
@@ -1278,6 +1337,12 @@ router.post('/:id/verify-domain', auth, async (req, res) => {
             domainVerifiedAt: verified ? new Date() : store.domainVerifiedAt
         });
 
+        // Bust the in-memory CORS cache in index.js so the newly verified domain
+        // is accepted immediately (without waiting for the 60-second TTL to expire).
+        if (verified && process._btCorsCacheRef) {
+            process._btCorsCacheRef.refreshedAt = 0;
+        }
+
         res.json({
             verified,
             method,
@@ -1298,6 +1363,15 @@ router.delete('/:id/domain', auth, async (req, res) => {
             where: { id: req.params.id, userId: req.user.id }
         });
         if (!store) return res.status(404).json({ error: 'Store not found' });
+
+        // ── Cloudflare Cleanup ────────────────────────────────────────────────────
+        // Remove the Custom Hostname from Cloudflare so the SSL cert is revoked
+        // and the slot is freed up. Fire-and-forget — DB update always succeeds.
+        if (store.customDomain) {
+            _cfCustomHostname('delete', store.customDomain).catch(e =>
+                console.warn('[Cloudflare] Failed to delete custom hostname on unlink:', e.message)
+            );
+        }
 
         await store.update({
             customDomain: null,

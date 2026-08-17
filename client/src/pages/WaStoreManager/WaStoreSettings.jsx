@@ -69,7 +69,7 @@ export default function WaStoreSettings() {
     const [deleting, setDeleting] = useState(false);
     const [savingDomain, setSavingDomain] = useState(false);
     const [confirmText, setConfirmText] = useState('');
-    const [customDomain, setCustomDomain] = useState('');
+    const [customDomain, setCustomDomain] = useState('www.');
     const [showDnsInstructions, setShowDnsInstructions] = useState(false);
     const [domainStatus, setDomainStatus] = useState(null); // null | 'pending' | 'verified' | 'failed'
     const [domainVerifiedAt, setDomainVerifiedAt] = useState(null);
@@ -141,6 +141,7 @@ export default function WaStoreSettings() {
                 const myStore = res.data.find(s => s.id === storeId);
                 setStore(myStore);
                 if (myStore?.customDomain) setCustomDomain(myStore.customDomain);
+                else setCustomDomain('www.');
                 if (myStore?.domainStatus) setDomainStatus(myStore.domainStatus);
                 if (myStore?.domainVerifiedAt) setDomainVerifiedAt(myStore.domainVerifiedAt);
                 if (myStore?.gridColumns) setGridColumns(myStore.gridColumns);
@@ -453,7 +454,7 @@ export default function WaStoreSettings() {
                                                     </div>
                                                     <input
                                                         type="text"
-                                                        placeholder="www.yourdomain.com or yourdomain.com"
+                                                        placeholder="www.yourbrand.com"
                                                         value={customDomain}
                                                         onChange={e => {
                                                             let val = e.target.value.toLowerCase().replace(/^https?:\/\//, '').split('/')[0];
@@ -469,7 +470,7 @@ export default function WaStoreSettings() {
                                                         className="flex-1 sm:flex-none px-5 py-3 sm:py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold sm:font-semibold transition-all text-sm shadow-sm flex items-center justify-center gap-2"
                                                     >
                                                         {savingDomain ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
-                                                        {savingDomain ? 'Saving...' : (store?.customDomain ? 'Update' : 'Connect Domain')}
+                                                        {savingDomain ? 'Saving...' : (store?.customDomain ? 'Update Domain' : 'Link Domain')}
                                                     </button>
                                                     {store?.customDomain && (
                                                         <button
@@ -529,79 +530,45 @@ export default function WaStoreSettings() {
                                                     <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-base">
                                                         <Zap className="w-5 h-5 text-indigo-500" /> DNS Setup Guide
                                                     </h3>
-                                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Follow these steps to connect <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-indigo-600 dark:text-indigo-400 font-bold">{store.customDomain || customDomain}</code> to your store</p>
+                                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Follow these 2 steps to connect <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-indigo-600 dark:text-indigo-400 font-bold">{store.customDomain || customDomain}</code> to your store</p>
                                                 </div>
 
-                                                {/* Step 1: Choose Domain Type */}
-                                                <div className="space-y-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
-                                                        <h4 className="font-bold text-slate-900 dark:text-white text-sm">What type of domain are you connecting?</h4>
-                                                    </div>
-                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 ml-8">
-                                                        {/* Root Domain — first/left */}
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setDomainType('root')}
-                                                            className={`p-4 rounded-xl border-2 text-left transition-all ${domainType === 'root'
-                                                                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 ring-1 ring-indigo-500/20'
-                                                                    : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-700'
-                                                                }`}
-                                                        >
-                                                            <p className="font-bold text-sm text-slate-900 dark:text-white">Root Domain</p>
-                                                            <p className="text-xs text-slate-500 mt-1">e.g., <span className="font-mono font-bold">yourdomain.com</span></p>
-                                                            <span className="inline-block mt-2 text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">Requires A Record</span>
-                                                        </button>
-                                                        {/* Subdomain — second/right */}
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setDomainType('subdomain')}
-                                                            className={`p-4 rounded-xl border-2 text-left transition-all ${domainType === 'subdomain'
-                                                                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 ring-1 ring-indigo-500/20'
-                                                                    : 'border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-700'
-                                                                }`}
-                                                        >
-                                                            <p className="font-bold text-sm text-slate-900 dark:text-white">Subdomain</p>
-                                                            <p className="text-xs text-slate-500 mt-1">e.g., <span className="font-mono font-bold">www</span>.yourdomain.com or <span className="font-mono font-bold">shop</span>.yourdomain.com</p>
-                                                            <span className="inline-block mt-2 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full">✓ Recommended — Easiest Setup</span>
-                                                        </button>
-                                                    </div>
-                                                </div>
+                                                <div className="space-y-6">
 
-                                                {/* Step 2: DNS Records */}
-                                                <div className="space-y-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shrink-0">2</span>
-                                                        <h4 className="font-bold text-slate-900 dark:text-white text-sm">Add these DNS records at your domain provider</h4>
-                                                    </div>
-                                                    <div className="ml-8 space-y-4">
-                                                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                                                            Log into your domain provider's DNS management panel and add the following record{domainType === 'root' ? 's' : ''}:
-                                                        </p>
+                                                    {/* Step 1: CNAME Record */}
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
+                                                            <h4 className="font-bold text-slate-900 dark:text-white text-sm">Add this CNAME record at your domain registrar</h4>
+                                                        </div>
+                                                        <div className="ml-8 space-y-4">
+                                                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                                                                Log in to your domain registrar (GoDaddy, Namecheap, Hostinger, etc.) and add the following DNS record:
+                                                            </p>
 
-                                                        {/* DNS Records Table */}
-                                                        <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
-                                                            <table className="w-full text-sm text-left">
-                                                                <thead>
-                                                                    <tr className="bg-slate-100 dark:bg-slate-800">
-                                                                        <th className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Type</th>
-                                                                        <th className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Name / Host</th>
-                                                                        <th className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Value / Target</th>
-                                                                        <th className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider w-16">Copy</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                                                                    {domainType === 'subdomain' ? (
+                                                            {/* DNS Record Table */}
+                                                            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+                                                                <table className="w-full text-sm text-left">
+                                                                    <thead>
+                                                                        <tr className="bg-slate-100 dark:bg-slate-800">
+                                                                            <th className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Type</th>
+                                                                            <th className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Name / Host</th>
+                                                                            <th className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">Value / Target</th>
+                                                                            <th className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider w-16">Copy</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
                                                                         <tr className="bg-white dark:bg-slate-900">
                                                                             <td className="px-4 py-3">
                                                                                 <span className="font-mono text-xs font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded">CNAME</span>
                                                                             </td>
                                                                             <td className="px-4 py-3">
-                                                                                <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">{(store.customDomain || customDomain).split('.')[0]}</span>
-                                                                                <p className="text-[10px] text-slate-400 mt-0.5">The subdomain prefix (e.g., www, shop)</p>
+                                                                                <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">www</span>
+                                                                                <p className="text-[10px] text-slate-400 mt-0.5">Exactly "www" — do not include your domain name</p>
                                                                             </td>
                                                                             <td className="px-4 py-3">
                                                                                 <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">bluetick.cloud</span>
+                                                                                <p className="text-[10px] text-slate-400 mt-0.5">If your registrar says invalid, try: <span className="font-mono font-bold">bluetick.cloud.</span></p>
                                                                             </td>
                                                                             <td className="px-4 py-3">
                                                                                 <button onClick={() => copyToClipboard('bluetick.cloud', 'cname')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" title="Copy value">
@@ -609,150 +576,123 @@ export default function WaStoreSettings() {
                                                                                 </button>
                                                                             </td>
                                                                         </tr>
-                                                                    ) : (
-                                                                        <>
-                                                                            <tr className="bg-white dark:bg-slate-900">
-                                                                                <td className="px-4 py-3">
-                                                                                    <span className="font-mono text-xs font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-1 rounded">A</span>
-                                                                                </td>
-                                                                                <td className="px-4 py-3">
-                                                                                    <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">@</span>
-                                                                                    <p className="text-[10px] text-slate-400 mt-0.5">@ (or leave blank / type domain name)</p>
-                                                                                </td>
-                                                                                <td className="px-4 py-3">
-                                                                                    <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">187.127.171.15</span>
-                                                                                </td>
-                                                                                <td className="px-4 py-3">
-                                                                                    <button onClick={() => copyToClipboard('187.127.171.15', 'arec')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" title="Copy value">
-                                                                                        {copiedField === 'arec' ? <CheckCircle className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-slate-400" />}
-                                                                                    </button>
-                                                                                </td>
-                                                                            </tr>
-                                                                            <tr className="bg-slate-50/50 dark:bg-slate-800/30">
-                                                                                <td className="px-4 py-3">
-                                                                                    <span className="font-mono text-xs font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded">CNAME</span>
-                                                                                </td>
-                                                                                <td className="px-4 py-3">
-                                                                                    <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">www</span>
-                                                                                    <p className="text-[10px] text-slate-400 mt-0.5">Also add for www subdomain</p>
-                                                                                </td>
-                                                                                <td className="px-4 py-3">
-                                                                                    <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">bluetick.cloud</span>
-                                                                                    <p className="text-[10px] text-slate-400 mt-0.5">If invalid, add dot: <span className="font-mono font-bold">bluetick.cloud.</span></p>
-                                                                                </td>
-                                                                                <td className="px-4 py-3">
-                                                                                    <button onClick={() => copyToClipboard('bluetick.cloud', 'cnameroot')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" title="Copy value">
-                                                                                        {copiedField === 'cnameroot' ? <CheckCircle className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-slate-400" />}
-                                                                                    </button>
-                                                                                </td>
-                                                                            </tr>
-                                                                        </>
-                                                                    )}
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
 
-                                                        {/* Cloudflare Special Note */}
-                                                        {domainType === 'root' && (
-                                                            <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/30 rounded-xl p-3">
-                                                                <p className="text-xs text-blue-700 dark:text-blue-400 font-medium flex items-start gap-2">
-                                                                    <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                                                                    <span><strong>Using Cloudflare?</strong> You can add a CNAME for <code className="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">@</code> pointing to <code className="bg-blue-100 dark:bg-blue-900/40 px-1 rounded">bluetick.cloud</code> — Cloudflare auto-flattens it, so no A record or IP address needed!</span>
+                                                            {/* Important Note */}
+                                                            <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-xl p-3">
+                                                                <p className="text-xs text-amber-700 dark:text-amber-400 font-medium flex items-start gap-2">
+                                                                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                                                                    <span><strong>Important:</strong> Delete any existing CNAME or A record for "www" before adding this one, otherwise they will conflict.</span>
                                                                 </p>
                                                             </div>
-                                                        )}
 
-                                                        {/* Important Note */}
-                                                        <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-xl p-3">
-                                                            <p className="text-xs text-amber-700 dark:text-amber-400 font-medium flex items-start gap-2">
-                                                                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                                                                <span><strong>Important:</strong> Delete any existing A or CNAME records for the same host name before adding new ones, otherwise they will conflict and DNS won't resolve correctly.</span>
-                                                            </p>
+                                                            {/* Registrar Tips */}
+                                                            <details className="group">
+                                                                <summary className="cursor-pointer flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors py-1">
+                                                                    <HelpCircle className="w-4 h-4" />
+                                                                    Step-by-step for popular registrars
+                                                                    <ChevronDown className="w-3 h-3 group-open:rotate-180 transition-transform" />
+                                                                </summary>
+                                                                <div className="mt-3 space-y-3">
+                                                                    {[
+                                                                        { name: 'GoDaddy', steps: ['Log in → My Products → DNS', 'Click "Add" → Select Type: CNAME', 'Name: www, Value: bluetick.cloud', 'Save'] },
+                                                                        { name: 'Namecheap', steps: ['Log in → Domain List → Manage → Advanced DNS', 'Click "Add New Record" → CNAME Record', 'Host: www, Value: bluetick.cloud', 'Save all changes'] },
+                                                                        { name: 'Hostinger', steps: ['Log in → Domains → DNS / Nameservers', 'Add Record → Type: CNAME', 'Name: www, Target: bluetick.cloud', 'Save'] },
+                                                                        { name: 'Cloudflare', steps: ['Log in → Select your domain → DNS', 'Add record → Type: CNAME', 'Name: www, Target: bluetick.cloud, Proxy: ON (orange cloud)', 'Save'] },
+                                                                    ].map(reg => (
+                                                                        <details key={reg.name} className="bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                                                                            <summary className="cursor-pointer px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400">{reg.name}</summary>
+                                                                            <ol className="px-4 pb-3 pt-1 space-y-1.5">
+                                                                                {reg.steps.map((step, i) => (
+                                                                                    <li key={i} className="text-xs text-slate-500 dark:text-slate-400 flex items-start gap-2">
+                                                                                        <span className="text-indigo-500 font-bold shrink-0">{i + 1}.</span> {step}
+                                                                                    </li>
+                                                                                ))}
+                                                                            </ol>
+                                                                        </details>
+                                                                    ))}
+                                                                </div>
+                                                            </details>
                                                         </div>
+                                                    </div>
 
-                                                        {/* Registrar-Specific Tips */}
-                                                        <details className="group">
-                                                            <summary className="cursor-pointer flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors py-1">
-                                                                <HelpCircle className="w-4 h-4" />
-                                                                Registrar-specific instructions
-                                                                <ChevronDown className="w-3 h-3 group-open:rotate-180 transition-transform" />
-                                                            </summary>
-                                                            <div className="mt-3 space-y-3">
-                                                                {[
-                                                                    { name: 'GoDaddy', steps: ['Log in to GoDaddy → My Products → DNS', 'Click "Add" next to DNS Records', 'Select type (CNAME or A), enter Name and Value from above', 'Save and wait for propagation'] },
-                                                                    { name: 'Namecheap', steps: ['Log in → Domain List → Manage → Advanced DNS', 'Click "Add New Record"', 'Choose record type, enter Host and Value', 'Save all changes'] },
-                                                                    { name: 'Cloudflare', steps: ['Log in → Select your domain → DNS', 'Click "Add record"', 'For root domain: use CNAME with @ → bluetick.cloud (enable proxy)', 'For subdomain: CNAME with www/shop → bluetick.cloud'] },
-                                                                    { name: 'DotPe / Other', steps: ['Log into your DNS management panel', 'Navigate to DNS records section', 'Add the record(s) shown in the table above', 'Save and allow 5 minutes to 48 hours for propagation'] }
-                                                                ].map(reg => (
-                                                                    <details key={reg.name} className="bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                                                                        <summary className="cursor-pointer px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400">{reg.name}</summary>
-                                                                        <ol className="px-4 pb-3 pt-1 space-y-1.5">
-                                                                            {reg.steps.map((step, i) => (
-                                                                                <li key={i} className="text-xs text-slate-500 dark:text-slate-400 flex items-start gap-2">
-                                                                                    <span className="text-indigo-500 font-bold shrink-0">{i + 1}.</span> {step}
-                                                                                </li>
-                                                                            ))}
-                                                                        </ol>
-                                                                    </details>
-                                                                ))}
+                                                    {/* Step 2: Root Domain Redirect */}
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shrink-0">2</span>
+                                                            <h4 className="font-bold text-slate-900 dark:text-white text-sm">Redirect your root domain <span className="text-slate-400 font-normal">(optional but recommended)</span></h4>
+                                                        </div>
+                                                        <div className="ml-8">
+                                                            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 space-y-2">
+                                                                <p className="text-sm text-slate-600 dark:text-slate-300">
+                                                                    So visitors who type <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded font-mono text-xs">{(store.customDomain || customDomain).replace(/^www\./, '')}</code> also reach your store, set up a <strong>URL Redirect</strong> at your registrar:
+                                                                </p>
+                                                                <div className="flex items-center gap-2 text-sm font-mono bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2">
+                                                                    <span className="text-slate-500">{(store.customDomain || customDomain).replace(/^www\./, '')}</span>
+                                                                    <span className="text-slate-400 mx-1">→</span>
+                                                                    <span className="text-indigo-600 dark:text-indigo-400 font-bold">www.{(store.customDomain || customDomain).replace(/^www\./, '')}</span>
+                                                                </div>
+                                                                <p className="text-xs text-slate-400">Look for "URL Redirect" or "Domain Forwarding" in your registrar — this is different from a DNS record.</p>
                                                             </div>
-                                                        </details>
+                                                        </div>
                                                     </div>
-                                                </div>
 
-                                                {/* Step 3: Verify */}
-                                                <div className="space-y-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shrink-0">3</span>
-                                                        <h4 className="font-bold text-slate-900 dark:text-white text-sm">Verify your DNS configuration</h4>
-                                                    </div>
-                                                    <div className="ml-8 space-y-3">
-                                                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                                                            After adding the DNS records, click the button below to verify. DNS changes can take <strong>5 minutes to 48 hours</strong> to propagate globally.
-                                                        </p>
-                                                        <button
-                                                            onClick={handleVerifyDomain}
-                                                            disabled={verifyingDomain}
-                                                            className={`w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-sm ${domainStatus === 'verified'
-                                                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                                                                    : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                                                                } disabled:opacity-50`}
-                                                        >
-                                                            {verifyingDomain ? (
-                                                                <><RefreshCw className="w-4 h-4 animate-spin" /> Checking DNS...</>
-                                                            ) : domainStatus === 'verified' ? (
-                                                                <><CheckCircle className="w-4 h-4" /> Re-verify Domain</>
-                                                            ) : (
-                                                                <><Search className="w-4 h-4" /> Verify DNS Configuration</>
-                                                            )}
-                                                        </button>
+                                                    {/* Step 3: Verify */}
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shrink-0">3</span>
+                                                            <h4 className="font-bold text-slate-900 dark:text-white text-sm">Verify your DNS configuration</h4>
+                                                        </div>
+                                                        <div className="ml-8 space-y-3">
+                                                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                                                                After adding the DNS records, click the button below to verify. DNS changes can take <strong>5 minutes to 48 hours</strong> to propagate globally.
+                                                            </p>
+                                                            <button
+                                                                onClick={handleVerifyDomain}
+                                                                disabled={verifyingDomain}
+                                                                className={`w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-sm ${domainStatus === 'verified'
+                                                                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                                                        : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                                                                    } disabled:opacity-50`}
+                                                            >
+                                                                {verifyingDomain ? (
+                                                                    <><RefreshCw className="w-4 h-4 animate-spin" /> Checking DNS...</>
+                                                                ) : domainStatus === 'verified' ? (
+                                                                    <><CheckCircle className="w-4 h-4" /> Re-verify Domain</>
+                                                                ) : (
+                                                                    <><Search className="w-4 h-4" /> Verify DNS Configuration</>
+                                                                )}
+                                                            </button>
 
-                                                        {/* Verification Result */}
-                                                        {verifyResult && (
-                                                            <div className={`rounded-xl p-4 border ${verifyResult.verified
-                                                                    ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800/30'
-                                                                    : 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800/30'
-                                                                }`}>
-                                                                <div className="flex items-start gap-3">
-                                                                    {verifyResult.verified ? (
-                                                                        <CheckCircle className="w-5 h-5 text-emerald-500 mt-0.5 shrink-0" />
-                                                                    ) : (
-                                                                        <XCircle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
-                                                                    )}
-                                                                    <div>
-                                                                        <p className={`text-sm font-bold ${verifyResult.verified ? 'text-emerald-800 dark:text-emerald-300' : 'text-red-800 dark:text-red-300'}`}>
-                                                                            {verifyResult.verified ? '✅ Domain Verified Successfully!' : '❌ DNS Verification Failed'}
-                                                                        </p>
-                                                                        <p className={`text-xs mt-1 ${verifyResult.verified ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                                                                            {verifyResult.details}
-                                                                        </p>
-                                                                        {verifyResult.method && (
-                                                                            <p className="text-[10px] text-slate-500 mt-1">Verification method: {verifyResult.method} record</p>
+                                                            {/* Verification Result */}
+                                                            {verifyResult && (
+                                                                <div className={`rounded-xl p-4 border ${verifyResult.verified
+                                                                        ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800/30'
+                                                                        : 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800/30'
+                                                                    }`}>
+                                                                    <div className="flex items-start gap-3">
+                                                                        {verifyResult.verified ? (
+                                                                            <CheckCircle className="w-5 h-5 text-emerald-500 mt-0.5 shrink-0" />
+                                                                        ) : (
+                                                                            <XCircle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
                                                                         )}
+                                                                        <div>
+                                                                            <p className={`text-sm font-bold ${verifyResult.verified ? 'text-emerald-800 dark:text-emerald-300' : 'text-red-800 dark:text-red-300'}`}>
+                                                                                {verifyResult.verified ? '✅ Domain Verified Successfully!' : '❌ DNS Verification Failed'}
+                                                                            </p>
+                                                                            <p className={`text-xs mt-1 ${verifyResult.verified ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                                                {verifyResult.details}
+                                                                            </p>
+                                                                            {verifyResult.method && (
+                                                                                <p className="text-[10px] text-slate-500 mt-1">Verification method: {verifyResult.method} record</p>
+                                                                            )}
+                                                                        </div>
                                                                     </div>
                                                                 </div>
-                                                            </div>
-                                                        )}
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
