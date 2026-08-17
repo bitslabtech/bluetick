@@ -150,7 +150,32 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
 
                     {/* Templates Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pb-7 sm:pb-20">
-                        {filteredTemplates.map((template) => {
+                        {loading ? (
+                            // Skeleton loader — 6 placeholder cards while templates fetch
+                            Array.from({ length: 6 }).map((_, i) => (
+                                <div key={i} className="relative bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm animate-pulse">
+                                    {/* Category badge + status */}
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="h-5 w-20 bg-slate-200 dark:bg-slate-700 rounded-md" />
+                                        <div className="h-5 w-16 bg-slate-100 dark:bg-slate-800 rounded-md" />
+                                    </div>
+                                    {/* Template name */}
+                                    <div className="h-5 w-3/4 bg-slate-200 dark:bg-slate-700 rounded-lg mb-2" />
+                                    {/* Body text lines */}
+                                    <div className="space-y-2 mt-3">
+                                        <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded" />
+                                        <div className="h-3 w-5/6 bg-slate-100 dark:bg-slate-800 rounded" />
+                                        <div className="h-3 w-4/6 bg-slate-100 dark:bg-slate-800 rounded" />
+                                    </div>
+                                    {/* Footer / type row */}
+                                    <div className="flex items-center gap-2 mt-5 pt-4 border-t border-slate-100 dark:border-white/5">
+                                        <div className="h-4 w-8 bg-slate-200 dark:bg-slate-700 rounded" />
+                                        <div className="h-4 w-16 bg-slate-100 dark:bg-slate-800 rounded" />
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                        filteredTemplates.map((template) => {
                             const originalIndex = templates.findIndex(t => t.id === template.id);
                             const planLocked = isLocked(originalIndex);
                             const isApproved = template.status === 'APPROVED';
@@ -236,6 +261,7 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
                                 </div>
                             );
                         })}
+                        )}
                     </div>
                 </div>
 

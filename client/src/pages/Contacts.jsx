@@ -1462,7 +1462,7 @@ const Contacts = () => {
                             {/* Quick Actions (Functional) */}
                             <div className="flex w-full gap-3 mt-6">
                                 <button
-                                    onClick={() => navigate('/inbox', { state: { startChatWith: viewingContact } })}
+                                    onClick={() => navigate('/whatsapp', { state: { startChatWith: viewingContact } })}
                                     className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-primary hover:bg-blue-600 text-white rounded-xl font-bold shadow-md shadow-primary/20 transition-all hover:-translate-y-0.5"
                                 >
                                     <MessageSquare className="w-5 h-5" />

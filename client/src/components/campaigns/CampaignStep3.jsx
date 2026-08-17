@@ -555,7 +555,7 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                 campaignName: data.name,
                 description: data.description,
                 tag: data.tag,
-                scheduledFor: scheduleType === 'later' ? scheduledDate : null,
+                scheduledFor: scheduleType === 'later' ? new Date(scheduledDate).toISOString() : null,
                 // Retarget fields — required by server/routes/messages.js to resolve contacts
                 retargetCampaignId: data.retargetCampaignId || null,
                 retargetStatus: data.retargetStatus || null,
