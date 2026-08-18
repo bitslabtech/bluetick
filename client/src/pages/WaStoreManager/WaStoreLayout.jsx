@@ -59,6 +59,7 @@ export default function WaStoreLayout() {
             items: [
                 { path: `/online-store/${slug}/themes`, icon: <LayoutTemplate className="w-5 h-5" />, label: 'Themes' },
                 { path: `/online-store/${slug}/navigation`, icon: <LayoutTemplate className="w-5 h-5" />, label: 'Navigation' },
+                { path: `/online-store/${slug}/mobile-navigation`, icon: <LayoutTemplate className="w-5 h-5" />, label: 'Mobile Navigation' },
                 { path: `/online-store/${slug}/topbar`, icon: <Megaphone className="w-5 h-5" />, label: 'Top Bar' }
             ]
         },

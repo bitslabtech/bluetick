@@ -57,6 +57,10 @@ const WaStore = sequelize.define('WaStore', {
         type: DataTypes.STRING,
         comment: 'Street address'
     },
+    customFooterText: {
+        type: DataTypes.STRING,
+        comment: 'Custom text to display in the footer, e.g. Lillyput a brand of Bitslab technologies'
+    },
     city: {
         type: DataTypes.STRING
     },

@@ -91,6 +91,7 @@ const WaStoreCategories = React.lazy(() => import('./pages/WaStoreManager/WaStor
 const WaStoreCoupons = React.lazy(() => import('./pages/WaStoreManager/WaStoreCoupons'));
 const WaStoreSEO = React.lazy(() => import('./pages/WaStoreManager/WaStoreSEO'));
 const WaStoreNavigation = React.lazy(() => import('./pages/WaStoreManager/WaStoreNavigation'));
+const WaStoreMobileNavigation = React.lazy(() => import('./pages/WaStoreManager/WaStoreMobileNavigation'));
 const WaStoreTopBar = React.lazy(() => import('./pages/WaStoreManager/WaStoreTopBar'));
 const WaStorePolicies = React.lazy(() => import('./pages/WaStoreManager/WaStorePolicies'));
 const WaStoreAnalytics = React.lazy(() => import('./pages/WaStoreManager/WaStoreAnalytics'));
@@ -445,6 +446,7 @@ function App() {
                                                     <Route path="seo" element={<WaStoreSEO />} />
                                                     <Route path="themes" element={<WaStoreThemes />} />
                                                     <Route path="navigation" element={<WaStoreNavigation />} />
+                                                    <Route path="mobile-navigation" element={<WaStoreMobileNavigation />} />
                                                     <Route path="topbar" element={<WaStoreTopBar />} />
                                                     <Route path="policies" element={<WaStorePolicies />} />
                                                     <Route path="media" element={<MediaGallery accessMode="restricted" />} />

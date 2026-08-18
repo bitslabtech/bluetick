@@ -104,11 +104,25 @@ export default function WaStoreFooter({ store }) {
                     )}
                 </div>
 
-                <div className="mt-12 pt-8 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
-                    <p>&copy; {new Date().getFullYear()} {store.name}. All rights reserved.</p>
-                    <p>
-                        Made by <a href="/" className="text-gray-900 font-medium hover:underline">{publicSettings?.appName || 'Bluetick'}</a>
+                <div className="mt-12 pt-8 border-t border-gray-100 flex flex-col sm:flex-row items-center sm:justify-between gap-4 text-sm text-gray-500">
+                    <p className="text-center sm:text-left">
+                        &copy; {new Date().getFullYear()} {store.name}. All rights reserved.
                     </p>
+                    
+                    {store.customFooterText ? (
+                        <>
+                            <p className="text-center sm:order-last sm:text-right font-medium text-gray-700">
+                                {store.customFooterText}
+                            </p>
+                            <p className="text-center">
+                                Made by <a href="/" className="text-gray-900 font-medium hover:underline">{publicSettings?.appName || 'Bluetick'}</a>
+                            </p>
+                        </>
+                    ) : (
+                        <p className="text-center sm:text-right">
+                            Made by <a href="/" className="text-gray-900 font-medium hover:underline">{publicSettings?.appName || 'Bluetick'}</a>
+                        </p>
+                    )}
                 </div>
             </div>
             
