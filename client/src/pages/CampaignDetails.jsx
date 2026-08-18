@@ -335,11 +335,18 @@ export default function CampaignDetails() {
                                 {campaign.status}
                             </span>
                         </div>
-                        <div className="flex items-center gap-4 mt-1 text-sm text-slate-500 dark:text-text-secondary">
-                            <span className="flex items-center gap-1.5 hover:text-slate-900 dark:hover:text-white transition-colors">
-                                <Calendar className="w-4 h-4" />
-                                {new Date(campaign.createdAt).toLocaleString()}
-                            </span>
+                        <div className="flex flex-wrap items-center gap-4 mt-1 text-sm text-slate-500 dark:text-text-secondary">
+                            {campaign.scheduledFor && campaign.status === 'SCHEDULED' ? (
+                                <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-500 font-bold bg-amber-50 dark:bg-amber-900/10 px-2.5 py-0.5 rounded-lg border border-amber-200 dark:border-amber-800/30">
+                                    <Calendar className="w-4 h-4" />
+                                    Scheduled for {new Date(campaign.scheduledFor).toLocaleString()}
+                                </span>
+                            ) : (
+                                <span className="flex items-center gap-1.5 hover:text-slate-900 dark:hover:text-white transition-colors">
+                                    <Calendar className="w-4 h-4" />
+                                    {new Date(campaign.createdAt).toLocaleString()}
+                                </span>
+                            )}
                             <span className="flex items-center gap-1.5 hover:text-slate-900 dark:hover:text-white transition-colors">
                                 <Users className="w-4 h-4" />
                                 {campaign.recipientCount} Recipients

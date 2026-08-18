@@ -1266,11 +1266,12 @@ router.post('/:id/verify-domain', auth, async (req, res) => {
         if (!store.customDomain) return res.status(400).json({ error: 'No custom domain configured for this store.' });
 
         const domain = store.customDomain;
-        const targetDomain = 'bluetick.cloud';
+        const validTargets = ['router.bluetick.cloud'];
+        const displayTarget = 'router.bluetick.cloud';
         // Resolve target IPs dynamically — never hardcoded so IP changes don't break verification
         let targetIPs = ['187.127.171.15']; // Always accept the direct server IP
         try { 
-            const resolvedIps = await dns.resolve4(targetDomain);
+            const resolvedIps = await dns.resolve4('router.bluetick.cloud').catch(() => []);
             targetIPs = [...targetIPs, ...resolvedIps]; 
         } catch(e) { }
         let verified = false;
@@ -1289,15 +1290,16 @@ router.post('/:id/verify-domain', auth, async (req, res) => {
             try {
                 const cnameRecords = await dns.resolveCname(d);
                 if (cnameRecords && cnameRecords.length > 0) {
-                    const matchesCname = cnameRecords.some(r =>
-                        r.toLowerCase() === targetDomain || r.toLowerCase() === targetDomain + '.'
-                    );
+                    const matchesCname = cnameRecords.some(r => {
+                        const cleanR = r.toLowerCase().replace(/\.$/, '');
+                        return validTargets.includes(cleanR);
+                    });
                     if (matchesCname) {
                         verified = true;
                         method = 'CNAME';
-                        details = `CNAME record found: ${d} → ${targetDomain} ✓`;
+                        details = `CNAME record found: ${d} → ${cnameRecords[0]} ✓`;
                     } else if (!details) {
-                        details = `CNAME for ${d} points to "${cnameRecords[0]}" instead of "${targetDomain}". Please update your CNAME record.`;
+                        details = `CNAME for ${d} points to "${cnameRecords[0]}" instead of "${displayTarget}". Please update your CNAME record.`;
                     }
                 }
             } catch (cnameErr) { /* not a CNAME record — try next */ }
