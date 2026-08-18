@@ -496,9 +496,6 @@ const Templates = () => {
                                             <div className="flex-1 min-w-0 pr-3">
                                                 <div className="flex items-center gap-2 mb-1">
                                                     <h3 className="text-slate-900 dark:text-white font-bold text-base truncate">{template.name}</h3>
-                                                    {!locked && (
-                                                        <span className="flex-shrink-0 text-[9px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-1.5 py-0.5 rounded-full uppercase tracking-wider">Active</span>
-                                                    )}
                                                 </div>
                                                 <p className="text-xs text-slate-500 dark:text-text-secondary truncate font-mono tracking-wider opacity-60">ID: {template.id.slice(0, 8)}</p>
                                             </div>

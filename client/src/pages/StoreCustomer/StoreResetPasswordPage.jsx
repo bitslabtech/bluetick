@@ -6,6 +6,7 @@ import WaStoreHeader from '../../components/WaStoreHeader';
 import WaStoreFooter from '../../components/WaStoreFooter';
 import { getThemeConfig } from '../../utils/wastoreThemes';
 import toast from 'react-hot-toast';
+import { getStoreRoute } from '../../utils/storeRouting';
 
 export default function StoreResetPasswordPage({ store, products = [] }) {
     const { slug } = useParams();
@@ -31,7 +32,7 @@ export default function StoreResetPasswordPage({ store, products = [] }) {
         try {
             await axios.post(`${import.meta.env.VITE_API_URL}/api/store-customer/${slug}/reset-password`, { token, password });
             setDone(true);
-            setTimeout(() => navigate(`/store/${slug}/account/login`), 3000);
+            setTimeout(() => navigate(getStoreRoute(slug, `/account/login`)), 3000);
         } catch (err) {
             toast.error(err.response?.data?.error || 'Reset failed. The link may have expired.');
         } finally {
@@ -72,7 +73,7 @@ export default function StoreResetPasswordPage({ store, products = [] }) {
                         {!token ? (
                             <div className="text-center py-4">
                                 <p className="text-rose-500 font-bold text-sm">Invalid or missing reset token.</p>
-                                <Link to={`/store/${slug}/account/forgot-password`} className="mt-4 inline-block text-xs font-bold hover:underline" style={{ color: themeColor }}>
+                                <Link to={getStoreRoute(slug, `/account/forgot-password`)} className="mt-4 inline-block text-xs font-bold hover:underline" style={{ color: themeColor }}>
                                     Request a new password reset link
                                 </Link>
                             </div>
@@ -133,7 +134,7 @@ export default function StoreResetPasswordPage({ store, products = [] }) {
                     </div>
 
                     <div className="text-center mt-6">
-                        <Link to={`/store/${slug}/account/login`} className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-800">
+                        <Link to={getStoreRoute(slug, `/account/login`)} className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-800">
                             <ArrowLeft size={14} /> Back to Login
                         </Link>
                     </div>

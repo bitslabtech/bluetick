@@ -10,6 +10,7 @@ import WaStoreCheckoutModal from '../components/WaStoreCheckoutModal';
 import StoreNotFound from '../components/StoreNotFound';
 import { getThemeConfig } from '../utils/wastoreThemes';
 import { applyProductSeo, cleanupStoreSeo } from '../utils/storeSeo';
+import { getStoreRoute } from '../utils/storeRouting';
 
 // Generates a SEO-friendly product URL slug: "blue-cotton-shirt--a1b2c3d4"
 const slugifyProduct = (productOrName, id) => {
@@ -332,7 +333,7 @@ export default function PublicWaProduct({ customSlug }) {
                         </div>
                         <h1 className={`text-3xl font-black tracking-tight ${theme.text}`}>Product Not Found</h1>
                         <p className={`text-base ${theme.textMuted} max-w-sm`}>The product you are looking for is unavailable or has been removed.</p>
-                        <button onClick={() => navigate(`/store/${slug}`)} className={`h-[42px] px-6 text-[11px] font-bold uppercase tracking-widest rounded-xl flex items-center justify-center gap-2 mt-4 bg-black text-white hover:bg-neutral-800 shadow-md transition-all`}>
+                        <button onClick={() => navigate(getStoreRoute(slug))} className={`h-[42px] px-6 text-[11px] font-bold uppercase tracking-widest rounded-xl flex items-center justify-center gap-2 mt-4 bg-black text-white hover:bg-neutral-800 shadow-md transition-all`}>
                             <ArrowLeft className="w-4 h-4" /> Back to Store
                         </button>
                     </div>
@@ -382,7 +383,7 @@ export default function PublicWaProduct({ customSlug }) {
                     <ol className="flex items-center gap-1.5 flex-wrap text-xs font-semibold uppercase tracking-wider">
                         <li>
                             <button
-                                onClick={() => navigate(`/store/${slug}`)}
+                                onClick={() => navigate(getStoreRoute(slug))}
                                 className={`flex items-center gap-1 hover:opacity-80 transition-opacity ${theme.textMuted}`}
                             >
                                 <Home className="w-3.5 h-3.5" />
@@ -394,7 +395,7 @@ export default function PublicWaProduct({ customSlug }) {
                                 <li className={theme.textMuted}><ChevronRight className="w-3 h-3" /></li>
                                 <li>
                                     <button
-                                        onClick={() => navigate(`/store/${slug}?cat=${encodeURIComponent(product.category)}`)}
+                                        onClick={() => navigate(getStoreRoute(slug, `?cat=${encodeURIComponent(product.category)}`))}
                                         className={`hover:opacity-80 transition-opacity ${theme.textMuted}`}
                                     >
                                         {product.category}
@@ -809,7 +810,7 @@ export default function PublicWaProduct({ customSlug }) {
                                     <div
                                         key={p.id}
                                         onClick={() => {
-                                            navigate(`/store/${slug}/product/${slugifyProduct(p)}`);
+                                            navigate(getStoreRoute(slug, `/product/${slugifyProduct(p)}`));
                                         }}
                                         className="shrink-0 w-36 cursor-pointer group/cs snap-start"
                                     >
@@ -836,7 +837,7 @@ export default function PublicWaProduct({ customSlug }) {
                                 ))}
                                 {/* View All Card */}
                                 <div
-                                    onClick={() => navigate(`/store/${slug}?cat=${encodeURIComponent(product.category)}`)}
+                                    onClick={() => navigate(getStoreRoute(slug, `?cat=${encodeURIComponent(product.category)}`))}
                                     className="shrink-0 w-36 cursor-pointer group/cs snap-start flex flex-col"
                                 >
                                     <div className="aspect-square w-full rounded-2xl overflow-hidden bg-gray-50 hover:bg-gray-100 border border-gray-100 mb-3 flex flex-col items-center justify-center transition-colors">

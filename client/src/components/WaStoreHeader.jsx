@@ -4,6 +4,7 @@ import { ShoppingCart, Search, Menu, X, ShoppingBag, Home, Tag, ChevronDown, Che
 
 import WaStoreMobileBottomMenu from './WaStoreMobileBottomMenu';
 import { cdnImg } from '../utils/cdnImage';
+import { getStoreRoute } from '../utils/storeRouting';
 
 // Helper to slugify product names for URLs
 const slugifyProduct = (productOrName, id) => {
@@ -80,7 +81,7 @@ export default function WaStoreHeader({
                             onClick={() => {
                                 setIsSearchOpen(false);
                                 setSearchQuery('');
-                                navigate(`/store/${slug}/product/${slugifyProduct(product)}`);
+                                navigate(getStoreRoute(slug, `/product/${slugifyProduct(product)}`));
                             }}
                             className="w-full flex items-center gap-4 p-3 sm:p-4 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 text-left"
                         >
@@ -105,7 +106,7 @@ export default function WaStoreHeader({
                     <button 
                         onClick={() => {
                             setIsSearchOpen(false);
-                            navigate(`/store/${slug}`);
+                            navigate(getStoreRoute(slug));
                             setTimeout(() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' }), 100);
                         }}
                         className="text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors"
@@ -194,7 +195,7 @@ export default function WaStoreHeader({
                             </div>
                         </div>
                         {/* CENTER – Logo or store name */}
-                        <div className="flex items-center justify-center cursor-pointer" onClick={() => navigate(`/store/${slug}`)}>
+                        <div className="flex items-center justify-center cursor-pointer" onClick={() => navigate(getStoreRoute(slug))}>
                             {store.logo ? (
                                 // Logo: ~134px display → serve 180w standard / 268w retina
                                 (<img
@@ -222,7 +223,7 @@ export default function WaStoreHeader({
                             {authEnabled && (
                                 <button
                                     aria-label="My Account"
-                                    onClick={() => navigate(`/store/${slug}/account${storeCustomer ? '' : '/login'}`)}
+                                    onClick={() => navigate(getStoreRoute(slug, `/account${storeCustomer ? '' : '/login'}`))}
                                     className="relative hidden md:flex items-center justify-center p-2 text-black hover:bg-black/5 rounded-full transition-colors group"
                                 >
                                     <User className="w-5 h-5 stroke-[1.5] group-hover:scale-105 transition-transform" />
@@ -269,11 +270,11 @@ export default function WaStoreHeader({
                                     sizes="(max-width: 640px) 180px, 268px"
                                     alt={store.name}
                                     className="w-auto h-10 md:h-12 object-contain cursor-pointer"
-                                    onClick={() => navigate(`/store/${slug}`)}
+                                    onClick={() => navigate(getStoreRoute(slug))}
                                     onError={e => e.target.style.display = 'none'}
                                 />)
                             ) : (
-                                <span className={`font-semibold text-lg md:text-xl tracking-tight cursor-pointer ${theme.headerLogo} cursor-pointer`} onClick={() => navigate(`/store/${slug}`)}>{store.name}</span>
+                                <span className={`font-semibold text-lg md:text-xl tracking-tight cursor-pointer ${theme.headerLogo} cursor-pointer`} onClick={() => navigate(getStoreRoute(slug))}>{store.name}</span>
                             )}
                         </div>
                         {/* MIDDLE: Desktop Mega Menu */}
@@ -288,12 +289,12 @@ export default function WaStoreHeader({
                                                     if (!menuItem.link) e.preventDefault();
                                                     else if (menuItem.link.startsWith('/?cat=')) {
                                                         e.preventDefault();
-                                                        navigate(`/store/${slug}/category/${encodeURIComponent(menuItem.link.split('=')[1])}`);
+                                                        navigate(getStoreRoute(slug, `/category/${encodeURIComponent(menuItem.link.split('=')[1])}`));
                                                     } else if (menuItem.link.startsWith('/')) {
                                                         e.preventDefault();
                                                         let target = menuItem.link;
                                                         if (!target.startsWith('/store/')) {
-                                                            target = target === '/' ? `/store/${slug}` : `/store/${slug}${target}`;
+                                                            target = target === '/' ? getStoreRoute(slug) : getStoreRoute(slug, `${target}`);
                                                         }
                                                         navigate(target);
                                                     }
@@ -317,12 +318,12 @@ export default function WaStoreHeader({
                                                                         if (!child.link) e.preventDefault();
                                                                         else if (child.link.startsWith('/?cat=')) {
                                                                             e.preventDefault();
-                                                                            navigate(`/store/${slug}/category/${encodeURIComponent(child.link.split('=')[1])}`);
+                                                                            navigate(getStoreRoute(slug, `/category/${encodeURIComponent(child.link.split('=')[1])}`));
                                                                         } else if (child.link.startsWith('/')) {
                                                                             e.preventDefault();
                                                                             let target = child.link;
                                                                             if (!target.startsWith('/store/')) {
-                                                                                target = target === '/' ? `/store/${slug}` : `/store/${slug}${target}`;
+                                                                                target = target === '/' ? getStoreRoute(slug) : getStoreRoute(slug, `${target}`);
                                                                             }
                                                                             navigate(target);
                                                                         }
@@ -419,11 +420,11 @@ export default function WaStoreHeader({
                                     sizes="(max-width: 640px) 180px, 268px"
                                     alt={store.name}
                                     className="w-auto h-10 md:h-12 object-contain rounded-md cursor-pointer"
-                                    onClick={() => navigate(`/store/${slug}`)}
+                                    onClick={() => navigate(getStoreRoute(slug))}
                                     onError={e => e.target.style.display = 'none'}
                                 />)
                             ) : (
-                                <span className={`font-semibold text-lg md:text-xl tracking-tight cursor-pointer ${theme.headerLogo} cursor-pointer`} onClick={() => navigate(`/store/${slug}`)}>{store.name}</span>
+                                <span className={`font-semibold text-lg md:text-xl tracking-tight cursor-pointer ${theme.headerLogo} cursor-pointer`} onClick={() => navigate(getStoreRoute(slug))}>{store.name}</span>
                             )}
                         </div>
                         {/* RIGHT: Search Bar & Cart */}
@@ -532,12 +533,12 @@ export default function WaStoreHeader({
                                                 if (!menuItem.link) e.preventDefault();
                                                 else if (menuItem.link.startsWith('/?cat=')) {
                                                     e.preventDefault();
-                                                    navigate(`/store/${slug}/category/${encodeURIComponent(menuItem.link.split('=')[1])}`);
+                                                    navigate(getStoreRoute(slug, `/category/${encodeURIComponent(menuItem.link.split('=')[1])}`));
                                                 } else if (menuItem.link.startsWith('/')) {
                                                     e.preventDefault();
                                                     let target = menuItem.link;
                                                     if (!target.startsWith('/store/')) {
-                                                        target = target === '/' ? `/store/${slug}` : `/store/${slug}${target}`;
+                                                        target = target === '/' ? getStoreRoute(slug) : getStoreRoute(slug, `${target}`);
                                                     }
                                                     navigate(target);
                                                 }
@@ -562,12 +563,12 @@ export default function WaStoreHeader({
                                                                     if (!child.link) e.preventDefault();
                                                                     else if (child.link.startsWith('/?cat=')) {
                                                                         e.preventDefault();
-                                                                        navigate(`/store/${slug}/category/${encodeURIComponent(child.link.split('=')[1])}`);
+                                                                        navigate(getStoreRoute(slug, `/category/${encodeURIComponent(child.link.split('=')[1])}`));
                                                                     } else if (child.link.startsWith('/')) {
                                                                         e.preventDefault();
                                                                         let target = child.link;
                                                                         if (!target.startsWith('/store/')) {
-                                                                            target = target === '/' ? `/store/${slug}` : `/store/${slug}${target}`;
+                                                                            target = target === '/' ? getStoreRoute(slug) : getStoreRoute(slug, `${target}`);
                                                                         }
                                                                         navigate(target);
                                                                     }
@@ -624,7 +625,7 @@ export default function WaStoreHeader({
                                     <div className="flex items-center gap-3 w-full">
                                         {storeCustomer ? (
                                             <button 
-                                                onClick={() => { navigate(`/store/${slug}/account`); setIsMobileMenuOpen(false); }}
+                                                onClick={() => { navigate(getStoreRoute(slug, `/account`)); setIsMobileMenuOpen(false); }}
                                                 className="flex-1 bg-black dark:bg-white text-white dark:text-black py-3 rounded-xl font-semibold text-center transition-opacity hover:opacity-90 flex items-center justify-center gap-2"
                                             >
                                                 <User className="w-5 h-5" />
@@ -633,13 +634,13 @@ export default function WaStoreHeader({
                                         ) : (
                                             <>
                                                 <button 
-                                                    onClick={() => { navigate(`/store/${slug}/login`); setIsMobileMenuOpen(false); }}
+                                                    onClick={() => { navigate(getStoreRoute(slug, `/login`)); setIsMobileMenuOpen(false); }}
                                                     className={`flex-1 py-3 rounded-xl font-semibold text-center transition-colors ${theme.categoryTab}`}
                                                 >
                                                     Login
                                                 </button>
                                                 <button 
-                                                    onClick={() => { navigate(`/store/${slug}/register`); setIsMobileMenuOpen(false); }}
+                                                    onClick={() => { navigate(getStoreRoute(slug, `/register`)); setIsMobileMenuOpen(false); }}
                                                     className="flex-1 bg-black dark:bg-white text-white dark:text-black py-3 rounded-xl font-semibold text-center transition-opacity hover:opacity-90"
                                                 >
                                                     Register
@@ -651,7 +652,7 @@ export default function WaStoreHeader({
                                 {/* Home Button */}
                                 <button 
                                     onClick={() => { 
-                                        navigate(`/store/${slug}`);
+                                        navigate(getStoreRoute(slug));
                                         setIsMobileMenuOpen(false); 
                                     }}
                                     className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${theme.categoryTab} font-semibold`}
@@ -686,10 +687,10 @@ export default function WaStoreHeader({
                                                                             setIsMobileMenuOpen(false);
                                                                             if (!child.link) return;
                                                                             if (child.link.startsWith('/?cat=')) {
-                                                                                navigate(`/store/${slug}/category/${encodeURIComponent(child.link.split('=')[1])}`);
+                                                                                navigate(getStoreRoute(slug, `/category/${encodeURIComponent(child.link.split('=')[1])}`));
                                                                             } else if (child.link.startsWith('/')) {
                                                                                 let target = child.link;
-                                                                                if (!target.startsWith('/store/')) target = target === '/' ? `/store/${slug}` : `/store/${slug}${target}`;
+                                                                                if (!target.startsWith('/store/')) target = target === '/' ? getStoreRoute(slug) : getStoreRoute(slug, `${target}`);
                                                                                 navigate(target);
                                                                             } else {
                                                                                 window.location.href = child.link;
@@ -709,10 +710,10 @@ export default function WaStoreHeader({
                                                             setIsMobileMenuOpen(false);
                                                             if (!menuItem.link) return;
                                                             if (menuItem.link.startsWith('/?cat=')) {
-                                                                navigate(`/store/${slug}/category/${encodeURIComponent(menuItem.link.split('=')[1])}`);
+                                                                navigate(getStoreRoute(slug, `/category/${encodeURIComponent(menuItem.link.split('=')[1])}`));
                                                             } else if (menuItem.link.startsWith('/')) {
                                                                 let target = menuItem.link;
-                                                                if (!target.startsWith('/store/')) target = target === '/' ? `/store/${slug}` : `/store/${slug}${target}`;
+                                                                if (!target.startsWith('/store/')) target = target === '/' ? getStoreRoute(slug) : getStoreRoute(slug, `${target}`);
                                                                 navigate(target);
                                                             } else {
                                                                 window.location.href = menuItem.link;
@@ -750,7 +751,7 @@ export default function WaStoreHeader({
                                                         key={cat}
                                                         onClick={() => {
                                                             setIsMobileMenuOpen(false);
-                                                            navigate(`/store/${slug}/category/${encodeURIComponent(cat)}`);
+                                                            navigate(getStoreRoute(slug, `/category/${encodeURIComponent(cat)}`));
                                                         }}
                                                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left font-medium transition-all ${theme.categoryTab}`}
                                                     >

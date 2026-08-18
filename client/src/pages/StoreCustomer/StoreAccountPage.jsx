@@ -6,6 +6,7 @@ import WaStoreHeader from '../../components/WaStoreHeader';
 import WaStoreFooter from '../../components/WaStoreFooter';
 import { getThemeConfig } from '../../utils/wastoreThemes';
 import toast from 'react-hot-toast';
+import { getStoreRoute } from '../../utils/storeRouting';
 
 const STATUS_COLORS = {
     pending: 'bg-amber-50 text-amber-700 border-amber-200/60',
@@ -62,7 +63,7 @@ export default function StoreAccountPage({ store, products = [] }) {
     const themeColor = store?.themeCustomizations?.primaryColor || '#6366f1';
 
     useEffect(() => {
-        if (!loading && !isLoggedIn) navigate(`/store/${slug}/account/login`);
+        if (!loading && !isLoggedIn) navigate(getStoreRoute(slug, `/account/login`));
     }, [loading, isLoggedIn, slug, navigate]);
 
     useEffect(() => {
@@ -171,7 +172,7 @@ export default function StoreAccountPage({ store, products = [] }) {
                 cartCount={cartCount}
                 setIsCartOpen={(val) => {
                     if (val) {
-                        navigate(`/store/${slug}?cart=open`);
+                        navigate(getStoreRoute(slug, `?cart=open`));
                     }
                 }}
                 authEnabled={true}
@@ -226,7 +227,7 @@ export default function StoreAccountPage({ store, products = [] }) {
                                 <p className="text-lg font-bold text-white mt-0.5">{addresses.length}</p>
                             </div>
                             <button
-                                onClick={() => { logout(); navigate(`/store/${slug}`); }}
+                                onClick={() => { logout(); navigate(getStoreRoute(slug)); }}
                                 className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 hover:text-rose-200 border border-rose-500/30 rounded-2xl p-3.5 px-5 font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 shrink-0 ml-auto md:ml-0"
                             >
                                 <LogOut size={16} /> Logout
@@ -302,7 +303,7 @@ export default function StoreAccountPage({ store, products = [] }) {
                                             Your cart is waiting! Explore our catalog and place your first order.
                                         </p>
                                         <Link 
-                                            to={`/store/${slug}`} 
+                                            to={getStoreRoute(slug)} 
                                             className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-white font-semibold text-sm shadow-md transition-transform hover:-translate-y-0.5 active:translate-y-0"
                                             style={{ background: themeColor }}
                                         >

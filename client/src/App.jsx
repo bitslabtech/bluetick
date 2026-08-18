@@ -287,8 +287,9 @@ class ErrorBoundary extends React.Component {
  * StoreAuthRoute — wraps store customer account pages with StoreCustomerProvider.
  * Also loads the store data so we can pass it (theme color, logo) to auth pages.
  */
-function StoreAuthRoute({ page }) {
-    const { slug } = useParams();
+function StoreAuthRoute({ page, customSlug }) {
+    const params = useParams();
+    const slug = customSlug || params.slug;
     const [store, setStore] = useState(null);
     const [products, setProducts] = useState([]);
 
@@ -352,6 +353,14 @@ function CustomDomainRouter({ children }) {
                 <Route path="/verify" element={<PublicWaStoreVerify />} />
                 <Route path="/product/:productId" element={<PublicWaProduct customSlug={storeSlug} />} />
                 <Route path="/category/:categoryName" element={<PublicWaStoreCategory customSlug={storeSlug} />} />
+                
+                {/* Custom Domain Customer Account Routes */}
+                <Route path="/account/login" element={<StoreAuthRoute page="login" customSlug={storeSlug} />} />
+                <Route path="/account/register" element={<StoreAuthRoute page="register" customSlug={storeSlug} />} />
+                <Route path="/account" element={<StoreAuthRoute page="account" customSlug={storeSlug} />} />
+                <Route path="/account/forgot-password" element={<StoreAuthRoute page="forgot" customSlug={storeSlug} />} />
+                <Route path="/account/reset-password" element={<StoreAuthRoute page="reset" customSlug={storeSlug} />} />
+                
                 <Route path="*" element={<PublicWaStore customSlug={storeSlug} />} />
             </Routes>
         );

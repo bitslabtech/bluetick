@@ -1,6 +1,7 @@
 import React from 'react';
 import { Home, Search, ShoppingCart, MessageCircle, Menu, FileText, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { getStoreRoute } from '../utils/storeRouting';
 
 export default function WaStoreMobileBottomMenu({ store, theme, cartCount, setIsCartOpen, setIsSearchOpen, setIsMobileMenuOpen, authEnabled, storeCustomer }) {
     const navigate = useNavigate();
@@ -25,7 +26,7 @@ export default function WaStoreMobileBottomMenu({ store, theme, cartCount, setIs
     const handleAction = (id) => {
         switch (id) {
             case 'home':
-                navigate(`/store/${store.slug}`);
+                navigate(getStoreRoute(store.slug));
                 window.scrollTo(0, 0);
                 break;
             case 'search':
@@ -46,7 +47,7 @@ export default function WaStoreMobileBottomMenu({ store, theme, cartCount, setIs
                 if (setIsMobileMenuOpen) setIsMobileMenuOpen(true);
                 break;
             case 'profile':
-                navigate(`/store/${store.slug}/account${storeCustomer ? '' : '/login'}`);
+                navigate(getStoreRoute(store.slug, `/account${storeCustomer ? '' : '/login'}`));
                 window.scrollTo(0, 0);
                 break;
             default:

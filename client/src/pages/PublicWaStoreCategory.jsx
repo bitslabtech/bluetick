@@ -10,6 +10,7 @@ import WaStoreCheckoutModal from '../components/WaStoreCheckoutModal';
 import StoreNotFound from '../components/StoreNotFound';
 import { getThemeConfig } from '../utils/wastoreThemes';
 import { applyStoreSeo, cleanupStoreSeo } from '../utils/storeSeo';
+import { getStoreRoute } from '../utils/storeRouting';
 
 const slugifyProduct = (productOrName, id) => {
     let name = productOrName;
@@ -124,7 +125,7 @@ export default function PublicWaStoreCategory({ customSlug }) {
 
     const addToCart = (product, qty = 1) => {
         if (product.options && Array.isArray(product.options) && product.options.length > 0) {
-            navigate(`/store/${slug}/product/${slugifyProduct(product)}`);
+            navigate(getStoreRoute(slug, `/product/${slugifyProduct(product)}`));
             return;
         }
         
@@ -202,7 +203,7 @@ export default function PublicWaStoreCategory({ customSlug }) {
                     <ol className="flex items-center gap-1.5 flex-wrap text-sm">
                         <li>
                             <button
-                                onClick={() => navigate(`/store/${slug}`)}
+                                onClick={() => navigate(getStoreRoute(slug))}
                                 className={`flex items-center gap-1 hover:underline font-medium ${theme.textMuted} hover:${theme.text} transition-colors`}
                             >
                                 <Home className="w-3.5 h-3.5" />
@@ -260,7 +261,7 @@ export default function PublicWaStoreCategory({ customSlug }) {
                                 const showLowStock = store.inventoryConfig?.showLowStock && product.trackQuantity && product.stockQuantity > 0 && product.stockQuantity <= product.lowStockThreshold;
 
                                 return (
-                                    <div key={product.id} className={`group cursor-pointer flex flex-col ${theme.cardStyle} h-full cursor-pointer`} onClick={() => navigate(`/store/${slug}/product/${slugifyProduct(product)}`)}>
+                                    <div key={product.id} className={`group cursor-pointer flex flex-col ${theme.cardStyle} h-full cursor-pointer`} onClick={() => navigate(getStoreRoute(slug, `/product/${slugifyProduct(product)}`))}>
                                         <div className={`relative overflow-hidden shrink-0 ${theme.cardImageStyle}`}>
                                             {product.imageUrls && product.imageUrls[0] ? (
                                                 <img src={imgUrl(product.imageUrls[0])} alt={product.name} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500" onError={e => e.target.style.display = 'none'} />

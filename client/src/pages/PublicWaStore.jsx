@@ -12,6 +12,7 @@ import { getThemeConfig } from '../utils/wastoreThemes';
 import { applyStoreSeo, cleanupStoreSeo } from '../utils/storeSeo';
 import { cdnImg, cdnSrcSet } from '../utils/cdnImage';
 import { StoreCustomerProvider, useStoreCustomer } from '../context/StoreCustomerContext';
+import { getStoreRoute } from '../utils/storeRouting';
 
 // Generates a SEO-friendly product URL slug: "blue-cotton-shirt--a1b2c3d4"
 
@@ -138,7 +139,7 @@ export default function PublicWaStore({ customSlug }) {
     useEffect(() => {
         if (window.location.search.includes('cart=open')) {
             setIsCartOpen(true);
-            window.history.replaceState({}, '', `/store/${slug}`);
+            window.history.replaceState({}, '', getStoreRoute(slug));
         }
     }, [slug]);
 
@@ -358,7 +359,7 @@ export default function PublicWaStore({ customSlug }) {
 
     const addToCart = (product, qty = 1) => {
         if (product.options && Array.isArray(product.options) && product.options.length > 0) {
-            navigate(`/store/${slug}/product/${slugifyProduct(product)}`);
+            navigate(getStoreRoute(slug, `/product/${slugifyProduct(product)}`));
             return;
         }
 
@@ -486,11 +487,11 @@ export default function PublicWaStore({ customSlug }) {
                                         <button
                                             onClick={() => {
                                                 if (slide.ctaTargetType === 'category' && slide.ctaTargetId) {
-                                                    navigate(`/store/${slug}/category/${encodeURIComponent(slide.ctaTargetId)}`);
+                                                    navigate(getStoreRoute(slug, `/category/${encodeURIComponent(slide.ctaTargetId)}`));
                                                 } else if (slide.ctaTargetType === 'product' && slide.ctaTargetId) {
                                                     const targetProduct = products.find(p => p.id === slide.ctaTargetId);
                                                     if (targetProduct) {
-                                                        navigate(`/store/${slug}/product/${slugifyProduct(targetProduct)}`);
+                                                        navigate(getStoreRoute(slug, `/product/${slugifyProduct(targetProduct)}`));
                                                     }
                                                 } else {
                                                     document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
@@ -588,7 +589,7 @@ export default function PublicWaStore({ customSlug }) {
 
                                     return (
                                         <button
-                                            key={cat} onClick={() => navigate(`/store/${slug}/category/${encodeURIComponent(cat)}`)}
+                                            key={cat} onClick={() => navigate(getStoreRoute(slug, `/category/${encodeURIComponent(cat)}`))}
                                             className={`flex flex-col items-center gap-2 sm:gap-4 shrink-0 group ${mobileWidthClass} md:w-44 md:snap-start`}
                                         >
                                             <div className={`w-full aspect-square md:w-44 md:h-44 overflow-hidden ${shapeClass} flex items-center justify-center transition-all duration-300 relative border-2 border-zinc-900 dark:border-white bg-zinc-100 dark:bg-zinc-800 group-hover:shadow-md`}>
@@ -637,7 +638,7 @@ export default function PublicWaStore({ customSlug }) {
 
                                     return (
                                         <button
-                                            key={cat} onClick={() => navigate(`/store/${slug}/category/${encodeURIComponent(cat)}`)}
+                                            key={cat} onClick={() => navigate(getStoreRoute(slug, `/category/${encodeURIComponent(cat)}`))}
                                             className={`flex flex-col items-center gap-2 sm:gap-4 shrink-0 group ${mobileWidthClass} md:w-44`}
                                         >
                                             <div className={`w-full aspect-square md:w-44 md:h-44 ${shapeClass} overflow-hidden flex items-center justify-center transition-all duration-300 bg-black/5 group-hover:bg-black/10 group-hover:scale-105`}>
@@ -722,7 +723,7 @@ export default function PublicWaStore({ customSlug }) {
                                     const qtyInCart = cartItem ? cartItem.qty : 0;
 
                                     return (
-                                        <div key={product.id} className={`group cursor-pointer flex flex-col ${theme.cardStyle} h-full cursor-pointer`} onClick={() => navigate(`/store/${slug}/product/${slugifyProduct(product)}`)}>
+                                        <div key={product.id} className={`group cursor-pointer flex flex-col ${theme.cardStyle} h-full cursor-pointer`} onClick={() => navigate(getStoreRoute(slug, `/product/${slugifyProduct(product)}`))}>
                                             {/* Image Box */}
                                             <div className={`relative overflow-hidden shrink-0 ${theme.cardImageStyle}`}>
                                                 {product.imageUrls && product.imageUrls[0] ? (

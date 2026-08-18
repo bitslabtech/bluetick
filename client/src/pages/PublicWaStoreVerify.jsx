@@ -3,6 +3,7 @@ import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getStoreRoute } from '../utils/storeRouting';
 
 export default function PublicWaStoreVerify() {
     const { slug } = useParams();
@@ -59,7 +60,7 @@ export default function PublicWaStoreVerify() {
                         <h2 className="text-2xl font-bold text-gray-900 mb-2">Payment Successful!</h2>
                         <p className="text-gray-600 mb-6">Your order #{orderNumber} has been placed successfully.</p>
                         <button 
-                            onClick={() => navigate(`/store/${slug}`)}
+                            onClick={() => navigate(getStoreRoute(slug))}
                             className="bg-black text-white px-8 py-3 rounded-xl font-bold hover:bg-gray-800 transition-colors"
                         >
                             Back to Store
@@ -73,7 +74,7 @@ export default function PublicWaStoreVerify() {
                         <h2 className="text-2xl font-bold text-gray-900 mb-2">Payment Failed</h2>
                         <p className="text-gray-600 mb-6">We couldn't verify your payment for order #{orderNumber}. If amount was deducted, it will be refunded automatically.</p>
                         <button 
-                            onClick={() => navigate(`/store/${slug}`)}
+                            onClick={() => navigate(getStoreRoute(slug))}
                             className="bg-black text-white px-8 py-3 rounded-xl font-bold hover:bg-gray-800 transition-colors"
                         >
                             Return to Store

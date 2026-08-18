@@ -6,6 +6,7 @@ import WaStoreHeader from '../../components/WaStoreHeader';
 import WaStoreFooter from '../../components/WaStoreFooter';
 import { getThemeConfig } from '../../utils/wastoreThemes';
 import toast from 'react-hot-toast';
+import { getStoreRoute } from '../../utils/storeRouting';
 
 export default function StoreForgotPasswordPage({ store, products = [] }) {
     const { slug } = useParams();
@@ -68,7 +69,7 @@ export default function StoreForgotPasswordPage({ store, products = [] }) {
                                     If an account exists for <span className="font-semibold text-slate-800">{email}</span>, you will receive a password reset link shortly.
                                 </p>
                                 <Link 
-                                    to={`/store/${slug}/account/login`} 
+                                    to={getStoreRoute(slug, `/account/login`)} 
                                     className="mt-6 inline-flex items-center gap-1.5 px-6 py-2.5 rounded-2xl text-white font-bold text-xs shadow-md hover:opacity-95" 
                                     style={{ background: themeColor }}
                                 >
@@ -105,7 +106,7 @@ export default function StoreForgotPasswordPage({ store, products = [] }) {
                     </div>
 
                     <div className="text-center mt-6">
-                        <Link to={`/store/${slug}/account/login`} className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-800">
+                        <Link to={getStoreRoute(slug, `/account/login`)} className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-800">
                             <ArrowLeft size={14} /> Back to Login
                         </Link>
                     </div>

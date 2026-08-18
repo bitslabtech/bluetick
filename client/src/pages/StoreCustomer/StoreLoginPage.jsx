@@ -6,6 +6,7 @@ import { useStoreCustomer } from '../../context/StoreCustomerContext';
 import { getThemeConfig } from '../../utils/wastoreThemes';
 import { countryCodes, validatePhone } from '../../utils/phoneUtils';
 import toast from 'react-hot-toast';
+import { getStoreRoute } from '../../utils/storeRouting';
 
 export default function StoreLoginPage({ store, products = [] }) {
     const { slug } = useParams();
@@ -42,7 +43,7 @@ export default function StoreLoginPage({ store, products = [] }) {
         try {
             await loginWithEmail(email, password);
             toast.success('Welcome back!');
-            navigate(`/store/${slug}/account`);
+            navigate(getStoreRoute(slug, `/account`));
         } catch (err) {
             toast.error(err.response?.data?.error || 'Login failed. Please try again.');
         } finally {
@@ -78,7 +79,7 @@ export default function StoreLoginPage({ store, products = [] }) {
         try {
             await verifyOtp(`${dialCode}${cleanPhone}`, otp);
             toast.success('Logged in successfully!');
-            navigate(`/store/${slug}/account`);
+            navigate(getStoreRoute(slug, `/account`));
         } catch (err) {
             toast.error(err.response?.data?.error || 'Invalid OTP. Please try again.');
         } finally {
@@ -198,7 +199,7 @@ export default function StoreLoginPage({ store, products = [] }) {
                                     </div>
                                     <div className="text-right mt-1.5">
                                         <Link 
-                                            to={`/store/${slug}/account/forgot-password`}
+                                            to={getStoreRoute(slug, `/account/forgot-password`)}
                                             className="text-xs font-medium hover:underline" 
                                             style={{ color: themeColor }}
                                         >
@@ -336,7 +337,7 @@ export default function StoreLoginPage({ store, products = [] }) {
                         {hasEmail && (
                             <p className="text-center text-xs font-medium text-slate-500 mt-6 pt-4 border-t border-slate-100">
                                 Don't have an account?{' '}
-                                <Link to={`/store/${slug}/account/register`} className="font-bold hover:underline" style={{ color: themeColor }}>
+                                <Link to={getStoreRoute(slug, `/account/register`)} className="font-bold hover:underline" style={{ color: themeColor }}>
                                     Create Account
                                 </Link>
                             </p>
@@ -344,7 +345,7 @@ export default function StoreLoginPage({ store, products = [] }) {
                     </div>
 
                     <div className="text-center mt-6">
-                        <Link to={`/store/${slug}`} className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-800">
+                        <Link to={getStoreRoute(slug)} className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-800">
                             <ArrowLeft size={14} /> Continue Shopping
                         </Link>
                     </div>

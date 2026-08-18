@@ -6,6 +6,7 @@ import { useStoreCustomer } from '../../context/StoreCustomerContext';
 import { getThemeConfig } from '../../utils/wastoreThemes';
 import { countryCodes, validatePhone } from '../../utils/phoneUtils';
 import toast from 'react-hot-toast';
+import { getStoreRoute } from '../../utils/storeRouting';
 
 export default function StoreRegisterPage({ store, products = [] }) {
     const { slug } = useParams();
@@ -76,7 +77,7 @@ export default function StoreRegisterPage({ store, products = [] }) {
         try {
             await register(form.name, form.email, form.password, fullPhone);
             toast.success('Account created! Welcome 🎉');
-            navigate(`/store/${slug}/account`);
+            navigate(getStoreRoute(slug, `/account`));
         } catch (err) {
             toast.error(err.response?.data?.error || 'Registration failed. Please try again.');
         } finally {
@@ -111,7 +112,7 @@ export default function StoreRegisterPage({ store, products = [] }) {
         try {
             await verifyOtp(`${otpDialCode}${cleanPhone}`, otp);
             toast.success('Account created & logged in!');
-            navigate(`/store/${slug}/account`);
+            navigate(getStoreRoute(slug, `/account`));
         } catch (err) {
             toast.error(err.response?.data?.error || 'Invalid OTP. Please try again.');
         } finally {
@@ -358,7 +359,7 @@ export default function StoreRegisterPage({ store, products = [] }) {
 
                                 <p className="text-center text-xs font-medium text-slate-500 mt-6 pt-4 border-t border-slate-100">
                                     Already have an account?{' '}
-                                    <Link to={`/store/${slug}/account/login`} className="font-bold hover:underline" style={{ color: themeColor }}>
+                                    <Link to={getStoreRoute(slug, `/account/login`)} className="font-bold hover:underline" style={{ color: themeColor }}>
                                         Sign In
                                     </Link>
                                 </p>
@@ -474,7 +475,7 @@ export default function StoreRegisterPage({ store, products = [] }) {
                                 )}
                                 <p className="text-center text-xs font-medium text-slate-500 mt-6 pt-4 border-t border-slate-100">
                                     Already have an account?{' '}
-                                    <Link to={`/store/${slug}/account/login`} className="font-bold hover:underline" style={{ color: themeColor }}>
+                                    <Link to={getStoreRoute(slug, `/account/login`)} className="font-bold hover:underline" style={{ color: themeColor }}>
                                         Sign In
                                     </Link>
                                 </p>

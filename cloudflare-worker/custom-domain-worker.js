@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Bluetick - Custom Domain Cloudflare Worker
  * ============================================
  * Architecture: Long-Term Custom Domain Solution
@@ -21,7 +21,7 @@
  *
  * STEP 2 - Add Environment Variable
  *   - Workers - Your Worker - Settings - Variables
- *   - Add: BACKEND_URL = https://api.bluetick.cloud  (your actual backend URL)
+ *   - Add: BACKEND_URL = https://bluetick.cloud  (your FRONTEND URL, NOT the API URL)
  *
  * STEP 3 - Assign Custom Domains to the Worker
  *   Option A (Recommended - "Cloudflare for SaaS"):
@@ -45,9 +45,18 @@ export default {
     const url = new URL(request.url);
     const originalHost = url.hostname; // e.g., "www.amardryfruits.in"
 
+    // IMPORTANT: Bypass the worker for our main system domains!
+    // If we don't do this, the worker will intercept requests to the backend
+    // and cause an infinite loop (Error 522 or 1000).
+    if (originalHost.endsWith('bluetick.cloud')) {
+      return fetch(request);
+    }
+
     // Target Backend - set via Worker environment variable BACKEND_URL
-    const backendUrl = env.BACKEND_URL || 'https://api.bluetick.cloud';
-    const backendHostname = new URL(backendUrl).hostname; // e.g., "api.bluetick.cloud"
+    // IMPORTANT: This MUST point to your FRONTEND URL (e.g., https://bluetick.cloud) 
+    // where your React app is hosted, NOT your API backend!
+    const backendUrl = env.BACKEND_URL || 'https://bluetick.cloud';
+    const backendHostname = new URL(backendUrl).hostname;
 
     // Rewrite the target URL
     url.hostname = backendHostname;
