@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import TrialBanner from '../components/TrialBanner';
 import { Link } from 'react-router-dom';
 import {
@@ -36,7 +36,6 @@ export default function CampaignList() {
                         failed: msg.failedCount || 0,
                         error: null,
                         date: msg.createdAt,
-                        scheduledFor: msg.scheduledFor,
                         template: msg.Template?.name || 'Unknown'
                     };
                 });
@@ -236,17 +235,10 @@ export default function CampaignList() {
                                     <div className="flex-1 w-full text-center md:text-left">
                                         <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1 group-hover:text-primary transition-colors cursor-pointer">{campaign.name}</h3>
                                         <div className="flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-4 text-xs text-slate-500 dark:text-text-secondary mt-1">
-                                            {campaign.scheduledFor ? (
-                                                <span className="hidden md:flex items-center gap-1.5 text-yellow-600 dark:text-yellow-500">
-                                                    <Calendar className="w-3.5 h-3.5" />
-                                                    Scheduled: {formatDate(campaign.scheduledFor)}
-                                                </span>
-                                            ) : (
-                                                <span className="hidden md:flex items-center gap-1.5">
-                                                    <Clock className="w-3.5 h-3.5" />
-                                                    {formatDate(campaign.date)}
-                                                </span>
-                                            )}
+                                            <span className="hidden md:flex items-center gap-1.5">
+                                                <Clock className="w-3.5 h-3.5" />
+                                                {formatDate(campaign.date)}
+                                            </span>
                                             <span className="hidden md:block w-1 h-1 rounded-full bg-slate-300 dark:bg-white/20"></span>
                                             <span className="flex items-center gap-1.5 w-full md:w-auto justify-center md:justify-start">
                                                 <MessageSquare className="w-3.5 h-3.5 shrink-0" />
