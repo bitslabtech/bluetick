@@ -568,7 +568,7 @@ export default function PublicWaStore({ customSlug }) {
                         {theme.id === 'vogue' ? (
                             <div
                                 ref={categoryScrollRef}
-                                className="flex overflow-x-auto hide-scrollbar gap-3 sm:gap-6 pb-6 snap-x md:justify-center"
+                                className="flex overflow-x-auto hide-scrollbar gap-3 sm:gap-6 pb-6 snap-x"
                             >
                                 {/* INDIVIDUAL CATEGORIES */}
                                 {categories.filter(c => {
@@ -617,7 +617,7 @@ export default function PublicWaStore({ customSlug }) {
                         ) : (
                             <div
                                 ref={categoryScrollRef}
-                                className="flex overflow-x-auto hide-scrollbar gap-3 sm:gap-6 py-4 md:justify-center"
+                                className="flex overflow-x-auto hide-scrollbar gap-3 sm:gap-6 py-4"
                             >
                                 {/* INDIVIDUAL CATEGORIES */}
                                 {categories.filter(c => {

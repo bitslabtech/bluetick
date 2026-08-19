@@ -281,7 +281,7 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
     try {
         const { storeId, customerName, customerPhone, customerEmail, customerAddress, customerNote, customerGstin, customerCompany, items, subtotal, originalTotal, discountAmount, couponCode, currency, taxAmount, taxRate, taxName, total, storeCustomerId } = req.body;
 
-        if (!storeId || !items || !subtotal) {
+        if (!storeId || !items || !Array.isArray(items) || items.length === 0 || subtotal === undefined || subtotal === null) {
             return res.status(400).json({ error: 'Missing required order fields' });
         }
 
@@ -341,6 +341,19 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
                     await product.save();
                 }
             }
+        }
+
+        // ── Zero-total bypass (100% coupon, free product, etc.) ──────────────────
+        // Payment gateways (Razorpay, PhonePe) reject amount=0 orders.
+        // If the final total is 0, skip the gateway, mark it paid immediately,
+        // and return the same response shape as a WhatsApp/manual checkout.
+        if (store.checkoutMode === 'gateway' && parseFloat(order.total || order.subtotal || 0) === 0) {
+            await order.update({ status: 'paid', paymentStatus: 'paid' });
+            fireCAPICheckout(store, order).catch(() => {});
+            User.findByPk(store.userId).then(storeUser => {
+                if (storeUser) sendOrderNotification('order_placed', store, storeUser, order).catch(() => {});
+            }).catch(() => {});
+            return res.json({ order, orderNumber });
         }
 
         // If checkout mode is gateway, initialize payment

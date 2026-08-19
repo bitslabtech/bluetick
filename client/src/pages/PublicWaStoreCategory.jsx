@@ -11,6 +11,29 @@ import StoreNotFound from '../components/StoreNotFound';
 import { getThemeConfig } from '../utils/wastoreThemes';
 import { applyStoreSeo, cleanupStoreSeo } from '../utils/storeSeo';
 import { getStoreRoute } from '../utils/storeRouting';
+import { StoreCustomerProvider, useStoreCustomer } from '../context/StoreCustomerContext';
+
+// Inner component that reads customer auth context and injects it into the header
+function CategoryPageInner({ store, theme, slug, products, categories, cartCount, setIsCartOpen, children }) {
+    const { customer, authConfig } = useStoreCustomer();
+    const authEnabled = authConfig?.enabled || store?.customerAuthConfig?.enabled || false;
+    return (
+        <>
+            <WaStoreHeader
+                store={store}
+                theme={theme}
+                slug={slug}
+                products={products}
+                categories={categories}
+                cartCount={cartCount}
+                setIsCartOpen={setIsCartOpen}
+                authEnabled={authEnabled}
+                storeCustomer={customer}
+            />
+            {children}
+        </>
+    );
+}
 
 const slugifyProduct = (productOrName, id) => {
     let name = productOrName;
@@ -188,16 +211,9 @@ export default function PublicWaStoreCategory({ customSlug }) {
     if (!store) return <StoreNotFound slug={slug} />;
 
     return (
+        <StoreCustomerProvider slug={slug}>
         <div className={`flex flex-col min-h-screen overflow-x-hidden w-full ${theme.pageBg} font-sans ${theme.text} selection:bg-black selection:text-white pb-20 md:pb-0`} style={{ fontFamily: theme.fontFamily, scrollbarGutter: 'stable' }}>
-            <WaStoreHeader 
-                store={store} 
-                theme={theme} 
-                slug={slug} 
-                products={products} 
-                categories={categories} 
-                cartCount={cartCount} 
-                setIsCartOpen={setIsCartOpen} 
-            />
+            <CategoryPageInner store={store} theme={theme} slug={slug} products={products} categories={categories} cartCount={cartCount} setIsCartOpen={setIsCartOpen}>
             <main className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <nav aria-label="Breadcrumb" className="mb-8">
                     <ol className="flex items-center gap-1.5 flex-wrap text-sm">
@@ -441,6 +457,8 @@ export default function PublicWaStoreCategory({ customSlug }) {
                 />
             )}
             <WaStoreFooter store={store} />
+            </CategoryPageInner>
         </div>
+        </StoreCustomerProvider>
     );
 }

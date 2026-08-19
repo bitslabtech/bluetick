@@ -11,6 +11,29 @@ import StoreNotFound from '../components/StoreNotFound';
 import { getThemeConfig } from '../utils/wastoreThemes';
 import { applyProductSeo, cleanupStoreSeo } from '../utils/storeSeo';
 import { getStoreRoute } from '../utils/storeRouting';
+import { StoreCustomerProvider, useStoreCustomer } from '../context/StoreCustomerContext';
+
+// Inner component that reads the customer auth context and injects it into the header
+function ProductPageInner({ store, theme, slug, allProducts, categories, cartCount, setIsCartOpen, children }) {
+    const { customer, authConfig } = useStoreCustomer();
+    const authEnabled = authConfig?.enabled || store?.customerAuthConfig?.enabled || false;
+    return (
+        <>
+            <WaStoreHeader
+                store={store}
+                theme={theme}
+                slug={slug}
+                products={allProducts}
+                categories={categories}
+                cartCount={cartCount}
+                setIsCartOpen={setIsCartOpen}
+                authEnabled={authEnabled}
+                storeCustomer={customer}
+            />
+            {children}
+        </>
+    );
+}
 
 // Generates a SEO-friendly product URL slug: "blue-cotton-shirt--a1b2c3d4"
 const slugifyProduct = (productOrName, id) => {
@@ -314,33 +337,25 @@ export default function PublicWaProduct({ customSlug }) {
     
     if (!product) {
         return (
-            <div className={`flex flex-col min-h-screen overflow-x-hidden w-full ${theme.pageBg} font-sans ${theme.text} selection:bg-black selection:text-white pb-[140px] md:pb-0`} style={{ fontFamily: theme.fontFamily }}>
-                {/* ─── MODERN HEADER ─── */}
-                <WaStoreHeader 
-                    store={store} 
-                    theme={theme} 
-                    slug={slug} 
-                    products={allProducts}
-                    categories={categories} 
-                    cartCount={cartCount} 
-                    setIsCartOpen={setIsCartOpen}
-                />
-                
-                <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 md:px-8 lg:px-12 flex flex-col items-center justify-center min-h-[50vh]">
-                    <div className="flex flex-col items-center justify-center py-32 text-center space-y-5">
-                        <div className="w-20 h-20 rounded-full flex items-center justify-center bg-gray-50 dark:bg-zinc-800 shadow-sm border border-gray-200 dark:border-zinc-700 mb-2">
-                            <ShoppingBag className={`w-10 h-10 ${theme.textMuted} opacity-75`} />
-                        </div>
-                        <h1 className={`text-3xl font-black tracking-tight ${theme.text}`}>Product Not Found</h1>
-                        <p className={`text-base ${theme.textMuted} max-w-sm`}>The product you are looking for is unavailable or has been removed.</p>
-                        <button onClick={() => navigate(getStoreRoute(slug))} className={`h-[42px] px-6 text-[11px] font-bold uppercase tracking-widest rounded-xl flex items-center justify-center gap-2 mt-4 bg-black text-white hover:bg-neutral-800 shadow-md transition-all`}>
-                            <ArrowLeft className="w-4 h-4" /> Back to Store
-                        </button>
-                    </div>
-                </main>
-
-                <WaStoreFooter store={store} theme={theme} />
-            </div>
+            <StoreCustomerProvider slug={slug}>
+                <div className={`flex flex-col min-h-screen overflow-x-hidden w-full ${theme.pageBg} font-sans ${theme.text} selection:bg-black selection:text-white pb-[140px] md:pb-0`} style={{ fontFamily: theme.fontFamily }}>
+                    <ProductPageInner store={store} theme={theme} slug={slug} allProducts={allProducts} categories={categories} cartCount={cartCount} setIsCartOpen={setIsCartOpen}>
+                        <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 md:px-8 lg:px-12 flex flex-col items-center justify-center min-h-[50vh]">
+                            <div className="flex flex-col items-center justify-center py-32 text-center space-y-5">
+                                <div className="w-20 h-20 rounded-full flex items-center justify-center bg-gray-50 dark:bg-zinc-800 shadow-sm border border-gray-200 dark:border-zinc-700 mb-2">
+                                    <ShoppingBag className={`w-10 h-10 ${theme.textMuted} opacity-75`} />
+                                </div>
+                                <h1 className={`text-3xl font-black tracking-tight ${theme.text}`}>Product Not Found</h1>
+                                <p className={`text-base ${theme.textMuted} max-w-sm`}>The product you are looking for is unavailable or has been removed.</p>
+                                <button onClick={() => navigate(getStoreRoute(slug))} className={`h-[42px] px-6 text-[11px] font-bold uppercase tracking-widest rounded-xl flex items-center justify-center gap-2 mt-4 bg-black text-white hover:bg-neutral-800 shadow-md transition-all`}>
+                                    <ArrowLeft className="w-4 h-4" /> Back to Store
+                                </button>
+                            </div>
+                        </main>
+                        <WaStoreFooter store={store} theme={theme} />
+                    </ProductPageInner>
+                </div>
+            </StoreCustomerProvider>
         );
     }
 
@@ -365,17 +380,10 @@ export default function PublicWaProduct({ customSlug }) {
     const checkoutTotal = checkoutSubtotal + checkoutShippingCost;
 
     return (
+        <StoreCustomerProvider slug={slug}>
         <div className={`flex flex-col min-h-screen overflow-x-hidden w-full ${theme.pageBg} font-sans ${theme.text} selection:bg-black selection:text-white pb-[140px] md:pb-0`} style={{ fontFamily: theme.fontFamily }}>
             {/* ─── MODERN HEADER ─── */}
-            <WaStoreHeader 
-                store={store} 
-                theme={theme} 
-                slug={slug} 
-                products={allProducts}
-                categories={categories} 
-                cartCount={cartCount} 
-                setIsCartOpen={setIsCartOpen} 
-            />
+            <ProductPageInner store={store} theme={theme} slug={slug} allProducts={allProducts} categories={categories} cartCount={cartCount} setIsCartOpen={setIsCartOpen}>
             <main className="max-w-[1440px] w-full min-w-0 overflow-hidden mx-auto px-4 md:px-8 lg:px-12 pt-4 pb-10 md:py-10">
                 
                 {/* ─── VISUAL BREADCRUMB ─── */}
@@ -1159,6 +1167,8 @@ export default function PublicWaProduct({ customSlug }) {
                     <span className="truncate">Buy Now</span>
                 </button>
             </div>
+        </ProductPageInner>
         </div>
+        </StoreCustomerProvider>
     );
 }

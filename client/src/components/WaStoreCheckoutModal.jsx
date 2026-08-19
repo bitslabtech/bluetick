@@ -180,9 +180,9 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
         });
         
         // Prorate tax if there's a discount
-        if (appliedCoupon && totalBase > 0) {
-            const discountRatio = calculateDiscountAmount() / totalBase;
-            totalTax = totalTax * (1 - discountRatio);
+        if (appliedCoupon && cartSubtotal > 0) {
+            const discountRatio = calculateDiscountAmount() / cartSubtotal;
+            totalTax = totalTax * Math.max(0, 1 - discountRatio);
         }
         
         return totalTax;

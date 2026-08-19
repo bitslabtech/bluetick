@@ -38,7 +38,16 @@ function csrfProtection(req, res, next) {
         '/api/meta-ads/webhooks', 
         '/api/payment/webhook',
         '/api/v1',
-        '/api/auth'
+        '/api/auth',
+        // ── Public storefront endpoints ─────────────────────────────────────────
+        // These are called from customer custom domains (e.g. www.amardryfruits.in)
+        // where the browser cannot read the api.bluetick.cloud CSRF cookie.
+        // CSRF protection has no benefit here — these are already public, unauthenticated
+        // routes protected by rate limiting and input validation.
+        '/api/wastore/orders',
+        '/api/wastore/public',
+        '/api/wastore/verify-payment',
+        '/api/store-customer',
     ];
     const isExcluded = excludedPaths.some(p => req.path.startsWith(p));
 

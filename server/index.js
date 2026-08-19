@@ -107,8 +107,12 @@ const _getAllowedOrigins = async () => {
     if (now - _corsCache.refreshedAt > 60_000) {
         try {
             const WaStoreModel = require('./models/WaStore');
+            const { Op } = require('sequelize');
             const rows = await WaStoreModel.findAll({
-                where: { domainStatus: 'verified' },
+                // Allow ANY store that has a custom domain set (pending, verified, or active).
+                // If a visitor is on a custom domain, DNS is already routing correctly —
+                // blocking their API calls would break checkout and account features.
+                where: { customDomain: { [Op.not]: null }, isActive: true },
                 attributes: ['customDomain'],
                 raw: true,
             });
