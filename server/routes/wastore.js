@@ -2331,4 +2331,59 @@ router.get('/:storeId/analytics', async (req, res) => {
     }
 });
 
+// ── GET /:id/abandoned-cart — Abandoned cart stats + config ──────────────────
+router.get('/:id/abandoned-cart', auth, async (req, res) => {
+    try {
+        const store = await WaStore.findOne({ where: { id: req.params.id, userId: req.user.id } });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+
+        const config = store.abandonedCartConfig || { enabled: false, delayHours: 2, useTemplate: false, templateName: null };
+
+        // Count stats: total abandoned (pending + no reminder), recovered (reminder sent + now paid/confirmed), pending reminder
+        const [totalAbandoned, reminderSent, recovered] = await Promise.all([
+            WaOrder.count({ where: { storeId: store.id, status: 'pending', abandonedReminderSent: false, customerPhone: { [Op.not]: null } } }),
+            WaOrder.count({ where: { storeId: store.id, abandonedReminderSent: true } }),
+            WaOrder.count({ where: { storeId: store.id, abandonedReminderSent: true, status: { [Op.in]: ['paid', 'confirmed', 'delivered', 'completed'] } } }),
+        ]);
+
+        // Recent abandoned orders (last 20, for the dashboard list)
+        const recentAbandoned = await WaOrder.findAll({
+            where: { storeId: store.id, status: 'pending', customerPhone: { [Op.not]: null } },
+            order: [['createdAt', 'DESC']],
+            limit: 20,
+            attributes: ['id', 'orderNumber', 'customerName', 'customerPhone', 'subtotal', 'total', 'currency', 'abandonedReminderSent', 'createdAt'],
+        });
+
+        res.json({
+            config,
+            stats: { totalAbandoned, reminderSent, recovered },
+            recentAbandoned,
+        });
+    } catch (err) {
+        console.error('Abandoned cart stats error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// ── PUT /:id/abandoned-cart — Save abandoned cart config ─────────────────────
+router.put('/:id/abandoned-cart', auth, async (req, res) => {
+    try {
+        const store = await WaStore.findOne({ where: { id: req.params.id, userId: req.user.id } });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+
+        const { enabled, delayHours, useTemplate, templateName } = req.body;
+        const config = {
+            enabled: !!enabled,
+            delayHours: Math.max(1, Math.min(72, parseInt(delayHours) || 2)),
+            useTemplate: !!useTemplate,
+            templateName: templateName || null,
+        };
+        await store.update({ abandonedCartConfig: config });
+        res.json({ success: true, config });
+    } catch (err) {
+        console.error('Abandoned cart config save error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 module.exports = router;

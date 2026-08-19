@@ -439,48 +439,74 @@ function initScheduler() {
                 const WaOrder = require('../models/WaOrder');
                 const WaStore = require('../models/WaStore');
                 const axios = require('axios');
-                const twoHoursAgo = new Date(now.getTime() - (2 * 60 * 60 * 1000));
-                
+
+                // Find all pending orders older than 1 hour that haven't been reminded yet
+                // We fetch broadly and let per-store delayHours filter further below
+                const oneHourAgo = new Date(now.getTime() - (1 * 60 * 60 * 1000));
+
                 const abandonedOrders = await WaOrder.findAll({
                     where: {
                         status: 'pending',
                         abandonedReminderSent: false,
                         customerPhone: { [Op.not]: null },
-                        createdAt: { [Op.lte]: twoHoursAgo }
+                        createdAt: { [Op.lte]: oneHourAgo }
                     }
                 });
-                
+
                 for (const order of abandonedOrders) {
                     if (!order.customerPhone) continue;
-                    
+
                     const store = await WaStore.findByPk(order.storeId);
                     if (!store) continue;
-                    
+
+                    // ── Check per-store config ────────────────────────────────
+                    const cartConfig = store.abandonedCartConfig || {};
+                    if (!cartConfig.enabled) continue; // Store owner disabled it
+
+                    const delayHours = Math.max(1, parseInt(cartConfig.delayHours) || 2);
+                    const requiredMs = delayHours * 60 * 60 * 1000;
+                    const orderAge = now.getTime() - new Date(order.createdAt).getTime();
+                    if (orderAge < requiredMs) continue; // Not old enough yet per this store's setting
+
                     const user = await User.findByPk(store.userId);
                     if (user && user.fbAccessToken && user.metaPhoneNumberId) {
                         let phone = order.customerPhone.replace(/\D/g, '');
-                        // Generate a checkout URL (assuming standard checkout route)
-                        const storeUrl = process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/store/${store.slug}` : `http://localhost:5173/store/${store.slug}`;
-                        
-                        const messageText = `Hi ${order.customerName || 'there'},\n\n`
-                            + `We noticed you left some items pending at *${store.name}*! 🛒\n\n`
-                            + `Don't miss out on your favorite items. You can complete your purchase by visiting our store again:\n${storeUrl}\n\n`
-                            + `Let us know if you need any help!`;
-                            
+                        const storeUrl = process.env.FRONTEND_URL
+                            ? `${process.env.FRONTEND_URL}/store/${store.slug}`
+                            : `http://localhost:5173/store/${store.slug}`;
+
                         try {
+                            // ── Only send if a WhatsApp template is configured ───
+                            if (!cartConfig.templateName) {
+                                console.log(`[ABANDONED CART] Skipping order ${order.orderNumber} — no template configured for store ${store.slug}`);
+                                continue;
+                            }
+
                             await axios.post(`https://graph.facebook.com/v21.0/${user.metaPhoneNumberId}/messages`, {
                                 messaging_product: 'whatsapp',
-                                recipient_type: 'individual',
                                 to: phone,
-                                type: 'text',
-                                text: { preview_url: true, body: messageText }
+                                type: 'template',
+                                template: {
+                                    name: cartConfig.templateName,
+                                    language: { code: 'en' },
+                                    components: [
+                                        {
+                                            type: 'body',
+                                            parameters: [
+                                                { type: 'text', text: order.customerName || 'there' },
+                                                { type: 'text', text: store.name },
+                                                { type: 'text', text: storeUrl },
+                                            ]
+                                        }
+                                    ]
+                                }
                             }, {
                                 headers: { 'Authorization': `Bearer ${user.fbAccessToken}`, 'Content-Type': 'application/json' }
                             });
-                            
+
                             order.abandonedReminderSent = true;
                             await order.save();
-                            console.log(`[ABANDONED CART] Sent recovery message to ${phone} for order ${order.orderNumber}`);
+                            console.log(`[ABANDONED CART] Sent template to ${phone} for order ${order.orderNumber}`);
                         } catch (err) {
                             console.error(`[ABANDONED CART] Failed for ${phone}:`, err.response?.data || err.message);
                         }

@@ -565,9 +565,9 @@ export default function WaStoreBasicDetails() {
                     {/* ── Footer Settings ─────────────────────────────────────── */}
                     <SectionCard title="Footer Settings" description="Customize your store's footer">
                         <InputField label="Custom Footer Text" type="text"
-                            placeholder="e.g. Lillyput a brand of Bitslab technologies" value={store.customFooterText || ''}
-                            onChange={e => set('customFooterText', e.target.value)} 
-                            hint="This text will appear in the bottom right corner of your store's footer."/>
+                            placeholder="e.g. Bluetick.cloud a brand of Bitslab technologies" value={store.customFooterText || ''}
+                            onChange={e => set('customFooterText', e.target.value)}
+                            hint="This text will appear in the bottom right corner of your store's footer." />
                     </SectionCard>
 
                     {/* ── Save ─────────────────────────────────────────────── */}

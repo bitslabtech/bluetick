@@ -14,10 +14,27 @@ const INDIAN_STATES = [
     "Uttarakhand", "West Bengal"
 ];
 
+const COUNTRY_CODES = [
+    { code: '+91', label: 'IN (+91)' },
+    { code: '+1', label: 'US/CA (+1)' },
+    { code: '+44', label: 'UK (+44)' },
+    { code: '+61', label: 'AU (+61)' },
+    { code: '+971', label: 'UAE (+971)' },
+    { code: '+65', label: 'SG (+65)' },
+    { code: '+60', label: 'MY (+60)' },
+    { code: '+94', label: 'LK (+94)' },
+    { code: '+880', label: 'BD (+880)' },
+    { code: '+977', label: 'NP (+977)' },
+];
+
+
 export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippingCost, cartTotal, onClose, onCheckoutSuccess }) {
     // Returns null gracefully if not inside StoreCustomerProvider
     const storeCustomerCtx = useStoreCustomerOptional();
     const storeCustomer = storeCustomerCtx?.customer || null;
+
+    const [countryCode, setCountryCode] = useState('+91');
+
 
     const [formData, setFormData] = useState({
         name: '',
@@ -48,10 +65,29 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
             if (selectedAddressIdx >= 0 && savedAddresses[selectedAddressIdx]) {
                 addr = savedAddresses[selectedAddressIdx];
             }
+            
+            let parsedPhone = storeCustomer.phone || '';
+            let parsedCountry = '+91';
+            
+            if (storeCustomer.phone) {
+                if (storeCustomer.phone.startsWith('+91')) {
+                    parsedPhone = storeCustomer.phone.substring(3);
+                } else if (storeCustomer.phone.startsWith('91') && storeCustomer.phone.length > 10) {
+                    parsedPhone = storeCustomer.phone.substring(2);
+                } else {
+                    const matchedCode = COUNTRY_CODES.find(c => storeCustomer.phone.startsWith(c.code) && c.code !== '+91');
+                    if (matchedCode) {
+                        parsedCountry = matchedCode.code;
+                        parsedPhone = storeCustomer.phone.substring(matchedCode.code.length);
+                    }
+                }
+                setCountryCode(parsedCountry);
+            }
+            
             setFormData(prev => ({
                 ...prev,
                 name: storeCustomer.name || prev.name,
-                phone: storeCustomer.phone || prev.phone,
+                phone: parsedPhone || prev.phone,
                 email: storeCustomer.email || prev.email,
                 address: addr ? addr.address : (selectedAddressIdx === -1 ? '' : prev.address),
                 city: addr ? addr.city : (selectedAddressIdx === -1 ? '' : prev.city),
@@ -60,6 +96,7 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
             }));
         }
     }, [storeCustomer, selectedAddressIdx]);
+
 
     const [couponCode, setCouponCode] = useState('');
     const [appliedCoupon, setAppliedCoupon] = useState(null);
@@ -92,6 +129,12 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
     const handleInputChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
+
+    const handlePhoneChange = (e) => {
+        const val = e.target.value.replace(/\D/g, ''); // only digits
+        setFormData({ ...formData, phone: val });
+    };
+
 
     const handleApplyCoupon = async () => {
         if (!couponCode) return;
@@ -213,6 +256,12 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
             return;
         }
 
+        if (countryCode === '+91' && formData.phone.length !== 10) {
+            toast.error("Please enter a valid 10-digit Indian phone number.");
+            return;
+        }
+
+
         if (showGstSection && gstDetails.gstin) {
             const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
             if (gstDetails.gstin.length !== 15 || !gstinRegex.test(gstDetails.gstin)) {
@@ -230,7 +279,7 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/wastore/orders`, {
                 storeId: store.id,
                 customerName: formData.name,
-                customerPhone: formData.phone,
+                customerPhone: `${countryCode}${formData.phone}`,
                 customerEmail: formData.email,
                 customerAddress: `${formData.address}, ${formData.city}, ${formData.state} - ${formData.pincode}`,
                 customerNote: formData.notes,
@@ -405,8 +454,29 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
-                                    <input required type="text" name="phone" value={formData.phone} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:border-black outline-none" />
+                                    <div className="flex w-full border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-black focus-within:border-black overflow-hidden bg-white">
+                                        <select 
+                                            value={countryCode} 
+                                            onChange={(e) => setCountryCode(e.target.value)}
+                                            className="bg-gray-50 border-r border-gray-300 px-2 py-2 text-sm outline-none cursor-pointer"
+                                        >
+                                            {COUNTRY_CODES.map(c => (
+                                                <option key={c.code} value={c.code}>{c.label}</option>
+                                            ))}
+                                        </select>
+                                        <input 
+                                            required 
+                                            type="tel" 
+                                            name="phone" 
+                                            value={formData.phone} 
+                                            onChange={handlePhoneChange} 
+                                            className="w-full px-3 py-2 text-sm outline-none" 
+                                            placeholder="Enter phone number"
+                                            maxLength={countryCode === '+91' ? 10 : 15}
+                                        />
+                                    </div>
                                 </div>
+
                             </div>
                             
                             <div>

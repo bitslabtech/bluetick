@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { Package, LayoutTemplate, Settings, ArrowLeft, ExternalLink, Phone, Globe, Info, ShoppingBag, Tag, FileText, Search, BarChart2, X, Camera, Loader2, ArrowRight, Bell, ClipboardList, Image, Megaphone, Users, ChevronDown, ChevronUp } from 'lucide-react';
+import { Package, LayoutTemplate, Settings, ArrowLeft, ExternalLink, Phone, Globe, Info, ShoppingBag, Tag, FileText, Search, BarChart2, X, Camera, Loader2, ArrowRight, Bell, ClipboardList, Image, Megaphone, Users, ShoppingCart, ChevronDown, ChevronUp } from 'lucide-react';
+
 import toast from 'react-hot-toast';
 
 export default function WaStoreLayout() {
@@ -51,6 +52,7 @@ export default function WaStoreLayout() {
             items: [
                 { path: `/online-store/${slug}/coupons`, icon: <Tag className="w-5 h-5" />, label: 'Promo Codes' },
                 { path: `/online-store/${slug}/notifications`, icon: <Bell className="w-5 h-5" />, label: 'Notifications' },
+                { path: `/online-store/${slug}/abandoned-cart`, icon: <ShoppingCart className="w-5 h-5" />, label: 'Abandoned Cart' },
                 { path: `/online-store/${slug}/seo`, icon: <Search className="w-5 h-5" />, label: 'SEO & Tracking' }
             ]
         },

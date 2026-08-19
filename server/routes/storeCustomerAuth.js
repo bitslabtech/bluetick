@@ -151,9 +151,16 @@ router.get('/config', async (req, res) => {
         });
         if (!store) return res.status(404).json({ error: 'Store not found' });
         const cfg = store.customerAuthConfig || {};
+        
+        let methods = cfg.methods || ['email_password'];
+        // If whatsapp_otp is enabled but no template is selected, treat it as disabled
+        if (methods.includes('whatsapp_otp') && !cfg.otpTemplateName) {
+            methods = methods.filter(m => m !== 'whatsapp_otp');
+        }
+
         res.json({
             enabled: cfg.enabled || false,
-            methods: cfg.methods || ['email_password'],
+            methods,
             allowGuestCheckout: cfg.allowGuestCheckout !== false,
             requireLoginForCheckout: cfg.requireLoginForCheckout || false,
             whatsappRequirement: cfg.whatsappRequirement || 'optional'

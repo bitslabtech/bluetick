@@ -59,7 +59,7 @@ const WaStore = sequelize.define('WaStore', {
     },
     customFooterText: {
         type: DataTypes.STRING,
-        comment: 'Custom text to display in the footer, e.g. Lillyput a brand of Bitslab technologies'
+        comment: 'Custom text to display in the footer, e.g. Bluetick.cloud a brand of Bitslab technologies'
     },
     city: {
         type: DataTypes.STRING
@@ -263,6 +263,16 @@ const WaStore = sequelize.define('WaStore', {
         type: DataTypes.JSON,
         defaultValue: { mobileLayout: 3, shape: 'round' },
         comment: 'Settings for category display: mobileLayout (2, 3, 4), shape (round, circle)'
+    },
+    abandonedCartConfig: {
+        type: DataTypes.JSON,
+        defaultValue: {
+            enabled: false,
+            delayHours: 2,
+            templateName: null,
+            useTemplate: false,
+        },
+        comment: 'Abandoned cart recovery settings: enabled, delayHours, WhatsApp template'
     }
 }, {
     timestamps: true
