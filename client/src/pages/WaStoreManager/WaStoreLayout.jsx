@@ -69,7 +69,7 @@ export default function WaStoreLayout() {
             group: 'Store Settings',
             items: [
                 { path: `/online-store/${slug}/details`, icon: <Info className="w-5 h-5" />, label: 'Basic Details' },
-                { path: `/online-store/${slug}/policies`, icon: <FileText className="w-5 h-5" />, label: 'Policies' },
+                { path: `/online-store/${slug}/policies`, icon: <FileText className="w-5 h-5" />, label: 'Pages & Policies' },
                 { path: `/online-store/${slug}/settings`, icon: <Settings className="w-5 h-5" />, label: 'Settings' }
             ]
         }
@@ -137,7 +137,7 @@ export default function WaStoreLayout() {
         try {
             const form = new FormData();
             form.append('cover', file);
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/wastore/upload/cover`, form, {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/wastore/${store.id}/upload/cover`, form, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             const newUrl = res.data.url;

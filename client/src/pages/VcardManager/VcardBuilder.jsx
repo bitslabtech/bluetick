@@ -1404,6 +1404,8 @@ export default function VcardBuilder() {
                 multiple={pickerConfig.multiple || false}
                 title={pickerConfig.title || 'Select Media'}
                 mimeConstraints={pickerConfig.mimeConstraints || null}
+                vcardId={vcard.id || id}
+                mediaFolder="media"
             />
         </div>
     );

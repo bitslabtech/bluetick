@@ -1,63 +1,52 @@
-import React, { useState } from 'react';
-import { MapPin, X, Phone, Mail } from 'lucide-react';
+import React from 'react';
+import { MapPin, Phone, Mail, MessageCircle, ChevronRight } from 'lucide-react';
 import { useUI } from '../context/UIContext';
-import DOMPurify from 'dompurify';
+import { Link } from 'react-router-dom';
+import { getStoreRoute } from '../utils/storeRouting';
 
 export default function WaStoreFooter({ store }) {
     const { publicSettings } = useUI();
-    const [policyModal, setPolicyModal] = useState(null); // 'terms', 'privacy', 'return', or null
 
     if (!store) return null;
 
-    const renderPolicyModal = () => {
-        if (!policyModal) return null;
-        
-        let title = '';
-        let content = '';
+    // Helper to check if rich text actually has content (isn't just <p><br></p>)
+    const hasContent = (html) => html && html.replace(/<[^>]*>?/gm, '').trim().length > 0;
+    
+    const hasContactInfo = !!(store.email || store.whatsappNumber || store.phone || store.address);
 
-        if (policyModal === 'terms') {
-            title = 'Terms & Conditions';
-            content = store.termsConditions;
-        } else if (policyModal === 'privacy') {
-            title = 'Privacy Policy';
-            content = store.privacyPolicy;
-        } else if (policyModal === 'return') {
-            title = 'Return & Refund Policy';
-            content = store.returnPolicy;
-        }
+    const hasPolicies = hasContent(store.shippingPolicy) || 
+                        hasContent(store.termsConditions) || 
+                        hasContent(store.privacyPolicy) || 
+                        hasContent(store.returnPolicy);
 
-        return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                <div className="absolute inset-0 bg-black/40 backdrop-blur-sm cursor-pointer" onClick={() => setPolicyModal(null)} />
-                <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col relative z-10 shadow-2xl animate-in zoom-in-95 duration-200">
-                    <div className="px-4 md:px-6 py-5 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white rounded-t-3xl">
-                        <h2 className="text-xl font-bold text-gray-900">{title}</h2>
-                        <button onClick={() => setPolicyModal(null)} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500">
-                            <X className="w-5 h-5" />
-                        </button>
-                    </div>
-                    <div className="p-4 md:p-6 overflow-y-auto prose prose-sm text-gray-600">
-                        <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content?.replace(/\n/g, '<br />') || 'No policy provided.') }} />
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
-    const hasPolicies = store.termsConditions || store.privacyPolicy || store.returnPolicy;
+    // Get categories excluding hidden
+    const allCategories = (store.categories || []).filter(c => !(store.hiddenCategories || []).includes(c));
+    const topCategories = allCategories.slice(0, 4);
+    const hasMoreCategories = allCategories.length > 4;
 
     return (
-        <footer className="bg-white border-t border-gray-200 py-12 mt-auto">
+        <footer className="bg-white dark:bg-[#0c0c0c] border-t border-gray-200 dark:border-white/10 pt-12 pb-32 md:py-16 mt-auto text-slate-800 dark:text-slate-200">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-12">
                     
-                    {/* Store Info */}
-                    <div>
-                        <h3 className="text-lg font-bold text-gray-900 mb-4">{store.name}</h3>
+                    {/* Left Column: Store Branding, Description & Contact Details (spans 5 cols on lg) */}
+                    <div className="sm:col-span-2 lg:col-span-4 space-y-4">
+                        <div>
+                            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
+                                {store.name}
+                            </h3>
+                            {store.description && (
+                                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-2 line-clamp-3 leading-relaxed max-w-sm">
+                                    {store.description}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Physical Address */}
                         {store.address && (
-                            <div className="flex items-start gap-3 text-sm text-gray-500 max-w-sm mb-3">
-                                <MapPin className="w-5 h-5 shrink-0 mt-0.5 text-gray-400" />
-                                <p>
+                            <div className="flex items-start gap-2.5 text-sm sm:text-base text-gray-600 dark:text-gray-300 pt-1">
+                                <MapPin className="w-4 h-4 sm:w-5 sm:h-5 shrink-0 mt-0.5 text-gray-400 dark:text-gray-500" />
+                                <p className="leading-relaxed">
                                     {store.address}
                                     {store.city && `, ${store.city}`}
                                     {store.state && `, ${store.state}`}
@@ -65,68 +54,190 @@ export default function WaStoreFooter({ store }) {
                                 </p>
                             </div>
                         )}
-                        {store.whatsappNumber && (
-                            <div className="flex items-center gap-3 text-sm text-gray-500 max-w-sm mb-3">
-                                <Phone className="w-5 h-5 shrink-0 text-gray-400" />
-                                <p>{store.whatsappNumber}</p>
-                            </div>
-                        )}
-                        {store.phone && (
-                            <div className="flex items-center gap-3 text-sm text-gray-500 max-w-sm mb-3">
-                                <Phone className="w-5 h-5 shrink-0 text-gray-400" />
-                                <p>{store.phone}</p>
-                            </div>
-                        )}
-                        {store.email && (
-                            <div className="flex items-center gap-3 text-sm text-gray-500 max-w-sm mb-3">
-                                <Mail className="w-5 h-5 shrink-0 text-gray-400" />
-                                <a href={`mailto:${store.email}`} className="hover:text-gray-900 transition-colors">{store.email}</a>
-                            </div>
-                        )}
+
+                        {/* Direct Contacts */}
+                        <div className="space-y-2.5 pt-1">
+                            {store.whatsappNumber && (
+                                <div className="flex items-center gap-2.5 text-sm sm:text-base text-gray-600 dark:text-gray-300">
+                                    <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 shrink-0 text-emerald-500" />
+                                    <a 
+                                        href={`https://wa.me/${store.whatsappNumber.replace(/[^0-9]/g, '')}`} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors font-mono font-medium"
+                                    >
+                                        {store.whatsappNumber}
+                                    </a>
+                                </div>
+                            )}
+                            {store.phone && (
+                                <div className="flex items-center gap-2.5 text-sm sm:text-base text-gray-600 dark:text-gray-300">
+                                    <Phone className="w-4 h-4 sm:w-5 sm:h-5 shrink-0 text-gray-400 dark:text-gray-500" />
+                                    <a 
+                                        href={`tel:${store.phone}`} 
+                                        className="hover:text-gray-900 dark:hover:text-white transition-colors font-mono font-medium"
+                                    >
+                                        {store.phone}
+                                    </a>
+                                </div>
+                            )}
+                            {store.email && (
+                                <div className="flex items-center gap-2.5 text-sm sm:text-base text-gray-600 dark:text-gray-300">
+                                    <Mail className="w-4 h-4 sm:w-5 sm:h-5 shrink-0 text-gray-400 dark:text-gray-500" />
+                                    <a 
+                                        href={`mailto:${store.email}`} 
+                                        className="hover:text-gray-900 dark:hover:text-white transition-colors truncate font-medium"
+                                    >
+                                        {store.email}
+                                    </a>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
-                    {/* Links */}
+                    {/* Column 2: Information (spans 2 or 3 cols on lg) */}
+                    <div className="lg:col-span-2 sm:col-span-1">
+                        <h4 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-4">
+                            Information
+                        </h4>
+                        <ul className="space-y-3 text-sm sm:text-base text-gray-600 dark:text-gray-300 font-medium">
+                            <li>
+                                <Link 
+                                    to={getStoreRoute(store.slug, '/')} 
+                                    className="hover:text-gray-900 dark:hover:text-white transition-colors inline-block py-0.5"
+                                >
+                                    Home
+                                </Link>
+                            </li>
+                            {hasContent(store.aboutUs) && (
+                                <li>
+                                    <Link 
+                                        to={getStoreRoute(store.slug, '/pages/about-us')} 
+                                        className="hover:text-gray-900 dark:hover:text-white transition-colors inline-block py-0.5"
+                                    >
+                                        About Us
+                                    </Link>
+                                </li>
+                            )}
+                            {hasContactInfo && (
+                                <li>
+                                    <Link 
+                                        to={getStoreRoute(store.slug, '/pages/contact-us')} 
+                                        className="hover:text-gray-900 dark:hover:text-white transition-colors inline-block py-0.5"
+                                    >
+                                        Contact Us
+                                    </Link>
+                                </li>
+                            )}
+                        </ul>
+                    </div>
+
+                    {/* Column 3: Shop / Categories (spans 3 cols on lg) */}
+                    {allCategories.length > 0 && (
+                        <div className="lg:col-span-3 sm:col-span-1">
+                            <h4 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-4">
+                                Shop
+                            </h4>
+                            <ul className="space-y-3 text-sm sm:text-base text-gray-600 dark:text-gray-300 font-medium">
+                                {topCategories.map(cat => (
+                                    <li key={cat}>
+                                        <Link 
+                                            to={getStoreRoute(store.slug, `/category/${encodeURIComponent(cat)}`)} 
+                                            className="hover:text-gray-900 dark:hover:text-white transition-colors line-clamp-1 inline-block py-0.5"
+                                        >
+                                            {cat}
+                                        </Link>
+                                    </li>
+                                ))}
+                                {allCategories.length > 0 && (
+                                    <li className="pt-1">
+                                        <Link 
+                                            to={getStoreRoute(store.slug, '/categories')} 
+                                            className="inline-flex items-center gap-1 font-bold text-indigo-600 dark:text-indigo-400 hover:underline transition-colors py-0.5"
+                                        >
+                                            <span>{hasMoreCategories ? 'More Categories' : 'All Categories'}</span>
+                                            <ChevronRight className="w-4 h-4" />
+                                        </Link>
+                                    </li>
+                                )}
+                            </ul>
+                        </div>
+                    )}
+
+                    {/* Column 4: Policies (spans 3 cols on lg) */}
                     {hasPolicies && (
-                        <div className="md:text-right">
-                            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Policies</h3>
-                            <ul className="space-y-3">
-                                {store.termsConditions && (
-                                    <li><button onClick={() => setPolicyModal('terms')} className="text-sm text-gray-500 hover:text-black transition-colors">Terms & Conditions</button></li>
+                        <div className="lg:col-span-3 sm:col-span-1">
+                            <h4 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-4">
+                                Policies
+                            </h4>
+                            <ul className="space-y-3 text-sm sm:text-base text-gray-600 dark:text-gray-300 font-medium">
+                                {hasContent(store.shippingPolicy) && (
+                                    <li>
+                                        <Link 
+                                            to={getStoreRoute(store.slug, '/pages/shipping-policy')} 
+                                            className="hover:text-gray-900 dark:hover:text-white transition-colors inline-block py-0.5"
+                                        >
+                                            Shipping Policy
+                                        </Link>
+                                    </li>
                                 )}
-                                {store.privacyPolicy && (
-                                    <li><button onClick={() => setPolicyModal('privacy')} className="text-sm text-gray-500 hover:text-black transition-colors">Privacy Policy</button></li>
+                                {hasContent(store.termsConditions) && (
+                                    <li>
+                                        <Link 
+                                            to={getStoreRoute(store.slug, '/pages/terms-and-conditions')} 
+                                            className="hover:text-gray-900 dark:hover:text-white transition-colors inline-block py-0.5"
+                                        >
+                                            Terms & Conditions
+                                        </Link>
+                                    </li>
                                 )}
-                                {store.returnPolicy && (
-                                    <li><button onClick={() => setPolicyModal('return')} className="text-sm text-gray-500 hover:text-black transition-colors">Return Policy</button></li>
+                                {hasContent(store.privacyPolicy) && (
+                                    <li>
+                                        <Link 
+                                            to={getStoreRoute(store.slug, '/pages/privacy-policy')} 
+                                            className="hover:text-gray-900 dark:hover:text-white transition-colors inline-block py-0.5"
+                                        >
+                                            Privacy Policy
+                                        </Link>
+                                    </li>
+                                )}
+                                {hasContent(store.returnPolicy) && (
+                                    <li>
+                                        <Link 
+                                            to={getStoreRoute(store.slug, '/pages/return-policy')} 
+                                            className="hover:text-gray-900 dark:hover:text-white transition-colors inline-block py-0.5"
+                                        >
+                                            Return Policy
+                                        </Link>
+                                    </li>
                                 )}
                             </ul>
                         </div>
                     )}
                 </div>
 
-                <div className="mt-12 pt-8 border-t border-gray-100 flex flex-col sm:flex-row items-center sm:justify-between gap-4 text-sm text-gray-500">
-                    <p className="text-center sm:text-left">
+                {/* Bottom Bar */}
+                <div className="mt-12 pt-8 border-t border-gray-100 dark:border-white/10 flex flex-col sm:flex-row items-center sm:justify-between gap-3 text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-center sm:text-left font-medium">
                         &copy; {new Date().getFullYear()} {store.name}. All rights reserved.
                     </p>
                     
                     {store.customFooterText ? (
                         <>
-                            <p className="text-center sm:order-last sm:text-right font-medium text-gray-700">
+                            <p className="text-center sm:order-last sm:text-right font-medium text-gray-700 dark:text-gray-300">
                                 {store.customFooterText}
                             </p>
-                            <p className="text-center">
-                                Made by <a href="/" className="text-gray-900 font-medium hover:underline">{publicSettings?.appName || 'Bluetick'}</a>
+                            <p className="text-center font-medium">
+                                Made by <a href="/" className="text-gray-900 dark:text-white font-bold hover:underline">{publicSettings?.appName || 'Bluetick.cloud'}</a>
                             </p>
                         </>
                     ) : (
-                        <p className="text-center sm:text-right">
-                            Made by <a href="/" className="text-gray-900 font-medium hover:underline">{publicSettings?.appName || 'Bluetick'}</a>
+                        <p className="text-center sm:text-right font-medium">
+                            Made by <a href="/" className="text-gray-900 dark:text-white font-bold hover:underline">{publicSettings?.appName || 'Bluetick.cloud'}</a>
                         </p>
                     )}
                 </div>
             </div>
-            
-            {renderPolicyModal()}
         </footer>
     );
 }

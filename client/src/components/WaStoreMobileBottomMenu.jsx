@@ -1,6 +1,6 @@
 import React from 'react';
-import { Home, Search, ShoppingCart, MessageCircle, Menu, FileText, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import * as Icons from 'lucide-react';
 import { getStoreRoute } from '../utils/storeRouting';
 
 export default function WaStoreMobileBottomMenu({ store, theme, cartCount, setIsCartOpen, setIsSearchOpen, setIsMobileMenuOpen, authEnabled, storeCustomer }) {
@@ -23,8 +23,16 @@ export default function WaStoreMobileBottomMenu({ store, theme, cartCount, setIs
 
     if (enabledItems.length === 0) return null;
 
-    const handleAction = (id) => {
-        switch (id) {
+    const handleAction = (item) => {
+        if (item.type === 'custom') {
+            if (item.pageSlug) {
+                navigate(getStoreRoute(store.slug, `/pages/${item.pageSlug}`));
+                window.scrollTo(0, 0);
+            }
+            return;
+        }
+
+        switch (item.id) {
             case 'home':
                 navigate(getStoreRoute(store.slug));
                 window.scrollTo(0, 0);
@@ -55,13 +63,18 @@ export default function WaStoreMobileBottomMenu({ store, theme, cartCount, setIs
         }
     };
 
-    const getIcon = (id) => {
-        switch (id) {
-            case 'home': return <Home className="w-5 h-5" />;
-            case 'search': return <Search className="w-5 h-5" />;
+    const renderIcon = (item) => {
+        if (item.type === 'custom') {
+            const IconComp = Icons[item.icon] || Icons.Star;
+            return <IconComp className="w-5 h-5" />;
+        }
+
+        switch (item.id) {
+            case 'home': return <Icons.Home className="w-5 h-5" />;
+            case 'search': return <Icons.Search className="w-5 h-5" />;
             case 'cart': return (
                 <div className="relative">
-                    <ShoppingCart className="w-5 h-5" />
+                    <Icons.ShoppingCart className="w-5 h-5" />
                     {cartCount > 0 && (
                         <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                             {cartCount}
@@ -69,17 +82,18 @@ export default function WaStoreMobileBottomMenu({ store, theme, cartCount, setIs
                     )}
                 </div>
             );
-            case 'whatsapp': return <MessageCircle className="w-5 h-5" />;
-            case 'categories': return <Menu className="w-5 h-5" />;
-            case 'policies': return <FileText className="w-5 h-5" />;
-            case 'profile': return <User className="w-5 h-5" />;
-            default: return <Home className="w-5 h-5" />;
+            case 'whatsapp': return <Icons.MessageCircle className="w-5 h-5" />;
+            case 'categories': return <Icons.Menu className="w-5 h-5" />;
+            case 'policies': return <Icons.FileText className="w-5 h-5" />;
+            case 'profile': return <Icons.User className="w-5 h-5" />;
+            default: return <Icons.Home className="w-5 h-5" />;
         }
     };
 
-    const getLabel = (id) => {
-        if (id === 'whatsapp') return 'WhatsApp';
-        return id.charAt(0).toUpperCase() + id.slice(1);
+    const getLabel = (item) => {
+        if (item.type === 'custom') return item.label || 'Page';
+        if (item.id === 'whatsapp') return 'WhatsApp';
+        return item.id.charAt(0).toUpperCase() + item.id.slice(1);
     };
 
     return (
@@ -90,11 +104,11 @@ export default function WaStoreMobileBottomMenu({ store, theme, cartCount, setIs
             {enabledItems.map((item) => (
                 <button
                     key={item.id}
-                    onClick={() => handleAction(item.id)}
+                    onClick={() => handleAction(item)}
                     className={`flex flex-col items-center justify-center py-2.5 px-2 w-full transition-colors ${theme?.textMuted || 'text-gray-500'} hover:opacity-70`}
                 >
-                    {getIcon(item.id)}
-                    <span className="text-[10px] font-semibold mt-1">{getLabel(item.id)}</span>
+                    {renderIcon(item)}
+                    <span className="text-[10px] font-semibold mt-1">{getLabel(item)}</span>
                 </button>
             ))}
         </nav>

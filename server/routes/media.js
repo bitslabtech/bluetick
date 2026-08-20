@@ -194,15 +194,35 @@ router.get('/', async (req, res) => {
 // - If ?source=wastore or vcard -> trackMedia: true (enforces plan quota)
 // - Otherwise -> registerMedia: true (unrestricted gallery upload)
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/upload', (req, res, next) => {
-    const source = req.query.source;
-    // 'restricted' = vcard/wastore context (quota-enforced)
-    const isRestricted = source === 'restricted' || RESTRICTED_SOURCES.includes(source);
-    // Map to a valid DB ENUM value: 'restricted' → 'vcard', specific sources stay as-is
-    const mediaSource = source === 'restricted' ? 'vcard'
-        : (RESTRICTED_SOURCES.includes(source) ? source : 'general_media');
+const WaStore = require('../models/WaStore');
 
-    const uploadMiddleware = storageProvider('media-gallery', {
+router.post('/upload', async (req, res, next) => {
+    try {
+        const source = req.query.source;
+        // 'restricted' = vcard/wastore context (quota-enforced)
+        const isRestricted = source === 'restricted' || RESTRICTED_SOURCES.includes(source);
+        // Map to a valid DB ENUM value: 'restricted' → 'vcard', specific sources stay as-is
+        const mediaSource = source === 'restricted' ? 'vcard'
+            : (RESTRICTED_SOURCES.includes(source) ? source : 'general_media');
+
+        // Security check for storeId
+        if (req.query.storeId) {
+            const store = await WaStore.findOne({ where: { id: req.query.storeId, userId: req.user.id } });
+            if (!store) return res.status(404).json({ error: 'Store not found or unauthorized' });
+            req.storeId = req.query.storeId;
+        }
+
+        // Security check for vcardId
+        if (req.query.vcardId) {
+            const Vcard = require('../models/Vcard');
+            const vcard = await Vcard.findOne({ where: { id: req.query.vcardId, userId: req.user.id } });
+            if (!vcard) return res.status(404).json({ error: 'Vcard not found or unauthorized' });
+            req.vcardId = req.query.vcardId;
+        }
+
+        const folderName = req.query.mediaFolder || 'media-gallery';
+
+        const uploadMiddleware = storageProvider(folderName, {
         // Use the security-hardened filter that accepts images + videos + docs
         // and cross-checks extension vs MIME type
         fileFilter: storageProvider.secureMediaFilter,
@@ -218,6 +238,10 @@ router.post('/upload', (req, res, next) => {
     }).single('file');
 
     uploadMiddleware(req, res, next);
+    } catch (err) {
+        console.error('Pre-upload configuration error:', err);
+        return res.status(500).json({ error: 'Internal server error during upload configuration' });
+    }
 }, async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });

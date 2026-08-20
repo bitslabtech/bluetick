@@ -1,5 +1,5 @@
 /**
- * Storage Provider — Unified upload middleware for Local + S3 + Cloudflare R2
+ * Storage Provider â€” Unified upload middleware for Local + S3 + Cloudflare R2
  * 
  * Handles file uploads with automatic image compression:
  * 1. Files are received into memory via multer
@@ -13,7 +13,7 @@
  */
 
 const multer = require('multer');
-const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3');
 const fs = require('fs');
 const path = require('path');
 const SystemConfig = require('../models/SystemConfig');
@@ -22,9 +22,9 @@ const Plan = require('../models/Plan');
 const MediaFile = require('../models/MediaFile');
 const { compressImage, isCompressibleImage } = require('./imageCompressor');
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Magic Bytes Validation — Prevents disguised executable / malicious uploads
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Magic Bytes Validation â€” Prevents disguised executable / malicious uploads
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const MAGIC_BYTES = {
     // Images
     'image/jpeg':  [{ offset: 0, bytes: [0xFF, 0xD8, 0xFF] }],
@@ -56,7 +56,7 @@ const MAGIC_BYTES = {
 const validateMagicBytes = (buffer, mimeType) => {
     const signatures = MAGIC_BYTES[mimeType];
     if (signatures === undefined) return 'Unsupported file type.';
-    if (signatures === null) return null; // text files — no magic bytes
+    if (signatures === null) return null; // text files â€” no magic bytes
     if (!buffer || buffer.length < 8) return 'File too small or corrupt.';
 
     // For multi-signature types (e.g. MP4), any one match is sufficient
@@ -71,7 +71,7 @@ const validateMagicBytes = (buffer, mimeType) => {
         if (webpMarker !== 'WEBP') return 'File content does not match WebP format.';
     }
 
-    // SVG extra check — must not contain script tags
+    // SVG extra check â€” must not contain script tags
     if (mimeType === 'image/svg+xml') {
         const text = buffer.slice(0, Math.min(buffer.length, 4096)).toString('utf8').toLowerCase();
         if (text.includes('<script') || text.includes('javascript:') || text.includes('onload=') || text.includes('onerror=')) {
@@ -107,13 +107,13 @@ const classifyMediaType = (mimeType) => {
 // Default limits if none provided
 const DEFAULT_LIMITS = { fileSize: 200 * 1024 * 1024 }; // 200MB max
 
-// ─── Folder-aware max image dimensions ──────────────────────────────────────
-// Set to 2× the maximum CSS display size (retina-ready).
+// â”€â”€â”€ Folder-aware max image dimensions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Set to 2Ã— the maximum CSS display size (retina-ready).
 // Sharp resizes on upload; the stored image IS the correctly-sized image.
-//   Hero slides:    display ~707px  → store 1200px (2×)
-//   Product cards:  display ~308px  → store 700px  (2×)
-//   Category tiles: display ~176px  → store 400px  (2×)
-//   Logos:          display ~134px  → store 300px  (2×)
+//   Hero slides:    display ~707px  â†’ store 1200px (2Ã—)
+//   Product cards:  display ~308px  â†’ store 700px  (2Ã—)
+//   Category tiles: display ~176px  â†’ store 400px  (2Ã—)
+//   Logos:          display ~134px  â†’ store 300px  (2Ã—)
 const FOLDER_MAX_DIMENSIONS = {
     'wastore-products':  { maxWidth: 700,  maxHeight: 700  },
     'wastore-slides':    { maxWidth: 3840, maxHeight: 2160 }, // Allowed up to 4K to prevent strict scaling
@@ -139,7 +139,7 @@ const generalImageFilter = (req, file, cb) => {
 };
 
 /**
- * Secure media gallery filter — accepts images + videos + documents.
+ * Secure media gallery filter â€” accepts images + videos + documents.
  * MIME type is cross-checked against file extension. Magic bytes are
  * validated after multer parses the buffer to prevent spoofed uploads.
  */
@@ -266,7 +266,7 @@ const getStorageConfig = async (folderName) => {
 
         return { type: 's3', s3Client, s3Conf, endpoint, forcePathStyleVal, folderName };
     } else if (storageConfig.type === 'r2' && storageConfig.r2?.accountId && storageConfig.r2?.accessKeyId) {
-        // ── Cloudflare R2 (separate from S3) ──
+        // â”€â”€ Cloudflare R2 (separate from S3) â”€â”€
         const r2Conf = storageConfig.r2;
         const endpoint = `https://${r2Conf.accountId}.r2.cloudflarestorage.com`;
 
@@ -355,12 +355,12 @@ const storageProvider = (folderName, options = {}) => {
                             return next(err);
                         }
 
-                        // No file uploaded (optional fields) — continue
+                        // No file uploaded (optional fields) â€” continue
                         if (!req.file) return next();
 
-                        // ── Step 2b: Magic Bytes Validation (security hardening) ──────────────
+                        // â”€â”€ Step 2b: Magic Bytes Validation (security hardening) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                         // Validate that the buffer's actual bytes match the declared MIME type.
-                        // This catches files that are renamed (e.g., malware.exe → image.jpg).
+                        // This catches files that are renamed (e.g., malware.exe â†’ image.jpg).
                         if (req.file.buffer && (options.fileFilter === secureMediaFilter || options.validateMagicBytes)) {
                             const magicError = validateMagicBytes(req.file.buffer, req.file.mimetype);
                             if (magicError) {
@@ -369,7 +369,7 @@ const storageProvider = (folderName, options = {}) => {
                         }
 
                         try {
-                            // ── Step 2: Quota Check (trackMedia routes only) ───────────────────────
+                            // â”€â”€ Step 2: Quota Check (trackMedia routes only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                             if (options.trackMedia && req.user && req.user.id) {
                                 try {
                                     const [user, userPlan] = await Promise.all([
@@ -393,7 +393,7 @@ const storageProvider = (folderName, options = {}) => {
                                     }
                                 } catch (quotaErr) {
                                     console.error('[Storage Quota Check] Error:', quotaErr.message);
-                                    // Non-fatal — allow upload to proceed if quota check fails
+                                    // Non-fatal â€” allow upload to proceed if quota check fails
                                 }
                             }
 
@@ -416,26 +416,68 @@ const storageProvider = (folderName, options = {}) => {
                                     const savedPercent = Math.round((1 - result.compressedSize / result.originalSize) * 100);
                                     console.log(
                                         `[IMAGE COMPRESSOR] ${req.file.originalname}: ` +
-                                        `${(result.originalSize / 1024).toFixed(0)}KB → ${(result.compressedSize / 1024).toFixed(0)}KB ` +
+                                        `${(result.originalSize / 1024).toFixed(0)}KB â†’ ${(result.compressedSize / 1024).toFixed(0)}KB ` +
                                         `(${savedPercent}% saved)`
                                     );
                                 }
                             }
 
-                            // Step 5: Sanitize filename + make it unique
-                            // R2/S3 are flat-key stores — if two uploads share the same filename
-                            // the second one silently overwrites the first, causing 404s.
-                            // Prefix with timestamp + random hex so every stored file is unique.
-                            const rawName = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
-                            const uid = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-                            const safeName = `${uid}_${rawName}`;
+                            // Step 5: Sanitize filename — preserve original name for predictable URLs.
+                            // Spaces and special chars are replaced with underscores.
+                            // No timestamp/random prefix added — user folder provides namespace isolation.
+                            const safeName = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+
+                            // Build the effective folder path. Check for specific scopes (store, vcard),
+                            // and fallback to user scope if neither is present.
+                            let effectiveFolder = folderName || null;
+                            if (req.storeId) {
+                                effectiveFolder = `store/${req.storeId}/${folderName}`;
+                            } else if (req.vcardId) {
+                                effectiveFolder = `vcard/${req.vcardId}/${folderName}`;
+                            } else if (req.user?.id) {
+                                effectiveFolder = folderName 
+                                    ? `users/${req.user.id}/${folderName}`
+                                    : `users/${req.user.id}`;
+                            }
+
+                            // Step 5b: Duplicate filename check — prevents silent overwrites.
+                            // Enables predictable bulk-import URLs. If same filename exists, reject with 409.
+                            let duplicateExists = false;
+                            if (storageConf.type === 's3') {
+                                const checkKey = effectiveFolder ? `${effectiveFolder}/${safeName}` : safeName;
+                                try {
+                                    await storageConf.s3Client.send(new HeadObjectCommand({ Bucket: storageConf.s3Conf.bucket, Key: checkKey }));
+                                    duplicateExists = true;
+                                } catch (e) {
+                                    if (e.name !== 'NotFound' && e.$metadata?.httpStatusCode !== 404) console.error('[Dup Check S3]', e.message);
+                                }
+                            } else if (storageConf.type === 'r2') {
+                                const checkKey = effectiveFolder ? `${effectiveFolder}/${safeName}` : safeName;
+                                try {
+                                    await storageConf.s3Client.send(new HeadObjectCommand({ Bucket: storageConf.r2Conf.bucket, Key: checkKey }));
+                                    duplicateExists = true;
+                                } catch (e) {
+                                    if (e.name !== 'NotFound' && e.$metadata?.httpStatusCode !== 404) console.error('[Dup Check R2]', e.message);
+                                }
+                            } else {
+                                const localDir = effectiveFolder
+                                    ? path.join(__dirname, '../public/uploads', effectiveFolder)
+                                    : storageConf.uploadDir;
+                                duplicateExists = fs.existsSync(path.join(localDir, safeName));
+                            }
+
+                            if (duplicateExists) {
+                                return res.status(409).json({
+                                    error: `A file named "${safeName}" already exists in your media folder. Please rename the file and try again.`
+                                });
+                            }
 
                             // Step 6: Save to storage
                             let fileKey = null;
                             if (storageConf.type === 's3') {
                                 // ── S3 Upload ──
-                                const key = folderName
-                                    ? `${folderName}/${safeName}`
+                                const key = effectiveFolder
+                                    ? `${effectiveFolder}/${safeName}`
                                     : `${safeName}`;
 
                                 await storageConf.s3Client.send(new PutObjectCommand({
@@ -471,9 +513,9 @@ const storageProvider = (folderName, options = {}) => {
                                 }
 
                             } else if (storageConf.type === 'r2') {
-                                // ── Cloudflare R2 Upload (no ACL — R2 does not support it) ──
-                                const key = folderName
-                                    ? `${folderName}/${safeName}`
+                                // â”€â”€ Cloudflare R2 Upload (no ACL â€” R2 does not support it) â”€â”€
+                                const key = effectiveFolder
+                                    ? `${effectiveFolder}/${safeName}`
                                     : `${safeName}`;
 
                                 await storageConf.s3Client.send(new PutObjectCommand({
@@ -500,9 +542,16 @@ const storageProvider = (folderName, options = {}) => {
                                 fileKey = key;
 
                             } else {
-                                // ── Local Disk Upload ──
+                                // â”€â”€ Local Disk Upload â”€â”€
+                                // For local storage, create the user sub-folder on disk if needed
+                                const localUploadDir = effectiveFolder
+                                    ? path.join(__dirname, '../public/uploads', effectiveFolder)
+                                    : storageConf.uploadDir;
+                                if (!fs.existsSync(localUploadDir)) {
+                                    fs.mkdirSync(localUploadDir, { recursive: true });
+                                }
                                 const filename = safeName;
-                                const filePath = path.join(storageConf.uploadDir, filename);
+                                const filePath = path.join(localUploadDir, filename);
 
                                 // Write buffer to disk
                                 fs.writeFileSync(filePath, fileBuffer);
@@ -510,24 +559,24 @@ const storageProvider = (folderName, options = {}) => {
                                 // Set req.file properties (matching multer diskStorage output)
                                 req.file.path = filePath;
                                 req.file.filename = filename;
-                                req.file.destination = storageConf.uploadDir;
+                                req.file.destination = localUploadDir;
                                 req.file.size = fileBuffer.length;
 
                                 // Build publicUrl
                                 const protocol = req.headers['x-forwarded-proto'] || req.protocol;
                                 const host = req.headers['x-forwarded-host'] || req.get('host');
-                                const subPath = folderName ? `${folderName}/${filename}` : filename;
+                                const subPath = effectiveFolder ? `${effectiveFolder}/${filename}` : filename;
                                 req.file.publicUrl = `${protocol}://${host}/uploads/${subPath}`;
                                 // For local, store the relative path for deletion
                                 fileKey = subPath;
                             }
 
-                            // Free the memory buffer — file is now persisted
+                            // Free the memory buffer â€” file is now persisted
                             delete req.file.buffer;
                             // Expose fileKey on req.file for route handlers
                             req.file.fileKey = fileKey;
 
-                            // ── Step 7: Post-upload Tracking ──────────────────────────────────────
+                            // â”€â”€ Step 7: Post-upload Tracking â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                             if (req.user && req.user.id && req.file.size) {
                                 // Always increment global storageUsed
                                 try {
@@ -556,7 +605,7 @@ const storageProvider = (folderName, options = {}) => {
                                             fileName: req.file.originalname,
                                             mimeType: req.file.mimetype,
                                             sizeBytes: req.file.size,
-                                            folder: folderName || null,
+                                            folder: effectiveFolder || null,
                                             mediaType: classifyMediaType(req.file.mimetype)
                                         });
                                         console.log(`[Media Tracking] MediaFile created: id=${mf.id} source=${mf.source} type=${mf.mediaType} user=${req.user.id}`);
@@ -578,7 +627,7 @@ const storageProvider = (folderName, options = {}) => {
                                             fileName: req.file.originalname,
                                             mimeType: req.file.mimetype,
                                             sizeBytes: req.file.size,
-                                            folder: folderName || null,
+                                            folder: effectiveFolder || null,
                                             mediaType: classifyMediaType(req.file.mimetype)
                                         });
                                         console.log(`[Media Register] MediaFile created: id=${mf.id} source=${mf.source} type=${mf.mediaType} user=${req.user.id}`);
@@ -601,7 +650,7 @@ const storageProvider = (folderName, options = {}) => {
     };
 };
 
-// ─── Key extraction helpers (reverse of the URL-building functions above) ────
+// â”€â”€â”€ Key extraction helpers (reverse of the URL-building functions above) â”€â”€â”€â”€
 
 const extractR2Key = (url, r2Conf, endpoint) => {
     if (r2Conf.publicUrl) {
@@ -640,7 +689,7 @@ const extractS3Key = (url, s3Conf, endpoint, forcePathStyleVal) => {
  * Deletes a file from whichever storage backend is currently configured
  * (Cloudflare R2, AWS / S3-compatible, or local disk).
  *
- * Safe to call fire-and-forget — all errors are caught and logged.
+ * Safe to call fire-and-forget â€” all errors are caught and logged.
  * @param {string} url - The public URL that was stored in the database.
  */
 const deleteStorageFile = async (url) => {
@@ -667,7 +716,7 @@ const deleteStorageFile = async (url) => {
             console.log('[Storage] Deleted S3 object:', key);
 
         } else {
-            // Local disk — extract path after /uploads/
+            // Local disk â€” extract path after /uploads/
             const match = url.match(/\/uploads\/(.+)/);
             if (!match) { console.warn('[Storage] Could not extract local path from URL:', url); return; }
             const filePath = path.join(__dirname, '../public/uploads', match[1]);
@@ -677,7 +726,7 @@ const deleteStorageFile = async (url) => {
             }
         }
     } catch (err) {
-        // Non-fatal — log but never throw so callers stay unaffected
+        // Non-fatal â€” log but never throw so callers stay unaffected
         console.error('[Storage] Failed to delete file:', url, err.message);
     }
 };

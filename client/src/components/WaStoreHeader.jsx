@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { ShoppingCart, Search, Menu, X, ShoppingBag, Home, Tag, ChevronDown, ChevronUp, FileText, Phone, Mail, MessageCircle, User } from 'lucide-react';
 
 import WaStoreMobileBottomMenu from './WaStoreMobileBottomMenu';
@@ -24,6 +24,12 @@ const slugifyProduct = (productOrName, id) => {
     const shortId = id ? id.replace(/-/g, '').slice(0, 8) : '';
     return shortId ? `${nameSlug}--${shortId}` : nameSlug;
 };
+
+// Helper to check if rich text actually has content (isn't just <p><br></p>)
+const hasContent = (html) => html && html.replace(/<[^>]*>?/gm, '').trim().length > 0;
+
+// Helper for contact info
+const getHasContactInfo = (store) => !!(store.email || store.whatsappNumber || store.phone || store.address);
 
 const API_BASE = `${import.meta.env.VITE_API_URL}`;
 const imgUrl = (url) => {
@@ -50,7 +56,7 @@ export default function WaStoreHeader({
     const [searchQuery, setSearchQuery] = useState('');
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [expandedMobileSections, setExpandedMobileSections] = useState({ categories: true, policies: false, contact: false });
-    const [activePolicy, setActivePolicy] = useState(null); // 'privacy', 'terms', 'return'
+     // 'privacy', 'terms', 'return'
 
     if (!store) return null;
 
@@ -802,8 +808,8 @@ export default function WaStoreHeader({
                                     </div>
                                 )}
 
-                                {/* Policies Accordion */}
-                                {(store.privacyPolicy || store.termsConditions || store.returnPolicy) && (
+                                {/* Pages & Policies Accordion */}
+                                {(getHasContactInfo(store) || hasContent(store.aboutUs) || hasContent(store.privacyPolicy) || hasContent(store.termsConditions) || hasContent(store.returnPolicy) || hasContent(store.shippingPolicy)) && (
                                     <div className="border border-gray-100 dark:border-white/10 rounded-2xl overflow-hidden">
                                         <button 
                                             onClick={() => setExpandedMobileSections(p => ({ ...p, policies: !p.policies }))}
@@ -811,21 +817,30 @@ export default function WaStoreHeader({
                                         >
                                             <div className="flex items-center gap-3">
                                                 <FileText className="w-5 h-5" />
-                                                <span>Store Policies</span>
+                                                <span>Pages & Policies</span>
                                             </div>
                                             {expandedMobileSections.policies ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                                         </button>
                                         
                                         <div className={`transition-all overflow-hidden ${expandedMobileSections.policies ? 'max-h-96 border-t border-gray-100 dark:border-white/10' : 'max-h-0'}`}>
                                             <div className="p-2 space-y-1 bg-white dark:bg-black/20">
-                                                {store.privacyPolicy && (
-                                                    <button onClick={() => { setActivePolicy('privacy'); setIsMobileMenuOpen(false); }} className={`w-full text-left px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>Privacy Policy</button>
+                                                {hasContent(store.aboutUs) && (
+                                                    <Link onClick={() => setIsMobileMenuOpen(false)} to={getStoreRoute(store.slug, '/pages/about-us')} className={`block w-full text-left px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>About Us</Link>
                                                 )}
-                                                {store.termsConditions && (
-                                                    <button onClick={() => { setActivePolicy('terms'); setIsMobileMenuOpen(false); }} className={`w-full text-left px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>Terms & Conditions</button>
+                                                {getHasContactInfo(store) && (
+                                                    <Link onClick={() => setIsMobileMenuOpen(false)} to={getStoreRoute(store.slug, '/pages/contact-us')} className={`block w-full text-left px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>Contact Us</Link>
                                                 )}
-                                                {store.returnPolicy && (
-                                                    <button onClick={() => { setActivePolicy('return'); setIsMobileMenuOpen(false); }} className={`w-full text-left px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>Return Policy</button>
+                                                {hasContent(store.shippingPolicy) && (
+                                                    <Link onClick={() => setIsMobileMenuOpen(false)} to={getStoreRoute(store.slug, '/pages/shipping-policy')} className={`block w-full text-left px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>Shipping Policy</Link>
+                                                )}
+                                                {hasContent(store.privacyPolicy) && (
+                                                    <Link onClick={() => setIsMobileMenuOpen(false)} to={getStoreRoute(store.slug, '/pages/privacy-policy')} className={`block w-full text-left px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>Privacy Policy</Link>
+                                                )}
+                                                {hasContent(store.termsConditions) && (
+                                                    <Link onClick={() => setIsMobileMenuOpen(false)} to={getStoreRoute(store.slug, '/pages/terms-and-conditions')} className={`block w-full text-left px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>Terms & Conditions</Link>
+                                                )}
+                                                {hasContent(store.returnPolicy) && (
+                                                    <Link onClick={() => setIsMobileMenuOpen(false)} to={getStoreRoute(store.slug, '/pages/return-policy')} className={`block w-full text-left px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>Return Policy</Link>
                                                 )}
                                             </div>
                                         </div>
@@ -835,30 +850,7 @@ export default function WaStoreHeader({
                     </div>
                 </div>
             )}
-            {/* ─── POLICY MODAL ─── */}
-            {activePolicy && (
-                <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-4 md:p-6 cursor-pointer" onClick={() => setActivePolicy(null)}>
-                    <div className={`w-full max-w-2xl max-h-[85vh] flex flex-col rounded-3xl overflow-hidden shadow-2xl ${theme.pageBg} cursor-pointer`} onClick={e => e.stopPropagation()}>
-                        <div className={`flex items-center justify-between p-6 border-b border-gray-100 dark:border-white/10 ${theme.header}`}>
-                            <h2 className={`text-xl font-bold ${theme.text}`}>
-                                {activePolicy === 'privacy' && 'Privacy Policy'}
-                                {activePolicy === 'terms' && 'Terms & Conditions'}
-                                {activePolicy === 'return' && 'Return Policy'}
-                            </h2>
-                            <button aria-label="Close policy" onClick={() => setActivePolicy(null)} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
-                                <X className={`w-6 h-6 ${theme.text}`} />
-                            </button>
-                        </div>
-                        <div className="p-4 md:p-6 overflow-y-auto">
-                            <div className={`prose prose-sm sm:prose-base dark:prose-invert max-w-none whitespace-pre-wrap ${theme.text}`}>
-                                {activePolicy === 'privacy' && store.privacyPolicy}
-                                {activePolicy === 'terms' && store.termsConditions}
-                                {activePolicy === 'return' && store.returnPolicy}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+
             {/* Mobile Bottom Navigation Bar */}
             <WaStoreMobileBottomMenu 
                 store={store}

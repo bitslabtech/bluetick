@@ -137,6 +137,11 @@ const WaStore = sequelize.define('WaStore', {
         ],
         comment: 'Configuration for the mobile bottom navigation bar'
     },
+    customPages: {
+        type: DataTypes.JSON,
+        defaultValue: [],
+        comment: 'Array of custom pages: { id, title, slug, content }'
+    },
     termsConditions: {
         type: DataTypes.TEXT
     },
@@ -144,6 +149,12 @@ const WaStore = sequelize.define('WaStore', {
         type: DataTypes.TEXT
     },
     returnPolicy: {
+        type: DataTypes.TEXT
+    },
+    shippingPolicy: {
+        type: DataTypes.TEXT
+    },
+    aboutUs: {
         type: DataTypes.TEXT
     },
     customDomain: {

@@ -233,7 +233,7 @@ export default function WaStoreSEO() {
                         <div className="mb-4">
                             <ImageUploader 
                                 label="OG Image"
-                                endpoint="upload/seo"
+                                endpoint={`${storeId}/upload/seo`}
                                 currentUrl={seo.ogImage}
                                 onUploaded={(url) => setSeo({ ...seo, ogImage: url })}
                             />

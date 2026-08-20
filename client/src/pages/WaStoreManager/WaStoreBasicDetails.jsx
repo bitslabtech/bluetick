@@ -300,6 +300,26 @@ export default function WaStoreBasicDetails() {
                                         </div>
                                         <p className="text-xs text-slate-400">Only lowercase letters, numbers, and hyphens allowed.</p>
                                     </div>
+                                    
+                                    {/* Store ID (Read-only for easy copy) */}
+                                    <div className="space-y-1.5 col-span-1 md:col-span-2 mt-2">
+                                        <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                            <FolderOpen className="w-4 h-4 text-indigo-400" /> Store ID
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                readOnly
+                                                type="text"
+                                                value={store.id || ''}
+                                                className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none text-slate-500 dark:text-slate-400 font-mono text-sm"
+                                            />
+                                            <button type="button" onClick={() => { navigator.clipboard.writeText(store.id); toast.success('Store ID copied!'); }} title="Copy Store ID"
+                                                className="p-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:border-indigo-300 transition-colors">
+                                                <Copy className="w-4 h-4 text-slate-500" />
+                                            </button>
+                                        </div>
+                                        <p className="text-xs text-slate-400">This ID is used for your bulk import media path (e.g. store/{store.id}/products/image.jpg).</p>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-1.5">
@@ -334,7 +354,7 @@ export default function WaStoreBasicDetails() {
                                     label="Store Logo"
                                     hint="Square icon shown beside your store name in the header"
                                     fieldName="logo"
-                                    endpoint="upload/logo"
+                                    endpoint={`${storeId}/upload/logo`}
                                     currentUrl={store.logo || ''}
                                     onUploaded={(url) => set('logo', url)}
                                     objectFit="contain"
@@ -392,7 +412,7 @@ export default function WaStoreBasicDetails() {
                                             label="Slide Media (Image or Video)"
                                             hint="Recommended: 1600×600px. Supports JPG, PNG, MP4, WEBM (Max 15MB)"
                                             fieldName="slide"
-                                            endpoint="upload/slide"
+                                            endpoint={`${storeId}/upload/slide`}
                                             currentUrl={slide.imageUrl || ''}
                                             acceptVideo={true}
                                             onOpenPicker={() => openPicker({
@@ -589,9 +609,11 @@ export default function WaStoreBasicDetails() {
                 onSelect={(url) => { if (pickerConfig.onSelect) pickerConfig.onSelect(url); }}
                 accessMode="restricted"
                 allowedTypes={pickerConfig.allowedTypes || 'image'}
-                multiple={false}
+                multiple={pickerConfig.multiple || false}
                 title={pickerConfig.title || 'Select Media'}
                 mimeConstraints={pickerConfig.mimeConstraints || null}
+                storeId={storeId}
+                mediaFolder="logos"
             />
         </div>
     );

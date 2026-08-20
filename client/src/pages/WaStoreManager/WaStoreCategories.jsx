@@ -638,6 +638,8 @@ export default function WaStoreCategories() {
                 multiple={false}
                 title={pickerConfig.title || 'Select Media'}
                 mimeConstraints={pickerConfig.mimeConstraints || null}
+                storeId={store.id}
+                mediaFolder="categories"
             />
         </div>
     );

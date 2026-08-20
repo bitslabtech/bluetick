@@ -1257,6 +1257,8 @@ export default function WaProductList() {
                 multiple={pickerConfig.multiple || false}
                 title={pickerConfig.title || 'Select Media'}
                 mimeConstraints={pickerConfig.mimeConstraints || null}
+                storeId={storeId}
+                mediaFolder={pickerConfig.mediaFolder || 'products'}
             />
         </div>
     );

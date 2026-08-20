@@ -175,7 +175,10 @@ export default function MediaPickerModal({
      * Example: ["image/jpeg", "image/png"] for WhatsApp templates.
      */
     mimeConstraints = null,
-    returnType = "url"
+    returnType = "url",
+    storeId = null,
+    vcardId = null,
+    mediaFolder = null
 }) {
     const { user } = useAuth();
     const { showToast } = useUI();
@@ -313,7 +316,10 @@ export default function MediaPickerModal({
         try {
             const form = new FormData();
             form.append("file", fileObj);
-            const uploadUrl = `${import.meta.env.VITE_API_URL}/api/media/upload?source=${fetchSource}`;
+            let uploadUrl = `${import.meta.env.VITE_API_URL}/api/media/upload?source=${fetchSource}`;
+            if (storeId) uploadUrl += `&storeId=${storeId}`;
+            if (vcardId) uploadUrl += `&vcardId=${vcardId}`;
+            if (mediaFolder) uploadUrl += `&mediaFolder=${mediaFolder}`;
             await axios.post(uploadUrl, form, { headers: { ...getHeaders(), "Content-Type": "multipart/form-data" } });
             showToast("File uploaded successfully!", "success");
             setTabCache({}); // Invalidate cache after upload

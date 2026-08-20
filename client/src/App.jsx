@@ -100,7 +100,9 @@ const WaStoreCustomers = React.lazy(() => import('./pages/WaStoreManager/WaStore
 const WaStoreAbandonedCart = React.lazy(() => import('./pages/WaStoreManager/WaStoreAbandonedCart'));
 
 const PublicWaStore = React.lazy(() => import('./pages/PublicWaStore'));
+const PublicWaStoreCategories = React.lazy(() => import('./pages/PublicWaStoreCategories'));
 const PublicWaStoreCategory = React.lazy(() => import('./pages/PublicWaStoreCategory'));
+const PublicWaStorePage = React.lazy(() => import('./pages/PublicWaStorePage'));
 const PublicWaProduct = React.lazy(() => import('./pages/PublicWaProduct'));
 const PublicWaStoreVerify = React.lazy(() => import('./pages/PublicWaStoreVerify'));
 const StoreLoginPage = React.lazy(() => import('./pages/StoreCustomer/StoreLoginPage'));
@@ -354,7 +356,9 @@ function CustomDomainRouter({ children }) {
             <Routes>
                 <Route path="/verify" element={<PublicWaStoreVerify />} />
                 <Route path="/product/:productId" element={<PublicWaProduct customSlug={storeSlug} />} />
+                <Route path="/categories" element={<PublicWaStoreCategories customSlug={storeSlug} />} />
                 <Route path="/category/:categoryName" element={<PublicWaStoreCategory customSlug={storeSlug} />} />
+                <Route path="/pages/:pageType" element={<PublicWaStorePage customSlug={storeSlug} />} />
                 
                 {/* Custom Domain Customer Account Routes */}
                 <Route path="/account/login" element={<StoreAuthRoute page="login" customSlug={storeSlug} />} />
@@ -396,7 +400,9 @@ function App() {
                                         <Route path="/store/:slug" element={<PublicWaStore />} /> {/* Public WhatsApp Store */}
                                         <Route path="/store/:slug/verify" element={<PublicWaStoreVerify />} />
                                         <Route path="/store/:slug/product/:productId" element={<PublicWaProduct />} /> {/* Single Product */}
+                                        <Route path="/store/:slug/categories" element={<PublicWaStoreCategories />} /> {/* All Categories Page */}
                                         <Route path="/store/:slug/category/:categoryName" element={<PublicWaStoreCategory />} /> {/* Category Page */}
+                                        <Route path="/store/:slug/pages/:pageType" element={<PublicWaStorePage />} /> {/* Dedicated Policy Page */}
                                         {/* Store Customer Account Routes - wrapped with auth context */}
                                         <Route path="/store/:slug/account/login" element={<StoreAuthRoute page="login" />} />
                                         <Route path="/store/:slug/account/register" element={<StoreAuthRoute page="register" />} />

@@ -917,8 +917,20 @@ router.post('/ai-description', async (req, res) => {
     }
 });
 
-// POST /api/wastore/upload/logo  — Upload store logo image
-router.post('/upload/logo', storageProvider('wastore-logos', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true, trackMedia: true, mediaSource: 'wastore' }).single('logo'), async (req, res) => {
+// Middleware to verify store ownership for uploads
+const checkStoreOwnership = async (req, res, next) => {
+    try {
+        const store = await WaStore.findOne({ where: { id: req.params.id, userId: req.user.id } });
+        if (!store) return res.status(404).json({ error: 'Store not found or unauthorized' });
+        req.storeId = store.id; // storageProvider will pick this up to isolate by storeId
+        next();
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to verify store ownership' });
+    }
+};
+
+// POST /api/wastore/:id/upload/logo  — Upload store logo image
+router.post('/:id/upload/logo', checkStoreOwnership, storageProvider('logos', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true, trackMedia: true, mediaSource: 'wastore' }).single('logo'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
         res.json({ url: req.file.publicUrl });
@@ -928,8 +940,8 @@ router.post('/upload/logo', storageProvider('wastore-logos', { fileFilter: stora
     }
 });
 
-// POST /api/wastore/upload/seo  — Upload SEO og:image
-router.post('/upload/seo', storageProvider('wastore-seo', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true, trackMedia: true, mediaSource: 'wastore' }).single('image'), async (req, res) => {
+// POST /api/wastore/:id/upload/seo  — Upload SEO og:image
+router.post('/:id/upload/seo', checkStoreOwnership, storageProvider('seo', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true, trackMedia: true, mediaSource: 'wastore' }).single('image'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
         res.json({ url: req.file.publicUrl });
@@ -939,8 +951,8 @@ router.post('/upload/seo', storageProvider('wastore-seo', { fileFilter: storageP
     }
 });
 
-// POST /api/wastore/upload/cover  — Upload store cover image
-router.post('/upload/cover', storageProvider('wastore-covers', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true, trackMedia: true, mediaSource: 'wastore' }).single('cover'), async (req, res) => {
+// POST /api/wastore/:id/upload/cover  — Upload store cover image
+router.post('/:id/upload/cover', checkStoreOwnership, storageProvider('covers', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true, trackMedia: true, mediaSource: 'wastore' }).single('cover'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
         res.json({ url: req.file.publicUrl });
@@ -950,8 +962,8 @@ router.post('/upload/cover', storageProvider('wastore-covers', { fileFilter: sto
     }
 });
 
-// POST /api/wastore/upload/slide  — Upload a hero slider image
-router.post('/upload/slide', storageProvider('wastore-slides', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true, trackMedia: true, mediaSource: 'wastore' }).single('slide'), async (req, res) => {
+// POST /api/wastore/:id/upload/slide  — Upload a hero slider image
+router.post('/:id/upload/slide', checkStoreOwnership, storageProvider('slides', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true, trackMedia: true, mediaSource: 'wastore' }).single('slide'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
         res.json({ url: req.file.publicUrl });
@@ -961,8 +973,8 @@ router.post('/upload/slide', storageProvider('wastore-slides', { fileFilter: sto
     }
 });
 
-// POST /api/wastore/upload/product  — Upload a product image
-router.post('/upload/product', storageProvider('wastore-products', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true, trackMedia: true, mediaSource: 'wastore' }).single('product'), async (req, res) => {
+// POST /api/wastore/:id/upload/product  — Upload a product image
+router.post('/:id/upload/product', checkStoreOwnership, storageProvider('products', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true, trackMedia: true, mediaSource: 'wastore' }).single('product'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
         res.json({ url: req.file.publicUrl });
@@ -972,8 +984,8 @@ router.post('/upload/product', storageProvider('wastore-products', { fileFilter:
     }
 });
 
-// POST /api/wastore/upload/category  — Upload a category image
-router.post('/upload/category', storageProvider('wastore-categories', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true, trackMedia: true, mediaSource: 'wastore' }).single('category'), async (req, res) => {
+// POST /api/wastore/:id/upload/category  — Upload a category image
+router.post('/:id/upload/category', checkStoreOwnership, storageProvider('categories', { fileFilter: storageProvider.generalImageFilter, convertToWebp: true, trackMedia: true, mediaSource: 'wastore' }).single('category'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
         res.json({ url: req.file.publicUrl });
