@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
-import { Smartphone, Save, Loader2, Plus, Trash2, * as Icons } from 'lucide-react';
+import { Smartphone, Save, Loader2, Plus, Trash2 } from 'lucide-react';
+import * as Icons from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const AVAILABLE_ICONS = [

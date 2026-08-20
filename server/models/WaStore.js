@@ -8,6 +8,12 @@ const WaStore = sequelize.define('WaStore', {
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true
     },
+    shortId: {
+        type: DataTypes.STRING(12),
+        unique: true,
+        allowNull: true, // Allow null initially for existing rows, we'll backfill
+        comment: 'Short unique ID for public URLs and storage paths'
+    },
     userId: {
         type: DataTypes.UUID,
         allowNull: false,
@@ -286,7 +292,15 @@ const WaStore = sequelize.define('WaStore', {
         comment: 'Abandoned cart recovery settings: enabled, delayHours, WhatsApp template'
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    hooks: {
+        beforeCreate: (store) => {
+            if (!store.shortId) {
+                const crypto = require('crypto');
+                store.shortId = crypto.randomBytes(4).toString('hex');
+            }
+        }
+    }
 });
 
 module.exports = WaStore;

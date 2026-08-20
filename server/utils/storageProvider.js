@@ -431,13 +431,13 @@ const storageProvider = (folderName, options = {}) => {
                             // and fallback to user scope if neither is present.
                             let effectiveFolder = folderName || null;
                             if (req.storeId) {
-                                effectiveFolder = `store/${req.storeId}/${folderName}`;
+                                effectiveFolder = `store/${req.storeId.split('-')[0]}/${folderName}`;
                             } else if (req.vcardId) {
-                                effectiveFolder = `vcard/${req.vcardId}/${folderName}`;
+                                effectiveFolder = `vcard/${req.vcardId.split('-')[0]}/${folderName}`;
                             } else if (req.user?.id) {
                                 effectiveFolder = folderName 
-                                    ? `users/${req.user.id}/${folderName}`
-                                    : `users/${req.user.id}`;
+                                    ? `users/${req.user.id.split('-')[0]}/${folderName}`
+                                    : `users/${req.user.id.split('-')[0]}`;
                             }
 
                             // Step 5b: Duplicate filename check — prevents silent overwrites.
