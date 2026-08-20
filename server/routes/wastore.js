@@ -1463,7 +1463,7 @@ router.delete('/:id', async (req, res) => {
 // ==========================================
 
 // GET /:storeId/products/import-template — Download XLSX template
-router.get('/:storeId/products/import-template', async (req, res) => {
+router.get('/:storeId/products/import-template', auth, async (req, res) => {
     try {
         const XLSX = require('xlsx');
         const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
@@ -1537,7 +1537,7 @@ router.get('/:storeId/products/import-template', async (req, res) => {
 
 
 // POST /:storeId/products/import/parse — Parse & validate (NO DB write)
-router.post('/:storeId/products/import/parse', async (req, res) => {
+router.post('/:storeId/products/import/parse', auth, async (req, res) => {
     try {
         const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
         if (!store) return res.status(404).json({ error: 'Store not found' });
@@ -1755,7 +1755,7 @@ router.post('/:storeId/products/import/parse', async (req, res) => {
 });
 
 // POST /:storeId/products/import/confirm — Write valid rows to DB
-router.post('/:storeId/products/import/confirm', async (req, res) => {
+router.post('/:storeId/products/import/confirm', auth, async (req, res) => {
     try {
         const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
         if (!store) return res.status(404).json({ error: 'Store not found' });
@@ -1853,7 +1853,7 @@ router.post('/:storeId/products/import/confirm', async (req, res) => {
 
 // ==========================================
 // Get all products for a store
-router.get('/:storeId/products', async (req, res) => {
+router.get('/:storeId/products', auth, async (req, res) => {
     try {
         // verify owner
         const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id }});
@@ -1871,7 +1871,7 @@ router.get('/:storeId/products', async (req, res) => {
 
 // Create product
 
-router.post('/:storeId/products', async (req, res) => {
+router.post('/:storeId/products', auth, async (req, res) => {
     try {
         const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id }});
         if (!store) return res.status(404).json({ error: 'Store not found' });
@@ -1903,7 +1903,7 @@ router.post('/:storeId/products', async (req, res) => {
 });
 
 // Update product
-router.put('/products/:productId', async (req, res) => {
+router.put('/products/:productId', auth, async (req, res) => {
     try {
         const product = await WaProduct.findByPk(req.params.productId);
         if (!product) return res.status(404).json({ error: 'Product not found' });
@@ -1947,7 +1947,7 @@ router.put('/products/:productId', async (req, res) => {
 });
 
 // Delete product
-router.delete('/products/:productId', async (req, res) => {
+router.delete('/products/:productId', auth, async (req, res) => {
     try {
         const product = await WaProduct.findByPk(req.params.productId);
         if (!product) return res.status(404).json({ error: 'Product not found' });
@@ -2043,7 +2043,7 @@ Return ONLY valid JSON. No markdown wrappers. Example:
 // ==========================================
 
 // GET /api/wastore/:storeId/orders  — list all orders for a store
-router.get('/:storeId/orders', async (req, res) => {
+router.get('/:storeId/orders', auth, async (req, res) => {
     try {
         const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
         if (!store) return res.status(404).json({ error: 'Store not found' });
@@ -2060,7 +2060,7 @@ router.get('/:storeId/orders', async (req, res) => {
 });
 
 // GET /api/wastore/:storeId/orders/:orderId  — single order detail
-router.get('/:storeId/orders/:orderId', async (req, res) => {
+router.get('/:storeId/orders/:orderId', auth, async (req, res) => {
     try {
         const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
         if (!store) return res.status(404).json({ error: 'Store not found' });
@@ -2075,7 +2075,7 @@ router.get('/:storeId/orders/:orderId', async (req, res) => {
 });
 
 // PATCH /api/wastore/:storeId/orders/:orderId  — update order status / notes
-router.patch('/:storeId/orders/:orderId', async (req, res) => {
+router.patch('/:storeId/orders/:orderId', auth, async (req, res) => {
     try {
         const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
         if (!store) return res.status(404).json({ error: 'Store not found' });
@@ -2117,7 +2117,7 @@ router.patch('/:storeId/orders/:orderId', async (req, res) => {
 });
 
 // POST /api/wastore/:storeId/orders/:orderId/fulfill — Fulfill order and send tracking WhatsApp
-router.post('/:storeId/orders/:orderId/fulfill', async (req, res) => {
+router.post('/:storeId/orders/:orderId/fulfill', auth, async (req, res) => {
     try {
         const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
         if (!store) return res.status(404).json({ error: 'Store not found' });
@@ -2169,7 +2169,7 @@ router.post('/:storeId/orders/:orderId/fulfill', async (req, res) => {
 // ==========================================
 
 // Get coupons for a store
-router.get('/:storeId/coupons', async (req, res) => {
+router.get('/:storeId/coupons', auth, async (req, res) => {
     try {
         const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
         if (!store) return res.status(404).json({ error: 'Store not found' });
@@ -2182,7 +2182,7 @@ router.get('/:storeId/coupons', async (req, res) => {
 });
 
 // Create a coupon
-router.post('/:storeId/coupons', async (req, res) => {
+router.post('/:storeId/coupons', auth, async (req, res) => {
     try {
         const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
         if (!store) return res.status(404).json({ error: 'Store not found' });
@@ -2212,7 +2212,7 @@ router.post('/:storeId/coupons', async (req, res) => {
 });
 
 // Update a coupon
-router.put('/:storeId/coupons/:couponId', async (req, res) => {
+router.put('/:storeId/coupons/:couponId', auth, async (req, res) => {
     try {
         const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
         if (!store) return res.status(404).json({ error: 'Store not found' });
@@ -2240,7 +2240,7 @@ router.put('/:storeId/coupons/:couponId', async (req, res) => {
 });
 
 // Delete a coupon
-router.delete('/:storeId/coupons/:couponId', async (req, res) => {
+router.delete('/:storeId/coupons/:couponId', auth, async (req, res) => {
     try {
         const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
         if (!store) return res.status(404).json({ error: 'Store not found' });
@@ -2261,7 +2261,7 @@ router.delete('/:storeId/coupons/:couponId', async (req, res) => {
 // ==========================================
 
 // GET /api/wastore/:storeId/analytics?from=YYYY-MM-DD&to=YYYY-MM-DD
-router.get('/:storeId/analytics', async (req, res) => {
+router.get('/:storeId/analytics', auth, async (req, res) => {
     try {
         const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
         if (!store) return res.status(404).json({ error: 'Store not found' });
@@ -2355,7 +2355,7 @@ router.get('/:id/abandoned-cart', auth, async (req, res) => {
         const [totalAbandoned, reminderSent, recovered] = await Promise.all([
             WaOrder.count({ where: { storeId: store.id, status: 'pending', abandonedReminderSent: false, customerPhone: { [Op.not]: null } } }),
             WaOrder.count({ where: { storeId: store.id, abandonedReminderSent: true } }),
-            WaOrder.count({ where: { storeId: store.id, abandonedReminderSent: true, status: { [Op.in]: ['paid', 'confirmed', 'delivered', 'completed'] } } }),
+            WaOrder.count({ where: { storeId: store.id, abandonedReminderSent: true, status: { [Op.in]: ['confirmed', 'processing', 'shipped', 'delivered'] } } }),
         ]);
 
         // Recent abandoned orders (last 20, for the dashboard list)
