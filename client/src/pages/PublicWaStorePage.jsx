@@ -187,14 +187,16 @@ export default function PublicWaStorePage({ customSlug }) {
                 {isContactPage ? (
                     <WaStoreContactUs store={store} theme={theme} />
                 ) : (
-                    <div className={`bg-white dark:bg-surface-dark border border-gray-100 dark:border-white/10 rounded-3xl p-6 md:p-12 shadow-sm ${theme.card || ''}`}>
-                        <h1 className={`text-2xl md:text-4xl font-bold mb-8 ${theme.text} pb-6 border-b border-gray-100 dark:border-white/10`}>
-                            {title}
-                        </h1>
-                        <div 
-                            className={`prose prose-sm sm:prose-base dark:prose-invert max-w-none ${theme.text} leading-relaxed`}
-                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }} 
-                        />
+                    <div className="w-full bg-white dark:bg-surface-dark px-4 sm:px-6 md:px-8 lg:px-12 py-8 md:py-12">
+                        <div className="max-w-4xl mx-auto">
+                            <h1 className={`text-2xl md:text-4xl font-bold mb-8 ${theme.text} pb-6 border-b border-gray-100 dark:border-white/10`}>
+                                {title}
+                            </h1>
+                            <div 
+                                className={`prose prose-sm sm:prose-base dark:prose-invert max-w-none ${theme.text} leading-relaxed break-words overflow-x-auto`}
+                                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }} 
+                            />
+                        </div>
                     </div>
                 )}
             </PageInnerWithAuth>

@@ -310,15 +310,15 @@ export default function WaStoreBasicDetails() {
                                             <input
                                                 readOnly
                                                 type="text"
-                                                value={store.id || ''}
+                                                value={store.shortId || ''}
                                                 className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none text-slate-500 dark:text-slate-400 font-mono text-sm"
                                             />
-                                            <button type="button" onClick={() => { navigator.clipboard.writeText(store.id); toast.success('Store ID copied!'); }} title="Copy Store ID"
+                                            <button type="button" onClick={() => { navigator.clipboard.writeText(store.shortId); toast.success('Store ID copied!'); }} title="Copy Store ID"
                                                 className="p-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:border-indigo-300 transition-colors">
                                                 <Copy className="w-4 h-4 text-slate-500" />
                                             </button>
                                         </div>
-                                        <p className="text-xs text-slate-400">This ID is used for your bulk import media path (e.g. store/{store.id}/products/image.jpg).</p>
+                                        <p className="text-xs text-slate-400">This ID is used for your bulk import media path (e.g. store/{store.shortId}/products/image.jpg).</p>
                                     </div>
                                 </div>
 
