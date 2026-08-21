@@ -59,7 +59,17 @@ const MediaFile = sequelize.define('MediaFile', {
     }
 }, {
     timestamps: true,
-    tableName: 'MediaFiles'
+    tableName: 'MediaFiles',
+    // Fix #14: These indexes dramatically speed up getFileUsages() and scrubFileUsages()
+    // which do full-scan WHERE url = ? queries across all products/stores/vcards.
+    // Run a migration to add them if not already present:
+    //   ALTER TABLE MediaFiles ADD INDEX idx_media_url (url(512));
+    //   ALTER TABLE MediaFiles ADD INDEX idx_media_user_source (userId, source);
+    indexes: [
+        { fields: ['userId'] },
+        { fields: ['userId', 'source'] },
+        { fields: ['userId', 'mediaType'] }
+    ]
 });
 
 module.exports = MediaFile;

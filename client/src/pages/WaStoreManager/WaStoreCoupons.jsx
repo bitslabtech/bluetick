@@ -19,7 +19,9 @@ export default function WaStoreCoupons() {
         isActive: true,
         // #7 — startsAt: schedule coupon activation
         startsAt: '',
-        expiresAt: ''
+        expiresAt: '',
+        // SEC-3: usage limit (null = unlimited)
+        usageLimit: ''
     });
 
     const fetchCoupons = async () => {
@@ -59,11 +61,13 @@ export default function WaStoreCoupons() {
                 isActive: form.isActive,
                 // #7 — send startsAt so server-side start-date gating works
                 startsAt: form.startsAt || null,
-                expiresAt: form.expiresAt || null
+                expiresAt: form.expiresAt || null,
+                // SEC-3: send usageLimit (null = unlimited)
+                usageLimit: form.usageLimit !== '' ? parseInt(form.usageLimit) : null
             });
             toast.success('Coupon created successfully');
             setShowModal(false);
-            setForm({ code: '', discountType: 'percentage', discountValue: '', minOrderValue: '', isActive: true, startsAt: '', expiresAt: '' });
+            setForm({ code: '', discountType: 'percentage', discountValue: '', minOrderValue: '', isActive: true, startsAt: '', expiresAt: '', usageLimit: '' });
             fetchCoupons();
         } catch (error) {
             toast.error(error.response?.data?.error || 'Failed to create coupon');
@@ -173,6 +177,7 @@ export default function WaStoreCoupons() {
                                 <th className="px-4 md:px-6 py-4 font-medium text-slate-500">Discount</th>
                                 <th className="px-4 md:px-6 py-4 font-medium text-slate-500">Min Order</th>
                                 <th className="px-4 md:px-6 py-4 font-medium text-slate-500">Status</th>
+                                <th className="px-4 md:px-6 py-4 font-medium text-slate-500">Usage</th>
                                 <th className="px-4 md:px-6 py-4 font-medium text-slate-500">Expiry</th>
                                 <th className="px-4 md:px-6 py-4 font-medium text-slate-500 text-right">Actions</th>
                             </tr>
@@ -215,6 +220,19 @@ export default function WaStoreCoupons() {
                                                     {coupon.isActive ? 'Active' : 'Inactive'}
                                                 </span>
                                             </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-0 md:px-6 py-1.5 md:py-4 text-slate-500 block md:table-cell">
+                                        <div className="flex items-center justify-between md:block">
+                                            <span className="md:hidden text-xs font-semibold text-slate-500 uppercase tracking-wider">Usage</span>
+                                            <span className="text-sm">
+                                                {coupon.usageLimit
+                                                    ? <span className={(coupon.timesUsed || 0) >= coupon.usageLimit ? 'text-rose-600 font-bold' : 'text-slate-600'}>
+                                                        {coupon.timesUsed || 0} / {coupon.usageLimit}
+                                                      </span>
+                                                    : <span className="text-slate-400">{coupon.timesUsed || 0} used</span>
+                                                }
+                                            </span>
                                         </div>
                                     </td>
                                     <td className="px-0 md:px-6 py-1.5 md:py-4 text-slate-500 block md:table-cell">
@@ -268,6 +286,11 @@ export default function WaStoreCoupons() {
                             <div>
                                 <label className="block text-sm font-medium mb-1 text-slate-700">Min Order Value (Optional)</label>
                                 <input type="number" step="0.01" value={form.minOrderValue} onChange={e => setForm({...form, minOrderValue: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="0.00" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1 text-slate-700">Usage Limit (Optional)</label>
+                                <input type="number" min="1" step="1" value={form.usageLimit} onChange={e => setForm({...form, usageLimit: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Unlimited" />
+                                <p className="text-xs text-slate-400 mt-1">Max number of times this code can be redeemed. Leave blank for unlimited.</p>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>

@@ -43,6 +43,19 @@ const WaStoreCoupon = sequelize.define('WaStoreCoupon', {
         allowNull: true,
         defaultValue: null
     },
+    // SEC-3 FIX: Coupon usage tracking
+    // usageLimit: null = unlimited, integer = max number of times this coupon can be redeemed
+    usageLimit: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue: null
+    },
+    // timesUsed: auto-incremented each time the coupon is applied to a paid/confirmed order
+    timesUsed: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0
+    },
     expiresAt: {
         type: DataTypes.DATE,
         allowNull: true

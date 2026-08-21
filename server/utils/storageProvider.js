@@ -690,15 +690,18 @@ const extractS3Key = (url, s3Conf, endpoint, forcePathStyleVal) => {
  * (Cloudflare R2, AWS / S3-compatible, or local disk).
  *
  * Safe to call fire-and-forget â€” all errors are caught and logged.
- * @param {string} url - The public URL that was stored in the database.
+ * @param {string} url     - The public URL that was stored in the database.
+ * @param {string} [fileKey] - Optional: the stored S3/R2 object key. When provided,
+ *                             key extraction from the URL is skipped (more reliable).
  */
-const deleteStorageFile = async (url) => {
+const deleteStorageFile = async (url, fileKey = null) => {
     if (!url || typeof url !== 'string') return;
     try {
         const storageConf = await getStorageConfig();
 
         if (storageConf.type === 'r2') {
-            const key = extractR2Key(url, storageConf.r2Conf, storageConf.endpoint);
+            // Prefer stored key, fall back to URL extraction
+            const key = fileKey || extractR2Key(url, storageConf.r2Conf, storageConf.endpoint);
             if (!key) { console.warn('[Storage] Could not extract R2 key from URL:', url); return; }
             await storageConf.s3Client.send(new DeleteObjectCommand({
                 Bucket: storageConf.r2Conf.bucket,

@@ -13,6 +13,7 @@ const axios = require('axios');
 const storageProvider = require('../utils/storageProvider');
 const { deleteStorageFile } = require('../utils/storageProvider');
 const { Op, fn, col, literal } = require('sequelize');
+const { sequelize } = require('../config/database'); // for transactions (FUNC-3, FUNC-4)
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { fireCAPIEvent } = require('../utils/capi');
 const dns = require('dns').promises;
@@ -60,6 +61,15 @@ const publicOrderLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Too many requests. Please try again later.' }
+});
+
+// UX-7: Rate limiter for the /view endpoint to prevent view-count inflation from bots
+const viewLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 5, // max 5 view increments per IP per hour per store
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests.' }
 });
 
 // ── CAPI helper: build order contents array from items ───────────────────────
@@ -186,8 +196,23 @@ router.get('/public/:slug', async (req, res) => {
 
         const responseData = store.toJSON();
         delete responseData.User; // Hide user obj
+        // SEC-1: Strip server-only / payment-secret fields from the public storefront response.
+        // paymentConfig contains Razorpay/PhonePe secret keys — must never reach the browser.
+        delete responseData.paymentConfig;
+        delete responseData.taxConfig;
+        delete responseData.notificationTemplates;
+        delete responseData.abandonedCartConfig;
 
-        res.json({ store: responseData, products, totalProducts: count });
+        // DATA-1 FIX: Strip internal/wholesale fields from products returned to the public storefront.
+        // wholesalePrice and costPrice are owner-only data — never expose to customers.
+        const safeProducts = (products || []).map(p => {
+            const obj = p.toJSON ? p.toJSON() : { ...p };
+            delete obj.wholesalePrice;
+            delete obj.costPrice;
+            return obj;
+        });
+
+        res.json({ store: responseData, products: safeProducts, totalProducts: count });
     } catch (error) {
         console.error("Fetch Public Store error:", error);
         res.status(500).json({ error: 'Server error fetching store' });
@@ -195,7 +220,8 @@ router.get('/public/:slug', async (req, res) => {
 });
 
 // POST /api/wastore/public/:slug/view  — Dedicated view counter (called once per session from frontend)
-router.post('/public/:slug/view', async (req, res) => {
+// UX-7 FIX: Rate-limited to prevent view-count inflation from bots/scripts.
+router.post('/public/:slug/view', viewLimiter, async (req, res) => {
     try {
         const store = await WaStore.findOne({ where: { slug: req.params.slug.toLowerCase(), isActive: true } });
         if (!store) return res.status(404).json({ error: 'Store not found' });
@@ -269,7 +295,15 @@ router.get('/public/domain/:domain', async (req, res) => {
         const responseData = store.toJSON();
         delete responseData.User; // Hide user obj
 
-        res.json({ store: responseData, products, totalProducts: count });
+        // DATA-1 FIX: Strip internal fields from products (same as /public/:slug)
+        const safeProducts2 = (products || []).map(p => {
+            const obj = p.toJSON ? p.toJSON() : { ...p };
+            delete obj.wholesalePrice;
+            delete obj.costPrice;
+            return obj;
+        });
+
+        res.json({ store: responseData, products: safeProducts2, totalProducts: count });
     } catch (error) {
         console.error("Fetch Public Store Domain error:", error);
         res.status(500).json({ error: 'Server error fetching store by domain' });
@@ -288,49 +322,65 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
         const store = await WaStore.findByPk(storeId);
         if (!store || !store.isActive) return res.status(404).json({ error: 'Store not found' });
 
-        // Generate human-readable order number
+        // Generate order number config (used inside transaction)
         const prefixOnline = store.invoiceConfig?.prefixOnline || 'ORD-';
         const startSeq = parseInt(store.invoiceConfig?.onlineStartingNumber || store.invoiceConfig?.startingNumber) || 1001;
-        const count = await WaOrder.count({ where: { storeId, source: 'online' } });
-        const orderNumber = `${prefixOnline}${String(count + startSeq).padStart(4, '0')}`;
 
-        // #4 — Stock validation BEFORE creating the order to prevent overselling
-        if (items && Array.isArray(items)) {
-            for (const item of items) {
-                const product = await WaProduct.findByPk(item.id);
+        // FUNC-3 + FUNC-4 FIX: Wrap the entire order creation, stock check, stock deduction,
+        // and order-number generation inside a serializable DB transaction.
+        // This eliminates:
+        //   - Overselling race condition (two simultaneous orders passing the stock check)
+        //   - Duplicate order number (COUNT-based generation is now inside a SERIALIZABLE lock)
+        const order = await sequelize.transaction({ isolationLevel: 'SERIALIZABLE' }, async (t) => {
+            // Re-generate order number inside the transaction so the COUNT is consistent
+            const txCount = await WaOrder.count({ where: { storeId, source: 'online' }, transaction: t });
+            const txOrderNumber = `${prefixOnline}${String(txCount + startSeq).padStart(4, '0')}`;
+
+            // Re-validate stock atomically inside the transaction
+            for (const item of (items || [])) {
+                const product = await WaProduct.findByPk(item.id, { transaction: t, lock: t.LOCK.UPDATE });
                 if (product && product.trackQuantity) {
                     const available = product.stockQuantity || 0;
                     if (available < (item.qty || 1)) {
-                        return res.status(409).json({
-                            error: `Sorry, "${product.name}" only has ${available} unit(s) available. Please adjust your cart.`
-                        });
+                        const err = new Error(`STOCK_ERROR:${product.name}:${available}`);
+                        throw err;
                     }
                 }
             }
-        }
 
-        const order = await WaOrder.create({
-            storeId, orderNumber,
-            customerName, customerPhone, customerEmail, customerAddress, customerNote,
-            customerCompany: customerCompany || null,
-            customerGstin: customerGstin || null,
-            items, subtotal, currency: currency || store.currency,
-            originalTotal: originalTotal || null,
-            discountAmount: parseFloat(discountAmount) || 0,
-            couponCode: couponCode || null,
-            taxAmount: parseFloat(taxAmount) || 0,
-            taxRate: parseFloat(taxRate) || 0,
-            taxName: taxName || null,
-            total: parseFloat(total) || subtotal,
-            status: 'pending',
-            // Link to logged-in store customer account (null for guest checkouts)
-            storeCustomerId: storeCustomerId || null,
-        });
+            // SEC-4 FIX: Validate storeCustomerId belongs to this store (prevent order hijacking)
+            let validatedCustomerId = null;
+            if (storeCustomerId) {
+                const StoreCustomer = require('../models/StoreCustomer');
+                const cust = await StoreCustomer.findOne({
+                    where: { id: storeCustomerId, storeId },
+                    attributes: ['id'],
+                    transaction: t
+                });
+                validatedCustomerId = cust ? cust.id : null;
+                if (!cust) console.warn(`[SEC-4] storeCustomerId ${storeCustomerId} does not belong to store ${storeId} — ignored`);
+            }
 
-        // Deduct inventory
-        if (items && Array.isArray(items)) {
-            for (const item of items) {
-                const product = await WaProduct.findByPk(item.id);
+            const newOrder = await WaOrder.create({
+                storeId, orderNumber: txOrderNumber,
+                customerName, customerPhone, customerEmail, customerAddress, customerNote,
+                customerCompany: customerCompany || null,
+                customerGstin: customerGstin || null,
+                items, subtotal, currency: currency || store.currency,
+                originalTotal: originalTotal || null,
+                discountAmount: parseFloat(discountAmount) || 0,
+                couponCode: couponCode || null,
+                taxAmount: parseFloat(taxAmount) || 0,
+                taxRate: parseFloat(taxRate) || 0,
+                taxName: taxName || null,
+                total: parseFloat(total) || subtotal,
+                status: 'pending',
+                storeCustomerId: validatedCustomerId,
+            }, { transaction: t });
+
+            // Deduct inventory atomically
+            for (const item of (items || [])) {
+                const product = await WaProduct.findByPk(item.id, { transaction: t, lock: t.LOCK.UPDATE });
                 if (product && product.trackQuantity) {
                     const deduction = item.qty || 1;
                     const newQty = (product.stockQuantity || 0) - deduction;
@@ -338,8 +388,26 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
                     if (store.inventoryConfig?.autoOutOfStock && newQty <= 0) {
                         product.inStock = false;
                     }
-                    await product.save();
+                    await product.save({ transaction: t });
                 }
+            }
+
+            return newOrder;
+        });
+
+        // orderNumber is embedded in the order returned from the transaction
+        const orderNumber = order.orderNumber;
+
+        // SEC-3 FIX: Increment coupon timesUsed counter when an order is successfully placed with it.
+        if (couponCode) {
+            try {
+                const WaStoreCoupon = require('../models/WaStoreCoupon');
+                await WaStoreCoupon.increment('timesUsed', {
+                    by: 1,
+                    where: { storeId, code: String(couponCode).toUpperCase().trim() }
+                });
+            } catch (couponErr) {
+                console.warn('[Coupon] Failed to increment timesUsed:', couponErr.message);
             }
         }
 
@@ -443,6 +511,13 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
 
         res.json({ order, orderNumber });
     } catch (error) {
+        // FUNC-3 FIX: Translate internal stock error to user-facing 409 response
+        if (error.message?.startsWith('STOCK_ERROR:')) {
+            const [, productName, available] = error.message.split(':');
+            return res.status(409).json({
+                error: `Sorry, "${productName}" only has ${available} unit(s) available. Please adjust your cart.`
+            });
+        }
         console.error('Create order error:', error);
         res.status(500).json({ error: 'Failed to create order' });
     }
@@ -786,13 +861,21 @@ router.post('/public/:slug/phonepe-callback', async (req, res) => {
         const saltKey = store.paymentConfig?.phonepeSaltKey;
         const saltIndex = store.paymentConfig?.phonepeSaltIndex || '1';
         const xVerifyHeader = req.headers['x-verify'];
-        if (saltKey && xVerifyHeader) {
-            const crypto = require('crypto');
-            const expectedChecksum = crypto.createHash('sha256').update(response + saltKey).digest('hex') + '###' + saltIndex;
-            if (xVerifyHeader !== expectedChecksum) {
-                console.warn('[PhonePe] Checksum mismatch — possible forgery attempt');
-                return res.status(400).send('Invalid checksum');
-            }
+        // SEC-5 FIX: Always reject if saltKey is not configured OR header is missing.
+        // Previously, missing header skipped verification entirely — forgeable.
+        if (!saltKey) {
+            console.warn('[PhonePe] phonepeSaltKey not configured — rejecting callback to prevent forged payment confirmations');
+            return res.status(400).send('Payment configuration error');
+        }
+        if (!xVerifyHeader) {
+            console.warn('[PhonePe] X-VERIFY header missing — rejecting callback');
+            return res.status(400).send('Missing verification header');
+        }
+        const crypto = require('crypto');
+        const expectedChecksum = crypto.createHash('sha256').update(response + saltKey).digest('hex') + '###' + saltIndex;
+        if (xVerifyHeader !== expectedChecksum) {
+            console.warn('[PhonePe] Checksum mismatch — possible forgery attempt');
+            return res.status(400).send('Invalid checksum');
         }
 
         const decoded = JSON.parse(Buffer.from(response, 'base64').toString('utf-8'));
@@ -853,6 +936,13 @@ router.post('/public/:slug/validate-coupon', async (req, res) => {
             });
         }
 
+        // SEC-3 FIX: Usage limit check — if usageLimit is set, reject when timesUsed >= usageLimit
+        if (couponAny.usageLimit !== null && couponAny.usageLimit !== undefined) {
+            if ((couponAny.timesUsed || 0) >= parseInt(couponAny.usageLimit)) {
+                return res.status(400).json({ error: 'This coupon has reached its usage limit.' });
+            }
+        }
+
         res.json(couponAny);
     } catch (error) {
         console.error('Validate coupon error:', error);
@@ -909,7 +999,7 @@ router.post('/ai-description', async (req, res) => {
             description: `Generated product description for "${productName}"`
         });
 
-        res.json({ description, tokensDeducted: tokensNeeded });
+        res.json({ description, tokensDeducted: tokensNeeded, newBalance: user.aiTokenBalance });
 
     } catch (error) {
         console.error('AI Gen error:', error);
@@ -1008,6 +1098,26 @@ router.get('/', async (req, res) => {
     }
 });
 
+// DATA-5 FIX: Single-store lookup by slug (or numeric id) for WaStoreLayout.
+// Avoids fetching ALL user stores just to find one, which is wasteful as stores grow.
+router.get('/by-slug/:slug', async (req, res) => {
+    try {
+        const { slug } = req.params;
+        // Accept both slug (string) and numeric id as the param
+        const where = { userId: req.user.id };
+        if (/^\d+$/.test(slug)) {
+            where.id = parseInt(slug);
+        } else {
+            where.slug = slug;
+        }
+        const store = await WaStore.findOne({ where });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+        res.json(store);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch store' });
+    }
+});
+
 // Create new store
 router.post('/', async (req, res) => {
     try {
@@ -1062,10 +1172,12 @@ router.get('/:storeId/customers', async (req, res) => {
 
         const whereClause = { storeId: store.id };
         if (search) {
+            // SEC-2: Op.like is used instead of Op.iLike (which is PostgreSQL-only).
+            // MySQL's LIKE is already case-insensitive on utf8_general_ci collations.
             whereClause[Op.or] = [
-                { name:  { [Op.iLike]: `%${search}%` } },
-                { email: { [Op.iLike]: `%${search}%` } },
-                { phone: { [Op.iLike]: `%${search}%` } },
+                { name:  { [Op.like]: `%${search}%` } },
+                { email: { [Op.like]: `%${search}%` } },
+                { phone: { [Op.like]: `%${search}%` } },
             ];
         }
 
@@ -1206,6 +1318,7 @@ router.put('/:id', async (req, res) => {
         delete updates.updatedAt;
 
         // ── Delete replaced store-level images from storage (fire-and-forget) ──
+        // BUG-2 FIX: These previously used empty IIFEs that did nothing. Now calls deleteStorageFile.
 
         // Logo replaced or removed
         if (store.logo && updates.logo !== undefined && updates.logo !== store.logo) {
@@ -1422,6 +1535,7 @@ router.delete('/:id', async (req, res) => {
         if (!store) return res.status(404).json({ error: 'Store not found' });
 
         // ── Collect all product images and delete from storage (fire-and-forget) ──
+        // BUG-2 FIX: Replace ghost IIFEs with actual deleteStorageFile calls.
         const allProducts = await WaProduct.findAll({ where: { storeId: store.id } });
         allProducts.forEach(product => {
             const imageUrls = Array.isArray(product.imageUrls) ? product.imageUrls : [];
@@ -1799,8 +1913,13 @@ router.post('/:storeId/products/import/confirm', auth, async (req, res) => {
                 if (found) category = found;
             }
 
-            // Generate slug
-            let baseSlug = name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').substring(0, 80);
+            // Generate slug — DATA-4 FIX: safe for non-Latin product names
+            let baseSlug = (name || 'product').toLowerCase()
+                .replace(/[^a-z0-9\u0900-\u097f\u0600-\u06ff\u4e00-\u9fff-]/g, '-')
+                .replace(/-+/g, '-')
+                .replace(/^-+|-+$/g, '')
+                .substring(0, 80);
+            if (!baseSlug || /^-+$/.test(baseSlug)) baseSlug = 'product-' + Date.now().toString(36);
             let slug = baseSlug;
             let slugExists = await WaProduct.findOne({ where: { storeId: store.id, slug } });
             let counter = 1;
@@ -1882,7 +2001,18 @@ router.post('/:storeId/products', auth, async (req, res) => {
         if (payload.minWholesaleQty === '') payload.minWholesaleQty = null;
 
         if (!payload.slug) {
-            payload.slug = payload.name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+            // DATA-4 FIX: Handle non-Latin names (Hindi, Arabic, etc.) that produce all-dashes.
+            // Keep allowed chars, collapse runs of dashes, trim edges.
+            let autoSlug = (payload.name || 'product').toLowerCase()
+                .replace(/[^a-z0-9\u0900-\u097f\u0600-\u06ff\u4e00-\u9fff-]/g, '-') // keep Latin + common scripts
+                .replace(/-+/g, '-')
+                .replace(/^-+|-+$/g, '')
+                .substring(0, 80);
+            // If the result is empty or only dashes (pure non-Latin), use a numeric fallback
+            if (!autoSlug || /^-+$/.test(autoSlug)) {
+                autoSlug = 'product-' + Date.now().toString(36);
+            }
+            payload.slug = autoSlug;
         }
         
         let baseSlug = payload.slug || 'product';
@@ -1917,7 +2047,16 @@ router.put('/products/:productId', auth, async (req, res) => {
         if (payload.minWholesaleQty === '') payload.minWholesaleQty = null;
 
         if (!payload.slug && payload.name) {
-            payload.slug = payload.name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+            // DATA-4 FIX: Safe slug generation for non-Latin product names
+            let autoSlug = (payload.name || 'product').toLowerCase()
+                .replace(/[^a-z0-9\u0900-\u097f\u0600-\u06ff\u4e00-\u9fff-]/g, '-')
+                .replace(/-+/g, '-')
+                .replace(/^-+|-+$/g, '')
+                .substring(0, 80);
+            if (!autoSlug || /^-+$/.test(autoSlug)) {
+                autoSlug = 'product-' + Date.now().toString(36);
+            }
+            payload.slug = autoSlug;
         }
         if (payload.slug) {
             let baseSlug = payload.slug;
@@ -1931,6 +2070,7 @@ router.put('/products/:productId', auth, async (req, res) => {
         }
 
         // ── Delete images that were removed or replaced (fire-and-forget) ──
+        // BUG-2 FIX: Replace ghost IIFE with actual deleteStorageFile call.
         if (Array.isArray(payload.imageUrls)) {
             const oldUrls = Array.isArray(product.imageUrls) ? product.imageUrls : [];
             const newUrlSet = new Set(payload.imageUrls);
@@ -1956,6 +2096,7 @@ router.delete('/products/:productId', auth, async (req, res) => {
         if (!store) return res.status(403).json({ error: 'Unauthorized' });
 
         // ── Delete all product images from storage (fire-and-forget) ──
+        // BUG-2 FIX: Replace ghost IIFE with actual deleteStorageFile call.
         const imageUrls = Array.isArray(product.imageUrls) ? product.imageUrls : [];
         imageUrls.forEach(url => deleteStorageFile(url).catch(() => {}));
 
@@ -2042,17 +2183,43 @@ Return ONLY valid JSON. No markdown wrappers. Example:
 // ORDER MANAGEMENT (PROTECTED)
 // ==========================================
 
-// GET /api/wastore/:storeId/orders  — list all orders for a store
+// GET /api/wastore/:storeId/orders  — list all orders for a store (paginated)
+// UX-3 FIX: Added pagination to prevent OOM on stores with thousands of orders.
 router.get('/:storeId/orders', auth, async (req, res) => {
     try {
         const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
         if (!store) return res.status(404).json({ error: 'Store not found' });
 
-        const orders = await WaOrder.findAll({
-            where: { storeId: req.params.storeId },
-            order: [['createdAt', 'DESC']]
+        const page   = Math.max(1, parseInt(req.query.page)  || 1);
+        const limit  = Math.min(200, Math.max(1, parseInt(req.query.limit) || 50)); // default 50, cap 200
+        const offset = (page - 1) * limit;
+        const status = req.query.status; // optional filter
+        const search = req.query.search; // optional search by order number / name / phone
+
+        const where = { storeId: req.params.storeId };
+        if (status) where.status = status;
+        if (search) {
+            where[Op.or] = [
+                { orderNumber:    { [Op.like]: `%${search}%` } },
+                { customerName:   { [Op.like]: `%${search}%` } },
+                { customerPhone:  { [Op.like]: `%${search}%` } },
+            ];
+        }
+
+        const { count, rows: orders } = await WaOrder.findAndCountAll({
+            where,
+            order: [['createdAt', 'DESC']],
+            limit,
+            offset
         });
-        res.json(orders);
+
+        res.json({
+            orders,
+            total: count,
+            page,
+            totalPages: Math.ceil(count / limit),
+            limit
+        });
     } catch (error) {
         console.error('Fetch orders error:', error);
         res.status(500).json({ error: 'Failed to fetch orders' });
@@ -2132,6 +2299,10 @@ router.post('/:storeId/orders/:orderId/fulfill', auth, async (req, res) => {
         await order.save();
 
         const user = await User.findByPk(req.user.id);
+        // UX-2 FIX: Only send one notification on ship/fulfill.
+        // If we can send a rich tracking WhatsApp (with carrier + URL), send that and skip
+        // the generic template notification to prevent double-messaging the customer.
+        let trackingWaSent = false;
         if (user && user.fbAccessToken && user.metaPhoneNumberId && order.customerPhone) {
             const axios = require('axios');
             let phone = order.customerPhone.replace(/\D/g, '');
@@ -2150,12 +2321,13 @@ router.post('/:storeId/orders/:orderId/fulfill', auth, async (req, res) => {
                 }, {
                     headers: { 'Authorization': `Bearer ${user.fbAccessToken}`, 'Content-Type': 'application/json' }
                 });
+                trackingWaSent = true;
             } catch (err) {
                 console.error("Failed to send tracking whatsapp:", err.response?.data || err.message);
             }
         }
-        
-        if (user) await sendOrderNotification('order_shipped', store, user, order);
+        // Only send the template notification if the rich tracking message was not delivered
+        if (user && !trackingWaSent) await sendOrderNotification('order_shipped', store, user, order);
 
         res.json(order);
     } catch (error) {
@@ -2196,7 +2368,11 @@ router.post('/:storeId/coupons', auth, async (req, res) => {
             discountValue: parseFloat(body.discountValue) || 0,
             minOrderValue: body.minOrderValue !== '' && body.minOrderValue != null ? parseFloat(body.minOrderValue) : 0,
             isActive: body.isActive !== undefined ? body.isActive : true,
-            expiresAt: body.expiresAt || null
+            startsAt: body.startsAt || null,
+            expiresAt: body.expiresAt || null,
+            // SEC-3: usageLimit (null = unlimited)
+            usageLimit: body.usageLimit != null && body.usageLimit !== '' ? parseInt(body.usageLimit) : null,
+            timesUsed: 0
         });
         res.status(201).json(coupon);
     } catch (error) {
@@ -2227,7 +2403,10 @@ router.put('/:storeId/coupons/:couponId', auth, async (req, res) => {
             ...(body.discountValue !== undefined && { discountValue: parseFloat(body.discountValue) || 0 }),
             ...(body.minOrderValue !== undefined && { minOrderValue: body.minOrderValue !== '' ? parseFloat(body.minOrderValue) : 0 }),
             ...(body.isActive !== undefined && { isActive: body.isActive }),
-            ...(body.expiresAt !== undefined && { expiresAt: body.expiresAt || null })
+            ...(body.startsAt !== undefined && { startsAt: body.startsAt || null }),
+            ...(body.expiresAt !== undefined && { expiresAt: body.expiresAt || null }),
+            // SEC-3: allow updating usageLimit (null = unlimited, integer = capped)
+            ...(body.usageLimit !== undefined && { usageLimit: body.usageLimit != null && body.usageLimit !== '' ? parseInt(body.usageLimit) : null })
         });
         res.json(coupon);
     } catch (error) {
@@ -2272,17 +2451,30 @@ router.get('/:storeId/analytics', auth, async (req, res) => {
         to.setHours(23, 59, 59, 999);
         from.setHours(0, 0, 0, 0);
 
+        // UX-4 FIX: Cap analytics date range to 366 days to prevent unbounded queries.
+        // A date range > 1 year is unlikely to be meaningful for analytics UI and could OOM.
+        const MAX_DAYS = 366;
+        const daysDiff = Math.ceil((to - from) / (1000 * 60 * 60 * 24));
+        if (daysDiff > MAX_DAYS) {
+            from.setTime(to.getTime() - MAX_DAYS * 24 * 60 * 60 * 1000);
+            from.setHours(0, 0, 0, 0);
+        }
+
         const whereClause = {
             storeId: store.id,
             createdAt: { [Op.between]: [from, to] }
         };
 
         // --- KPI Summary ---
-        const allOrders = await WaOrder.findAll({ where: whereClause });
+        // UX-4 FIX: Hard limit of 5000 orders per analytics call to prevent OOM.
+        const allOrders = await WaOrder.findAll({ where: whereClause, limit: 5000, order: [['createdAt', 'ASC']] });
         const totalOrders = allOrders.length;
+        // DATA-3 FIX: Only count non-cancelled orders toward revenue (cancelled orders were
+        // never fulfilled, so counting them inflates revenue figures).
+        const revenueOrders = allOrders.filter(o => o.status !== 'cancelled');
         // #14 — Use order.total (what customer actually paid incl. tax), not subtotal
-        const totalRevenue = allOrders.reduce((sum, o) => sum + parseFloat(o.total || o.subtotal || 0), 0);
-        const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+        const totalRevenue = revenueOrders.reduce((sum, o) => sum + parseFloat(o.total || o.subtotal || 0), 0);
+        const avgOrderValue = revenueOrders.length > 0 ? totalRevenue / revenueOrders.length : 0;
 
         // Status counts
         const statusCounts = { pending: 0, confirmed: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0 };
@@ -2290,11 +2482,11 @@ router.get('/:storeId/analytics', auth, async (req, res) => {
 
         // --- Daily Trend (orders count + revenue per day) ---
         const dailyMap = {};
-        allOrders.forEach(order => {
+        revenueOrders.forEach(order => {
             const day = new Date(order.createdAt).toISOString().slice(0, 10);
             if (!dailyMap[day]) dailyMap[day] = { date: day, orders: 0, revenue: 0 };
             dailyMap[day].orders++;
-            // #14 — daily revenue also uses total
+            // #14 — daily revenue also uses total; cancelled excluded (DATA-3)
             dailyMap[day].revenue = parseFloat((dailyMap[day].revenue + parseFloat(order.total || order.subtotal || 0)).toFixed(2));
         });
 

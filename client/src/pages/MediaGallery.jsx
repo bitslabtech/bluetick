@@ -23,6 +23,10 @@ const formatBytes = (bytes) => {
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 };
 
+const isVideo = (mimeType, url) => (mimeType && mimeType.startsWith("video/")) || /\.(mp4|webm|3gp|ogg)(\?.*)?$/i.test(url || "");
+const isDocument = (mimeType) => mimeType && (mimeType.includes("pdf") || mimeType.includes("document") || mimeType.includes("msword") || mimeType.includes("text/") || mimeType.includes("csv"));
+
+
 const SOURCE_LABELS = {
     wastore: "Online Store",
     vcard: "Digital vCard",
@@ -48,9 +52,12 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
     const [total, setTotal] = useState(0);
     const [dragOver, setDragOver] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState(null);
+    const [usageInfo, setUsageInfo] = useState({ usages: [], loading: false }); // tracks usages for the pending delete
     const [activeMediaTab, setActiveMediaTab] = useState("all");
     // Ref for the hidden file input inside the drop zone
     const dropZoneInputRef = useRef(null);
+    // Debounce timer for search
+    const searchTimerRef = useRef(null);
 
     // Build headers inline so callbacks always have the latest token
     const getHeaders = useCallback(() => ({
@@ -66,7 +73,7 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
         }
     }, [token, getHeaders]);
 
-    const fetchFiles = useCallback(async (p = 1, tab = activeMediaTab) => {
+    const fetchFiles = useCallback(async (p = 1, tab = activeMediaTab, searchVal = searchTerm) => {
         setLoading(true);
         try {
             const params = new URLSearchParams({ page: p, limit: 50 });
@@ -75,6 +82,8 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
             // Pass mediaType filter when a specific tab is active
             const currentTab = MEDIA_TABS.find(t => t.id === tab);
             if (currentTab?.apiParam) params.append('mediaType', currentTab.apiParam);
+            // Fix #8: Send search to server so it searches across ALL pages, not just the current 50
+            if (searchVal && searchVal.trim()) params.append('search', searchVal.trim());
             const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/media?${params}`, { headers: getHeaders() });
             setFiles(res.data.files || []);
             setTotal(res.data.total || 0);
@@ -85,7 +94,7 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
         } finally {
             setLoading(false);
         }
-    }, [token, getHeaders, fetchSource, activeMediaTab]);
+    }, [token, getHeaders, fetchSource, activeMediaTab, searchTerm]);
 
     useEffect(() => {
         fetchUsage();
@@ -94,6 +103,12 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
 
     const handleFilesUpload = async (fileList) => {
         if (!fileList || fileList.length === 0) return;
+        // Fix #13: Enforce a 30-file max per upload batch
+        const MAX_FILES = 30;
+        if (fileList.length > MAX_FILES) {
+            showToast(`You can upload a maximum of ${MAX_FILES} files at once. Please select fewer files.`, "error");
+            return;
+        }
         setUploading(true);
         let successCount = 0;
         let failCount = 0;
@@ -116,7 +131,7 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
         
         if (successCount > 0) {
             showToast(`${successCount} file(s) uploaded successfully!`, "success");
-            await Promise.all([fetchFiles(1, activeMediaTab), fetchUsage()]);
+            await Promise.all([fetchFiles(1, activeMediaTab, searchTerm), fetchUsage()]);
         }
         if (failCount > 0) {
             showToast(`${failCount} file(s) failed to upload`, "error");
@@ -124,19 +139,46 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
         setUploading(false);
     };
 
-    const handleDelete = (id) => {
+    const handleDelete = async (id) => {
+        setUsageInfo({ usages: [], loading: true });
         setDeleteTarget({ type: 'single', id });
+        try {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/media/${id}/usages`, { headers: getHeaders() });
+            setUsageInfo({ usages: res.data.usages || [], loading: false });
+        } catch {
+            setUsageInfo({ usages: [], loading: false });
+        }
     };
 
-    const handleBulkDelete = () => {
+    const handleBulkDelete = async () => {
         if (selectedIds.length === 0) return;
+        setUsageInfo({ usages: [], loading: true });
         setDeleteTarget({ type: 'bulk' });
+        // Fetch usages for all selected files in parallel, then deduplicate
+        try {
+            const results = await Promise.all(
+                selectedIds.map(id => axios.get(`${import.meta.env.VITE_API_URL}/api/media/${id}/usages`, { headers: getHeaders() }).then(r => r.data.usages || []).catch(() => []))
+            );
+            const allUsages = results.flat();
+            // Fix #4: Deduplicate by type+id so the same product/store isn't listed multiple times
+            const seen = new Set();
+            const dedupedUsages = allUsages.filter(u => {
+                const key = `${u.type}:${u.id}`;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+            setUsageInfo({ usages: dedupedUsages, loading: false });
+        } catch {
+            setUsageInfo({ usages: [], loading: false });
+        }
     };
 
     const confirmDelete = async () => {
         if (!deleteTarget) return;
         const target = deleteTarget;
         setDeleteTarget(null);
+        setUsageInfo({ usages: [], loading: false });
 
         if (target.type === 'single') {
             try {
@@ -156,7 +198,7 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                 });
                 showToast(`${selectedIds.length} files deleted`, "success");
                 setSelectedIds([]);
-                await Promise.all([fetchFiles(page, activeMediaTab), fetchUsage()]);
+                await Promise.all([fetchFiles(page, activeMediaTab, searchTerm), fetchUsage()]);
             } catch (e) {
                 showToast(e.response?.data?.error || "Bulk delete failed", "error");
             }
@@ -192,12 +234,18 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
         if (files && files.length > 0) handleFilesUpload(files);
     };
 
-    // Filtered files by search
-    const filteredFiles = files.filter(f =>
-        !searchTerm ||
-        (f.fileName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (f.source || "").includes(searchTerm.toLowerCase())
-    );
+    // Fix #8: Debounced search — triggers server-side search 400ms after user stops typing
+    const handleSearchChange = (val) => {
+        setSearchTerm(val);
+        if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+        searchTimerRef.current = setTimeout(() => {
+            setPage(1);
+            fetchFiles(1, activeMediaTab, val);
+        }, 400);
+    };
+
+    // Filtered files — now server-side; client-side filter kept only as a safety net
+    const filteredFiles = files;
 
     // Usage bar color for restricted (plan-quota) storage
     const restrictedPct = usage?.percentage || 0;
@@ -311,7 +359,13 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                     return (
                         <button
                             key={tab.id}
-                            onClick={() => { setActiveMediaTab(tab.id); setSelectedIds([]); fetchFiles(1, tab.id); }}
+                            onClick={() => {
+                                // Fix #9: Reset page to 1 immediately on tab switch
+                                setActiveMediaTab(tab.id);
+                                setSelectedIds([]);
+                                setPage(1);
+                                fetchFiles(1, tab.id, searchTerm);
+                            }}
                             className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors whitespace-nowrap border-b-2 -mb-px
                                 ${activeMediaTab === tab.id
                                     ? "border-primary text-primary bg-primary/5 dark:bg-primary/10"
@@ -334,7 +388,7 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                             type="text"
                             placeholder="Search by filename..."
                             value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
+                            onChange={e => handleSearchChange(e.target.value)}
                             className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-lg text-sm text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30"
                         />
                     </div>
@@ -357,7 +411,7 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                 </div>
                 {/* Refresh */}
                 <button
-                    onClick={() => { fetchFiles(page, activeMediaTab); fetchUsage(); }}
+                    onClick={() => { fetchFiles(page, activeMediaTab, searchTerm); fetchUsage(); }}
                     className="p-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-lg text-slate-500 hover:text-primary transition-colors"
                 >
                     <RefreshCw className="w-4 h-4" />
@@ -459,12 +513,26 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                         >
                             {/* Thumbnail */}
                             <div className="aspect-square bg-white dark:bg-slate-800 overflow-hidden flex items-center justify-center">
-                                <img
-                                    src={file.url}
-                                    alt={file.fileName}
-                                    className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
-                                    onError={e => { e.target.src = ""; e.target.classList.add("hidden"); }}
-                                />
+                                {isVideo(file.mimeType, file.url) ? (
+                                    // Fix #12: preload="none" avoids firing 50 concurrent range-requests
+                                    // for all video thumbnails. Only load metadata when user hovers.
+                                    <video
+                                        src={file.url}
+                                        className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105 bg-black"
+                                        muted
+                                        preload="none"
+                                        onMouseEnter={e => { e.target.preload = 'metadata'; }}
+                                    />
+                                ) : isDocument(file.mimeType) ? (
+                                    <FileText className="w-12 h-12 text-slate-300" />
+                                ) : (
+                                    <img
+                                        src={file.url}
+                                        alt={file.fileName}
+                                        className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+                                        onError={e => { e.target.src = ""; e.target.classList.add("hidden"); }}
+                                    />
+                                )}
                             </div>
 
                             {/* Selection indicator */}
@@ -554,12 +622,22 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                                     </td>
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-3">
-                                            <img
-                                                src={file.url}
-                                                alt={file.fileName}
-                                                className="w-10 h-10 rounded-lg object-cover bg-slate-100 flex-shrink-0"
-                                                onError={e => { e.target.src = ""; }}
-                                            />
+                                            {isVideo(file.mimeType, file.url) ? (
+                                                <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
+                                                    <Film className="w-5 h-5 text-slate-400" />
+                                                </div>
+                                            ) : isDocument(file.mimeType) ? (
+                                                <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
+                                                    <FileText className="w-5 h-5 text-slate-400" />
+                                                </div>
+                                            ) : (
+                                                <img
+                                                    src={file.url}
+                                                    alt={file.fileName}
+                                                    className="w-10 h-10 rounded-lg object-cover bg-slate-100 flex-shrink-0"
+                                                    onError={e => { e.target.style.display = "none"; }}
+                                                />
+                                            )}
                                             <span className="text-slate-700 dark:text-slate-200 font-medium truncate max-w-[180px]">
                                                 {file.fileName || "Unnamed"}
                                             </span>
@@ -620,19 +698,38 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                     </table>
                 </div>)
             )}
-            {/* Pagination */}
+            {/* Pagination — Fix #10: Ellipsis pagination to avoid a wall of buttons at high page counts */}
             {totalPages > 1 && (
-                <div className="flex justify-center gap-2 mt-2">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                        <button
-                            key={p}
-                            onClick={() => fetchFiles(p, activeMediaTab)}
-                            className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors
-                                ${p === page ? "bg-primary text-white shadow-sm" : "bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-50"}`}
-                        >
-                            {p}
-                        </button>
-                    ))}
+                <div className="flex justify-center gap-2 mt-2 flex-wrap">
+                    {(() => {
+                        const delta = 2; // pages to show around current
+                        const range = [];
+                        const pages = [];
+                        for (let i = Math.max(2, page - delta); i <= Math.min(totalPages - 1, page + delta); i++) {
+                            range.push(i);
+                        }
+                        // Always include first page
+                        pages.push(1);
+                        if (range[0] > 2) pages.push('...');
+                        pages.push(...range);
+                        if (range[range.length - 1] < totalPages - 1) pages.push('...');
+                        if (totalPages > 1) pages.push(totalPages);
+
+                        return pages.map((p, idx) =>
+                            p === '...' ? (
+                                <span key={`ellipsis-${idx}`} className="w-9 h-9 flex items-center justify-center text-slate-400 text-sm">…</span>
+                            ) : (
+                                <button
+                                    key={p}
+                                    onClick={() => fetchFiles(p, activeMediaTab, searchTerm)}
+                                    className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors
+                                        ${p === page ? "bg-primary text-white shadow-sm" : "bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-50"}`}
+                                >
+                                    {p}
+                                </button>
+                            )
+                        );
+                    })()}
                 </div>
             )}
             {/* Preview Modal */}
@@ -641,8 +738,9 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                     className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
                     onClick={() => setPreviewFile(null)}
                 >
+                    {/* Fix #11: cursor-default — the inner modal card is not a clickable target */}
                     <div
-                        className="relative bg-white dark:bg-surface-dark rounded-2xl overflow-hidden max-w-3xl w-full shadow-2xl cursor-pointer"
+                        className="relative bg-white dark:bg-surface-dark rounded-2xl overflow-hidden max-w-3xl w-full shadow-2xl cursor-default"
                         onClick={e => e.stopPropagation()}
                     >
                         <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-white/10">
@@ -674,42 +772,100 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                             </div>
                         </div>
                         <div className="p-4 bg-slate-50 dark:bg-black/20 flex items-center justify-center min-h-[300px]">
-                            <img
-                                src={previewFile.url}
-                                alt={previewFile.fileName}
-                                className="max-h-[60vh] max-w-full object-contain rounded-lg"
-                            />
+                            {isVideo(previewFile.mimeType, previewFile.url) ? (
+                                <video
+                                    src={previewFile.url}
+                                    controls
+                                    autoPlay
+                                    className="max-h-[60vh] max-w-full object-contain rounded-lg bg-black"
+                                />
+                            ) : previewFile.mimeType === 'application/pdf' || previewFile.fileName?.toLowerCase().endsWith('.pdf') ? (
+                                <iframe src={previewFile.url} className="w-full h-[60vh] rounded-lg" title="PDF Preview" />
+                            ) : isDocument(previewFile.mimeType) ? (
+                                <div className="flex flex-col items-center justify-center text-slate-400 py-12">
+                                    <FileText className="w-20 h-20 mb-4 opacity-50" />
+                                    <p className="text-lg">Document preview not available</p>
+                                    <a href={previewFile.url} target="_blank" rel="noreferrer" className="mt-4 px-6 py-2 bg-primary text-white rounded-lg hover:bg-indigo-600 transition-colors">
+                                        Download / View File
+                                    </a>
+                                </div>
+                            ) : (
+                                <img
+                                    src={previewFile.url}
+                                    alt={previewFile.fileName}
+                                    className="max-h-[60vh] max-w-full object-contain rounded-lg"
+                                />
+                            )}
                         </div>
                     </div>
                 </div>
             )}
             {/* Delete Confirmation Modal */}
             {deleteTarget && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white dark:bg-surface-dark w-full max-w-sm rounded-2xl shadow-xl overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="p-6 text-center">
-                            <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center mx-auto mb-4">
-                                <AlertCircle className="w-6 h-6 text-rose-500" />
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-surface-dark w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        {/* Header */}
+                        <div className="p-6 pb-4">
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${
+                                usageInfo.usages.length > 0 ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-rose-100 dark:bg-rose-900/30'
+                            }`}>
+                                <AlertCircle className={`w-6 h-6 ${usageInfo.usages.length > 0 ? 'text-amber-500' : 'text-rose-500'}`} />
                             </div>
-                            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Delete File{deleteTarget.type === 'bulk' ? 's' : ''}?</h3>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
-                                {deleteTarget.type === 'bulk' 
-                                    ? `Are you sure you want to permanently delete ${selectedIds.length} files? This action cannot be undone.`
-                                    : `Are you sure you want to permanently delete this file? This action cannot be undone.`}
+                            <h3 className="text-lg font-bold text-slate-800 dark:text-white text-center mb-1">
+                                Delete {deleteTarget.type === 'bulk' ? `${selectedIds.length} Files` : 'File'}?
+                            </h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 text-center">
+                                {deleteTarget.type === 'bulk'
+                                    ? `Permanently delete ${selectedIds.length} selected files.`
+                                    : 'Permanently delete this file from storage.'}
                             </p>
                         </div>
+
+                        {/* Usage Warning Section */}
+                        {usageInfo.loading ? (
+                            <div className="mx-6 mb-4 p-3 bg-slate-50 dark:bg-white/5 rounded-xl flex items-center gap-2">
+                                <Loader2 className="w-4 h-4 text-slate-400 animate-spin flex-shrink-0" />
+                                <span className="text-xs text-slate-400">Checking where this file is used...</span>
+                            </div>
+                        ) : usageInfo.usages.length > 0 ? (
+                            <div className="mx-6 mb-4">
+                                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-xl mb-2">
+                                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1">
+                                        ⚠️ Used in {usageInfo.usages.length} place{usageInfo.usages.length !== 1 ? 's' : ''} — deleting will remove it from:
+                                    </p>
+                                </div>
+                                <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+                                    {usageInfo.usages.map((u, i) => (
+                                        <div key={i} className="flex items-start gap-2.5 p-2.5 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/10">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 flex-shrink-0" />
+                                            <div className="min-w-0">
+                                                <span className="text-xs font-medium text-slate-700 dark:text-slate-200 block truncate">{u.detail}</span>
+                                                <span className="text-[10px] text-slate-400 dark:text-slate-500">{u.label}{u.storeName ? ` · ${u.storeName}` : ''}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="mx-6 mb-4 p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/40 rounded-xl">
+                                <p className="text-xs text-emerald-700 dark:text-emerald-400">✓ This file is not used anywhere else — safe to delete.</p>
+                            </div>
+                        )}
+
+                        {/* Action Buttons */}
                         <div className="flex border-t border-slate-100 dark:border-white/5">
                             <button
-                                onClick={() => setDeleteTarget(null)}
+                                onClick={() => { setDeleteTarget(null); setUsageInfo({ usages: [], loading: false }); }}
                                 className="flex-1 px-4 py-3.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-r border-slate-100 dark:border-white/5"
                             >
-                                No, Cancel
+                                Cancel
                             </button>
                             <button
                                 onClick={confirmDelete}
-                                className="flex-1 px-4 py-3.5 text-sm font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
+                                disabled={usageInfo.loading}
+                                className="flex-1 px-4 py-3.5 text-sm font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors disabled:opacity-50"
                             >
-                                Yes, Delete
+                                {usageInfo.usages.length > 0 ? 'Delete & Remove All' : 'Yes, Delete'}
                             </button>
                         </div>
                     </div>

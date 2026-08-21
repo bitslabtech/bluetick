@@ -380,19 +380,27 @@ export default function WaStoreOrders() {
     const fetchOrders = useCallback(async () => {
         setLoading(true);
         try {
-            const [ordersRes, storesRes] = await Promise.all([
-                axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}/orders`),
-                axios.get(`${import.meta.env.VITE_API_URL}/api/wastore`)
+            // UX-3: API now returns paginated shape { orders, total, page, totalPages, limit }
+            // We fetch with a high limit so the UX remains unchanged (all orders visible),
+            // while the server is protected from unbounded queries.
+            // DATA-5: use /by-slug/:storeId to avoid fetching all stores.
+            const params = new URLSearchParams({ limit: 200 });
+            if (statusFilter !== 'all') params.set('status', statusFilter);
+
+            const [ordersRes, storeRes] = await Promise.all([
+                axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}/orders?${params}`),
+                axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/by-slug/${storeId}`)
             ]);
-            setOrders(ordersRes.data);
-            const myStore = storesRes.data.find(s => s.id === storeId);
-            if (myStore) setStore(myStore);
+            // Unwrap paginated response — API returns { orders: [...], total, page, ... }
+            const data = ordersRes.data;
+            setOrders(Array.isArray(data) ? data : (data.orders || []));
+            setStore(storeRes.data);
         } catch {
             toast.error('Failed to load orders');
         } finally {
             setLoading(false);
         }
-    }, [storeId]);
+    }, [storeId, statusFilter]);
 
     useEffect(() => { fetchOrders(); }, [fetchOrders]);
 

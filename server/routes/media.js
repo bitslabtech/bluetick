@@ -120,6 +120,12 @@ router.get('/', async (req, res) => {
             // ignore unknown source values to avoid ENUM errors
         }
 
+        // Fix #8: Server-side filename search — allows searching across all pages, not just the current 50
+        const search = req.query.search ? req.query.search.trim() : null;
+        if (search) {
+            where.fileName = { [Op.like]: `%${search}%` };
+        }
+
         // Optional mediaType filter for gallery tabs: image | video | document
         // For legacy rows that have mediaType = NULL, derive from mimeType using OR clause
         const mediaType = req.query.mediaType;
@@ -195,6 +201,141 @@ router.get('/', async (req, res) => {
 // - Otherwise -> registerMedia: true (unrestricted gallery upload)
 // ─────────────────────────────────────────────────────────────────────────────
 const WaStore = require('../models/WaStore');
+const WaProduct = require('../models/WaProduct');
+const Vcard = require('../models/Vcard');
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper: Find every place a given media URL is referenced
+// Returns array of { type, id, label, detail }
+// ─────────────────────────────────────────────────────────────────────────────
+async function getFileUsages(url, userId) {
+    const usages = [];
+
+    // Fix #3: Fetch stores once and reuse for both product lookup and store-level field checks
+    const allStores = await WaStore.findAll({ where: { userId } });
+    const storeIds = allStores.map(s => s.id);
+    const storeNameMap = {};
+    allStores.forEach(s => { storeNameMap[s.id] = s.name || s.slug; });
+
+    // ── WaProduct: imageUrls[] and ogImage ──
+    if (storeIds.length > 0) {
+        const products = await WaProduct.findAll({ where: { storeId: { [Op.in]: storeIds } } });
+        for (const p of products) {
+            const imgs = Array.isArray(p.imageUrls) ? p.imageUrls : [];
+            if (imgs.includes(url)) {
+                usages.push({ type: 'product_image', id: p.id, label: 'Product image', detail: p.name || 'Unnamed product', storeId: p.storeId, storeName: storeNameMap[p.storeId] });
+            }
+            if (p.ogImage === url) {
+                usages.push({ type: 'product_og', id: p.id, label: 'Product SEO image', detail: p.name || 'Unnamed product', storeId: p.storeId, storeName: storeNameMap[p.storeId] });
+            }
+        }
+    }
+
+    // ── WaStore: logo, coverImage, seoImage, heroSlides, categoryImages ── (reuse allStores)
+    for (const s of allStores) {
+        if (s.logo === url)       usages.push({ type: 'store_logo',   id: s.id, label: 'Store logo',   detail: s.name || s.slug });
+        if (s.coverImage === url) usages.push({ type: 'store_cover',  id: s.id, label: 'Store cover',  detail: s.name || s.slug });
+        if (s.seoImage === url)   usages.push({ type: 'store_seo',    id: s.id, label: 'Store SEO image', detail: s.name || s.slug });
+
+        const slides = Array.isArray(s.heroSlides) ? s.heroSlides : [];
+        slides.forEach((slide, i) => {
+            if (slide?.imageUrl === url)
+                usages.push({ type: 'hero_slide', id: s.id, label: 'Hero slide', detail: slide.title || `Slide ${i + 1}` });
+        });
+
+        const catImgs = (typeof s.categoryImages === 'string' ? JSON.parse(s.categoryImages || '{}') : (s.categoryImages || {}));
+        Object.entries(catImgs).forEach(([cat, catUrl]) => {
+            if (catUrl === url)
+                usages.push({ type: 'category_image', id: s.id, label: 'Category image', detail: cat });
+        });
+    }
+
+    // ── Vcard: profileImage, coverImage, services[], portfolio[], testimonials[] ──
+    const vcards = await Vcard.findAll({ where: { userId } });
+    for (const v of vcards) {
+        const vcName = v.name || v.slug || 'vCard';
+        if (v.profileImage === url) usages.push({ type: 'vcard_profile', id: v.id, label: 'vCard profile image', detail: vcName });
+        if (v.coverImage === url)   usages.push({ type: 'vcard_cover',   id: v.id, label: 'vCard cover image',   detail: vcName });
+
+        const arrayFields = [
+            { field: v.services,     key: 'services',     label: 'vCard service' },
+            { field: v.portfolio,    key: 'portfolio',    label: 'vCard portfolio item' },
+            { field: v.testimonials, key: 'testimonials', label: 'vCard testimonial' },
+        ];
+        for (const { field, label } of arrayFields) {
+            const arr = Array.isArray(field) ? field : [];
+            arr.forEach(item => {
+                if (item?.imageUrl === url)
+                    usages.push({ type: 'vcard_section', id: v.id, label, detail: item.title || item.name || vcName });
+            });
+        }
+    }
+
+    return usages;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper: Remove a URL from all places it is referenced
+// ─────────────────────────────────────────────────────────────────────────────
+async function scrubFileUsages(url, userId) {
+    // Fix #3: Fetch stores once, reuse for both products and store-level field scrub
+    const allStores = await WaStore.findAll({ where: { userId } });
+    const storeIds = allStores.map(s => s.id);
+
+    // ── WaProduct ──
+    if (storeIds.length > 0) {
+        const products = await WaProduct.findAll({ where: { storeId: { [Op.in]: storeIds } } });
+        for (const p of products) {
+            let dirty = false;
+            const imgs = Array.isArray(p.imageUrls) ? p.imageUrls : [];
+            const newImgs = imgs.filter(u => u !== url);
+            if (newImgs.length !== imgs.length) { p.imageUrls = newImgs; dirty = true; }
+            if (p.ogImage === url) { p.ogImage = null; dirty = true; }
+            if (dirty) await p.save();
+        }
+    }
+
+    // ── WaStore (reuse allStores fetched above) ──
+    for (const s of allStores) {
+        let dirty = false;
+        if (s.logo === url)       { s.logo = null; dirty = true; }
+        if (s.coverImage === url) { s.coverImage = null; dirty = true; }
+        if (s.seoImage === url)   { s.seoImage = null; dirty = true; }
+
+        const slides = Array.isArray(s.heroSlides) ? s.heroSlides : [];
+        const newSlides = slides.filter(slide => slide?.imageUrl !== url);
+        if (newSlides.length !== slides.length) { s.heroSlides = newSlides; dirty = true; }
+
+        // Fix #7: Remove the key entirely (delete) instead of setting to null,
+        // so no ghost null-value entry remains in the categoryImages JSON
+        const catImgs = (typeof s.categoryImages === 'string' ? JSON.parse(s.categoryImages || '{}') : (s.categoryImages || {}));
+        let catDirty = false;
+        Object.keys(catImgs).forEach(cat => { if (catImgs[cat] === url) { delete catImgs[cat]; catDirty = true; } });
+        if (catDirty) { s.categoryImages = catImgs; dirty = true; }
+
+        if (dirty) await s.save();
+    }
+
+    // ── Vcard ──
+    const vcards = await Vcard.findAll({ where: { userId } });
+    for (const v of vcards) {
+        let dirty = false;
+        if (v.profileImage === url) { v.profileImage = null; dirty = true; }
+        if (v.coverImage === url)   { v.coverImage = null; dirty = true; }
+
+        const arrayFields = ['services', 'portfolio', 'testimonials'];
+        for (const field of arrayFields) {
+            const arr = Array.isArray(v[field]) ? v[field] : [];
+            const newArr = arr.map(item => {
+                if (item?.imageUrl === url) { return { ...item, imageUrl: null }; }
+                return item;
+            });
+            if (JSON.stringify(newArr) !== JSON.stringify(arr)) { v[field] = newArr; dirty = true; }
+        }
+
+        if (dirty) await v.save();
+    }
+}
 
 router.post('/upload', async (req, res, next) => {
     try {
@@ -264,6 +405,24 @@ router.post('/upload', async (req, res, next) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GET /api/media/:id/usages — Check where a media file is used
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/:id/usages', async (req, res) => {
+    try {
+        const mediaFile = await MediaFile.findOne({
+            where: { id: req.params.id, userId: req.user.id }
+        });
+        if (!mediaFile) return res.status(404).json({ error: 'Media file not found' });
+
+        const usages = await getFileUsages(mediaFile.url, req.user.id);
+        res.json({ usages });
+    } catch (error) {
+        console.error('Media usage check error:', error);
+        res.status(500).json({ error: 'Failed to check file usages' });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // DELETE /api/media/:id — Delete a specific media file
 // ─────────────────────────────────────────────────────────────────────────────
 router.delete('/:id', async (req, res) => {
@@ -273,19 +432,20 @@ router.delete('/:id', async (req, res) => {
         });
         if (!mediaFile) return res.status(404).json({ error: 'Media file not found' });
 
-        // Delete from storage (non-fatal)
+        // Scrub the URL from all places it is referenced (products, stores, vcards)
         if (mediaFile.url) {
-            await storageProvider.deleteStorageFile(mediaFile.url);
+            await scrubFileUsages(mediaFile.url, req.user.id).catch(e => console.error('[Media] scrubFileUsages error:', e));
         }
 
-        // Only decrement mediaStorageUsed for quota-tracked sources (wastore / vcard)
-        if (RESTRICTED_SOURCES.includes(mediaFile.source) && mediaFile.sizeBytes && mediaFile.sizeBytes > 0) {
-            const user = await User.findByPk(req.user.id, { attributes: ['id', 'mediaStorageUsed'] });
-            if (user) {
-                const newUsed = Math.max(0, Number(user.mediaStorageUsed || 0) - Number(mediaFile.sizeBytes));
-                await User.update({ mediaStorageUsed: newUsed }, { where: { id: req.user.id } });
-            }
+        // Fix #1: Pass stored fileKey so the delete doesn't rely on fragile URL parsing
+        if (mediaFile.url) {
+            await storageProvider.deleteStorageFile(mediaFile.url, mediaFile.fileKey || null);
         }
+
+        // Fix #6: Remove the redundant mediaStorageUsed counter decrement.
+        // The GET /api/media/usage endpoint always queries the live SUM(sizeBytes)
+        // from MediaFile records, so the usage bar stays accurate after the
+        // MediaFile row is destroyed below — no counter to maintain.
 
         // Remove DB record
         await mediaFile.destroy();
@@ -313,26 +473,20 @@ router.delete('/', async (req, res) => {
 
         if (files.length === 0) return res.status(404).json({ error: 'No files found' });
 
-        // Delete from storage
+        // Scrub URLs from all usages, then delete from storage
+        // Fix #1: Pass stored fileKey to avoid fragile URL-based key parsing
         for (const file of files) {
-            if (file.url) await storageProvider.deleteStorageFile(file.url);
-        }
-
-        // Sum bytes only from quota-tracked sources
-        const restrictedDeletedSize = files
-            .filter(f => RESTRICTED_SOURCES.includes(f.source))
-            .reduce((sum, f) => sum + Number(f.sizeBytes || 0), 0);
-
-        await MediaFile.destroy({ where: { id: { [Op.in]: ids }, userId: req.user.id } });
-
-        // Decrement mediaStorageUsed only for restricted files
-        if (restrictedDeletedSize > 0) {
-            const user = await User.findByPk(req.user.id, { attributes: ['id', 'mediaStorageUsed'] });
-            if (user) {
-                const newUsed = Math.max(0, Number(user.mediaStorageUsed || 0) - restrictedDeletedSize);
-                await User.update({ mediaStorageUsed: newUsed }, { where: { id: req.user.id } });
+            if (file.url) {
+                await scrubFileUsages(file.url, req.user.id).catch(e => console.error('[Media] scrubFileUsages error:', e));
+                await storageProvider.deleteStorageFile(file.url, file.fileKey || null);
             }
         }
+
+        // Fix #6: No longer decrementing the mediaStorageUsed counter manually.
+        // The /usage endpoint uses live SUM(sizeBytes) from MediaFile, which
+        // is correct after the destroy() below — no manual counter needed.
+
+        await MediaFile.destroy({ where: { id: { [Op.in]: ids }, userId: req.user.id } });
 
         res.json({ success: true, deleted: files.length });
     } catch (error) {

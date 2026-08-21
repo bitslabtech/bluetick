@@ -104,14 +104,16 @@ export default function WaStoreLayout() {
     useEffect(() => {
         const fetchStore = async () => {
             try {
-                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore`);
-                const myStore = res.data.find(s => s.slug === slug || s.id === slug);
-                setStore(myStore);
-                if (!myStore) {
-                    setDebugInfo({ slug: slug, allSlugs: res.data.map(s => s.slug).join(', ') });
-                }
+                // DATA-5 FIX: Fetch only this specific store instead of all stores.
+                // /api/wastore/by-slug/:slug accepts slug or numeric id.
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/by-slug/${slug}`);
+                setStore(res.data);
             } catch (error) {
-                toast.error("Failed to load store details");
+                if (error.response?.status === 404) {
+                    setDebugInfo({ slug, error: 'Store not found' });
+                } else {
+                    toast.error("Failed to load store details");
+                }
             } finally {
                 setLoading(false);
             }
