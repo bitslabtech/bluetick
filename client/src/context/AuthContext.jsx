@@ -156,6 +156,7 @@ export const AuthProvider = ({ children }) => {
 
                 // 3. Hard-navigate to superadmin users page to clear all impersonated-user state
                 //    (socket connections, cached API data, etc.)
+                localStorage.removeItem('pendingPlan');
                 window.location.href = '/superadmin/users';
             } else {
                 throw new Error('Server did not confirm session restore');

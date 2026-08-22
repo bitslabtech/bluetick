@@ -105,6 +105,7 @@ const PublicWaStoreCategory = React.lazy(() => import('./pages/PublicWaStoreCate
 const PublicWaStorePage = React.lazy(() => import('./pages/PublicWaStorePage'));
 const PublicWaProduct = React.lazy(() => import('./pages/PublicWaProduct'));
 const PublicWaStoreVerify = React.lazy(() => import('./pages/PublicWaStoreVerify'));
+const PublicWaStoreOrderSuccess = React.lazy(() => import('./pages/PublicWaStoreOrderSuccess'));
 const StoreLoginPage = React.lazy(() => import('./pages/StoreCustomer/StoreLoginPage'));
 const StoreRegisterPage = React.lazy(() => import('./pages/StoreCustomer/StoreRegisterPage'));
 const StoreAccountPage = React.lazy(() => import('./pages/StoreCustomer/StoreAccountPage'));
@@ -355,6 +356,7 @@ function CustomDomainRouter({ children }) {
         return (
             <Routes>
                 <Route path="/verify" element={<PublicWaStoreVerify />} />
+                <Route path="/order-success" element={<PublicWaStoreOrderSuccess />} />
                 <Route path="/product/:productId" element={<PublicWaProduct customSlug={storeSlug} />} />
                 <Route path="/categories" element={<PublicWaStoreCategories customSlug={storeSlug} />} />
                 <Route path="/category/:categoryName" element={<PublicWaStoreCategory customSlug={storeSlug} />} />
@@ -399,6 +401,7 @@ function App() {
                                         <Route path="/nfc/setup/:shortCode" element={<NfcSetup />} /> {/* NEW: NFC Setup */}
                                         <Route path="/store/:slug" element={<PublicWaStore />} /> {/* Public WhatsApp Store */}
                                         <Route path="/store/:slug/verify" element={<PublicWaStoreVerify />} />
+                                        <Route path="/store/:slug/order-success" element={<PublicWaStoreOrderSuccess />} />
                                         <Route path="/store/:slug/product/:productId" element={<PublicWaProduct />} /> {/* Single Product */}
                                         <Route path="/store/:slug/categories" element={<PublicWaStoreCategories />} /> {/* All Categories Page */}
                                         <Route path="/store/:slug/category/:categoryName" element={<PublicWaStoreCategory />} /> {/* Category Page */}

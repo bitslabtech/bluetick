@@ -504,7 +504,7 @@ const UserModal = ({ user, plans, onClose, onSave }) => {
         name: user?.name || '',
         email: user?.email || '',
         password: '',
-        plan: 'Free'
+        plan: user?.plan || 'Free'
     });
 
     const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });

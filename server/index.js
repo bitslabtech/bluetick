@@ -187,6 +187,9 @@ const path = require('path');
 app.use('/uploads', (req, res, next) => {
     res.set('Cross-Origin-Resource-Policy', 'cross-origin');
     res.set('Access-Control-Allow-Origin', '*');
+    // Remove Helmet security headers that break iframe/PDF embedding
+    res.removeHeader('Content-Security-Policy');
+    res.removeHeader('X-Frame-Options');
     // Cache uploaded assets for 1 year — filenames are content-unique so cache-busting is automatic
     res.set('Cache-Control', 'public, max-age=31536000, immutable');
     next();

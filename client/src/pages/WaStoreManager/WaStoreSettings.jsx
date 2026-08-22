@@ -131,8 +131,8 @@ export default function WaStoreSettings() {
                 const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore`);
                 const myStore = res.data.find(s => s.id === storeId);
                 setStore(myStore);
-                if (myStore?.customDomain) setCustomDomain(myStore.customDomain);
-                else setCustomDomain('www.');
+                if (myStore?.customDomain) setCustomDomain(myStore.customDomain.replace(/^www\./i, ''));
+                else setCustomDomain('');
                 if (myStore?.domainStatus) setDomainStatus(myStore.domainStatus);
                 if (myStore?.domainVerifiedAt) setDomainVerifiedAt(myStore.domainVerifiedAt);
                 if (myStore?.gridColumns) setGridColumns(myStore.gridColumns);
@@ -191,19 +191,19 @@ export default function WaStoreSettings() {
         setSavingDomain(true);
         setVerifyResult(null);
         try {
+            const finalDomain = `www.${customDomain.trim().toLowerCase().replace(/^www\./, '')}`;
             const res = await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, {
-                customDomain: customDomain
+                customDomain: finalDomain
             });
-            const savedDomain = res.data.customDomain || customDomain;
+            const savedDomain = res.data.customDomain || finalDomain;
             const savedStatus = res.data.domainStatus || 'pending';
-            setCustomDomain(savedDomain);
+            setCustomDomain(savedDomain.replace(/^www\./i, ''));
             setDomainStatus(savedStatus);
             // Update local store object so store?.customDomain references in JSX reflect immediately
             setStore(prev => prev ? { ...prev, customDomain: savedDomain, domainStatus: savedStatus } : prev);
             setShowDnsInstructions(true);
-            // Auto-detect domain type from input
-            const parts = savedDomain.split('.');
-            setDomainType(parts.length <= 2 ? 'root' : 'subdomain');
+            // Auto-detect domain type from input (with www. it's always a subdomain structure)
+            setDomainType('subdomain');
             toast.success('Domain saved! Now configure your DNS records below.');
         } catch (error) {
             toast.error(error.response?.data?.error || 'Failed to update custom domain');
@@ -437,19 +437,19 @@ export default function WaStoreSettings() {
                                         <div>
                                             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Your Domain Name</label>
                                             <div className="flex flex-col sm:flex-row gap-3">
-                                                <div className="relative w-full sm:flex-1">
-                                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                        <Link2 className="w-4 h-4 text-slate-400" />
-                                                    </div>
+                                                <div className="relative w-full sm:flex-1 flex rounded-xl shadow-sm overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500">
+                                                    <span className="inline-flex items-center pl-4 pr-1 py-3 sm:py-2.5 text-slate-500 dark:text-slate-400 text-sm font-semibold select-none">
+                                                        www.
+                                                    </span>
                                                     <input
                                                         type="text"
-                                                        placeholder="www.yourbrand.com"
+                                                        placeholder="yourbrand.com"
                                                         value={customDomain}
                                                         onChange={e => {
-                                                            let val = e.target.value.toLowerCase().replace(/^https?:\/\//, '').split('/')[0];
+                                                            let val = e.target.value.toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
                                                             setCustomDomain(val);
                                                         }}
-                                                        className="w-full pl-10 pr-4 py-3 sm:py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-slate-900 dark:text-white text-sm"
+                                                        className="flex-1 w-full pl-0 pr-4 py-3 sm:py-2.5 bg-transparent outline-none text-slate-900 dark:text-white text-sm m-0 border-none focus:ring-0"
                                                     />
                                                 </div>
                                                 <div className="flex gap-2">

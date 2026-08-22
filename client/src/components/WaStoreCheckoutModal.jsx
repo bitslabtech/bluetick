@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, ShoppingBag, ArrowRight, Tag, Loader2, Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { X, ShoppingBag, ArrowRight, Tag, Loader2, Check, UserCircle2 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useStoreCustomerOptional } from '../context/StoreCustomerContext';
+import { getStoreRoute } from '../utils/storeRouting';
+import StoreEmbeddedLogin from './StoreEmbeddedLogin';
 
 const INDIAN_STATES = [
     "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", 
@@ -29,6 +32,7 @@ const COUNTRY_CODES = [
 
 
 export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippingCost, cartTotal, onClose, onCheckoutSuccess }) {
+    const navigate = useNavigate();
     // Returns null gracefully if not inside StoreCustomerProvider
     const storeCustomerCtx = useStoreCustomerOptional();
     const storeCustomer = storeCustomerCtx?.customer || null;
@@ -46,6 +50,7 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
         pincode: '',
         notes: ''
     });
+    const [errors, setErrors] = useState({});
 
     // B2B GST details (optional, only shown when store has GST enabled)
     const [gstDetails, setGstDetails] = useState({ company: '', gstin: '', pan: '' });
@@ -251,10 +256,20 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
             }
         }
 
-        if (!formData.name?.trim() || !formData.phone?.trim() || !formData.address?.trim() || !formData.city?.trim() || !formData.state?.trim() || !formData.pincode?.trim()) {
+        const newErrors = {};
+        if (!formData.name?.trim()) newErrors.name = true;
+        if (!formData.phone?.trim()) newErrors.phone = true;
+        if (!formData.address?.trim()) newErrors.address = true;
+        if (!formData.city?.trim()) newErrors.city = true;
+        if (!formData.state?.trim()) newErrors.state = true;
+        if (!formData.pincode?.trim()) newErrors.pincode = true;
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
             toast.error("Please fill in all the required delivery fields.");
             return;
         }
+        setErrors({});
 
         if (countryCode === '+91' && formData.phone.length !== 10) {
             toast.error("Please enter a valid 10-digit Indian phone number.");
@@ -335,6 +350,9 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                                 toast.success('Payment successful! Order placed.');
                                 if (onCheckoutSuccess) onCheckoutSuccess();
                                 onClose();
+                                navigate(`/store/${store.slug}/order-success`, {
+                                    state: { orderData: order }
+                                });
                             } catch (err) {
                                 toast.error('Payment verification failed.');
                             }
@@ -410,13 +428,19 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
             const encodedMsg = encodeURIComponent(message);
             const phone = store.whatsappNumber.replace(/[^0-9]/g, '');
             
-            // Redirect to WhatsApp
-            window.open(`https://wa.me/${phone}?text=${encodedMsg}`, '_blank');
+            const whatsappUrl = `https://wa.me/${phone}?text=${encodedMsg}`;
             
             if (onCheckoutSuccess) {
                 onCheckoutSuccess();
             }
             onClose();
+
+            navigate(`/store/${store.slug}/order-success`, {
+                state: {
+                    orderData: order,
+                    whatsappUrl
+                }
+            });
 
         } catch (error) {
             console.error('Checkout error:', error);
@@ -441,24 +465,37 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                     </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-8">
+                {((store?.customerAuthConfig?.requireLoginForCheckout === true || store?.customerAuthConfig?.allowGuestCheckout === false) && !storeCustomer) ? (
+                    <div className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col items-center justify-center text-center">
+                        <h3 className="text-2xl font-bold text-gray-900 mb-2">Login Required</h3>
+                        <p className="text-gray-500 mb-4 max-w-sm">
+                            You must be logged in to complete your purchase.
+                        </p>
+                        
+                        <div className="w-full max-w-sm">
+                            <StoreEmbeddedLogin store={store} />
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-8">
                     
                     {/* Delivery Information */}
                     <div>
                         <h3 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">Delivery Details</h3>
                         <div className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                                <div className="md:col-span-5">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-                                    <input required type="text" name="name" value={formData.name} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:border-black outline-none" />
+                                    <input required type="text" name="name" value={formData.name} onChange={(e) => { handleInputChange(e); if(errors.name) setErrors({...errors, name: false}); }} className={`w-full border rounded-lg px-3 py-2 text-sm outline-none transition-colors ${errors.name ? 'border-red-500 ring-1 ring-red-500 bg-red-50' : 'border-gray-300 focus:ring-2 focus:ring-black focus:border-black'}`} />
                                 </div>
-                                <div>
+                                <div className="md:col-span-7">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
-                                    <div className="flex w-full border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-black focus-within:border-black overflow-hidden bg-white">
+                                    <div className={`flex w-full border rounded-lg overflow-hidden transition-colors ${errors.phone ? 'border-red-500 ring-1 ring-red-500 bg-red-50' : 'border-gray-300 focus-within:ring-2 focus-within:ring-black focus-within:border-black bg-white'}`}>
                                         <select 
                                             value={countryCode} 
                                             onChange={(e) => setCountryCode(e.target.value)}
-                                            className="bg-gray-50 border-r border-gray-300 px-2 py-2 text-sm outline-none cursor-pointer"
+                                            className="w-[90px] bg-gray-50 border-r border-gray-300 px-1 py-2 text-xs outline-none cursor-pointer flex-shrink-0"
                                         >
                                             {COUNTRY_CODES.map(c => (
                                                 <option key={c.code} value={c.code}>{c.label}</option>
@@ -469,8 +506,8 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                                             type="tel" 
                                             name="phone" 
                                             value={formData.phone} 
-                                            onChange={handlePhoneChange} 
-                                            className="w-full px-3 py-2 text-sm outline-none" 
+                                            onChange={(e) => { handlePhoneChange(e); if(errors.phone) setErrors({...errors, phone: false}); }} 
+                                            className="flex-1 w-full px-3 py-2 text-sm outline-none min-w-0" 
                                             placeholder="Enter phone number"
                                             maxLength={countryCode === '+91' ? 10 : 15}
                                         />
@@ -520,24 +557,24 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                                 <>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Full Delivery Address *</label>
-                                        <textarea required name="address" value={formData.address} onChange={handleInputChange} rows="2" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:border-black outline-none"></textarea>
+                                        <textarea required name="address" value={formData.address} onChange={(e) => { handleInputChange(e); if(errors.address) setErrors({...errors, address: false}); }} rows="2" className={`w-full border rounded-lg px-3 py-2 text-sm outline-none transition-colors ${errors.address ? 'border-red-500 ring-1 ring-red-500 bg-red-50' : 'border-gray-300 focus:ring-2 focus:ring-black focus:border-black'}`}></textarea>
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">State *</label>
-                                            <select required name="state" value={formData.state} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:border-black outline-none bg-white">
+                                            <select required name="state" value={formData.state} onChange={(e) => { handleInputChange(e); if(errors.state) setErrors({...errors, state: false}); }} className={`w-full border rounded-lg px-3 py-2 text-sm outline-none transition-colors bg-white ${errors.state ? 'border-red-500 ring-1 ring-red-500 bg-red-50' : 'border-gray-300 focus:ring-2 focus:ring-black focus:border-black'}`}>
                                                 <option value="" disabled>Select State</option>
                                                 {INDIAN_STATES.map(st => <option key={st} value={st}>{st}</option>)}
                                             </select>
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
-                                            <input required type="text" name="city" value={formData.city} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:border-black outline-none" />
+                                            <input required type="text" name="city" value={formData.city} onChange={(e) => { handleInputChange(e); if(errors.city) setErrors({...errors, city: false}); }} className={`w-full border rounded-lg px-3 py-2 text-sm outline-none transition-colors ${errors.city ? 'border-red-500 ring-1 ring-red-500 bg-red-50' : 'border-gray-300 focus:ring-2 focus:ring-black focus:border-black'}`} />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Pincode *</label>
-                                            <input required type="text" pattern="[0-9]{6}" maxLength="6" minLength="6" title="Please enter a valid 6-digit Pincode" name="pincode" value={formData.pincode} onChange={handleInputChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-black focus:border-black outline-none" />
+                                            <input required type="text" pattern="[0-9]{6}" maxLength="6" minLength="6" title="Please enter a valid 6-digit Pincode" name="pincode" value={formData.pincode} onChange={(e) => { handleInputChange(e); if(errors.pincode) setErrors({...errors, pincode: false}); }} className={`w-full border rounded-lg px-3 py-2 text-sm outline-none transition-colors ${errors.pincode ? 'border-red-500 ring-1 ring-red-500 bg-red-50' : 'border-gray-300 focus:ring-2 focus:ring-black focus:border-black'}`} />
                                         </div>
                                     </div>
 
@@ -706,8 +743,9 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                     <p className="text-center text-xs text-gray-400 mt-3 flex items-center justify-center gap-1">
                         {store.checkoutMode === 'gateway' ? 'You will be redirected to secure payment gateway.' : 'Your order details will be sent directly to the seller via WhatsApp.'}
                     </p>
-                </div>
-
+                    </div>
+                    </>
+                )}
             </div>
         </div>
     );

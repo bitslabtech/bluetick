@@ -29,8 +29,9 @@ export default function PublicWaStoreVerify() {
                 });
 
                 if (res.data.success) {
-                    setStatus('success');
-                    setOrderInfo(res.data.order);
+                    navigate(`${getStoreRoute(slug)}/order-success`, {
+                        state: { orderData: res.data.order }
+                    });
                 } else {
                     setStatus('failed');
                 }

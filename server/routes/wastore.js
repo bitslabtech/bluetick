@@ -1103,13 +1103,17 @@ router.get('/', async (req, res) => {
 router.get('/by-slug/:slug', async (req, res) => {
     try {
         const { slug } = req.params;
-        // Accept both slug (string) and numeric id as the param
         const where = { userId: req.user.id };
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        
         if (/^\d+$/.test(slug)) {
             where.id = parseInt(slug);
+        } else if (uuidRegex.test(slug)) {
+            where.id = slug;
         } else {
             where.slug = slug;
         }
+        
         const store = await WaStore.findOne({ where });
         if (!store) return res.status(404).json({ error: 'Store not found' });
         res.json(store);

@@ -606,8 +606,8 @@ router.put('/users/:id', async (req, res) => {
             if (user.isAdmin !== newAdminStatus) changes.push(`Role: ${user.isAdmin ? 'Admin' : 'User'} -> ${role}`);
             user.isAdmin = newAdminStatus;
         }
-        if (plan) {
-            if (user.plan !== plan) changes.push(`Plan: ${user.plan} -> ${plan}`);
+        if (plan && user.plan !== plan) {
+            changes.push(`Plan: ${user.plan} -> ${plan}`);
             user.plan = plan;
 
             // When plan changes, recalculate planStatus and planExpiry properly

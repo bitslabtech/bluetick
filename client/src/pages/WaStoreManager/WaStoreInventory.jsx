@@ -282,7 +282,7 @@ export default function WaStoreInventory() {
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-3">
                                             {product.imageUrls?.[0] ? (
-                                                <img src={product.imageUrls[0]} className="w-10 h-10 rounded-lg object-cover border border-slate-200" alt={product.name} />
+                                                <img src={product.imageUrls[0]} className="w-10 h-10 rounded-lg object-contain bg-white dark:bg-slate-800 border border-slate-200" alt={product.name} />
                                             ) : (
                                                 <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center border border-slate-200">
                                                     <ClipboardList className="w-4 h-4 text-slate-400" />

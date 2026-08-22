@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShoppingCart, Search, Menu, X, ShoppingBag, Home, Tag, ChevronDown, ChevronUp, FileText, Phone, Mail, MessageCircle, User } from 'lucide-react';
+import { ShoppingCart, Search, Menu, X, ShoppingBag, Home, Tag, ChevronDown, ChevronUp, FileText, Phone, Mail, MessageCircle, User, ArrowLeft } from 'lucide-react';
 
 import WaStoreMobileBottomMenu from './WaStoreMobileBottomMenu';
 import { cdnImg } from '../utils/cdnImage';
@@ -89,20 +89,20 @@ export default function WaStoreHeader({
                                 setSearchQuery('');
                                 navigate(getStoreRoute(slug, `/product/${slugifyProduct(product)}`));
                             }}
-                            className="w-full flex items-center gap-4 p-3 sm:p-4 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 text-left"
+                            className="w-full flex items-center gap-4 p-3 sm:p-4 bg-white hover:bg-gray-50 transition-colors border-b border-gray-100 text-left"
                         >
-                            <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden shrink-0 flex items-center justify-center">
+                            <div className="w-14 h-14 shrink-0 flex items-center justify-center">
                                 {product.imageUrls && product.imageUrls[0] ? (
-                                    <img src={imgUrl(product.imageUrls[0])} alt={product.name} className="w-full h-full object-cover" />
+                                    <img src={imgUrl(product.imageUrls[0])} alt={product.name} className="w-full h-full object-contain mix-blend-multiply" />
                                 ) : (
-                                    <ShoppingBag className="w-5 h-5 text-gray-400" />
+                                    <ShoppingBag className="w-6 h-6 text-gray-300" />
                                 )}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <h4 className="font-semibold text-sm text-gray-900 truncate">{product.name}</h4>
-                                <p className="text-xs text-gray-500 truncate">{product.category || 'Uncategorized'}</p>
+                                <h4 className="font-semibold text-[15px] text-gray-900 truncate mb-0.5">{product.name}</h4>
+                                <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider truncate">{product.category || 'Uncategorized'}</p>
                             </div>
-                            <div className="font-medium text-sm text-gray-900 shrink-0">
+                            <div className="font-bold text-[15px] text-gray-900 shrink-0 bg-gray-50 px-2.5 py-1.5 rounded-lg border border-gray-100">
                                 {getCurrencySymbol(store.currency)}{parseFloat(product.price).toFixed(2)}
                             </div>
                         </button>
@@ -115,7 +115,7 @@ export default function WaStoreHeader({
                             navigate(getStoreRoute(slug));
                             setTimeout(() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' }), 100);
                         }}
-                        className="text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+                        className="text-[13px] font-bold text-gray-900 sm:text-blue-600 bg-gray-100 sm:bg-transparent px-4 py-3 sm:py-2 rounded-xl sm:rounded-none w-full sm:w-auto hover:bg-gray-200 transition-colors"
                     >
                         View all search results
                     </button>
@@ -490,14 +490,38 @@ export default function WaStoreHeader({
                     </div>)
                 )}
 
-                {/* ─── COLLAPSIBLE SEARCH BAR ─── */}
+                {/* ─── SEARCH BAR (Mobile Fullscreen / Desktop Dropdown) ─── */}
                 {/* CSS fade+slide replaces framer-motion */}
                 {isSearchOpen && (
                     <div
-                        className="absolute left-0 right-0 top-full w-full bg-white border-b border-gray-100 shadow-sm z-40 overflow-visible"
+                        className="fixed inset-0 sm:inset-auto sm:absolute sm:left-0 sm:right-0 sm:top-full w-full bg-white sm:border-b sm:border-gray-100 sm:shadow-sm z-[100] sm:z-40 overflow-hidden sm:overflow-visible flex flex-col"
                         style={{ animation: 'fadeSlideDown 0.2s ease forwards' }}
                     >
-                        <div className="max-w-[1440px] mx-auto px-4 py-4 sm:px-6 lg:px-8 relative">
+                        {/* Mobile Header for Full Screen Modal */}
+                        <div className="sm:hidden flex items-center px-4 h-16 border-b border-gray-100 shrink-0 bg-white shadow-sm z-10">
+                            <button 
+                                onClick={() => { setIsSearchOpen(false); setSearchQuery(''); }}
+                                className="mr-3 p-2 -ml-2 text-gray-500 hover:text-black rounded-full hover:bg-gray-100 transition-colors"
+                            >
+                                <ArrowLeft className="w-6 h-6" />
+                            </button>
+                            <input 
+                                type="text" 
+                                placeholder="Search products..." 
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                autoFocus
+                                className="w-full text-lg outline-none bg-transparent placeholder-gray-400 text-black font-medium"
+                            />
+                            {searchQuery && (
+                                <button onClick={() => setSearchQuery('')} className="p-2 -mr-2 text-gray-400 hover:text-black">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Desktop Search Input */}
+                        <div className="hidden sm:block max-w-[1440px] mx-auto px-4 py-4 sm:px-6 lg:px-8 relative w-full">
                             <div className="relative">
                                 <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                                 <input 
@@ -505,6 +529,7 @@ export default function WaStoreHeader({
                                     placeholder="Search for products..." 
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
+                                    autoFocus
                                     className="w-full bg-gray-50 border border-gray-200 text-black py-3 pl-12 pr-4 rounded-xl outline-none focus:border-black transition-colors"
                                 />
                                 <button 
@@ -516,10 +541,27 @@ export default function WaStoreHeader({
                                 </button>
                             </div>
                             
-                            {/* LIVE SEARCH RESULTS */}
+                            {/* DESKTOP LIVE SEARCH RESULTS */}
                             {searchQuery.trim().length > 0 && (
                                 <div className="absolute left-4 right-4 sm:left-6 sm:right-6 lg:left-8 lg:right-8 top-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50 max-h-[60vh] overflow-y-auto">
                                     {renderSearchResults()}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* MOBILE LIVE SEARCH RESULTS */}
+                        <div className="sm:hidden flex-1 overflow-y-auto bg-gray-50 text-black">
+                            {searchQuery.trim().length > 0 ? (
+                                <div className="bg-white">
+                                    {renderSearchResults()}
+                                </div>
+                            ) : (
+                                <div className="px-4 py-16 text-center text-gray-400 flex flex-col items-center justify-center h-full pb-[30vh]">
+                                    <div className="bg-gray-100 p-4 rounded-full mb-4">
+                                        <Search className="w-8 h-8 text-gray-300" />
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-gray-600 mb-1">Looking for something?</h3>
+                                    <p className="text-sm font-medium text-gray-400">Start typing to search across the store</p>
                                 </div>
                             )}
                         </div>

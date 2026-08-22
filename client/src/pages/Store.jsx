@@ -92,7 +92,7 @@ const StorePage = () => {
         console.log("Attempting main render...");
         return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark font-display overflow-y-auto">
-            <header className="flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-4 md:px-4 md:px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
+            <header className="hidden sm:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-4 md:px-4 md:px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
                 <div className="flex items-center gap-6 w-full">
                     <div className="flex flex-col gap-0.5">
                         <h2 className="text-slate-900 dark:text-white text-2xl font-bold tracking-tight">Store & Top-ups</h2>
@@ -100,7 +100,9 @@ const StorePage = () => {
                 </div>
                 <div className="flex items-center gap-4">
                     <TrialBanner />
-                    <ThemeToggle />
+                    <div className="hidden sm:block">
+                        <ThemeToggle />
+                    </div>
                 </div>
             </header>
 

@@ -101,6 +101,8 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
         fetchFiles(1, activeMediaTab);
     }, [fetchSource, token]);
 
+    const [uploadProgress, setUploadProgress] = useState({});
+
     const handleFilesUpload = async (fileList) => {
         if (!fileList || fileList.length === 0) return;
         // Fix #13: Enforce a 30-file max per upload batch
@@ -112,39 +114,107 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
         setUploading(true);
         let successCount = 0;
         let failCount = 0;
-        
-        for (let i = 0; i < fileList.length; i++) {
-            const fileObj = fileList[i];
+        const failedDetails = [];
+
+        const filesArray = Array.from(fileList).map((file, i) => ({
+            id: `temp_${Date.now()}_${i}`,
+            file
+        }));
+
+        const initialProgress = {};
+        filesArray.forEach(f => {
+            initialProgress[f.id] = { name: f.file.name, progress: 0, status: 'uploading' };
+        });
+        setUploadProgress(prev => ({ ...prev, ...initialProgress }));
+
+        await Promise.all(filesArray.map(async ({ id, file }) => {
             try {
                 const form = new FormData();
-                form.append("file", fileObj);
+                form.append("file", file);
                 const uploadUrl = `${import.meta.env.VITE_API_URL}/api/media/upload?source=${fetchSource}`;
                 await axios.post(uploadUrl, form, {
-                    headers: { ...getHeaders(), "Content-Type": "multipart/form-data" }
+                    headers: { ...getHeaders(), "Content-Type": "multipart/form-data" },
+                    onUploadProgress: (progressEvent) => {
+                        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                        setUploadProgress(prev => ({
+                            ...prev,
+                            [id]: { ...prev[id], progress: percentCompleted }
+                        }));
+                    }
                 });
                 successCount++;
+                setUploadProgress(prev => ({
+                    ...prev,
+                    [id]: { ...prev[id], progress: 100, status: 'success' }
+                }));
             } catch (e) {
-                console.error("Upload failed for", fileObj.name, e);
+                console.error("Upload failed for", file.name, e);
                 failCount++;
+                const errorMessage = e.response?.data?.error || e.response?.data?.message || 'Upload failed';
+                
+                let shortError = errorMessage;
+                if (shortError.includes("already exists")) {
+                    shortError = "Already exists";
+                }
+                
+                failedDetails.push(`${file.name} (${shortError})`);
+                setUploadProgress(prev => ({
+                    ...prev,
+                    [id]: { ...prev[id], status: 'error', errorMessage }
+                }));
             }
-        }
+        }));
         
         if (successCount > 0) {
             showToast(`${successCount} file(s) uploaded successfully!`, "success");
             await Promise.all([fetchFiles(1, activeMediaTab, searchTerm), fetchUsage()]);
         }
         if (failCount > 0) {
-            showToast(`${failCount} file(s) failed to upload`, "error");
+            const displayLimit = 12;
+            const displayedFiles = failedDetails.slice(0, displayLimit);
+            const remainingCount = failedDetails.length - displayLimit;
+
+            const failMessage = (
+                <div className="flex flex-col mt-0.5">
+                    <span>{failCount} file(s) failed to upload:</span>
+                    <ul className="mt-1.5 space-y-0.5">
+                        {displayedFiles.map((f, i) => (
+                            <li key={i} className="text-[11px] truncate flex items-start gap-1.5" title={f}>
+                                <span className="text-[12px] leading-tight">&bull;</span>
+                                <span className="truncate">{f}</span>
+                            </li>
+                        ))}
+                        {remainingCount > 0 && (
+                            <li className="text-[11px] font-medium text-slate-500 dark:text-slate-400 italic mt-1 pl-3">
+                                + {remainingCount} more file{remainingCount > 1 ? 's' : ''}
+                            </li>
+                        )}
+                    </ul>
+                </div>
+            );
+            showToast({
+                type: "error",
+                title: "Upload Error",
+                message: failMessage,
+                duration: 6000
+            });
         }
-        setUploading(false);
+
+        setTimeout(() => {
+            setUploading(false);
+            setUploadProgress({});
+        }, failCount > 0 ? 5000 : 2000); // keep errors on screen longer so they can be read
     };
 
     const handleDelete = async (id) => {
         setUsageInfo({ usages: [], loading: true });
         setDeleteTarget({ type: 'single', id });
         try {
+            const fileObj = files.find(f => f.id === id);
+            const fileName = fileObj ? (fileObj.fileName || 'Unnamed File') : 'Unknown File';
             const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/media/${id}/usages`, { headers: getHeaders() });
-            setUsageInfo({ usages: res.data.usages || [], loading: false });
+            const usages = (res.data.usages || []).map(u => ({ ...u, _fileName: fileName }));
+            setUsageInfo({ usages, loading: false });
         } catch {
             setUsageInfo({ usages: [], loading: false });
         }
@@ -157,13 +227,19 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
         // Fetch usages for all selected files in parallel, then deduplicate
         try {
             const results = await Promise.all(
-                selectedIds.map(id => axios.get(`${import.meta.env.VITE_API_URL}/api/media/${id}/usages`, { headers: getHeaders() }).then(r => r.data.usages || []).catch(() => []))
+                selectedIds.map(id => {
+                    const fileObj = files.find(f => f.id === id);
+                    const fileName = fileObj ? (fileObj.fileName || 'Unnamed File') : 'Unknown File';
+                    return axios.get(`${import.meta.env.VITE_API_URL}/api/media/${id}/usages`, { headers: getHeaders() })
+                        .then(r => (r.data.usages || []).map(u => ({ ...u, _fileName: fileName })))
+                        .catch(() => []);
+                })
             );
             const allUsages = results.flat();
-            // Fix #4: Deduplicate by type+id so the same product/store isn't listed multiple times
+            // Fix #4: Deduplicate by type+id+fileName so the same product/store isn't listed multiple times for the SAME file
             const seen = new Set();
             const dedupedUsages = allUsages.filter(u => {
-                const key = `${u.type}:${u.id}`;
+                const key = `${u.type}:${u.id}:${u._fileName}`;
                 if (seen.has(key)) return false;
                 seen.add(key);
                 return true;
@@ -458,6 +534,44 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                     <p className="text-xs text-slate-400">Images (JPG/PNG/WebP/GIF/SVG), Videos (MP4/WebM), Documents (PDF/CSV/DOCX). Max 50 MB.</p>
                 </div>
             </div>
+            
+            {/* Active Uploads */}
+            {Object.keys(uploadProgress).length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4 mt-2">
+                    {Object.values(uploadProgress).map((upload, idx) => (
+                        <div key={idx} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl p-3 shadow-sm flex flex-col gap-1.5 relative overflow-hidden">
+                            <div className="flex justify-between items-center z-10 relative">
+                                <span className={`text-sm font-medium truncate pr-4 ${upload.status === 'error' ? 'text-rose-600 dark:text-rose-400' : 'text-slate-700 dark:text-slate-200'}`}>
+                                    {upload.name}
+                                </span>
+                                {upload.status === 'success' ? (
+                                    <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                                ) : upload.status === 'error' ? (
+                                    <X className="w-4 h-4 text-rose-500 shrink-0" title={upload.errorMessage} />
+                                ) : (
+                                    <span className="text-xs font-bold text-primary shrink-0">{upload.progress}%</span>
+                                )}
+                            </div>
+                            {upload.status === 'error' && upload.errorMessage && (
+                                <p className="text-[11px] text-rose-500 font-medium z-10 relative truncate -mt-0.5" title={upload.errorMessage}>
+                                    {upload.errorMessage}
+                                </p>
+                            )}
+                            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 z-10 relative overflow-hidden mt-0.5">
+                                <div 
+                                    className={`h-full rounded-full transition-all duration-300 ${upload.status === 'success' ? 'bg-emerald-500' : upload.status === 'error' ? 'bg-rose-500' : 'bg-primary relative'}`}
+                                    style={{ width: `${upload.status === 'error' ? 100 : upload.progress}%` }}
+                                >
+                                    {upload.status === 'uploading' && (
+                                        <div className="absolute inset-0 bg-white/30 animate-[shimmer_1s_infinite] -skew-x-12" style={{ backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)' }} />
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
             {/* File Grid / List */}
             {loading ? (
                 viewMode === "grid" ? (
@@ -510,18 +624,25 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                                     : "border-transparent hover:border-primary/40 hover:shadow-md"
                                 } bg-white dark:bg-surface-dark cursor-pointer`}
                             onClick={() => toggleSelect(file.id)}
+                            onMouseEnter={(e) => {
+                                const video = e.currentTarget.querySelector('video');
+                                if (video) video.play().catch(() => {});
+                            }}
+                            onMouseLeave={(e) => {
+                                const video = e.currentTarget.querySelector('video');
+                                if (video) video.pause();
+                            }}
                         >
                             {/* Thumbnail */}
                             <div className="aspect-square bg-white dark:bg-slate-800 overflow-hidden flex items-center justify-center">
                                 {isVideo(file.mimeType, file.url) ? (
-                                    // Fix #12: preload="none" avoids firing 50 concurrent range-requests
-                                    // for all video thumbnails. Only load metadata when user hovers.
                                     <video
                                         src={file.url}
                                         className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105 bg-black"
                                         muted
+                                        loop
+                                        playsInline
                                         preload="none"
-                                        onMouseEnter={e => { e.target.preload = 'metadata'; }}
                                     />
                                 ) : isDocument(file.mimeType) ? (
                                     <FileText className="w-12 h-12 text-slate-300" />
@@ -543,7 +664,11 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                             </div>
 
                             {/* Actions overlay */}
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-end">
+                            <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-end ${
+                                isVideo(file.mimeType, file.url)
+                                    ? "bg-gradient-to-t from-black/80 via-black/10 to-transparent"
+                                    : "bg-black/50"
+                            }`}>
                                 <div className="w-full p-2 flex items-center gap-1 justify-end">
                                     <button
                                         onClick={e => { e.stopPropagation(); setPreviewFile(file); }}
@@ -839,6 +964,9 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                                         <div key={i} className="flex items-start gap-2.5 p-2.5 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/10">
                                             <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 flex-shrink-0" />
                                             <div className="min-w-0">
+                                                {u._fileName && (
+                                                    <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 block truncate mb-0.5" title={u._fileName}>{u._fileName}</span>
+                                                )}
                                                 <span className="text-xs font-medium text-slate-700 dark:text-slate-200 block truncate">{u.detail}</span>
                                                 <span className="text-[10px] text-slate-400 dark:text-slate-500">{u.label}{u.storeName ? ` · ${u.storeName}` : ''}</span>
                                             </div>

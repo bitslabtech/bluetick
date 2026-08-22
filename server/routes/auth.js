@@ -356,7 +356,8 @@ router.post('/reset-password-otp', authLimiter, async (req, res) => {
 // REGISTER
 router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
     try {
-        const { name, email, password, selectedPlan, startTrial, ref, partnerCode, phone } = req.body;
+        let { name, email, password, selectedPlan, startTrial, ref, partnerCode, phone } = req.body;
+        if (email) email = email.trim().toLowerCase();
 
         // Fetch Global Security Settings from the primary admin
         const adminUser = await User.findOne({ where: { isAdmin: true } });
@@ -697,7 +698,8 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
 // LOGIN
 router.post('/login', authLimiter, verifyTurnstile, async (req, res) => {
     try {
-        const { email, password } = req.body;
+        let { email, password } = req.body;
+        if (email) email = email.trim().toLowerCase();
 
         // Check user
         const user = await User.findOne({ where: { email } });

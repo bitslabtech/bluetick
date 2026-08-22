@@ -356,6 +356,19 @@ export default function StoreRegisterPage({ store, products = [] }) {
                                     {submitting ? <Loader2 size={16} className="animate-spin" /> : null}
                                     {submitting ? 'Creating account…' : 'Create Account'}
                                 </button>
+                                
+                                {hasOtpMethod && (
+                                    <div className="text-center mt-3 pt-2">
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setTab('otp')}
+                                            className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors flex items-center justify-center gap-1.5 mx-auto"
+                                        >
+                                            <Smartphone size={14} />
+                                            Or register with WhatsApp instead
+                                        </button>
+                                    </div>
+                                )}
 
                                 <p className="text-center text-xs font-medium text-slate-500 mt-6 pt-4 border-t border-slate-100">
                                     Already have an account?{' '}

@@ -108,12 +108,24 @@ const FlowList = () => {
                     <div className="max-w-6xl mx-auto px-4 md:px-6 py-4 sm:py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 shrink-0">
                                     <Workflow className="w-5 h-5" />
                                 </div>
                                 <div>
                                     <h1 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white">FlowBot Builder</h1>
                                     <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">Build visual WhatsApp automation flows</p>
+                                    
+                                    {/* Mobile Limit indicator */}
+                                    {!loading && (
+                                        <div className="sm:hidden flex items-center gap-2 mt-1">
+                                            <span className="text-[10px] font-semibold text-slate-500">Limit: {isUnlimited ? "Unlimited" : `${flowUsed}/${flowLimit}`}</span>
+                                            {!isUnlimited && (
+                                                <div className="h-1.5 w-16 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                                    <div className={`h-full rounded-full transition-all duration-1000 ${isAtLimit ? 'bg-red-500' : usagePercent >= 80 ? 'bg-amber-500' : 'bg-indigo-500'}`} style={{ width: `${usagePercent}%` }} />
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <button
@@ -125,7 +137,36 @@ const FlowList = () => {
                                 Create
                             </button>
                         </div>
-                        <div className="hidden sm:flex items-center gap-2">
+                        <div className="hidden sm:flex items-center gap-4">
+                            {/* Desktop Compact Limit Indicator */}
+                            {!loading && (
+                                <div className="flex flex-col justify-center min-w-[140px] px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
+                                    <div className="flex items-center justify-between gap-3 mb-1.5">
+                                        <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                            {isUnlimited ? "Capacity" : "FlowBot Limit"}
+                                        </span>
+                                        {!isUnlimited && (
+                                            <span className={`text-[11px] font-bold ${isAtLimit ? "text-red-500" : "text-slate-700 dark:text-slate-300"}`}>
+                                                {flowUsed} / {flowLimit}
+                                            </span>
+                                        )}
+                                        {isUnlimited && (
+                                            <span className="text-[11px] font-bold text-emerald-500">
+                                                Unlimited
+                                            </span>
+                                        )}
+                                    </div>
+                                    {!isUnlimited && (
+                                        <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                            <div 
+                                                className={`h-full rounded-full transition-all duration-1000 ${isAtLimit ? 'bg-red-500' : usagePercent >= 80 ? 'bg-amber-500' : 'bg-indigo-500'}`} 
+                                                style={{ width: `${usagePercent}%` }} 
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             <button
                                 onClick={handleAiFlow}
                                 disabled={isAtLimit}
@@ -144,73 +185,6 @@ const FlowList = () => {
                             </button>
                         </div>
                     </div>
-
-                    {/* Usage Bar */}
-                    {!loading && (
-                        <div className="max-w-6xl mx-auto px-4 md:px-6 pb-4">
-                            <div className={`flex flex-col md:flex-row md:items-center gap-4 px-5 py-4 rounded-2xl border shadow-sm ${
-                                isAtLimit 
-                                    ? "bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-800/40" 
-                                    : usagePercent >= 80 
-                                        ? "bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800/40" 
-                                        : "bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-700"
-                            }`}>
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                                        isAtLimit ? 'bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400' 
-                                        : isUnlimited ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400'
-                                        : usagePercent >= 80 ? 'bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400'
-                                        : 'bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400'
-                                    }`}>
-                                        {isAtLimit ? <AlertTriangle className="w-5 h-5" /> : isUnlimited ? <Infinity className="w-5 h-5" /> : <Workflow className="w-5 h-5" />}
-                                    </div>
-                                    <div>
-                                        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                                            FlowBot Usage Limit
-                                        </h3>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                            {isUnlimited ? "Unlimited flows available on your current plan." : isAtLimit ? "You have reached your plan's maximum flow limit." : "Keep track of your active automation flows."}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="flex-1 md:ml-auto w-full md:max-w-md pt-2 md:pt-0">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                                            {isUnlimited ? "Unlimited Capacity" : (
-                                                <>
-                                                    <span className={isAtLimit ? "text-red-600 dark:text-red-400" : ""}>{flowUsed}</span> / {flowLimit} Flows Used
-                                                </>
-                                            )}
-                                        </span>
-                                        {isAtLimit ? (
-                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400 uppercase tracking-wider">Limit Reached</span>
-                                        ) : !isUnlimited ? (
-                                            <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">{flowLimit - flowUsed} remaining</span>
-                                        ) : (
-                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 uppercase tracking-wider">No Limit</span>
-                                        )}
-                                    </div>
-                                    {!isUnlimited && (
-                                        <div className="h-2 w-full bg-slate-100 dark:bg-slate-700/50 rounded-full overflow-hidden shadow-inner">
-                                            <div 
-                                                className={`h-full rounded-full transition-all duration-1000 ease-out relative overflow-hidden ${
-                                                    isAtLimit ? 'bg-red-500' 
-                                                    : usagePercent >= 80 ? 'bg-amber-500' 
-                                                    : 'bg-gradient-to-r from-indigo-500 to-purple-500'
-                                                }`} 
-                                                style={{ width: `${usagePercent}%` }} 
-                                            >
-                                                {!isAtLimit && (
-                                                    <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )}
                 </div>
 
                 <AIGenerateModal

@@ -348,11 +348,22 @@ const Settings = () => {
                         ...(res.data.smtpConfig || {})
                     },
                     securityConfig: {
-                        allowRegistration: true,
-                        requireEmailVerification: true,
-                        enforce2FA: false,
-                        minPasswordLength: 8,
-                        ...(res.data.securityConfig || {})
+                        allowRegistration: res.data.securityConfig?.allowRegistration ?? true,
+                        requireEmailVerification: res.data.securityConfig?.requireEmailVerification ?? true,
+                        enforce2FA: res.data.securityConfig?.enforce2FA ?? false,
+                        minPasswordLength: res.data.securityConfig?.minPasswordLength ?? 8,
+                        whatsappOtp: {
+                            enabled: false,
+                            otpExpirySec: 300,
+                            resendCooldownSec: 60,
+                            maxResendPerHour: 3,
+                            maxVerifyAttempts: 5,
+                            templateName: '',
+                            templateLanguage: 'en',
+                            otpVariableIndex: 1,
+                            messageTemplate: '',
+                            ...(res.data.securityConfig?.whatsappOtp || {})
+                        }
                     },
                     teamPolicy: {
                         inboxVisibility: 'see_all',
@@ -360,10 +371,9 @@ const Settings = () => {
                         ...(res.data.teamPolicy || {})
                     },
                     storage: {
-                        type: 'local',
-                        s3: { endpoint: '', region: 'us-east-1', bucket: '', accessKeyId: '', secretAccessKey: '', publicUrlPrefix: '' },
-                        r2: { accountId: '', bucket: '', accessKeyId: '', secretAccessKey: '', publicUrl: '' },
-                        ...(res.data.storage || {})
+                        type: res.data.storage?.type || 'local',
+                        s3: { endpoint: '', region: 'us-east-1', bucket: '', accessKeyId: '', secretAccessKey: '', publicUrlPrefix: '', ...(res.data.storage?.s3 || {}) },
+                        r2: { accountId: '', bucket: '', accessKeyId: '', secretAccessKey: '', publicUrl: '', ...(res.data.storage?.r2 || {}) }
                     }
                 }));
             }

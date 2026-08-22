@@ -616,7 +616,7 @@ export default function WaProductList() {
                         {/* Sidebar Spacer to offset the modal */}
                         <div className="hidden md:block w-64 flex-shrink-0 mr-6 pointer-events-none" />
                         <div className="flex-1 flex justify-center p-0 sm:p-4">
-                            <div className="bg-white dark:bg-surface-dark sm:rounded-2xl max-w-[1100px] w-full max-h-[100dvh] sm:max-h-[90vh] overflow-hidden shadow-xl flex flex-col">
+                            <div className="bg-white dark:bg-surface-dark sm:rounded-2xl max-w-[1210px] w-full max-h-[100dvh] sm:max-h-[90vh] overflow-hidden shadow-xl flex flex-col">
                                 {/* Sticky Header */}
                                 <div className="px-4 md:px-6 py-4 md:py-5 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-surface-dark shrink-0 z-10">
                                     <h2 className="text-xl font-bold text-slate-900 dark:text-white">
@@ -780,25 +780,25 @@ export default function WaProductList() {
                                                 <div className="bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-4">
                                                     <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700 pb-2">Pricing</h3>
 
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        <div className="space-y-1.5">
-                                                            <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Regular Price <span className="text-red-400">*</span></label>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                        <div className="space-y-1.5 flex flex-col justify-end">
+                                                            <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap truncate">Regular Price <span className="text-red-400">*</span></label>
                                                             <div className="relative">
                                                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">{getCurrencySymbol(currency)}</span>
                                                                 <input required type="number" value={form.regularPrice} onChange={e => setForm({ ...form, regularPrice: e.target.value })} className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-semibold shadow-sm" placeholder="e.g. 699" />
                                                             </div>
                                                         </div>
-                                                        <div className="space-y-1.5">
-                                                            <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Sale Price <span className="text-slate-400 font-normal normal-case">(optional)</span></label>
+                                                        <div className="space-y-1.5 flex flex-col justify-end">
+                                                            <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap truncate">Sale Price <span className="text-slate-400 font-normal normal-case">(optional)</span></label>
                                                             <div className="relative">
                                                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">{getCurrencySymbol(currency)}</span>
                                                                 <input type="number" value={form.salePrice} onChange={e => setForm({ ...form, salePrice: e.target.value })} className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm shadow-sm" placeholder="e.g. 499" />
                                                             </div>
-                                                            {form.salePrice && form.regularPrice && parseFloat(form.salePrice) >= parseFloat(form.regularPrice) && (
-                                                                <p className="text-[10px] text-amber-500 font-medium">⚠ Sale price should be less than regular price</p>
-                                                            )}
                                                         </div>
                                                     </div>
+                                                    {form.salePrice && form.regularPrice && parseFloat(form.salePrice) >= parseFloat(form.regularPrice) && (
+                                                        <p className="text-[10px] text-amber-500 font-medium">⚠ Sale price should be less than regular price</p>
+                                                    )}
 
                                                     <div className="pt-3 border-t border-slate-200 dark:border-slate-700">
                                                         <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-3">Wholesale / B2B</h3>

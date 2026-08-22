@@ -216,6 +216,19 @@ export default function StoreLoginPage({ store, products = [] }) {
                                     {submitting ? <Loader2 size={16} className="animate-spin" /> : null}
                                     {submitting ? 'Signing in…' : 'Sign In'}
                                 </button>
+                                
+                                {hasOtp && (
+                                    <div className="text-center mt-3 pt-2">
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setTab('otp')}
+                                            className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors flex items-center justify-center gap-1.5 mx-auto"
+                                        >
+                                            <Smartphone size={14} />
+                                            Or login with WhatsApp instead
+                                        </button>
+                                    </div>
+                                )}
                                 </motion.form>
                             )}
 

@@ -1636,6 +1636,19 @@ export default function LandingPage() {
     const [isPartnerExpanded, setIsPartnerExpanded] = useState(false);
 
     const industryScrollRef = useRef(null);
+    const pricingSectionRef = useRef(null);
+    const [pricingInView, setPricingInView] = useState(false);
+
+    useEffect(() => {
+        const el = pricingSectionRef.current;
+        if (!el) return;
+        const observer = new IntersectionObserver(
+            ([entry]) => setPricingInView(entry.isIntersecting),
+            { threshold: 0.05 }
+        );
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [plans.length]);
 
     // Merge DB items over hardcoded industries — always ensure all 16 are present
     const allIndustries = React.useMemo(() => {
@@ -2090,7 +2103,25 @@ export default function LandingPage() {
 
 
                     {/* 11. PRICING */}
-                    <section id="pricing" className="py-24 relative bg-white dark:bg-zinc-950 transition-colors">
+                    {/* Fixed Mobile Pricing Arrows — shown only when pricing section is in view */}
+                    {pricingInView && plans.length > 1 && (
+                        <div className="md:hidden fixed inset-y-0 left-0 right-0 pointer-events-none z-[999] flex items-center justify-between px-2">
+                            <button
+                                onClick={() => document.getElementById('pricing-slider').scrollBy({ left: -300, behavior: 'smooth' })}
+                                className="pointer-events-auto w-10 h-10 rounded-full bg-white/95 dark:bg-zinc-800/95 backdrop-blur shadow-[0_0_20px_rgba(0,0,0,0.15)] dark:shadow-[0_0_20px_rgba(0,0,0,0.5)] flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-slate-200/50 dark:border-white/10 active:scale-95 transition-transform"
+                            >
+                                <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-current" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+                            </button>
+                            <button
+                                onClick={() => document.getElementById('pricing-slider').scrollBy({ left: 300, behavior: 'smooth' })}
+                                className="pointer-events-auto w-10 h-10 rounded-full bg-white/95 dark:bg-zinc-800/95 backdrop-blur shadow-[0_0_20px_rgba(0,0,0,0.15)] dark:shadow-[0_0_20px_rgba(0,0,0,0.5)] flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-slate-200/50 dark:border-white/10 active:scale-95 transition-transform"
+                            >
+                                <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-current" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+                            </button>
+                        </div>
+                    )}
+
+                    <section id="pricing" ref={pricingSectionRef} className="py-24 relative bg-white dark:bg-zinc-950 transition-colors">
                         <div className="max-w-[100rem] mx-auto px-4 md:px-6">
                             <div className="text-center mb-12">
                                 <h2 className="text-3xl md:text-5xl font-extrabold mb-4 text-slate-900 dark:text-white tracking-tight">Simple, transparent pricing</h2>
@@ -2173,26 +2204,6 @@ export default function LandingPage() {
 
                                     {/* Slider Wrapper */}
                                     <div className="relative w-full mx-auto">
-                                        {/* Sticky Vertical Center Arrows for Mobile */}
-                                        {plans.length > 1 && (
-                                            <div className="absolute inset-x-0 top-[10%] bottom-[10%] pointer-events-none z-30">
-                                                <div className="md:hidden sticky top-[50vh] flex justify-between w-full -translate-y-1/2">
-                                                    <button
-                                                        onClick={() => document.getElementById('pricing-slider').scrollBy({ left: -300, behavior: 'smooth' })}
-                                                        className="pointer-events-auto w-10 h-10 rounded-full bg-white/95 dark:bg-zinc-800/95 backdrop-blur shadow-[0_0_20px_rgba(0,0,0,0.15)] dark:shadow-[0_0_20px_rgba(0,0,0,0.5)] max-w-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-slate-200/50 dark:border-white/10 -ml-5 active:scale-95 transition-transform"
-                                                    >
-                                                        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-current" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-                                                    </button>
-                                                    <button
-                                                        onClick={() => document.getElementById('pricing-slider').scrollBy({ left: 300, behavior: 'smooth' })}
-                                                        className="pointer-events-auto w-10 h-10 rounded-full bg-white/95 dark:bg-zinc-800/95 backdrop-blur shadow-[0_0_20px_rgba(0,0,0,0.15)] dark:shadow-[0_0_20px_rgba(0,0,0,0.5)] max-w-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-slate-200/50 dark:border-white/10 -mr-5 active:scale-95 transition-transform"
-                                                    >
-                                                        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-current" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-
                                         <div
                                             id="pricing-slider"
                                             className="flex md:flex-wrap md:justify-center gap-6 md:gap-8 items-stretch overflow-x-auto pt-8 pb-6 snap-x snap-mandatory"
