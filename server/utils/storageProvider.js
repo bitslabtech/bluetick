@@ -424,8 +424,12 @@ const storageProvider = (folderName, options = {}) => {
 
                             // Step 5: Sanitize filename — preserve original name for predictable URLs.
                             // Spaces and special chars are replaced with underscores.
-                            // No timestamp/random prefix added — user folder provides namespace isolation.
-                            const safeName = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+                            // No timestamp/random prefix added — user folder provides namespace isolation (unless uniqueNames is true).
+                            let safeName = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+                            if (options.uniqueNames) {
+                                const uid = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+                                safeName = `${uid}_${safeName}`;
+                            }
 
                             // Build the effective folder path. Check for specific scopes (store, vcard),
                             // and fallback to user scope if neither is present.

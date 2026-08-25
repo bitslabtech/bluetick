@@ -529,7 +529,7 @@ img{display:block;vertical-align:middle}
         'localhost', '127.0.0.1', 'bluetick.cloud', 'www.bluetick.cloud'
     ]);
 
-    app.get('*', async (req, res, next) => {
+    app.get(/.*/, async (req, res, next) => {
         // Skip API routes — they're handled by their own routers
         if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/') || req.path.startsWith('/n/')) {
             return next();
@@ -638,7 +638,7 @@ img{display:block;vertical-align:middle}
 
     // General SPA catch-all for all non-API routes (enables React Router)
     // Explicitly skip /api/ so backend routes are never swallowed by the SPA handler
-    app.get('*', (req, res) => {
+    app.get(/.*/, (req, res) => {
         if (req.path.startsWith('/api/')) {
             return res.status(404).json({ error: `Route not found: ${req.method} ${req.path}` });
         }

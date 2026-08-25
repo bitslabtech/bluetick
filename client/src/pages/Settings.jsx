@@ -7,7 +7,7 @@ import {
     Layout, Type, Palette, Image as ImageIcon, Check, RefreshCw,
     Bell, Mail, MessageCircle, UserPlus, CreditCard, AlertTriangle, BarChart, Zap,
     Server, Smartphone, Send, Terminal, Shield, Key, Search, User, Sparkles,
-    FileText, Download, CheckCircle2, TrendingUp, Menu, Users, Database, HardDrive, Cloud, ServerCog, Globe2, Loader2, Link2, EyeOff, Eye, Settings2, ArrowRight, ListOrdered, ShieldAlert
+    FileText, Download, CheckCircle2, TrendingUp, Menu, Users, Database, HardDrive, Cloud, ServerCog, Globe2, Loader2, Link2, EyeOff, Eye, Settings2, ArrowRight, ListOrdered, ShieldAlert, Banknote
 } from 'lucide-react';
 import BillingTab from '../components/BillingTab';
 import InvoiceConfigPanel from '../components/InvoiceConfigPanel';
@@ -173,6 +173,18 @@ const Settings = () => {
     const [metaStatus, setMetaStatus] = useState(null);
     const [metaStatusLoading, setMetaStatusLoading] = useState(false);
     const [crmTemplates, setCrmTemplates] = useState([]);
+
+    // Manual Payment Config State (Superadmin Only)
+    const [manualPaymentForm, setManualPaymentForm] = useState({
+        enabled: false,
+        accountName: '',
+        accountNumber: '',
+        ifscCode: '',
+        bankName: '',
+        upiId: '',
+        instructions: ''
+    });
+    const [savingManualPayment, setSavingManualPayment] = useState(false);
 
     useEffect(() => {
         if (activeTab === 'whatsapp_gateway') {
@@ -377,6 +389,17 @@ const Settings = () => {
                     }
                 }));
             }
+
+            if (user?.isAdmin) {
+                try {
+                    const mpRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/system/manual-payment-config`);
+                    if (mpRes.data?.manualPayment) {
+                        setManualPaymentForm(prev => ({ ...prev, ...mpRes.data.manualPayment }));
+                    }
+                } catch (mpErr) {
+                    console.error("Error fetching manual payment config:", mpErr);
+                }
+            }
         } catch (err) {
             console.error("Error fetching settings:", err);
         } finally {
@@ -569,9 +592,23 @@ const Settings = () => {
             });
             showToast({ type: 'success', title: 'Integration Saved', message: 'Google OAuth settings updated.' });
         } catch (err) {
+            console.error(err);
+            setSaving(false);
             showToast({ type: 'error', title: 'Save Failed', message: err.response?.data?.error || err.message });
         } finally {
             setIntegrationSaving(false);
+        }
+    };
+
+    const saveManualPaymentConfig = async () => {
+        setSavingManualPayment(true);
+        try {
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/system/manual-payment-config`, manualPaymentForm);
+            showToast({ type: 'success', title: 'Saved', message: 'Manual payment settings updated successfully.' });
+        } catch (err) {
+            showToast({ type: 'error', title: 'Error', message: 'Failed to save manual payment settings.' });
+        } finally {
+            setSavingManualPayment(false);
         }
     };
 
@@ -2294,6 +2331,75 @@ const Settings = () => {
                                                 <p className="text-xs text-slate-500 mt-2">Determines whether checkout calculates an extra percentage added to the total form payment.</p>
                                             </div>
                                         </section>
+
+                                        {/* MANUAL PAYMENT (BANK TRANSFER) CONFIG - SUPERADMIN ONLY */}
+                                        {user?.isAdmin && (
+                                            <section className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 p-4 md:p-8 shadow-sm">
+                                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+                                                    <Banknote className="w-5 h-5 text-amber-500" /> Manual Payment (Bank Transfer)
+                                                </h3>
+                                                <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">
+                                                    Configure bank details shown to users choosing bank transfer at checkout. Enable to show the option.
+                                                </p>
+
+                                                {/* Enable Toggle */}
+                                                <div className="flex justify-between items-center p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5 mb-5">
+                                                    <div>
+                                                        <div className="font-bold text-slate-800 dark:text-white">Enable Bank Transfer Option</div>
+                                                        <div className="text-xs text-slate-500">Shows "Bank Transfer" alongside Razorpay at checkout</div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => setManualPaymentForm(prev => ({ ...prev, enabled: !prev.enabled }))}
+                                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${manualPaymentForm.enabled ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                                                    >
+                                                        <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${manualPaymentForm.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                                    </button>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                                                    {[
+                                                        { key: 'accountName', label: 'Account Holder Name', placeholder: 'Bitslab Technologies Pvt Ltd' },
+                                                        { key: 'accountNumber', label: 'Account Number', placeholder: '1234567890123456' },
+                                                        { key: 'ifscCode', label: 'IFSC Code', placeholder: 'HDFC0001234' },
+                                                        { key: 'bankName', label: 'Bank Name', placeholder: 'HDFC Bank' },
+                                                        { key: 'upiId', label: 'UPI ID (optional)', placeholder: 'bitslab@hdfcbank' },
+                                                    ].map(field => (
+                                                        <div key={field.key}>
+                                                            <label className="text-xs font-bold uppercase text-slate-400 block mb-1">{field.label}</label>
+                                                            <input
+                                                                type="text"
+                                                                value={manualPaymentForm[field.key]}
+                                                                onChange={e => setManualPaymentForm(prev => ({ ...prev, [field.key]: e.target.value }))}
+                                                                placeholder={field.placeholder}
+                                                                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 dark:bg-black/20 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/40"
+                                                            />
+                                                        </div>
+                                                    ))}
+                                                    <div className="md:col-span-2">
+                                                        <label className="text-xs font-bold uppercase text-slate-400 block mb-1">Instructions for Users (optional)</label>
+                                                        <textarea
+                                                            value={manualPaymentForm.instructions}
+                                                            onChange={e => setManualPaymentForm(prev => ({ ...prev, instructions: e.target.value }))}
+                                                            placeholder="e.g. Please mention your registered email in the payment remarks."
+                                                            rows={2}
+                                                            className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 dark:bg-black/20 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/40 resize-none"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <button
+                                                    onClick={saveManualPaymentConfig}
+                                                    disabled={savingManualPayment}
+                                                    className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-sm transition-colors disabled:opacity-60"
+                                                >
+                                                    {savingManualPayment ? (
+                                                        <><RefreshCw className="w-4 h-4 animate-spin" /> Saving...</>
+                                                    ) : (
+                                                        <><Save className="w-4 h-4" /> Save Bank Details</>
+                                                    )}
+                                                </button>
+                                            </section>
+                                        )}
 
                                         {/* Configuration Form */}
                                         {activePaymentGateway && formData.paymentGateways && (

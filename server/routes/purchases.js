@@ -10,11 +10,11 @@ const admin = require('../middleware/admin');
 // Protect all routes
 router.use(auth, admin);
 
-// GET Unread Purchases Count
+// GET Unread Purchases Count (includes PENDING_APPROVAL for manual payments)
 router.get('/unread-count', async (req, res) => {
     try {
         const count = await Transaction.count({
-            where: { isRead: false, status: 'COMPLETED' }
+            where: { isRead: false, status: ['COMPLETED', 'PENDING_APPROVAL'] }
         });
         res.json({ count });
     } catch (err) {
@@ -64,9 +64,9 @@ router.get('/', async (req, res) => {
         const enrichedTransactions = transactions.map(t => {
             const user = users.find(u => u.id === t.userId);
             const invoice = invoices.find(i => i.transactionId === t.id);
-            // Search Filter (applied in memory for simplicity over hydrated data)
+            const tJson = t.toJSON();
             return {
-                ...t.toJSON(),
+                ...tJson,
                 user: user ? { 
                     name: user.name, 
                     email: user.email,
@@ -74,7 +74,10 @@ router.get('/', async (req, res) => {
                     company: user.company,
                     createdAt: user.createdAt 
                 } : { name: 'Unknown User', email: 'N/A' },
-                invoice: invoice ? { id: invoice.id, invoiceNumber: invoice.invoiceNumber } : null
+                invoice: invoice ? { id: invoice.id, invoiceNumber: invoice.invoiceNumber } : null,
+                // Manual payment fields exposed for admin review
+                manualPaymentRef: tJson.manualPaymentRef || null,
+                manualPaymentNote: tJson.manualPaymentNote || null
             };
         });
 
@@ -128,10 +131,16 @@ router.get('/stats', async (req, res) => {
             where: { status: 'FAILED' }
         });
 
+        // Count Pending Manual Payments
+        const pendingManualCount = await Transaction.count({
+            where: { status: 'PENDING_APPROVAL', paymentGateway: 'manual' }
+        });
+
         res.json({
             todayRevenue: todayRevenue || 0,
             totalRevenue: totalRevenue || 0,
-            failedTransactions: failedCount
+            failedTransactions: failedCount,
+            pendingManualPayments: pendingManualCount
         });
 
     } catch (err) {

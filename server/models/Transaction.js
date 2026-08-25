@@ -75,7 +75,24 @@ const Transaction = sequelize.define('Transaction', {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
         comment: 'Whether the superadmin has seen this transaction'
+    },
+    manualPaymentRef: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'UTR/reference number provided by user for bank transfer payment'
+    },
+    manualPaymentNote: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: 'Optional note from user for manual payment (e.g. payment details)'
+    },
+    paymentScreenshotUrls: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        defaultValue: [],
+        comment: 'Array of URLs for the payment proof screenshots uploaded by user (up to 3)'
     }
+
 }, {
     timestamps: true
 });

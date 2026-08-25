@@ -41,6 +41,7 @@ module.exports = async function (req, res, next) {
                 if (!isAllowedPath) {
                     // Block suspended/pending users
                     if (dbUser.planStatus && ['Suspended', 'Pending'].includes(dbUser.planStatus)) {
+                        console.log('[AUTH MIDDLEWARE 403] PLAN_INACTIVE', dbUser.planStatus, 'Path:', req.originalUrl);
                         return res.status(403).json({
                             error: `Your account is currently ${dbUser.planStatus}. Please complete your subscription setup.`,
                             code: 'PLAN_INACTIVE'
@@ -49,6 +50,7 @@ module.exports = async function (req, res, next) {
 
                     // Block users whose plan has explicitly been set to Expired by scheduler
                     if (dbUser.planStatus === 'Expired') {
+                        console.log('[AUTH MIDDLEWARE 403] PLAN_EXPIRED', 'Path:', req.originalUrl);
                         return res.status(403).json({
                             error: 'Your subscription has expired. Please renew your plan to continue.',
                             code: 'PLAN_EXPIRED',
@@ -60,9 +62,10 @@ module.exports = async function (req, res, next) {
                     // This catches cases where the scheduler hasn't run yet (Trial/Active with elapsed date).
                     // True free plans always have planExpiry = null so they are naturally excluded.
                     if (dbUser.planExpiry && new Date(dbUser.planExpiry) < new Date()) {
+                        console.log('[AUTH MIDDLEWARE 403] PLAN_EXPIRED_DATE', dbUser.planExpiry, 'Path:', req.originalUrl);
                         return res.status(403).json({
-                            error: 'Your subscription has expired. Please renew your plan to continue.',
-                            code: 'PLAN_EXPIRED',
+                            error: `Your subscription expired on ${new Date(dbUser.planExpiry).toLocaleDateString()}. Please renew your plan to continue.`,
+                            code: 'PLAN_EXPIRED_DATE',
                             expiredAt: dbUser.planExpiry
                         });
                     }

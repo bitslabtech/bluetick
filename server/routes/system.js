@@ -213,7 +213,39 @@ router.get('/invoice-config', auth, async (req, res) => {
     }
 });
 
+// @route   GET /api/system/manual-payment-config
+// @desc    Get manual payment (bank transfer) settings for authenticated users (checkout page)
+router.get('/manual-payment-config', auth, async (req, res) => {
+    try {
+        const config = await SystemConfig.getCachedConfig();
+        const mp = config?.settings?.manualPayment || {};
+        res.json({ manualPayment: mp });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+});
 
+// @route   PUT /api/system/manual-payment-config
+// @desc    Save manual payment (bank transfer) config (superadmin only)
+router.put('/manual-payment-config', superAdmin, async (req, res) => {
+    try {
+        const config = await SystemConfig.getConfig();
+        const existingSettings = config.settings || {};
+        config.settings = {
+            ...existingSettings,
+            manualPayment: req.body
+        };
+        config.changed('settings', true);
+        await config.save();
+        const cacheManager = require('../utils/cacheManager');
+        cacheManager.invalidate('public_settings');
+        res.json({ success: true, manualPayment: config.settings.manualPayment });
+    } catch (err) {
+        console.error('Manual Payment Config Save Error:', err);
+        res.status(500).send('Server Error');
+    }
+});
 
 // @route   GET /api/system/crm-data
 // @desc    Get linked CRM team members, templates, and tags for AI Chatbot routing
@@ -783,6 +815,44 @@ router.post('/actions/:action', superAdmin, async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).send('Action failed');
+    }
+});
+
+// ─── GET /manual-payment-config ── Authenticated: Checkout fetches bank details ─
+router.get('/manual-payment-config', auth, async (req, res) => {
+    try {
+        const config = await SystemConfig.getConfig();
+        const mp = config.settings?.manualPayment || {};
+        res.json({ manualPayment: mp });
+    } catch (err) {
+        console.error('Get Manual Payment Config Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ─── PUT /manual-payment-config ── Admin: Update bank details ─────────────────
+router.put('/manual-payment-config', ...superAdmin, async (req, res) => {
+    try {
+        const { enabled, accountName, accountNumber, ifscCode, bankName, upiId, instructions } = req.body;
+        const config = await SystemConfig.getConfig();
+        const existingSettings = config.settings || {};
+        config.settings = {
+            ...existingSettings,
+            manualPayment: {
+                enabled: Boolean(enabled),
+                accountName: accountName || '',
+                accountNumber: accountNumber || '',
+                ifscCode: ifscCode || '',
+                bankName: bankName || '',
+                upiId: upiId || '',
+                instructions: instructions || ''
+            }
+        };
+        await config.save();
+        res.json({ success: true, manualPayment: config.settings.manualPayment });
+    } catch (err) {
+        console.error('Update Manual Payment Config Error:', err);
+        res.status(500).json({ error: err.message });
     }
 });
 

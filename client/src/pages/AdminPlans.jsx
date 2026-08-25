@@ -386,7 +386,7 @@ const AdminPlans = () => {
                 <PlanModal
                     plan={editingPlan}
                     availableAddons={availableAddons}
-                    masterCoreFeatures={Array.from(new Set(plans.flatMap(p => p.coreFeatures?.map(f => f.name) || [])))}
+                    masterCoreFeatures={(() => { const seen = new Set(); return plans.flatMap(p => p.coreFeatures || []).filter(f => f.name && !seen.has(f.name) && seen.add(f.name)).map(f => ({ name: f.name, category: f.category || 'whatsapp' })); })()}
                     onClose={() => setIsPlanModalOpen(false)}
                     onSave={handleSavePlan}
                 />
@@ -751,13 +751,17 @@ const LimitInputCard = ({ name, value, onChange, label, icon: Icon, colorClass }
 const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClose, onSave }) => {
     const initializeCoreFeatures = () => {
         const planFeatures = plan?.coreFeatures || [];
-        const merged = masterCoreFeatures.map(name => {
-            const existing = planFeatures.find(f => f.name === name);
-            return { name, qty: existing ? existing.qty : '' };
+        const merged = masterCoreFeatures.map(mf => {
+            const existing = planFeatures.find(f => f.name === mf.name);
+            return {
+                name: mf.name,
+                qty: existing ? existing.qty : '',
+                category: existing?.category || mf.category || 'whatsapp'
+            };
         });
         planFeatures.forEach(f => {
             if (!merged.find(m => m.name === f.name)) {
-                merged.push(f);
+                merged.push({ name: f.name, qty: f.qty, category: f.category || 'whatsapp' });
             }
         });
         return merged;
@@ -1186,46 +1190,122 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                     </div>
                                 </div>
 
-                                <div className="mt-8 pt-8 border-t border-slate-200 dark:border-white/10">
-                                    <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Core Features (Cross-Plan Sync)</h4>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Features added here will appear on all plans. Set a quantity or leave empty to show as "not included".</p>
-
-                                    <div className="space-y-3">
-                                        {formData.coreFeatures.map((feature, idx) => (
-                                            <div key={idx} className="flex gap-3 items-center group">
-                                                <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 shrink-0 border border-slate-200 dark:border-white/10">
-                                                    {idx + 1}
-                                                </div>
-                                                <input
-                                                    value={feature.qty || ''}
-                                                    onChange={(e) => handleCoreFeatureChange(idx, 'qty', e.target.value)}
-                                                    className="modern-input w-24 md:w-40"
-                                                    placeholder="Qty (e.g. 2)"
-                                                />
-                                                <input
-                                                    value={feature.name || ''}
-                                                    onChange={(e) => handleCoreFeatureChange(idx, 'name', e.target.value)}
-                                                    className="modern-input flex-1"
-                                                    placeholder="Feature Name (e.g. Business Cards)"
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeCoreFeature(idx)}
-                                                    className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
-                                                >
-                                                    <Trash2 className="w-5 h-5" />
-                                                </button>
-                                            </div>
-                                        ))}
-
-                                        <button
-                                            type="button"
-                                            onClick={addCoreFeature}
-                                            className="mt-4 flex items-center gap-2 px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 font-bold rounded-xl border border-dashed border-indigo-200 dark:border-indigo-800 transition-all w-full justify-center"
-                                        >
-                                            <Plus className="w-5 h-5" /> Add New Core Feature
-                                        </button>
+                                <div className="mt-8 pt-8 border-t border-slate-200 dark:border-white/10 space-y-5">
+                                    <div>
+                                        <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Product Feature Sections</h4>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">Add features per product. Features defined here sync across all plans — other plans can toggle them included or excluded without re-typing.</p>
                                     </div>
+
+                                    {[
+                                        { category: 'whatsapp', label: 'WhatsApp CRM & Automation', Icon: MessageSquare, border: 'border-indigo-200 dark:border-indigo-800/50', headerBg: 'bg-indigo-50 dark:bg-indigo-900/20', iconBg: 'bg-indigo-100 dark:bg-indigo-900/50', iconColor: 'text-indigo-600 dark:text-indigo-400', titleColor: 'text-indigo-800 dark:text-indigo-200', btnClass: 'bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800', toggleOn: 'bg-indigo-500' },
+                                        { category: 'store', label: 'Smart eCommerce Store', Icon: Store, border: 'border-emerald-200 dark:border-emerald-800/50', headerBg: 'bg-emerald-50 dark:bg-emerald-900/20', iconBg: 'bg-emerald-100 dark:bg-emerald-900/50', iconColor: 'text-emerald-600 dark:text-emerald-400', titleColor: 'text-emerald-800 dark:text-emerald-200', btnClass: 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800', toggleOn: 'bg-emerald-500' },
+                                        { category: 'ads', label: 'Meta Digital Marketing', Icon: Activity, border: 'border-rose-200 dark:border-rose-800/50', headerBg: 'bg-rose-50 dark:bg-rose-900/20', iconBg: 'bg-rose-100 dark:bg-rose-900/50', iconColor: 'text-rose-600 dark:text-rose-400', titleColor: 'text-rose-800 dark:text-rose-200', btnClass: 'bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/20 dark:hover:bg-rose-900/40 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800', toggleOn: 'bg-rose-500' },
+                                        { category: 'vcard', label: 'VeCards – Digital Business Card', Icon: CreditCard, border: 'border-cyan-200 dark:border-cyan-800/50', headerBg: 'bg-cyan-50 dark:bg-cyan-900/20', iconBg: 'bg-cyan-100 dark:bg-cyan-900/50', iconColor: 'text-cyan-600 dark:text-cyan-400', titleColor: 'text-cyan-800 dark:text-cyan-200', btnClass: 'bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-900/20 dark:hover:bg-cyan-900/40 text-cyan-600 dark:text-cyan-400 border-cyan-200 dark:border-cyan-800', toggleOn: 'bg-cyan-500' },
+                                    ].map(({ category, label, Icon, border, headerBg, iconBg, iconColor, titleColor, btnClass, toggleOn }) => {
+                                        // Master features for this category (from all plans)
+                                        const masterInCat = masterCoreFeatures.filter(f => (f.category || 'whatsapp') === category);
+                                        // This plan's features for this category
+                                        const planFeatsCat = formData.coreFeatures.filter(f => (f.category || 'whatsapp') === category);
+                                        // Features only defined in this plan (not yet in master)
+                                        const localOnly = planFeatsCat.filter(pf => !masterCoreFeatures.find(m => m.name === pf.name));
+
+                                        return (
+                                            <div key={category} className={`border ${border} rounded-2xl overflow-hidden`}>
+                                                {/* Section Header */}
+                                                <div className={`flex items-center gap-3 px-5 py-3.5 ${headerBg}`}>
+                                                    <div className={`p-2 rounded-xl ${iconBg} shrink-0`}>
+                                                        <Icon className={`w-4 h-4 ${iconColor}`} />
+                                                    </div>
+                                                    <h5 className={`font-bold text-sm ${titleColor}`}>{label}</h5>
+                                                </div>
+
+                                                <div className="p-5 space-y-3">
+                                                    {/* Master features — appear across all plans */}
+                                                    {masterInCat.map(mf => {
+                                                        const featIdx = formData.coreFeatures.findIndex(f => f.name === mf.name);
+                                                        const planFeat = featIdx >= 0 ? formData.coreFeatures[featIdx] : null;
+                                                        const isIncluded = planFeat && planFeat.qty && planFeat.qty !== '0';
+
+                                                        return (
+                                                            <div key={mf.name} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5">
+                                                                {/* Toggle */}
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        if (featIdx >= 0) {
+                                                                            handleCoreFeatureChange(featIdx, 'qty', isIncluded ? '' : '✓');
+                                                                        } else {
+                                                                            setFormData(prev => ({ ...prev, coreFeatures: [...prev.coreFeatures, { name: mf.name, qty: '✓', category }] }));
+                                                                        }
+                                                                    }}
+                                                                    className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none ${isIncluded ? toggleOn : 'bg-slate-300 dark:bg-slate-600'}`}
+                                                                >
+                                                                    <span className={`${isIncluded ? 'translate-x-4' : 'translate-x-1'} inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm`} />
+                                                                </button>
+
+                                                                <span className={`text-sm font-medium flex-1 ${isIncluded ? 'text-slate-800 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`}>
+                                                                    {mf.name}
+                                                                </span>
+
+                                                                {/* Qty input when included */}
+                                                                {isIncluded && (
+                                                                    <input
+                                                                        value={planFeat?.qty === '✓' ? '' : (planFeat?.qty || '')}
+                                                                        onChange={e => featIdx >= 0 && handleCoreFeatureChange(featIdx, 'qty', e.target.value || '✓')}
+                                                                        className="modern-input w-28 text-center text-sm py-1.5"
+                                                                        placeholder="Qty (optional)"
+                                                                    />
+                                                                )}
+
+                                                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider bg-slate-100 dark:bg-white/10 px-2 py-0.5 rounded-full shrink-0">master</span>
+                                                            </div>
+                                                        );
+                                                    })}
+
+                                                    {/* Local-only features (defined in this plan, not in master yet) */}
+                                                    {localOnly.map(feat => {
+                                                        const idx = formData.coreFeatures.findIndex(f => f.name === feat.name && (f.category || 'whatsapp') === category);
+                                                        return (
+                                                            <div key={`local-${feat.name}-${idx}`} className="flex gap-3 items-center group">
+                                                                <input
+                                                                    value={feat.qty || ''}
+                                                                    onChange={e => handleCoreFeatureChange(idx, 'qty', e.target.value)}
+                                                                    className="modern-input w-28 text-center"
+                                                                    placeholder="Qty"
+                                                                />
+                                                                <input
+                                                                    value={feat.name || ''}
+                                                                    onChange={e => handleCoreFeatureChange(idx, 'name', e.target.value)}
+                                                                    className="modern-input flex-1"
+                                                                    placeholder="Feature name (e.g. WhatsApp Forms)"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => removeCoreFeature(idx)}
+                                                                    className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 shrink-0"
+                                                                >
+                                                                    <Trash2 className="w-5 h-5" />
+                                                                </button>
+                                                            </div>
+                                                        );
+                                                    })}
+
+                                                    {masterInCat.length === 0 && localOnly.length === 0 && (
+                                                        <p className="text-sm text-slate-400 dark:text-slate-500 italic text-center py-1">No features yet — add one below.</p>
+                                                    )}
+
+                                                    {/* Add feature button */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setFormData(prev => ({ ...prev, coreFeatures: [...prev.coreFeatures, { name: '', qty: '', category }] }))}
+                                                        className={`flex items-center gap-2 px-4 py-2.5 font-bold rounded-xl border border-dashed transition-all w-full justify-center text-sm ${btnClass}`}
+                                                    >
+                                                        <Plus className="w-4 h-4" /> Add to {label.split('–')[0].trim().split('& ').pop().split(' ').slice(0,2).join(' ')}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}

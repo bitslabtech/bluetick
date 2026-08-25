@@ -65,6 +65,7 @@ const LandingPage = React.lazy(() => import('./pages/LandingPage'));
 const BlogList = React.lazy(() => import('./pages/BlogList'));
 const BlogPost = React.lazy(() => import('./pages/BlogPost'));
 const Checkout = React.lazy(() => import('./pages/Checkout'));
+const ManualPaymentPending = React.lazy(() => import('./pages/ManualPaymentPending'));
 const Billing = React.lazy(() => import('./pages/Billing'));
 const UpgradeFunnel = React.lazy(() => import('./pages/UpgradeFunnel'));
 const AiTokenHistory = React.lazy(() => import('./pages/AiTokenHistory'));
@@ -516,6 +517,7 @@ function App() {
                                                 
                                                 <Route path="/notifications" element={<UserNotifications />} />
                                                 <Route path="/checkout" element={<Checkout />} />
+                                                <Route path="/payment-pending" element={<ManualPaymentPending />} />
                                                 <Route path="/billing" element={<Billing />} />
                                                  <Route path="/ai-token-history" element={<AiTokenHistory />} />
                                                  <Route path="/media-gallery" element={<MediaGallery />} />

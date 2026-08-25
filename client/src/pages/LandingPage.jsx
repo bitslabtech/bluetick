@@ -1644,7 +1644,7 @@ export default function LandingPage() {
         if (!el) return;
         const observer = new IntersectionObserver(
             ([entry]) => setPricingInView(entry.isIntersecting),
-            { threshold: 0.05 }
+            { threshold: 0.4 } // Show arrows when pricing cards are 40% into the viewport
         );
         observer.observe(el);
         return () => observer.disconnect();
@@ -2121,7 +2121,7 @@ export default function LandingPage() {
                         </div>
                     )}
 
-                    <section id="pricing" ref={pricingSectionRef} className="py-24 relative bg-white dark:bg-zinc-950 transition-colors">
+                    <section id="pricing" className="py-24 relative bg-white dark:bg-zinc-950 transition-colors">
                         <div className="max-w-[100rem] mx-auto px-4 md:px-6">
                             <div className="text-center mb-12">
                                 <h2 className="text-3xl md:text-5xl font-extrabold mb-4 text-slate-900 dark:text-white tracking-tight">Simple, transparent pricing</h2>
@@ -2206,7 +2206,8 @@ export default function LandingPage() {
                                     <div className="relative w-full mx-auto">
                                         <div
                                             id="pricing-slider"
-                                            className="flex md:flex-wrap md:justify-center gap-6 md:gap-8 items-stretch overflow-x-auto pt-8 pb-6 snap-x snap-mandatory"
+                                            ref={pricingSectionRef}
+                                            className="flex md:flex-wrap md:justify-center gap-6 md:gap-8 items-stretch overflow-x-auto pt-8 pb-6 px-16 md:px-0 snap-x snap-mandatory"
                                             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                                         >
                                             <style>{`#pricing-slider::-webkit-scrollbar { display: none; }`}</style>
@@ -2402,142 +2403,65 @@ export default function LandingPage() {
                                                                 </div>
                                                             )}
 
-                                                            {/* Core Limits */}
-                                                            <div>
-                                                                <div className="font-bold text-[10px] tracking-widest uppercase mb-3 text-slate-400">Core</div>
-                                                                <ul className="space-y-3">
-                                                                    <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                            {/* ─── 4 Product Sections ─── */}
+
+                                                            {/* 1. WhatsApp CRM & Automation */}
+                                                            <div className="rounded-xl border border-indigo-100 dark:border-indigo-900/30 overflow-hidden">
+                                                                <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 dark:bg-indigo-900/20">
+                                                                    <div className="p-1 rounded-md bg-indigo-100 dark:bg-indigo-900/50 shrink-0">
+                                                                        <MessageSquare className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
+                                                                    </div>
+                                                                    <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700 dark:text-indigo-300">WhatsApp CRM &amp; Automation</span>
+                                                                </div>
+                                                                <ul className="px-3 py-2.5 space-y-2">
+                                                                    <li className="flex items-center gap-2.5 text-sm font-semibold">
+                                                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-2.5 h-2.5" /></div>
                                                                         <span>{plan.messageLimit === -1 ? 'Unlimited' : plan.messageLimit.toLocaleString()} Messages/mo</span>
                                                                     </li>
-                                                                    <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                    <li className="flex items-center gap-2.5 text-sm font-semibold">
+                                                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-2.5 h-2.5" /></div>
                                                                         <span>{plan.contactLimit === -1 ? 'Unlimited' : plan.contactLimit.toLocaleString()} Contacts</span>
                                                                     </li>
                                                                     {(plan.templateLimit > 0 || plan.templateLimit === -1) && (
-                                                                        <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
-                                                                            <span>{plan.templateLimit === -1 ? 'Unlimited' : plan.templateLimit} Message Templates</span>
+                                                                        <li className="flex items-center gap-2.5 text-sm font-semibold">
+                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-2.5 h-2.5" /></div>
+                                                                            <span>{plan.templateLimit === -1 ? 'Unlimited' : plan.templateLimit} Templates</span>
                                                                         </li>
                                                                     )}
                                                                     {(plan.teamMemberLimit > 0 || plan.teamMemberLimit === -1) && (
-                                                                        <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                                                        <li className="flex items-center gap-2.5 text-sm font-semibold">
+                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-2.5 h-2.5" /></div>
                                                                             <span>{plan.teamMemberLimit === -1 ? 'Unlimited' : plan.teamMemberLimit} Team Members</span>
                                                                         </li>
                                                                     )}
-                                                                    {plan.vcardLimit > 0 || plan.vcardLimit === -1 ? (
-                                                                        <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
-                                                                            <span>{plan.vcardLimit === -1 ? 'Unlimited' : plan.vcardLimit} VeCards</span>
-                                                                        </li>
-                                                                    ) : (
-                                                                        <li className="flex items-center gap-3 text-sm font-semibold opacity-70">
-                                                                            <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400"><X className="w-3 h-3" /></div>
-                                                                            <span className="text-slate-900 dark:text-white">VeCards</span>
-                                                                        </li>
-                                                                    )}
-                                                                    {plan.waStoreLimit > 0 || plan.waStoreLimit === -1 ? (
-                                                                        <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
-                                                                            <span>{plan.waStoreLimit === -1 ? 'Unlimited' : plan.waStoreLimit} Online Stores</span>
-                                                                        </li>
-                                                                    ) : (
-                                                                        <li className="flex items-center gap-3 text-sm font-semibold opacity-70">
-                                                                            <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400"><X className="w-3 h-3" /></div>
-                                                                            <span className="text-slate-900 dark:text-white">Online Stores</span>
-                                                                        </li>
-                                                                    )}
-                                                                    <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.flowBotEnabled ? 'opacity-70' : ''}`}>
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.flowBotEnabled ? theme.checkSubtle : 'bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400'}`}>
-                                                                            {plan.flowBotEnabled ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                                                                    <li className={`flex items-center gap-2.5 text-sm font-semibold ${!plan.flowBotEnabled ? 'opacity-55' : ''}`}>
+                                                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${plan.flowBotEnabled ? theme.checkSubtle : 'bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500'}`}>
+                                                                            {plan.flowBotEnabled ? <Check className="w-2.5 h-2.5" /> : <X className="w-2.5 h-2.5" />}
                                                                         </div>
-                                                                        <span className={!plan.flowBotEnabled ? "text-slate-900 dark:text-white" : ""}>
+                                                                        <span className={!plan.flowBotEnabled ? 'text-slate-400 dark:text-slate-500' : ''}>
                                                                             {plan.flowBotEnabled && plan.flowLimit !== undefined
                                                                                 ? `${plan.flowLimit === -1 ? 'Unlimited' : plan.flowLimit} AI FlowBots`
                                                                                 : 'AI FlowBot Builder'}
                                                                         </span>
                                                                     </li>
-                                                                    <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.allowCtwaAnalytics ? 'opacity-70' : ''}`}>
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allowCtwaAnalytics ? theme.checkSubtle : 'bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400'}`}>
-                                                                            {plan.allowCtwaAnalytics ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                                                                        </div>
-                                                                        <span className={!plan.allowCtwaAnalytics ? "text-slate-900 dark:text-white" : ""}>Click to WhatsApp Ads</span>
-                                                                    </li>
-                                                                    <li className={`flex items-center gap-3 text-sm font-semibold ${!plan.allowMetaAds ? 'opacity-70' : ''}`}>
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allowMetaAds ? theme.checkSubtle : 'bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400'}`}>
-                                                                            {plan.allowMetaAds ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                                                                        </div>
-                                                                        <span className={!plan.allowMetaAds ? "text-slate-900 dark:text-white" : ""}>Meta Ads Marketing</span>
-                                                                    </li>
-                                                                </ul>
-                                                            </div>
-
-                                                            {/* Capabilities */}
-                                                            {(plan.aiTokensAllowance > 0 || plan.aiTokensAllowance === -1 || (Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0)) && (
-                                                                <div>
-                                                                    <div className="font-bold text-[10px] tracking-widest uppercase mb-3 text-slate-400">Add-ons</div>
-                                                                    <ul className="space-y-3">
-                                                                        {(plan.aiTokensAllowance > 0 || plan.aiTokensAllowance === -1) && (
-                                                                            <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
-                                                                                <span>{plan.aiTokensAllowance === -1 ? 'Unlimited' : plan.aiTokensAllowance.toLocaleString()} AI Tokens Included</span>
-                                                                            </li>
-                                                                        )}
-                                                                        {Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0 && (
-                                                                            <li className="flex items-start gap-3 text-sm font-semibold">
-                                                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
-                                                                                <div className="flex flex-col">
-                                                                                    <span>{plan.includedAddons.length} Add-on{plan.includedAddons.length > 1 ? 's' : ''} Included</span>
-                                                                                    <ul className="mt-2 space-y-1.5">
-                                                                                        {plan.includedAddons.map(addonKey => (
-                                                                                            <li key={addonKey} className="text-xs font-semibold flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
-                                                                                                <div className="w-1.5 h-1.5 rounded-full bg-current opacity-70 shrink-0"></div>
-                                                                                                {addonKey.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                                                                                            </li>
-                                                                                        ))}
-                                                                                    </ul>
-                                                                                </div>
-                                                                            </li>
-                                                                        )}
-                                                                    </ul>
-                                                                </div>
-                                                            )}
-
-                                                            {/* Custom Features list */}
-                                                            <div>
-                                                                <div className="font-bold text-[10px] tracking-widest uppercase mb-3 text-slate-400">Features</div>
-                                                                <ul className="space-y-3">
-                                                                    {(plan.quickReplyLimit > 0 || plan.quickReplyLimit === -1) && (
-                                                                        <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
-                                                                            <span>{plan.quickReplyLimit === -1 ? 'Unlimited' : plan.quickReplyLimit} Quick Replies</span>
+                                                                    {(plan.aiTokensAllowance > 0 || plan.aiTokensAllowance === -1) && (
+                                                                        <li className="flex items-center gap-2.5 text-sm font-semibold">
+                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-2.5 h-2.5" /></div>
+                                                                            <span>{plan.aiTokensAllowance === -1 ? 'Unlimited' : plan.aiTokensAllowance.toLocaleString()} AI Tokens</span>
                                                                         </li>
                                                                     )}
-                                                                    {(plan.tagLimit > 0 || plan.tagLimit === -1) && (
-                                                                        <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
-                                                                            <span>{plan.tagLimit === -1 ? 'Unlimited' : plan.tagLimit} Contact Tags</span>
-                                                                        </li>
-                                                                    )}
-                                                                    {(plan.groupLimit > 0 || plan.groupLimit === -1) && (
-                                                                        <li className="flex items-center gap-3 text-sm font-semibold">
-                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
-                                                                            <span>{plan.groupLimit === -1 ? 'Unlimited' : plan.groupLimit} Contact Groups</span>
-                                                                        </li>
-                                                                    )}
-                                                                    {Array.isArray(plan.features) && plan.features.map((feat, fi) => (
-                                                                        <li key={fi} className="flex items-start gap-3 text-sm font-semibold">
-                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
-                                                                            <span className="leading-tight">{feat}</span>
+                                                                    {Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0 && plan.includedAddons.map(addonKey => (
+                                                                        <li key={addonKey} className="flex items-center gap-2.5 text-sm font-semibold">
+                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-2.5 h-2.5" /></div>
+                                                                            <span>{addonKey.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</span>
                                                                         </li>
                                                                     ))}
-                                                                    {Array.isArray(plan.coreFeatures) && plan.coreFeatures.map((feat, fi) => (
-                                                                        <li key={`core-${fi}`} className={`flex items-start gap-3 text-sm font-semibold ${(!feat.qty || feat.qty === '0') ? 'opacity-50 grayscale' : ''}`}>
-                                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${(!feat.qty || feat.qty === '0') ? 'bg-red-500 text-white' : theme.checkSubtle}`}>
-                                                                                {(!feat.qty || feat.qty === '0') ? <X className="w-3 h-3" /> : <Check className="w-3 h-3" />}
+                                                                    {Array.isArray(plan.coreFeatures) && plan.coreFeatures.filter(f => !f.category || f.category === 'whatsapp').map((feat, fi) => (
+                                                                        <li key={`wa-cf-${fi}`} className={`flex items-center gap-2.5 text-sm font-semibold ${(!feat.qty || feat.qty === '0') ? 'opacity-50' : ''}`}>
+                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${(!feat.qty || feat.qty === '0') ? 'bg-slate-100 dark:bg-slate-800/60 text-slate-400' : theme.checkSubtle}`}>
+                                                                                {(!feat.qty || feat.qty === '0') ? <X className="w-2.5 h-2.5" /> : <Check className="w-2.5 h-2.5" />}
                                                                             </div>
-                                                                            <span className="leading-tight">
+                                                                            <span className={`leading-tight ${(!feat.qty || feat.qty === '0') ? 'text-slate-400 dark:text-slate-500' : ''}`}>
                                                                                 {feat.qty && feat.qty !== '0' && <span className="font-extrabold mr-1">{feat.qty}</span>}
                                                                                 {feat.name}
                                                                             </span>
@@ -2545,6 +2469,123 @@ export default function LandingPage() {
                                                                     ))}
                                                                 </ul>
                                                             </div>
+
+                                                            {/* 2. Smart eCommerce Store */}
+                                                            <div className="rounded-xl border border-emerald-100 dark:border-emerald-900/30 overflow-hidden">
+                                                                <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20">
+                                                                    <div className="p-1 rounded-md bg-emerald-100 dark:bg-emerald-900/50 shrink-0">
+                                                                        <Store className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                                                    </div>
+                                                                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Smart eCommerce Store</span>
+                                                                </div>
+                                                                <ul className="px-3 py-2.5 space-y-2">
+                                                                    {plan.waStoreLimit > 0 || plan.waStoreLimit === -1 ? (
+                                                                        <li className="flex items-center gap-2.5 text-sm font-semibold">
+                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-2.5 h-2.5" /></div>
+                                                                            <span>{plan.waStoreLimit === -1 ? 'Unlimited' : plan.waStoreLimit} Online Store{plan.waStoreLimit !== 1 ? 's' : ''}</span>
+                                                                        </li>
+                                                                    ) : (
+                                                                        <li className="flex items-center gap-2.5 text-sm font-semibold opacity-55">
+                                                                            <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-400"><X className="w-2.5 h-2.5" /></div>
+                                                                            <span className="text-slate-400 dark:text-slate-500">Not Included</span>
+                                                                        </li>
+                                                                    )}
+                                                                    {Array.isArray(plan.coreFeatures) && plan.coreFeatures.filter(f => f.category === 'store').map((feat, fi) => (
+                                                                        <li key={`st-cf-${fi}`} className={`flex items-center gap-2.5 text-sm font-semibold ${(!feat.qty || feat.qty === '0') ? 'opacity-50' : ''}`}>
+                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${(!feat.qty || feat.qty === '0') ? 'bg-slate-100 dark:bg-slate-800/60 text-slate-400' : theme.checkSubtle}`}>
+                                                                                {(!feat.qty || feat.qty === '0') ? <X className="w-2.5 h-2.5" /> : <Check className="w-2.5 h-2.5" />}
+                                                                            </div>
+                                                                            <span className={`leading-tight ${(!feat.qty || feat.qty === '0') ? 'text-slate-400 dark:text-slate-500' : ''}`}>
+                                                                                {feat.qty && feat.qty !== '0' && <span className="font-extrabold mr-1">{feat.qty}</span>}
+                                                                                {feat.name}
+                                                                            </span>
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+
+                                                            {/* 3. Meta Digital Marketing */}
+                                                            <div className="rounded-xl border border-rose-100 dark:border-rose-900/30 overflow-hidden">
+                                                                <div className="flex items-center gap-2 px-3 py-2 bg-rose-50 dark:bg-rose-900/20">
+                                                                    <div className="p-1 rounded-md bg-rose-100 dark:bg-rose-900/50 shrink-0">
+                                                                        <Megaphone className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                                                                    </div>
+                                                                    <span className="text-[10px] font-black uppercase tracking-wider text-rose-700 dark:text-rose-300">Meta Digital Marketing</span>
+                                                                </div>
+                                                                <ul className="px-3 py-2.5 space-y-2">
+                                                                    <li className={`flex items-center gap-2.5 text-sm font-semibold ${!plan.allowMetaAds ? 'opacity-55' : ''}`}>
+                                                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${plan.allowMetaAds ? theme.checkSubtle : 'bg-slate-100 dark:bg-slate-800/60 text-slate-400'}`}>
+                                                                            {plan.allowMetaAds ? <Check className="w-2.5 h-2.5" /> : <X className="w-2.5 h-2.5" />}
+                                                                        </div>
+                                                                        <span className={!plan.allowMetaAds ? 'text-slate-400 dark:text-slate-500' : ''}>Meta Ads Manager</span>
+                                                                    </li>
+                                                                    <li className={`flex items-center gap-2.5 text-sm font-semibold ${!plan.allowCtwaAnalytics ? 'opacity-55' : ''}`}>
+                                                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${plan.allowCtwaAnalytics ? theme.checkSubtle : 'bg-slate-100 dark:bg-slate-800/60 text-slate-400'}`}>
+                                                                            {plan.allowCtwaAnalytics ? <Check className="w-2.5 h-2.5" /> : <X className="w-2.5 h-2.5" />}
+                                                                        </div>
+                                                                        <span className={!plan.allowCtwaAnalytics ? 'text-slate-400 dark:text-slate-500' : ''}>Click-to-WhatsApp Ads</span>
+                                                                    </li>
+                                                                    {Array.isArray(plan.coreFeatures) && plan.coreFeatures.filter(f => f.category === 'ads').map((feat, fi) => (
+                                                                        <li key={`ad-cf-${fi}`} className={`flex items-center gap-2.5 text-sm font-semibold ${(!feat.qty || feat.qty === '0') ? 'opacity-50' : ''}`}>
+                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${(!feat.qty || feat.qty === '0') ? 'bg-slate-100 dark:bg-slate-800/60 text-slate-400' : theme.checkSubtle}`}>
+                                                                                {(!feat.qty || feat.qty === '0') ? <X className="w-2.5 h-2.5" /> : <Check className="w-2.5 h-2.5" />}
+                                                                            </div>
+                                                                            <span className={`leading-tight ${(!feat.qty || feat.qty === '0') ? 'text-slate-400 dark:text-slate-500' : ''}`}>
+                                                                                {feat.qty && feat.qty !== '0' && <span className="font-extrabold mr-1">{feat.qty}</span>}
+                                                                                {feat.name}
+                                                                            </span>
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+
+                                                            {/* 4. VeCards – Digital Business Card */}
+                                                            <div className="rounded-xl border border-cyan-100 dark:border-cyan-900/30 overflow-hidden">
+                                                                <div className="flex items-center gap-2 px-3 py-2 bg-cyan-50 dark:bg-cyan-900/20">
+                                                                    <div className="p-1 rounded-md bg-cyan-100 dark:bg-cyan-900/50 shrink-0">
+                                                                        <CreditCard className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
+                                                                    </div>
+                                                                    <span className="text-[10px] font-black uppercase tracking-wider text-cyan-700 dark:text-cyan-300">VeCards – Digital Business Card</span>
+                                                                </div>
+                                                                <ul className="px-3 py-2.5 space-y-2">
+                                                                    {plan.vcardLimit > 0 || plan.vcardLimit === -1 ? (
+                                                                        <li className="flex items-center gap-2.5 text-sm font-semibold">
+                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-2.5 h-2.5" /></div>
+                                                                            <span>{plan.vcardLimit === -1 ? 'Unlimited' : plan.vcardLimit} VeCard{plan.vcardLimit !== 1 ? 's' : ''}</span>
+                                                                        </li>
+                                                                    ) : (
+                                                                        <li className="flex items-center gap-2.5 text-sm font-semibold opacity-55">
+                                                                            <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-400"><X className="w-2.5 h-2.5" /></div>
+                                                                            <span className="text-slate-400 dark:text-slate-500">Not Included</span>
+                                                                        </li>
+                                                                    )}
+                                                                    {Array.isArray(plan.coreFeatures) && plan.coreFeatures.filter(f => f.category === 'vcard').map((feat, fi) => (
+                                                                        <li key={`vc-cf-${fi}`} className={`flex items-center gap-2.5 text-sm font-semibold ${(!feat.qty || feat.qty === '0') ? 'opacity-50' : ''}`}>
+                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${(!feat.qty || feat.qty === '0') ? 'bg-slate-100 dark:bg-slate-800/60 text-slate-400' : theme.checkSubtle}`}>
+                                                                                {(!feat.qty || feat.qty === '0') ? <X className="w-2.5 h-2.5" /> : <Check className="w-2.5 h-2.5" />}
+                                                                            </div>
+                                                                            <span className={`leading-tight ${(!feat.qty || feat.qty === '0') ? 'text-slate-400 dark:text-slate-500' : ''}`}>
+                                                                                {feat.qty && feat.qty !== '0' && <span className="font-extrabold mr-1">{feat.qty}</span>}
+                                                                                {feat.name}
+                                                                            </span>
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+
+                                                            {/* Marketing bullets – features[] */}
+                                                            {Array.isArray(plan.features) && plan.features.filter(f => f).length > 0 && (
+                                                                <div className="pt-1 border-t border-slate-100 dark:border-white/5">
+                                                                    <ul className="space-y-2 pt-1">
+                                                                        {plan.features.filter(f => f).map((feat, fi) => (
+                                                                            <li key={fi} className="flex items-start gap-2.5 text-sm font-semibold">
+                                                                                <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${theme.checkSubtle}`}><Check className="w-2.5 h-2.5" /></div>
+                                                                                <span className="leading-tight">{feat}</span>
+                                                                            </li>
+                                                                        ))}
+                                                                    </ul>
+                                                                </div>
+                                                            )}
                                                         </div>
 
 

@@ -5,7 +5,7 @@ import {
     Activity, Shield, Server, Zap, Terminal,
     RefreshCw, Power, AlertTriangle, Users, Database, Globe, Bell,
     Tag, Plus, Edit2, Trash2, Check, X, Calendar, Star, Briefcase, TrendingUp, ExternalLink, Link2, KeyRound, ToggleLeft, ToggleRight, Sparkles, Lock, CreditCard,
-    MessageSquare, Phone, PhoneOff, Wand2, CheckCircle2, Clock, XCircle, Info
+    MessageSquare, Phone, PhoneOff, Wand2, CheckCircle2, Clock, XCircle, Info, Banknote, Save
 } from 'lucide-react';
 import {
     DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors
@@ -54,6 +54,7 @@ const AdminSystemControls = () => {
     const [savingAiModel, setSavingAiModel] = useState(false);
     const [dynamicAiModels, setDynamicAiModels] = useState([]);
 
+
     const TOP_CURRENCIES = [
         { code: 'INR', name: 'Indian Rupee',     symbol: '₹' },
         { code: 'USD', name: 'US Dollar',         symbol: '$' },
@@ -83,12 +84,15 @@ const AdminSystemControls = () => {
             setAiModel(configRes.data?.settings?.aiModel || 'gemini-2.5-flash');
             setAiFallbackModel(configRes.data?.settings?.aiFallbackModel || 'gemini-2.5-flash-lite');
             setAiRetryAttempts(configRes.data?.settings?.aiRetryAttempts || 3);
+
             setLoading(false);
         } catch (err) {
             console.error(err);
             setLoading(false);
         }
     };
+
+
 
     const fetchDiagnostics = async () => {
         try {
@@ -538,6 +542,8 @@ const AdminSystemControls = () => {
                                 </div>
                             </div>
                         </div>
+
+
 
                         {/* AI MODEL CONFIGURATION */}
                         <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 shadow-sm">

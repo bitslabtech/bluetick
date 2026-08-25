@@ -200,7 +200,7 @@ function initScheduler() {
 
             // Fetch active users with phone numbers
             const activeUsers = await User.findAll({
-                where: { planStatus: 'Active', phone: { [Op.not]: null }, phone: { [Op.ne]: '' } }
+                where: { planStatus: 'Active', phone: { [Op.and]: [{ [Op.not]: null }, { [Op.ne]: '' }] } }
             });
 
             const now = new Date();

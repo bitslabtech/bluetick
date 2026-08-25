@@ -564,21 +564,44 @@ async function sendInvoiceWhatsApp(toPhone, inv, ic, pdfPublicUrl) {
 
 // ─── Build Item Description ───────────────────────────────────────────────────
 
-function buildDescription(planName, ic) {
+async function buildDescription(planName, ic, txn = null) {
     if (!planName) return 'Software Subscription Service';
 
+    let desc = '';
     if (planName.startsWith('Addon:')) {
         const addonName = planName.replace('Addon:', '').trim();
-        return (ic.addonDescriptionTemplate || '{addon_name} Add-on')
-            .replace('{addon_name}', addonName);
+        desc = ic.addonDescriptionTemplate || '{addon_name} Add-on';
+        return desc.replace(/{addon_name}/g, addonName).replace(/{addonName}/g, addonName);
     }
     if (planName.startsWith('Store:')) {
         const itemName = planName.replace('Store:', '').trim();
-        return (ic.topupDescriptionTemplate || '{item_name} Top-up')
-            .replace('{item_name}', itemName);
+        desc = ic.topupDescriptionTemplate || '{item_name} Top-up';
+        return desc.replace(/{item_name}/g, itemName).replace(/{itemName}/g, itemName);
     }
-    return (ic.planDescriptionTemplate || '{plan_name} Subscription')
-        .replace('{plan_name}', planName);
+
+    desc = ic.planDescriptionTemplate || '{plan_name} Subscription';
+    desc = desc.replace(/{plan_name}/g, planName).replace(/{planName}/g, planName);
+
+    if (desc.includes('{billingCycle}') || desc.includes('{billing_cycle}')) {
+        let billingCycle = '';
+        if (txn) {
+            const Plan = require('../models/Plan');
+            const targetPlan = await Plan.findOne({ where: { name: planName } });
+            if (targetPlan) {
+                const totalPaid = (parseFloat(txn.amount) || 0) + (parseFloat(txn.discountApplied) || 0);
+                if (totalPaid === parseFloat(targetPlan.yearlyPrice)) {
+                    billingCycle = 'Yearly';
+                } else if (totalPaid === parseFloat(targetPlan.halfYearlyPrice)) {
+                    billingCycle = 'Half-Yearly';
+                } else {
+                    billingCycle = 'Monthly';
+                }
+            }
+        }
+        desc = desc.replace(/{billingCycle}/g, billingCycle).replace(/{billing_cycle}/g, billingCycle);
+        desc = desc.replace(/\s+-\s*$/, '').trim();
+    }
+    return desc;
 }
 
 // ─── Main Entry Point ─────────────────────────────────────────────────────────
@@ -699,7 +722,7 @@ async function generateAndDeliverInvoice(transactionId, options = { silent: fals
         sellerPhone: ic.sellerPhone || '',
 
         // Line item
-        itemDescription: buildDescription(txn.planName, ic),
+        itemDescription: await buildDescription(txn.planName, ic, txn),
         itemHsnSac: ic.hsnSacCode || '998314',
         quantity: 1,
         unitPrice: originalPrice,         // ← Full plan price before discount
@@ -717,8 +740,8 @@ async function generateAndDeliverInvoice(transactionId, options = { silent: fals
         notes: ic.invoiceNotes || '',
 
         // Payment Info (passed to PDF generator)
-        paymentMethod: txn.paymentGateway || 'Online',
-        paymentTransactionId: txn.razorpayPaymentId || txn.transactionReference || txn.id,
+        paymentMethod: (txn.paymentGateway || '').toUpperCase() === 'MANUAL' ? 'Bank Transfer' : (txn.paymentGateway || 'Online'),
+        paymentTransactionId: txn.manualPaymentRef || txn.razorpayPaymentId || txn.transactionReference || txn.id,
         paymentStatus: txn.status === 'COMPLETED' ? 'paid' : 'pending'
     };
 

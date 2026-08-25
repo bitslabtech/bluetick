@@ -25,6 +25,14 @@ export default function WaStoreNavigation() {
         return Array.isArray(cats) ? cats : [];
     }, [store]);
 
+    const customPages = React.useMemo(() => {
+        const pages = store?.customPages || [];
+        if (typeof pages === 'string') {
+            try { return JSON.parse(pages); } catch { return []; }
+        }
+        return Array.isArray(pages) ? pages : [];
+    }, [store]);
+
     // Drag state for top-level items
     const [draggedParentIndex, setDraggedParentIndex] = useState(null);
     const [draggedOverParentIndex, setDraggedOverParentIndex] = useState(null);
@@ -253,6 +261,16 @@ export default function WaStoreNavigation() {
                                 className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white transition-all appearance-none"
                             >
                                 <option value="/?search=">All Products</option>
+                                <option disabled>── Policies ──</option>
+                                {store?.aboutUs && <option value="/policies/about">About Us</option>}
+                                {store?.privacyPolicy && <option value="/policies/privacy">Privacy Policy</option>}
+                                {store?.termsConditions && <option value="/policies/terms">Terms & Conditions</option>}
+                                {store?.returnPolicy && <option value="/policies/return">Return & Refund Policy</option>}
+                                {store?.shippingPolicy && <option value="/policies/shipping">Shipping Policy</option>}
+                                {customPages.length > 0 && <option disabled>── Custom Pages ──</option>}
+                                {customPages.map(p => (
+                                    <option key={p.id || p.slug} value={`/pages/${p.slug}`}>{p.title}</option>
+                                ))}
                             </select>
                         </>
                     )}

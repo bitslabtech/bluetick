@@ -16,9 +16,32 @@ const ReferralReward = require('../models/ReferralReward');
 const { getMonthlyMessageCount } = require('../utils/planLimits');
 const AdminNotification = require('../models/AdminNotification');
 const { sendAdminAlert } = require('../services/systemMessenger');
+const storageProvider = require('../utils/storageProvider');
 router.use(auth);
 
 const PaymentService = require('../services/PaymentService');
+
+// ─── POST /upload-payment-screenshot ── Upload proof image before submission ──
+const screenshotUploader = storageProvider('payment-screenshots', {
+    uniqueNames: true,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+    fileFilter: (req, file, cb) => {
+        const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        if (allowed.includes(file.mimetype)) cb(null, true);
+        else cb(new Error('Only JPG, PNG, WebP, or GIF images are allowed for payment screenshots.'));
+    }
+});
+router.post('/upload-payment-screenshot', screenshotUploader.single('screenshot'), async (req, res) => {
+    try {
+        if (!req.file || !req.file.publicUrl) {
+            return res.status(400).json({ error: 'No screenshot file received.' });
+        }
+        res.json({ success: true, url: req.file.publicUrl });
+    } catch (err) {
+        console.error('[BILLING] Screenshot upload error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
 // ─── Helper: compute plan expiry Date based on interval ───────────────────────
 const computePlanExpiry = (interval, currentExpiryDate, isRenewal) => {
     let baseDate = new Date();
@@ -990,6 +1013,66 @@ router.post('/verify-payment', async (req, res) => {
                 }
             }
 
+            // ─── Convert pending manual payment if user already submitted one ─────────────────
+            // CASE 1: Same plan — convert the row in-place to the online payment details.
+            //         This avoids a duplicate transaction and clears the approval queue automatically.
+            // CASE 2: Different plan — the old manual request becomes stale/irrelevant because the
+            //         user clearly changed their mind. Auto-cancel it so the superadmin never sees
+            //         it and can't accidentally approve it (which would downgrade the user).
+            const pendingManualSamePlan = await Transaction.findOne({
+                where: {
+                    userId: req.user.id,
+                    planName,
+                    status: 'PENDING_APPROVAL',
+                    paymentGateway: 'manual'
+                }
+            });
+
+            if (pendingManualSamePlan) {
+                // ── Same plan: convert in-place ────────────────────────────────────────────────
+                const actualAmountPaidConverted = Math.max(0, parseFloat(targetPlan.price) - (parseFloat(discountApplied) || 0));
+                await pendingManualSamePlan.update({
+                    paymentGateway: gateway,
+                    transactionReference,
+                    razorpayOrderId: payload.razorpay_order_id || null,
+                    razorpayPaymentId: payload.razorpay_payment_id || null,
+                    couponCode: couponCode || pendingManualSamePlan.couponCode || null,
+                    discountApplied: parseFloat(discountApplied) || pendingManualSamePlan.discountApplied || 0,
+                    amount: actualAmountPaidConverted,
+                    manualPaymentRef: null,  // clear UTR — not relevant for online payment
+                    manualPaymentNote: null,
+                    status: 'COMPLETED',
+                    isRead: false  // mark unread so admin sees the conversion in their queue
+                });
+                // Override transactionReference so applyUpgrade finds & updates this row (not new one)
+                transactionReference = pendingManualSamePlan.transactionReference;
+                console.log(`[BILLING] Converted pending manual txn ${pendingManualSamePlan.id} → online (${gateway}) for user ${req.user.id} plan ${planName}`);
+            }
+
+            // ── Different plan: cancel all other stale pending manual requests ───────────────
+            // User switched to a different plan — kill any pending manual requests for other plans
+            // so superadmin can't accidentally approve a stale request and downgrade/alter the user.
+            const stalePendingManuals = await Transaction.findAll({
+                where: {
+                    userId: req.user.id,
+                    planName: { [Op.ne]: planName },  // different plan
+                    status: 'PENDING_APPROVAL',
+                    paymentGateway: 'manual'
+                }
+            });
+            if (stalePendingManuals.length > 0) {
+                for (const stale of stalePendingManuals) {
+                    await stale.update({
+                        status: 'REJECTED',
+                        manualPaymentNote: (stale.manualPaymentNote ? stale.manualPaymentNote + '\n' : '') +
+                            `[Auto-cancelled: user completed online payment for ${planName} on ${new Date().toISOString()}]`,
+                        isRead: false  // surface it to admin so they're aware
+                    });
+                    console.log(`[BILLING] Auto-cancelled stale manual txn ${stale.id} (plan: ${stale.planName}) because user paid online for ${planName}`);
+                }
+            }
+            // ─────────────────────────────────────────────────────────────────────────────────
+
             const upgradeResult = await applyUpgrade(req.user.id, targetPlan, {
 
                 paymentGateway: gateway,
@@ -1209,6 +1292,295 @@ router.post('/start-trial', async (req, res) => {
         res.json({ success: true, message: `Started ${targetPlan.trialDays}-day free trial for ${planName} plan` });
     } catch (err) {
         console.error('Start Trial Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ─── GET /pending-manual-request ── Fetch user's pending manual payment ────────
+router.get('/pending-manual-request', async (req, res) => {
+    try {
+        const pendingReq = await Transaction.findOne({
+            where: { userId: req.user.id, status: 'PENDING_APPROVAL', paymentGateway: 'manual' },
+            order: [['createdAt', 'DESC']]
+        });
+        res.json({ pendingRequest: pendingReq });
+    } catch (err) {
+        console.error('Get Pending Manual Request Error:', err);
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
+// ─── PUT /manual-payment-request/:id ── Edit a pending manual payment ────────
+router.put('/manual-payment-request/:id', async (req, res) => {
+    try {
+        const { utrNumber, note, screenshotUrls } = req.body;
+        const transactionId = req.params.id;
+
+        const txn = await Transaction.findOne({
+            where: { id: transactionId, userId: req.user.id, status: 'PENDING_APPROVAL', paymentGateway: 'manual' }
+        });
+
+        if (!txn) {
+            return res.status(404).json({ error: 'Pending manual payment request not found.' });
+        }
+
+        if (utrNumber !== undefined && utrNumber.trim() && !/^[A-Za-z0-9]{8,30}$/.test(utrNumber.trim())) {
+            return res.status(400).json({ error: 'Invalid UTR format. Must be 8–30 alphanumeric characters.' });
+        }
+
+        if (utrNumber !== undefined) txn.manualPaymentRef = utrNumber.trim() || null;
+        if (note !== undefined) txn.manualPaymentNote = note ? note.trim() : null;
+        if (screenshotUrls !== undefined) {
+            txn.paymentScreenshotUrls = Array.isArray(screenshotUrls) ? screenshotUrls : (screenshotUrls ? [screenshotUrls] : []);
+        }
+
+        await txn.save();
+        res.json({ success: true, message: 'Manual payment request updated successfully.', transaction: txn });
+    } catch (err) {
+        console.error('Update Manual Payment Request Error:', err);
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
+// ─── DELETE /manual-payment-request/:id ── Cancel a pending manual payment ────
+router.delete('/manual-payment-request/:id', async (req, res) => {
+    try {
+        const transactionId = req.params.id;
+
+        const txn = await Transaction.findOne({
+            where: { id: transactionId, userId: req.user.id, status: 'PENDING_APPROVAL', paymentGateway: 'manual' }
+        });
+
+        if (!txn) {
+            return res.status(404).json({ error: 'Pending manual payment request not found.' });
+        }
+
+        await txn.destroy();
+        res.json({ success: true, message: 'Manual payment request cancelled.' });
+    } catch (err) {
+        console.error('Cancel Manual Payment Request Error:', err);
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
+// ─── POST /manual-payment-request ── User submits bank transfer ───────────────
+router.post('/manual-payment-request', async (req, res) => {
+    try {
+        const { planName, interval, couponCode, utrNumber, note, screenshotUrls } = req.body;
+
+        if (!planName) return res.status(400).json({ error: 'Plan name is required.' });
+        if (!screenshotUrls || (Array.isArray(screenshotUrls) && screenshotUrls.length === 0)) {
+            return res.status(400).json({ error: 'Payment screenshot is required.' });
+        }
+        if (utrNumber && utrNumber.trim() && !/^[A-Za-z0-9]{8,30}$/.test(utrNumber.trim())) {
+            return res.status(400).json({ error: 'Invalid UTR format. Must be 8–30 alphanumeric characters (no spaces or special characters).' });
+        }
+
+        let targetPlan = await Plan.findOne({ where: { name: planName } });
+        if (!targetPlan) return res.status(404).json({ error: `Plan '${planName}' not found.` });
+
+        // Override price for selected interval
+        if (interval === 'month' && targetPlan.monthlyPrice > 0) targetPlan.price = targetPlan.monthlyPrice;
+        else if (interval === 'half-year' && targetPlan.halfYearlyPrice > 0) targetPlan.price = targetPlan.halfYearlyPrice;
+        else if (interval === 'year' && targetPlan.yearlyPrice > 0) targetPlan.price = targetPlan.yearlyPrice;
+        if (interval) targetPlan.interval = interval;
+
+        const user = await User.findByPk(req.user.id);
+
+        // Calculate final price (upgrade credit + coupon)
+        let finalPrice = parseFloat(targetPlan.price);
+        let appliedDiscount = 0;
+
+        const isUpgrade = user.planStatus === 'Active' && user.planExpiry && user.plan !== 'Free';
+        if (isUpgrade) {
+            const math = await calculateUpgradeDiscount(user, targetPlan);
+            finalPrice = math.finalPrice;
+        }
+
+        if (couponCode) {
+            const coupon = await Coupon.findOne({ where: { code: couponCode.toUpperCase() } });
+            if (coupon && coupon.isActive) {
+                if (coupon.discountType === 'percentage') {
+                    appliedDiscount = finalPrice * (coupon.discountValue / 100);
+                    if (coupon.maxDiscountCap && coupon.maxDiscountCap > 0 && appliedDiscount > coupon.maxDiscountCap) {
+                        appliedDiscount = coupon.maxDiscountCap;
+                    }
+                } else if (coupon.discountType === 'fixed') {
+                    appliedDiscount = coupon.discountValue;
+                }
+                if (appliedDiscount > finalPrice) appliedDiscount = finalPrice;
+                finalPrice = finalPrice - appliedDiscount;
+            }
+        }
+
+        // Check for duplicate pending requests for same user + plan
+        const existing = await Transaction.findOne({
+            where: { userId: req.user.id, planName, status: 'PENDING_APPROVAL', paymentGateway: 'manual' }
+        });
+        if (existing) {
+            return res.status(409).json({ error: 'You already have a pending payment request for this plan. Please wait for admin approval.' });
+        }
+
+        // Create PENDING_APPROVAL transaction
+        const txn = await Transaction.create({
+            userId: req.user.id,
+            amount: finalPrice,
+            currency: targetPlan.currency || 'INR',
+            planName,
+            status: 'PENDING_APPROVAL',
+            paymentGateway: 'manual',
+            transactionReference: `manual_${crypto.randomUUID().replace(/-/g, '')}`,
+            userName: user.name || null,
+            userEmail: user.email || null,
+            userPhone: user.phone || null,
+            couponCode: couponCode || null,
+            discountApplied: appliedDiscount || 0,
+            manualPaymentRef: utrNumber ? utrNumber.trim() : null,
+            manualPaymentNote: note ? note.trim() : null,
+            paymentScreenshotUrls: Array.isArray(screenshotUrls) ? screenshotUrls : (screenshotUrls ? [screenshotUrls] : []),
+            isRead: false
+        });
+
+        // Admin notification
+        try {
+            await AdminNotification.create({
+                type: 'PLAN_CHANGE',
+                message: `Manual Payment Request: ${user.name || user.email} submitted UTR ${utrNumber.trim()} for ${planName} plan (₹${finalPrice})`,
+                data: { userId: req.user.id, plan: planName, amount: finalPrice, txnId: txn.id }
+            });
+            await sendAdminAlert('purchase_made', `New manual payment request from ${user.name || user.email}`, {
+                name: user.name || 'User',
+                plan: planName,
+                amount: finalPrice.toString()
+            });
+        } catch (alertErr) {
+            console.error('[MANUAL PAYMENT] Admin alert error:', alertErr.message);
+        }
+
+        res.json({ success: true, message: 'Your payment request has been submitted. We will verify and activate your plan within 24 hours.', txnId: txn.id });
+    } catch (err) {
+        console.error('Manual Payment Request Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ─── POST /approve-manual-payment/:transactionId ── Admin approves ────────────
+const adminMiddleware = require('../middleware/admin');
+router.post('/approve-manual-payment/:transactionId', adminMiddleware, async (req, res) => {
+    try {
+        const txn = await Transaction.findByPk(req.params.transactionId);
+        if (!txn) return res.status(404).json({ error: 'Transaction not found.' });
+        if (txn.status !== 'PENDING_APPROVAL') return res.status(400).json({ error: 'This transaction is not pending approval.' });
+        if (txn.paymentGateway !== 'manual') return res.status(400).json({ error: 'This is not a manual payment transaction.' });
+
+        let targetPlan = await Plan.findOne({ where: { name: txn.planName } });
+        if (!targetPlan) return res.status(404).json({ error: `Plan '${txn.planName}' not found.` });
+
+        // Derive interval from stored amount vs plan prices to re-apply correct interval
+        // We stored the calculated amount — just use the plan as-is for expiry computation.
+        // We need to apply the correct interval; infer from amount stored in txn vs plan prices.
+        let inferredInterval = 'month';
+        if (targetPlan.yearlyPrice > 0 && Math.abs(parseFloat(txn.amount) - parseFloat(targetPlan.yearlyPrice)) < 1) {
+            inferredInterval = 'year';
+        } else if (targetPlan.halfYearlyPrice > 0 && Math.abs(parseFloat(txn.amount) - parseFloat(targetPlan.halfYearlyPrice)) < 1) {
+            inferredInterval = 'half-year';
+        }
+
+        // Set interval on plan object for computePlanExpiry
+        targetPlan.interval = inferredInterval;
+
+        // Update coupon usage if applicable
+        if (txn.couponCode) {
+            const coupon = await Coupon.findOne({ where: { code: txn.couponCode.toUpperCase() } });
+            if (coupon) await coupon.increment('usesCount', { by: 1 });
+        }
+
+        // Reuse full applyUpgrade() — this does plan assignment, addons, CRM tags, referrals, tech partner
+        const upgradeResult = await applyUpgrade(txn.userId, targetPlan, {
+            paymentGateway: 'manual',
+            transactionReference: txn.transactionReference,
+            couponCode: txn.couponCode || null,
+            discountApplied: txn.discountApplied || 0,
+            amountPaid: parseFloat(txn.amount)
+        });
+
+        // Mark the existing PENDING transaction as COMPLETED (applyUpgrade creates/updates by transactionReference)
+        await txn.update({ status: 'COMPLETED', isRead: true });
+
+        // Generate invoice
+        try {
+            const InvoiceService = require('../services/InvoiceService');
+            await InvoiceService.generateAndDeliverInvoice(txn.id);
+        } catch (invoiceErr) {
+            console.error('[MANUAL PAYMENT APPROVE] Invoice error:', invoiceErr.message);
+        }
+
+        // WA notification to user (same planPurchase template as online payment)
+        try {
+            const { sendSystemMessage } = require('../services/systemMessenger');
+            const config = await SystemConfig.getCachedConfig();
+            const linkedAdminId = config?.settings?.linkedAdminUserId;
+            if (linkedAdminId) {
+                const Settings = require('../models/Settings');
+                const adminSettings = await Settings.findOne({ where: { userId: linkedAdminId } });
+                const waTemplates = adminSettings?.notificationTemplates?.whatsapp || {};
+                const planPurchaseTpl = waTemplates.planPurchase;
+                const user = await User.findByPk(txn.userId);
+
+                if (planPurchaseTpl && planPurchaseTpl.enabled && user?.phone) {
+                    const userPhone = user.phone.replace(/\D/g, '');
+                    const newExpiry = upgradeResult?.newExpiry;
+                    const contextMap = {
+                        '{name}': user.name || 'User',
+                        '{plan_name}': targetPlan.name,
+                        '{amount}': `${parseFloat(txn.amount)}`,
+                        '{transaction_id}': txn.manualPaymentRef || txn.transactionReference || 'N/A',
+                        '{expiry_date}': new Date(newExpiry || Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()
+                    };
+                    const parameters = (planPurchaseTpl.selectedVariables?.length > 0)
+                        ? planPurchaseTpl.selectedVariables.map(v => ({ type: 'text', text: contextMap[v] || 'N/A' }))
+                        : [
+                            { type: 'text', text: user.name || 'User' },
+                            { type: 'text', text: targetPlan.name },
+                            { type: 'text', text: `${parseFloat(txn.amount)}` },
+                            { type: 'text', text: txn.manualPaymentRef || 'N/A' },
+                            { type: 'text', text: new Date(newExpiry || Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString() }
+                        ];
+                    await sendSystemMessage(userPhone, 'template', {
+                        templateName: planPurchaseTpl.templateName,
+                        languageCode: planPurchaseTpl.languageCode || 'en_US',
+                        components: [{ type: 'body', parameters }]
+                    });
+                }
+            }
+        } catch (waErr) {
+            console.error('[MANUAL PAYMENT APPROVE] WA notification error:', waErr.message);
+        }
+
+        res.json({ success: true, message: `Payment approved. ${txn.planName} plan activated for user.` });
+    } catch (err) {
+        console.error('Approve Manual Payment Error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ─── POST /reject-manual-payment/:transactionId ── Admin rejects ──────────────
+router.post('/reject-manual-payment/:transactionId', adminMiddleware, async (req, res) => {
+    try {
+        const { reason } = req.body;
+        const txn = await Transaction.findByPk(req.params.transactionId);
+        if (!txn) return res.status(404).json({ error: 'Transaction not found.' });
+        if (txn.status !== 'PENDING_APPROVAL') return res.status(400).json({ error: 'This transaction is not pending approval.' });
+
+        await txn.update({
+            status: 'REJECTED',
+            isRead: true,
+            manualPaymentNote: reason ? `REJECTED: ${reason}` : (txn.manualPaymentNote ? `REJECTED: ${txn.manualPaymentNote}` : 'REJECTED')
+        });
+
+        res.json({ success: true, message: 'Payment request rejected.' });
+    } catch (err) {
+        console.error('Reject Manual Payment Error:', err);
         res.status(500).json({ error: err.message });
     }
 });
