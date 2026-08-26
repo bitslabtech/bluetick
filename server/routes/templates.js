@@ -949,7 +949,6 @@ router.post('/sync', async (req, res) => {
                 });
                 syncResults.added++;
             }
-            }
         }
 
         // Clean up templates that exist in our database but were deleted on Meta's end

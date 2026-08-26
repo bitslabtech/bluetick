@@ -52,6 +52,35 @@ export default function VcardList() {
         showToast('Link copied to clipboard!', 'success');
     };
 
+    if (loading) return (
+        <div className="space-y-6 mt-6 animate-pulse">
+            {/* Header Skeleton */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm">
+                <div>
+                    <div className="h-8 w-48 bg-slate-200 dark:bg-slate-700 rounded-lg mb-2"></div>
+                    <div className="h-4 w-72 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+                </div>
+                <div className="h-10 w-32 bg-slate-200 dark:bg-slate-700 rounded-xl"></div>
+            </div>
+
+            {/* Banner Skeleton */}
+            <div className="h-48 w-full bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm"></div>
+
+            {/* List Skeleton */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-200 dark:border-white/10 h-64 flex flex-col justify-between">
+                        <div className="h-32 bg-slate-200 dark:bg-slate-700 rounded-xl"></div>
+                        <div className="space-y-2 mt-4">
+                            <div className="h-4 w-3/4 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+                            <div className="h-4 w-1/2 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+
     return (
         <div className="space-y-6 animate-in fade-in">
             {/* Header */}
@@ -113,13 +142,7 @@ export default function VcardList() {
 
             {/* List */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {loading ? (
-                    Array(4).fill(0).map((_, i) => (
-                        <div key={i} className="bg-white dark:bg-surface-dark p-5 rounded-2xl border border-slate-200 dark:border-white/10 h-64">
-                            <Skeleton height={200} borderRadius={12} className="dark:opacity-10" />
-                        </div>
-                    ))
-                ) : vcards.length === 0 ? (
+                {vcards.length === 0 ? (
                     <div className="col-span-full py-20 bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/10 text-center">
                         <div className="inline-flex p-4 rounded-full bg-slate-50 dark:bg-slate-800/50 text-slate-400 mb-4">
                             <Contact className="w-12 h-12" />

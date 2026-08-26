@@ -45,7 +45,37 @@ export default function VcardDashboard() {
     ];
 
     if (loading) {
-        return <div className="p-4 md:p-8 animate-pulse text-slate-500">Loading analytics...</div>;
+        return (
+            <div className="space-y-6 animate-pulse">
+                {/* Header Skeleton */}
+                <div className="mb-6">
+                    <div className="h-8 w-64 bg-slate-200 dark:bg-slate-700 rounded-lg mb-2"></div>
+                    <div className="h-4 w-96 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+                </div>
+
+                {/* Banner Skeleton */}
+                <div className="h-48 w-full bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm mb-6"></div>
+
+                {/* Quick Stats Skeleton */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                    {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="bg-slate-50 dark:bg-slate-800/50 p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/10 flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-slate-200 dark:bg-slate-700 shrink-0"></div>
+                            <div className="space-y-2 flex-1">
+                                <div className="h-4 w-full bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+                                <div className="h-6 w-1/2 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Chart Skeleton */}
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 md:p-6 rounded-2xl border border-slate-200 dark:border-white/10 mt-6">
+                    <div className="h-6 w-48 bg-slate-200 dark:bg-slate-700 rounded-lg mb-6"></div>
+                    <div className="h-72 w-full bg-slate-200 dark:bg-slate-700 rounded-xl"></div>
+                </div>
+            </div>
+        );
     }
 
     return (

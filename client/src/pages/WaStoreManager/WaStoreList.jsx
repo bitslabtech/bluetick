@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, startTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Store, Plus, ArrowRight, Activity, ExternalLink, Settings, LayoutTemplate, Package } from 'lucide-react';
@@ -39,7 +39,38 @@ export default function WaStoreList() {
         }
     };
 
-    if (loading) return <div className="p-4 md:p-8 animate-pulse text-slate-500">Loading your stores...</div>;
+    if (loading) return (
+        <div className="w-full lg:w-[70%] max-w-[1600px] mx-auto px-4 lg:px-0 space-y-6 mt-6 animate-pulse">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <div className="h-8 w-48 bg-slate-200 dark:bg-slate-700 rounded-lg mb-2"></div>
+                    <div className="h-4 w-72 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+                </div>
+                <div className="h-10 w-32 bg-slate-200 dark:bg-slate-700 rounded-xl"></div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+                {[1, 2, 3].map((i) => (
+                    <div key={i} className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-white/10 rounded-2xl p-6">
+                        <div className="flex justify-between items-start mb-4">
+                            <div className="w-12 h-12 rounded-xl bg-slate-200 dark:bg-slate-700"></div>
+                            <div className="w-16 h-6 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+                        </div>
+                        <div className="h-6 w-3/4 bg-slate-200 dark:bg-slate-700 rounded-lg mb-2"></div>
+                        <div className="h-4 w-1/2 bg-slate-200 dark:bg-slate-700 rounded-lg mb-6"></div>
+                        
+                        <div className="grid grid-cols-3 gap-2 mb-6">
+                            <div className="h-12 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+                            <div className="h-12 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+                            <div className="h-12 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+                        </div>
+                        
+                        <div className="h-10 w-full bg-slate-200 dark:bg-slate-700 rounded-xl"></div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
 
     return (
         <div className="w-full lg:w-[70%] max-w-[1600px] mx-auto px-4 lg:px-0 space-y-6">
@@ -109,7 +140,11 @@ export default function WaStoreList() {
                                 </div>
 
                                 <button 
-                                    onClick={() => navigate(`/online-store/${store.slug}/analytics`)}
+                                    onClick={() => {
+                                        startTransition(() => {
+                                            navigate(`/online-store/${store.slug}/analytics`);
+                                        });
+                                    }}
                                     className="w-full flex items-center justify-center gap-2 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white rounded-lg transition-colors font-medium text-sm"
                                 >
                                     Manage Store <ArrowRight className="w-4 h-4" />
