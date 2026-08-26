@@ -9,6 +9,21 @@ const logActivity = require('../utils/logger');
 const { getIo } = require('../socket');
 const { getUserPlanLimits, checkLimit, getTemplateCount } = require('../utils/planLimits');
 
+// Helper to translate cryptic Meta errors into user-friendly ones
+const translateMetaError = (errorMsg) => {
+    if (!errorMsg) return "Failed to process template on WhatsApp.";
+    const lowerMsg = errorMsg.toLowerCase();
+    
+    if (lowerMsg.includes("more than two consecutive newline") || lowerMsg.includes("only have parameters") || lowerMsg.includes("more than 10 emojis")) {
+        return "Your message has too many blank lines (max 2 consecutive), consists entirely of variables, or has too many emojis (max 10). Please adjust your content and try again.";
+    }
+    if (lowerMsg.includes("too many variables for its length")) {
+        return "Your template has too many variables relative to the text length. Please add more words between your variables or reduce the number of variables.";
+    }
+    
+    return errorMsg;
+};
+
 // Memory storage for temporary file buffer before piping to Meta
 const { whatsappMediaFilter } = require('../utils/storageProvider');
 const upload = multer({ 
@@ -473,7 +488,8 @@ router.post('/', async (req, res) => {
 
         if (!response.ok) {
             console.error("Meta Creation Error:", JSON.stringify(data, null, 2));
-            return res.status(400).json({ error: (data.error?.error_user_msg || data.error?.message || 'Failed to create template on WhatsApp.') + JSON.stringify(data.error?.error_data || '') });
+            const rawMsg = data.error?.error_user_msg || data.error?.message || 'Failed to create template on WhatsApp.';
+            return res.status(400).json({ error: translateMetaError(rawMsg) + (data.error?.error_data ? ' ' + JSON.stringify(data.error.error_data) : '') });
         }
 
         // Save to DB on success
@@ -677,7 +693,8 @@ router.put('/:id', async (req, res) => {
 
         if (!response.ok) {
             console.error("Meta Edit Error:", JSON.stringify(data, null, 2));
-            return res.status(400).json({ error: (data.error?.error_user_msg || data.error?.message || 'Failed to edit template on WhatsApp.') + JSON.stringify(data.error?.error_data || '') });
+            const rawMsg = data.error?.error_user_msg || data.error?.message || 'Failed to edit template on WhatsApp.';
+            return res.status(400).json({ error: translateMetaError(rawMsg) + (data.error?.error_data ? ' ' + JSON.stringify(data.error.error_data) : '') });
         }
 
         // Save to DB on success

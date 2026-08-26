@@ -1111,7 +1111,7 @@ router.get('/by-slug/:slug', async (req, res) => {
         } else if (uuidRegex.test(slug)) {
             where.id = slug;
         } else {
-            where.slug = slug;
+            where.slug = { [Op.iLike]: slug };
         }
         
         const store = await WaStore.findOne({ where });

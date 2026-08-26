@@ -755,37 +755,20 @@ export default function PublicWaProduct({ customSlug }) {
                             </div>
                         </div>
 
-                        {/* Collapsible Accordions */}
-                        <div className="md:border-t md:border-gray-100 md:mt-6 md:pt-4 space-y-0">
-                            {/* DESCRIPTION ACCORDION */}
-                            <div className="border-b border-gray-100">
-                                <button
-                                    onClick={() => toggleAccordion('description')}
-                                    className={`w-full flex items-center justify-between text-xs font-bold uppercase tracking-wider ${theme.text} py-3`}
-                                >
-                                    <span>Product Description</span>
-                                    {openAccordions.description ? <Minus className="w-3.5 h-3.5 text-gray-400 shrink-0" /> : <Plus className="w-3.5 h-3.5 text-gray-400 shrink-0" />}
-                                </button>
-                                <div
-                                    style={{
-                                        maxHeight: openAccordions.description ? '600px' : '0',
-                                        overflow: 'hidden',
-                                        transition: 'max-height 0.25s ease',
-                                        width: '100%',
-                                    }}
-                                >
-                                    <div className={`pb-4 text-sm leading-relaxed ${theme.textMuted} whitespace-pre-line`} style={{width:'100%', overflowWrap:'break-word', wordBreak:'break-word'}}>
-                                        {product.description || product.name}
-                                    </div>
-                                </div>
-                            </div>
-
-
-                        </div>
+                        {/* Collapsible Accordions Removed - Moved below grid */}
 
                     </div>
                 </div>
 
+                {/* ─── FULL WIDTH DESCRIPTION ─── */}
+                <div className="w-full mt-10 md:mt-16 pt-8 md:pt-12 border-t border-gray-100">
+                    <div className="w-full max-w-5xl">
+                        <h2 className={`text-sm md:text-base font-bold uppercase tracking-widest ${theme.text} mb-6`}>Product Description</h2>
+                        <div className={`text-sm md:text-base leading-relaxed ${theme.textMuted} whitespace-pre-line`} style={{overflowWrap:'break-word', wordBreak:'break-word'}}>
+                            {product.description || product.name}
+                        </div>
+                    </div>
+                </div>
 
             </main>
 

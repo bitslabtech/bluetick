@@ -139,9 +139,11 @@ const Templates = () => {
             const embeddedConfigured = !!(s?.metaBusinessAccountId);
             const manualConfigured = !!(s?.metaPhoneNumberId && s?.metaAccessToken);
             if (!embeddedConfigured && !manualConfigured) {
+                setIsConfigured(false);
                 setShowConfigError(true);
                 return;
             }
+            setIsConfigured(true);
             if (draft) {
                 setDraftPayload(draft);
             } else {
@@ -155,6 +157,7 @@ const Templates = () => {
             setShowCreateModal(true);
         } catch (err) {
             console.error("Error checking settings:", err);
+            setIsConfigured(false);
             setShowConfigError(true);
         }
     };
@@ -349,7 +352,12 @@ const Templates = () => {
                             </button>
                             <button
                                 onClick={() => checkSettingsAndOpenModal(null)}
-                                className="flex-1 sm:flex-none justify-center bg-primary hover:bg-blue-600 text-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-md shadow-primary/20 active:scale-95"
+                                disabled={isConfigured === false}
+                                className={`flex-1 sm:flex-none justify-center px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-md active:scale-95 ${
+                                    isConfigured === false 
+                                    ? 'bg-slate-300 dark:bg-slate-800 text-slate-500 cursor-not-allowed opacity-70 shadow-none' 
+                                    : 'bg-primary hover:bg-blue-600 text-white shadow-primary/20'
+                                }`}
                             >
                                 <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
                                 <span className="hidden sm:inline">New Template</span>

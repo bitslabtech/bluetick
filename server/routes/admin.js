@@ -493,7 +493,8 @@ router.patch('/users/:id/reactivate', async (req, res) => {
 // POST Create User
 router.post('/users', async (req, res) => {
     try {
-        const { name, email, password, role, plan } = req.body;
+        let { name, email, password, role, plan } = req.body;
+        if (email) email = email.trim().toLowerCase();
 
         // Validation
         if (!name || !email || !password) {
@@ -565,7 +566,9 @@ router.post('/users', async (req, res) => {
 // PUT Update User
 router.put('/users/:id', async (req, res) => {
     try {
-        const { name, email, password, role, plan } = req.body;
+        let { name, email, password, role, plan } = req.body;
+        if (email) email = email.trim().toLowerCase();
+        
         const user = await User.findByPk(req.params.id);
 
         if (!user) {

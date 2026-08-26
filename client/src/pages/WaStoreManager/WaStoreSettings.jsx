@@ -438,18 +438,15 @@ export default function WaStoreSettings() {
                                             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Your Domain Name</label>
                                             <div className="flex flex-col sm:flex-row gap-3">
                                                 <div className="relative w-full sm:flex-1 flex rounded-xl shadow-sm overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500">
-                                                    <span className="inline-flex items-center pl-4 pr-1 py-3 sm:py-2.5 text-slate-500 dark:text-slate-400 text-sm font-semibold select-none">
-                                                        www.
-                                                    </span>
                                                     <input
                                                         type="text"
-                                                        placeholder="yourbrand.com"
+                                                        placeholder="yourbrand.com or www.yourbrand.com"
                                                         value={customDomain}
                                                         onChange={e => {
-                                                            let val = e.target.value.toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+                                                            let val = e.target.value.toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
                                                             setCustomDomain(val);
                                                         }}
-                                                        className="flex-1 w-full pl-0 pr-4 py-3 sm:py-2.5 bg-transparent outline-none text-slate-900 dark:text-white text-sm m-0 border-none focus:ring-0"
+                                                        className="flex-1 w-full px-4 py-3 sm:py-2.5 bg-transparent outline-none text-slate-900 dark:text-white text-sm m-0 border-none focus:ring-0"
                                                     />
                                                 </div>
                                                 <div className="flex gap-2">
@@ -473,7 +470,7 @@ export default function WaStoreSettings() {
                                                     )}
                                                 </div>
                                             </div>
-                                            <p className="text-xs text-slate-400 mt-1.5">Enter your domain without http:// or https://. Example: <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">www.mystore.in</code></p>
+                                            <p className="text-xs text-slate-400 mt-1.5">Enter your domain exactly as you want it (e.g. <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">mystore.in</code> or <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">www.mystore.in</code>)</p>
                                         </div>
 
                                         {/* Verified Domain Info */}
@@ -552,8 +549,24 @@ export default function WaStoreSettings() {
                                                                                 <span className="font-mono text-xs font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded">CNAME</span>
                                                                             </td>
                                                                             <td className="px-4 py-3">
-                                                                                <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">www</span>
-                                                                                <p className="text-[10px] text-slate-400 mt-0.5">Exactly "www" — do not include your domain name</p>
+                                                                                <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">
+                                                                                    {(() => {
+                                                                                        const d = store?.customDomain || customDomain || '';
+                                                                                        const parts = d.split('.');
+                                                                                        if (parts.length > 2 && d.startsWith('www.')) return 'www';
+                                                                                        if (parts.length > 2) return parts.slice(0, -2).join('.');
+                                                                                        return '@';
+                                                                                    })()}
+                                                                                </span>
+                                                                                <p className="text-[10px] text-slate-400 mt-0.5">
+                                                                                    {(() => {
+                                                                                        const d = store?.customDomain || customDomain || '';
+                                                                                        const parts = d.split('.');
+                                                                                        if (parts.length > 2 && d.startsWith('www.')) return 'Exactly "www" — do not include your domain name';
+                                                                                        if (parts.length > 2) return 'The subdomain part before your main domain';
+                                                                                        return 'Exactly "@" (represents your root domain)';
+                                                                                    })()}
+                                                                                </p>
                                                                             </td>
                                                                             <td className="px-4 py-3">
                                                                                 <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">router.bluetick.cloud</span>
@@ -570,11 +583,17 @@ export default function WaStoreSettings() {
                                                             </div>
 
                                                             {/* Important Note */}
-                                                            <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-xl p-3">
+                                                            <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-xl p-3 flex flex-col gap-2">
                                                                 <p className="text-xs text-amber-700 dark:text-amber-400 font-medium flex items-start gap-2">
                                                                     <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                                                                    <span><strong>Important:</strong> Delete any existing CNAME or A record for "www" before adding this one, otherwise they will conflict.</span>
+                                                                    <span><strong>Important:</strong> Delete any existing conflicting records for this host before adding the new one.</span>
                                                                 </p>
+                                                                {(!((store?.customDomain || customDomain || '').split('.').length > 2)) && (
+                                                                    <p className="text-xs text-amber-700 dark:text-amber-400 font-medium flex items-start gap-2">
+                                                                        <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                                                                        <span><strong>Root Domain Notice:</strong> Some domain registrars do not allow CNAME records on the root domain (@). If your registrar blocks this, we recommend connecting <strong>www.{(store?.customDomain || customDomain || 'yourdomain.com')}</strong> instead, or moving your DNS to Cloudflare (free) which supports root CNAME flattening.</span>
+                                                                    </p>
+                                                                )}
                                                             </div>
 
                                                             {/* Registrar Tips */}
