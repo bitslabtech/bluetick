@@ -346,6 +346,28 @@ export default function WaStoreBasicDetails() {
                                         <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
                                     </label>
                                 </div>
+
+                                {/* Header Branding toggle */}
+                                <div className="space-y-1.5 p-4 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5">
+                                    <label className="text-sm font-semibold text-slate-800 dark:text-white">Header Branding</label>
+                                    <p className="text-xs text-slate-500 mb-3">Choose what to display in the public store header.</p>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        {['logo', 'name', 'both'].map((mode) => (
+                                            <button
+                                                key={mode}
+                                                type="button"
+                                                onClick={() => set('themeCustomizations', { ...(store.themeCustomizations || {}), headerDisplayMode: mode })}
+                                                className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                                                    (store.themeCustomizations?.headerDisplayMode || 'logo') === mode
+                                                        ? 'bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-400'
+                                                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
+                                                }`}
+                                            >
+                                                {mode === 'logo' ? 'Logo Only' : mode === 'name' ? 'Name Only' : 'Logo + Name'}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Right column: Logo Image */}

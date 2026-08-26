@@ -301,6 +301,17 @@ router.post('/exchange-token', auth, async (req, res) => {
         console.log(`[WA DEBUG] ✅ finalToken type: ${tokenType}, length: ${finalToken.length}`);
 
         // Save all fields to User model
+        // If the WABA ID changed, clear old templates
+        if (wabaId && user.wabaId && user.wabaId !== wabaId) {
+            try {
+                const Template = require('../models/Template');
+                await Template.destroy({ where: { userId: req.user.id } });
+                console.log('[WA OAUTH] 🗑️ WABA ID changed. Cleared old cached templates.');
+            } catch (err) {
+                console.error('[WA OAUTH] Failed to clear old templates:', err.message);
+            }
+        }
+
         user.fbAccessToken = finalToken;
         user.wabaId = wabaId || user.wabaId || null;       // keep existing if we couldn't get a new one
         user.metaBusinessId = businessId || user.metaBusinessId || null; // reuse from step 3a
@@ -538,6 +549,15 @@ router.delete('/disconnect', auth, async (req, res) => {
         user.metaNameStatus = null;
         user.metaBusinessId = null;
         await user.save();
+
+        // Clear all cached templates for this user since the WABA is disconnected
+        try {
+            const Template = require('../models/Template');
+            await Template.destroy({ where: { userId: req.user.id } });
+            console.log('[WA DISCONNECT] ✅ Cleared cached templates');
+        } catch (templateErr) {
+            console.error('[WA DISCONNECT] Failed to clear templates:', templateErr.message);
+        }
 
         // Also clear the Settings table — this is what the messaging system actually reads
         try {

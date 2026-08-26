@@ -60,6 +60,11 @@ export default function WaStoreHeader({
 
     if (!store) return null;
 
+    const headerDisplayMode = store.themeCustomizations?.headerDisplayMode || 'logo';
+    const hasLogo = !!store.logo;
+    const showLogo = hasLogo && (headerDisplayMode === 'logo' || headerDisplayMode === 'both');
+    const showName = !hasLogo || headerDisplayMode === 'name' || headerDisplayMode === 'both';
+
     const getCurrencySymbol = (code) => {
         const symbols = { USD: '$', EUR: '€', GBP: '£', INR: '₹' };
         return symbols[code] || code;
@@ -202,19 +207,21 @@ export default function WaStoreHeader({
                         </div>
                         {/* CENTER – Logo or store name */}
                         <div className="flex items-center justify-center cursor-pointer" onClick={() => navigate(getStoreRoute(slug))}>
-                            {store.logo ? (
-                                // Logo: ~134px display → serve 180w standard / 268w retina
-                                (<img
-                                    src={cdnImg(imgUrl(store.logo), { width: 268 })}
-                                    srcSet={`${cdnImg(imgUrl(store.logo), { width: 180 })} 180w, ${cdnImg(imgUrl(store.logo), { width: 268 })} 268w`}
-                                    sizes="(max-width: 640px) 180px, 268px"
-                                    alt={store.name}
-                                    className="h-12 max-w-[180px] object-contain"
-                                    onError={e => e.target.style.display = 'none'}
-                                />)
-                            ) : (
-                                <span className="text-xl tracking-[0.25em] uppercase text-black font-normal" style={{ fontFamily: theme.fontFamily }}>{store.name}</span>
-                            )}
+                            <div className={`flex items-center ${headerDisplayMode === 'both' ? 'gap-3' : ''}`}>
+                                {showLogo && (
+                                    <img
+                                        src={cdnImg(imgUrl(store.logo), { width: 268 })}
+                                        srcSet={`${cdnImg(imgUrl(store.logo), { width: 180 })} 180w, ${cdnImg(imgUrl(store.logo), { width: 268 })} 268w`}
+                                        sizes="(max-width: 640px) 180px, 268px"
+                                        alt={store.name}
+                                        className="h-12 max-w-[180px] object-contain"
+                                        onError={e => e.target.style.display = 'none'}
+                                    />
+                                )}
+                                {showName && (
+                                    <span className="text-xl tracking-[0.25em] uppercase text-black font-normal" style={{ fontFamily: theme.fontFamily }}>{store.name}</span>
+                                )}
+                            </div>
                         </div>
                         {/* RIGHT – Search(mobile), Account and Cart */}
                         <div className="flex items-center justify-end gap-2">
@@ -268,20 +275,21 @@ export default function WaStoreHeader({
                         </div>
                         {/* MIDDLE/LEFT: Logo (Centered on mobile, Left on desktop) */}
                         <div className="flex items-center justify-center md:justify-start shrink-0 w-1/3 md:w-auto">
-                            {store.logo ? (
-                                // Logo: ~134px display → serve 180w standard / 268w retina
-                                (<img
-                                    src={cdnImg(imgUrl(store.logo), { width: 268 })}
-                                    srcSet={`${cdnImg(imgUrl(store.logo), { width: 180 })} 180w, ${cdnImg(imgUrl(store.logo), { width: 268 })} 268w`}
-                                    sizes="(max-width: 640px) 180px, 268px"
-                                    alt={store.name}
-                                    className="w-auto h-10 md:h-12 object-contain cursor-pointer"
-                                    onClick={() => navigate(getStoreRoute(slug))}
-                                    onError={e => e.target.style.display = 'none'}
-                                />)
-                            ) : (
-                                <span className={`font-semibold text-lg md:text-xl tracking-tight cursor-pointer ${theme.headerLogo} cursor-pointer`} onClick={() => navigate(getStoreRoute(slug))}>{store.name}</span>
-                            )}
+                            <div className={`flex items-center ${headerDisplayMode === 'both' ? 'gap-3' : ''} cursor-pointer`} onClick={() => navigate(getStoreRoute(slug))}>
+                                {showLogo && (
+                                    <img
+                                        src={cdnImg(imgUrl(store.logo), { width: 268 })}
+                                        srcSet={`${cdnImg(imgUrl(store.logo), { width: 180 })} 180w, ${cdnImg(imgUrl(store.logo), { width: 268 })} 268w`}
+                                        sizes="(max-width: 640px) 180px, 268px"
+                                        alt={store.name}
+                                        className="w-auto h-10 md:h-12 object-contain"
+                                        onError={e => e.target.style.display = 'none'}
+                                    />
+                                )}
+                                {showName && (
+                                    <span className={`font-semibold text-lg md:text-xl tracking-tight ${theme.headerLogo}`}>{store.name}</span>
+                                )}
+                            </div>
                         </div>
                         {/* MIDDLE: Desktop Mega Menu */}
                         <div className="hidden md:flex flex-1 justify-center">
@@ -418,20 +426,21 @@ export default function WaStoreHeader({
                         </div>
                         {/* MIDDLE: Logo (Centered on mobile and desktop) */}
                         <div className={`flex items-center justify-center shrink-0 w-1/3 md:w-auto md:absolute md:left-1/2 md:-translate-x-1/2 ${theme.logoWrapper || ''}`}>
-                            {store.logo ? (
-                                // Logo: ~134px display → serve 180w standard / 268w retina
-                                (<img
-                                    src={cdnImg(imgUrl(store.logo), { width: 268 })}
-                                    srcSet={`${cdnImg(imgUrl(store.logo), { width: 180 })} 180w, ${cdnImg(imgUrl(store.logo), { width: 268 })} 268w`}
-                                    sizes="(max-width: 640px) 180px, 268px"
-                                    alt={store.name}
-                                    className="w-auto h-10 md:h-12 object-contain rounded-md cursor-pointer"
-                                    onClick={() => navigate(getStoreRoute(slug))}
-                                    onError={e => e.target.style.display = 'none'}
-                                />)
-                            ) : (
-                                <span className={`font-semibold text-lg md:text-xl tracking-tight cursor-pointer ${theme.headerLogo} cursor-pointer`} onClick={() => navigate(getStoreRoute(slug))}>{store.name}</span>
-                            )}
+                            <div className={`flex items-center ${headerDisplayMode === 'both' ? 'gap-3' : ''} cursor-pointer`} onClick={() => navigate(getStoreRoute(slug))}>
+                                {showLogo && (
+                                    <img
+                                        src={cdnImg(imgUrl(store.logo), { width: 268 })}
+                                        srcSet={`${cdnImg(imgUrl(store.logo), { width: 180 })} 180w, ${cdnImg(imgUrl(store.logo), { width: 268 })} 268w`}
+                                        sizes="(max-width: 640px) 180px, 268px"
+                                        alt={store.name}
+                                        className="w-auto h-10 md:h-12 object-contain rounded-md"
+                                        onError={e => e.target.style.display = 'none'}
+                                    />
+                                )}
+                                {showName && (
+                                    <span className={`font-semibold text-lg md:text-xl tracking-tight ${theme.headerLogo}`}>{store.name}</span>
+                                )}
+                            </div>
                         </div>
                         {/* RIGHT: Search Bar & Cart */}
                         <div className="flex items-center justify-end gap-2 md:gap-4 shrink-0 w-1/3 md:w-full">
@@ -655,10 +664,12 @@ export default function WaStoreHeader({
                             <div className={`px-4 pt-6 pb-3 border-b border-gray-100 dark:border-white/10 flex items-center relative ${theme.header}`}>
                                 <div className="flex-1"></div>
                                 <div className="flex flex-col items-center text-center shrink-0">
-                                    {store.logo ? (
+                                    {showLogo && (
                                         <img src={imgUrl(store.logo)} alt={store.name} className="h-10 max-w-[150px] object-contain mb-0.5" />
-                                    ) : null}
-                                    <span className={`font-bold text-lg tracking-tight ${theme.headerLogo}`}>{store.name}</span>
+                                    )}
+                                    {showName && (
+                                        <span className={`font-bold text-lg tracking-tight ${theme.headerLogo}`}>{store.name}</span>
+                                    )}
                                 </div>
                                 <div className="flex-1 flex justify-end">
                                     <button aria-label="Close menu" onClick={() => setIsMobileMenuOpen(false)} className={`p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${theme.textMuted}`}>

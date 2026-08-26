@@ -8,6 +8,7 @@ const auth = require('../middleware/auth');
 const logActivity = require('../utils/logger');
 const { getIo } = require('../socket');
 const { getUserPlanLimits, checkLimit, getTemplateCount } = require('../utils/planLimits');
+const { Op } = require('sequelize');
 
 // Helper to translate cryptic Meta errors into user-friendly ones
 const translateMetaError = (errorMsg) => {
@@ -802,9 +803,12 @@ router.post('/sync', async (req, res) => {
         }
 
         const metaTemplates = data.data || [];
-        const syncResults = { added: 0, updated: 0 };
+        const syncResults = { added: 0, updated: 0, deleted: 0 };
+        const incomingMetaIds = [];
 
         for (const mt of metaTemplates) {
+            incomingMetaIds.push(mt.id);
+
             const existing = await Template.findOne({
                 where: { userId: req.user.id, name: mt.name, language: mt.language }
             });
@@ -945,17 +949,41 @@ router.post('/sync', async (req, res) => {
                 });
                 syncResults.added++;
             }
+            }
+        }
+
+        // Clean up templates that exist in our database but were deleted on Meta's end
+        if (incomingMetaIds.length > 0) {
+            const deletedCount = await Template.destroy({
+                where: { 
+                    userId: req.user.id, 
+                    metaTemplateId: { 
+                        [Op.notIn]: incomingMetaIds,
+                        [Op.ne]: null
+                    }
+                }
+            });
+            syncResults.deleted = deletedCount;
+        } else if (metaTemplates.length === 0) {
+            // If Meta returned exactly 0 templates, wipe all synced templates for this user
+            const deletedCount = await Template.destroy({
+                where: { 
+                    userId: req.user.id,
+                    metaTemplateId: { [Op.ne]: null }
+                }
+            });
+            syncResults.deleted = deletedCount;
         }
 
         res.json({
             success: true,
-            message: `Synced successfully. Added: ${syncResults.added}, Updated: ${syncResults.updated}.`,
+            message: `Synced successfully. Added: ${syncResults.added}, Updated: ${syncResults.updated}, Deleted: ${syncResults.deleted}.`,
             metaCount: metaTemplates.length,
             ...syncResults
         });
 
-        if (syncResults.added > 0 || syncResults.updated > 0) {
-            await logActivity(req, 'Templates Synced', `Synced templates: ${syncResults.added} added, ${syncResults.updated} updated`);
+        if (syncResults.added > 0 || syncResults.updated > 0 || syncResults.deleted > 0) {
+            await logActivity(req, 'Templates Synced', `Synced templates: ${syncResults.added} added, ${syncResults.updated} updated, ${syncResults.deleted} deleted`);
         }
 
     } catch (err) {
