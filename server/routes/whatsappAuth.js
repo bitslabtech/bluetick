@@ -403,6 +403,31 @@ router.post('/exchange-token', auth, async (req, res) => {
             console.error('[WA DEBUG] ⚠️ Failed to sync token to Settings table:', syncErr.message);
         }
 
+        // =====================================================================
+        // CRITICAL: Subscribe the app to the WABA's webhooks!
+        // Without this, Meta will not send incoming messages to our webhook URL.
+        // =====================================================================
+        if (wabaId && finalToken) {
+            try {
+                console.log(`[WA DEBUG] Subscribing app to WABA webhooks for WABA: ${wabaId}`);
+                const subRes = await axios.post(
+                    `https://graph.facebook.com/v22.0/${wabaId}/subscribed_apps`,
+                    null,
+                    {
+                        headers: { 'Authorization': `Bearer ${finalToken}` }
+                    }
+                );
+                if (subRes.data && subRes.data.success) {
+                    console.log(`[WA DEBUG] ✅ Successfully subscribed to WABA webhooks.`);
+                } else {
+                    console.warn(`[WA DEBUG] ⚠️ Webhook subscription returned unexpected response:`, subRes.data);
+                }
+            } catch (subErr) {
+                console.error(`[WA DEBUG] ❌ Failed to subscribe to WABA webhooks:`, subErr?.response?.data || subErr.message);
+                // Do not throw; let the user finish signup, but log heavily so admin knows webhooks are broken.
+            }
+        }
+
         console.log('[WA DEBUG] ========== /exchange-token SUCCESS ==========');
 
         res.json({
