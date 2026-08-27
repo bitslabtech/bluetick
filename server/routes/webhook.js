@@ -280,7 +280,61 @@ router.post('/:userId', (req, res, next) => {
                     continue;
                 }
 
+                // ─── 0c. HANDLE ACCOUNT UPDATE EVENTS ───────────────────────────────────────
+                // Meta fires this when account-level status changes, e.g.:
+                //   • Phone number registered (PENDING → CONNECTED)
+                //   • Phone number flagged / disabled
+                //   • Account review outcome
+                // Webhook field: "account_update"
+                if (change.field === 'account_update') {
+                    const accUpdate = change.value;
+                    const event = accUpdate.event; // e.g. "PHONE_NUMBER_QUALITY_FLAGGED", "ACCOUNT_REVIEW_UPDATE"
+                    const phoneNumber = accUpdate.phone_number || accUpdate.display_phone_number || null;
+                    console.log(`[WEBHOOK] Account Update event: ${event} | phone: ${phoneNumber}`, JSON.stringify(accUpdate));
+
+                    // Build a user-facing notification for critical account events
+                    try {
+                        const user = await User.findByPk(userId);
+                        if (user) {
+                            let notifType    = 'Info';
+                            let notifTitle   = 'WhatsApp Account Update';
+                            let notifMessage = `Your WhatsApp account received an update: ${event}.`;
+
+                            if (event === 'PHONE_NUMBER_QUALITY_FLAGGED' || event === 'FLAGGED') {
+                                notifType    = 'Warning';
+                                notifTitle   = '⚠️ WhatsApp Phone Number Flagged';
+                                notifMessage = 'Your WhatsApp Business phone number has been flagged by Meta due to poor user feedback. Please review your message quality and reduce campaign volume.';
+                            } else if (event === 'PHONE_NUMBER_BANNED' || event === 'DISABLED') {
+                                notifType    = 'Error';
+                                notifTitle   = '🚨 WhatsApp Phone Number Banned';
+                                notifMessage = 'Your WhatsApp Business phone number has been banned by Meta. Please contact Meta Business Support to appeal this decision.';
+                            } else if (event === 'ACCOUNT_REVIEW_UPDATE') {
+                                const decision = accUpdate.decision || '';
+                                notifType    = decision === 'APPROVED' ? 'Success' : decision === 'REJECTED' ? 'Error' : 'Info';
+                                notifTitle   = `WhatsApp Account Review: ${decision || 'Updated'}`;
+                                notifMessage = `Your WhatsApp account review result: ${decision || event}. Check WhatsApp Manager for details.`;
+                            }
+
+                            await SystemNotification.create({
+                                recipient: user.email,
+                                type: notifType,
+                                title: notifTitle,
+                                message: notifMessage,
+                                target: `User: ${user.email}`,
+                                status: 'Sent'
+                            });
+
+                            getIo().to(userId).emit('notification_update');
+                            getIo().to(userId).emit('account_update', { event, phoneNumber, raw: accUpdate });
+                        }
+                    } catch (err) {
+                        console.error('[WEBHOOK ERROR] Failed to handle account_update event:', err.message);
+                    }
+                    continue;
+                }
+
                 if (change.field !== 'messages') continue;
+
 
                 const value = change.value;
 

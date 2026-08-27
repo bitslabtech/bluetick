@@ -279,6 +279,8 @@ const WhatsAppInbox = () => {
                 setMessages(prev =>
                     prev.find(m => m.id === message.id) ? prev : [...prev, message]
                 );
+                // Update active chat metadata (e.g. 24-hour window, lastMessageAt) instantly
+                setSelectedChat(prev => prev ? { ...prev, ...conversation } : prev);
             }
 
             // 3. Notifications for inbound messages

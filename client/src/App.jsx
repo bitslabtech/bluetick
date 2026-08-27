@@ -128,6 +128,7 @@ const ContactUs = React.lazy(() => import('./pages/ContactUs'));
 const PartnerWithUs = React.lazy(() => import('./pages/PartnerWithUs'));
 const MediaGallery = React.lazy(() => import('./pages/MediaGallery'));
 const NotFound404 = React.lazy(() => import('./pages/NotFound404'));
+const StoreNotFound = React.lazy(() => import('./components/StoreNotFound'));
 
 // Simple Loading Component
 const Loading = () => (
@@ -369,8 +370,8 @@ function CustomDomainRouter({ children }) {
                 <Route path="/account" element={<StoreAuthRoute page="account" customSlug={storeSlug} />} />
                 <Route path="/account/forgot-password" element={<StoreAuthRoute page="forgot" customSlug={storeSlug} />} />
                 <Route path="/account/reset-password" element={<StoreAuthRoute page="reset" customSlug={storeSlug} />} />
-                
-                <Route path="*" element={<PublicWaStore customSlug={storeSlug} />} />
+                <Route path="/" element={<PublicWaStore customSlug={storeSlug} />} />
+                <Route path="*" element={<PublicWaStorePage customPageType="404" customSlug={storeSlug} />} />
             </Routes>
         );
     }
@@ -413,6 +414,10 @@ function App() {
                                         <Route path="/store/:slug/account" element={<StoreAuthRoute page="account" />} />
                                         <Route path="/store/:slug/account/forgot-password" element={<StoreAuthRoute page="forgot" />} />
                                         <Route path="/store/:slug/account/reset-password" element={<StoreAuthRoute page="reset" />} />
+                                        
+                                        {/* Catch-all for invalid paths inside a store */}
+                                        <Route path="/store/:slug/*" element={<PublicWaStorePage customPageType="404" />} />
+
                                         <Route element={<GuestRoute />}>
                                             <Route path="/login" element={<Login />} />
                                             <Route path="/forgot-password" element={<ForgotPassword />} />

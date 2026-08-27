@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { Package, LayoutTemplate, Settings, ArrowLeft, ExternalLink, Phone, Globe, Info, ShoppingBag, Tag, FileText, Search, BarChart2, X, Camera, Loader2, ArrowRight, Bell, ClipboardList, Image, Megaphone, Users, ShoppingCart, ChevronDown, ChevronUp } from 'lucide-react';
+import { Package, LayoutTemplate, Settings, ArrowLeft, ExternalLink, Phone, Globe, Info, ShoppingBag, Tag, FileText, Search, BarChart2, X, Camera, Loader2, ArrowRight, Bell, ClipboardList, Image, Megaphone, Users, ShoppingCart, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 
 import toast from 'react-hot-toast';
 
@@ -208,7 +208,34 @@ export default function WaStoreLayout() {
             </div>
         </div>
     );
-    if (!store) return <div className="p-4 md:p-8 text-rose-500">Store not found. Debug: URL Slug = "{debugInfo.slug ? debugInfo.slug : 'UNDEFINED'}", Path = {window.location.pathname}, Params = {JSON.stringify(params)}, Available Slugs = "{debugInfo.allSlugs}"</div>;
+    if (!store) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[70vh] px-4">
+                <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 p-8 rounded-3xl shadow-xl max-w-md w-full text-center">
+                    <div className="w-16 h-16 bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <AlertCircle className="w-8 h-8" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Store Not Found</h2>
+                    <p className="text-slate-600 dark:text-slate-400 mb-8 leading-relaxed">
+                        We couldn't find the store you're looking for. It may have been deleted, or your session/impersonation may have timed out.
+                    </p>
+                    <button 
+                        onClick={() => navigate('/online-store')}
+                        className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-all shadow-lg hover:shadow-indigo-500/25"
+                    >
+                        <ArrowLeft className="w-5 h-5" /> Back to My Stores
+                    </button>
+                    {import.meta.env.DEV && (
+                        <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl text-left border border-slate-200 dark:border-white/10 text-xs text-slate-500 overflow-hidden">
+                            <p className="font-bold mb-1 text-slate-700 dark:text-slate-300">Debug Info (Dev Only):</p>
+                            <p className="truncate">Slug: {debugInfo.slug || 'UNDEFINED'}</p>
+                            <p className="truncate">Path: {window.location.pathname}</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    }
 
     const storeUrl = `${window.location.origin}/store/${store.slug}`;
 

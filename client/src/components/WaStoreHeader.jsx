@@ -668,7 +668,7 @@ export default function WaStoreHeader({
                                         <img src={imgUrl(store.logo)} alt={store.name} className="h-10 max-w-[150px] object-contain mb-0.5" />
                                     )}
                                     {showName && (
-                                        <span className={`font-bold text-lg tracking-tight ${theme.headerLogo}`}>{store.name}</span>
+                                        <span className={`font-bold text-lg tracking-tight ${theme.headerLogo?.replace('hidden', '')}`}>{store.name}</span>
                                     )}
                                 </div>
                                 <div className="flex-1 flex justify-end">
@@ -693,13 +693,13 @@ export default function WaStoreHeader({
                                         ) : (
                                             <>
                                                 <button 
-                                                    onClick={() => { navigate(getStoreRoute(slug, `/login`)); setIsMobileMenuOpen(false); }}
+                                                    onClick={() => { navigate(getStoreRoute(slug, `/account/login`)); setIsMobileMenuOpen(false); }}
                                                     className={`flex-1 py-3 rounded-xl font-semibold text-center transition-colors ${theme.categoryTab}`}
                                                 >
                                                     Login
                                                 </button>
                                                 <button 
-                                                    onClick={() => { navigate(getStoreRoute(slug, `/register`)); setIsMobileMenuOpen(false); }}
+                                                    onClick={() => { navigate(getStoreRoute(slug, `/account/register`)); setIsMobileMenuOpen(false); }}
                                                     className="flex-1 bg-black dark:bg-white text-white dark:text-black py-3 rounded-xl font-semibold text-center transition-opacity hover:opacity-90"
                                                 >
                                                     Register

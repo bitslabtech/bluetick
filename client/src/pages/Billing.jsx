@@ -118,34 +118,55 @@ const UsageBar = ({ label, icon, used, limit, color }) => {
 
 const PlanCard = ({ plan, currentPlan, billingInterval, usage, metaRates, onUpgrade }) => {
     const currentPlanName = currentPlan?.name || 'Free';
+    const isExpired = currentPlan?.expiry ? new Date(currentPlan.expiry) < new Date() : false;
     const isOnTrial = currentPlan?.status === 'Trial';
     
-    // Trial users should NOT see their trial plan as "Active" — they haven't paid for it
-    const isCurrent = !isOnTrial && plan.name === currentPlanName;
+    // Trial users or expired subscriptions should NOT see their plan as "Active"
+    const isCurrent = !isOnTrial && !isExpired && plan.name === currentPlanName;
     
     // A plan is a downgrade if its base price is strictly less than the user's current plan base price
     const isDowngrade = parseFloat(plan.price || 0) < parseFloat(currentPlan?.price || 0);
 
     // Check if user is currently active mid-subscription (Trial is NOT a paid subscription)
-    const isExpired = currentPlan?.expiry ? new Date(currentPlan.expiry) < new Date() : false;
     const isMidSubscription = currentPlan?.status === 'Active' && !isExpired && currentPlanName !== 'Free';
 
     // Disallow downgrade if mid subscription
     const downgradeBlocked = isDowngrade && isMidSubscription;
 
-    // Determine price to display based on selected interval
     let displayPrice = parseFloat(plan.price) || 0;
-    let intervalLbl = '/mo';
+    let displayInterval = 'mo';
     let intervalCode = 'month';
-    if (billingInterval === 'monthly' && parseFloat(plan.monthlyPrice) > 0) {
-        displayPrice = parseFloat(plan.monthlyPrice);
-        intervalLbl = '/mo'; intervalCode = 'month';
+    let originalTotal = null;
+    let billedTotal = null;
+    let billedPeriodText = '';
+    let savingsPercentage = 0;
+    
+    const baseMonthlyPrice = parseFloat(plan.monthlyPrice) || parseFloat(plan.price) || 0;
+
+    if (billingInterval === 'monthly') {
+        displayPrice = baseMonthlyPrice;
+        displayInterval = 'mo';
+        intervalCode = 'month';
     } else if (billingInterval === 'half-yearly' && parseFloat(plan.halfYearlyPrice) > 0) {
-        displayPrice = parseFloat(plan.halfYearlyPrice);
-        intervalLbl = '/6mo'; intervalCode = 'half-year';
+        billedTotal = parseFloat(plan.halfYearlyPrice);
+        displayPrice = billedTotal / 6; 
+        displayInterval = 'mo';
+        intervalCode = 'half-year';
+        originalTotal = baseMonthlyPrice * 6;
+        billedPeriodText = 'billed half-yearly';
+        if (originalTotal > 0 && originalTotal > billedTotal) {
+            savingsPercentage = Math.round(((originalTotal - billedTotal) / originalTotal) * 100);
+        }
     } else if (billingInterval === 'yearly' && parseFloat(plan.yearlyPrice) > 0) {
-        displayPrice = parseFloat(plan.yearlyPrice);
-        intervalLbl = '/yr'; intervalCode = 'year';
+        billedTotal = parseFloat(plan.yearlyPrice);
+        displayPrice = billedTotal / 12;
+        displayInterval = 'mo';
+        intervalCode = 'year';
+        originalTotal = baseMonthlyPrice * 12;
+        billedPeriodText = 'billed yearly';
+        if (originalTotal > 0 && originalTotal > billedTotal) {
+            savingsPercentage = Math.round(((originalTotal - billedTotal) / originalTotal) * 100);
+        }
     }
 
     // Interval validity downgrade check
@@ -181,6 +202,13 @@ const PlanCard = ({ plan, currentPlan, billingInterval, usage, metaRates, onUpgr
                 >
                     Downgrade to {plan.name}
                 </button>
+            ) : plan.name === currentPlanName ? (
+                <button
+                    onClick={() => onUpgrade(plan, intervalCode)}
+                    className="w-full py-4 rounded-xl font-bold text-center transition-all text-sm bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
+                >
+                    Renew {plan.name}
+                </button>
             ) : (
                 <button
                     onClick={() => onUpgrade(plan, intervalCode)}
@@ -210,16 +238,30 @@ const PlanCard = ({ plan, currentPlan, billingInterval, usage, metaRates, onUpgr
             <h3 className="text-xl font-bold mb-2 pt-2">{plan.name}</h3>
             <p className="text-xs mb-6 font-medium text-slate-500 dark:text-slate-400">{plan.description || 'Perfect for growing businesses.'}</p>
 
-            <div className="flex flex-col gap-1 mb-6 pb-10 border-b border-indigo-500/20 dark:border-white/10">
-                <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-extrabold">{currency}{displayPrice.toLocaleString()}</span>
-                    {intervalLbl && (
-                        <span className="font-bold text-slate-500 dark:text-slate-400">
-                            {intervalLbl}
-                            {plan.taxEnabled && <span className="text-[10px] ml-1 font-semibold opacity-70">({plan.taxText})</span>}
-                        </span>
-                    )}
+            <div className="flex flex-col gap-1 mb-2 pb-6 border-b border-indigo-500/20 dark:border-white/10 min-h-[110px] justify-end">
+                <div className="flex items-baseline gap-1 mt-auto">
+                    <span className="text-4xl font-extrabold">{currency}{displayPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                    <span className="font-bold text-slate-500 dark:text-slate-400">
+                        /{displayInterval}
+                        {plan.taxEnabled && <span className="text-[10px] ml-1 font-semibold opacity-70">({plan.taxText})</span>}
+                    </span>
                 </div>
+                {billedTotal ? (
+                    <div className="text-[14px] font-semibold text-slate-500 dark:text-slate-400 mt-2 flex flex-wrap items-center gap-1.5 leading-tight">
+                        {originalTotal > billedTotal && (
+                            <span className="line-through opacity-70 text-[13px]">{currency}{originalTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                        )}
+                        <span className="text-slate-800 dark:text-slate-200 text-[15px]">{currency}{billedTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                        <span>{billedPeriodText}</span>
+                        {savingsPercentage > 0 && (
+                            <span className="inline-flex items-center bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold px-1.5 py-0.5 rounded ml-1">
+                                SAVE {savingsPercentage}%
+                            </span>
+                        )}
+                    </div>
+                ) : (
+                    <div className="text-[13px] font-medium text-slate-500 dark:text-slate-400 mt-2 opacity-0">Spacer</div>
+                )}
             </div>
 
             <div className="space-y-5 mb-8 flex-1">
@@ -512,98 +554,7 @@ const Billing = () => {
                 ) : (
                     <div className="p-4 sm:p-6 md:p-10 max-w-[1400px] max-w-full mx-auto space-y-10">
 
-                        {/* Hero Banner — Current Plan + Usage */}
-                        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
-                            {/* Current Plan Card */}
-                            <div className="lg:col-span-3 relative overflow-hidden rounded-3xl p-4 md:p-8 text-white shadow-2xl shadow-indigo-500/20">
-                                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 via-violet-600 to-purple-700" />
-                                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10" />
-                                <div className="absolute -bottom-16 -right-16 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
-                                <div className="absolute top-0 left-0 w-40 h-40 bg-white/5 rounded-full blur-2xl -translate-x-1/2 -translate-y-1/2" />
-
-                                <div className="relative z-10">
-                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur border border-white/20 text-xs font-bold mb-6">
-                                        <Sparkles className="w-3 h-3 text-yellow-300" />
-                                        {plan?.status === 'Trial' ? 'Trial Subscription' : 'Active Subscription'}
-                                    </div>
-
-                                    <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-6">
-                                        <div>
-                                            <h2 className="text-4xl font-black tracking-tight mb-2">
-                                                {plan?.name || 'Free'} Plan
-                                                {plan?.status === 'Trial' && <span className="ml-3 text-2xl font-bold text-yellow-300 opacity-90 tracking-normal">(Trial)</span>}
-                                            </h2>
-                                            <div className="flex items-center gap-3 flex-wrap">
-                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold ${
-                                                    plan?.status === 'Trial' 
-                                                        ? 'bg-yellow-400/20 border-yellow-400/30 text-yellow-300' 
-                                                        : 'bg-emerald-400/20 border-emerald-400/30 text-emerald-300'
-                                                }`}>
-                                                    <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${plan?.status === 'Trial' ? 'bg-yellow-400' : 'bg-emerald-400'}`} />
-                                                    {plan?.status || 'Active'}
-                                                </span>
-                                                {daysLeft !== null && (
-                                                    <span className="inline-flex items-center gap-1.5 text-white/60 text-xs">
-                                                        <Clock className="w-3.5 h-3.5" />
-                                                        {daysLeft > 0
-                                                            ? `Valid for ${daysLeft} more day${daysLeft !== 1 ? 's' : ''}`
-                                                            : 'Plan Expired'
-                                                        }
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="text-5xl font-black tabular-nums">
-                                                {getCurrency(plan?.currency)}{parseFloat(plan?.price || 0).toLocaleString()}
-                                            </div>
-                                            <div className="text-white/50 text-sm font-medium">{getIntervalLabel(plan?.interval)}</div>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-6 pt-6 border-t border-white/10 flex flex-wrap gap-5 text-sm">
-                                        <div className="flex items-center gap-2">
-                                            <Shield className="w-4 h-4 text-white/50" />
-                                            <span className="text-white/70">Logged in as <span className="text-white font-semibold">{user?.email}</span></span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Usage Card */}
-                            <div className="lg:col-span-2 bg-white dark:bg-surface-dark rounded-3xl p-4 md:p-7 border border-slate-200 dark:border-white/5 shadow-sm flex flex-col gap-6">
-                                <div>
-                                    <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-1">This Month's Usage</h3>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                                        Resets {usage?.periodEnd ? new Date(usage.periodEnd).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'monthly'}
-                                    </p>
-                                </div>
-                                <div className="space-y-5">
-                                    <UsageBar
-                                        label="Messages Sent"
-                                        icon={MessageSquare}
-                                        used={usage?.messagesSent ?? 0}
-                                        limit={usage?.monthlyLimit ?? 30}
-                                        color="bg-indigo-500"
-                                    />
-                                    <UsageBar
-                                        label="Templates"
-                                        icon={Layout}
-                                        used={usage?.templateCount ?? 0}
-                                        limit={usage?.templateLimit ?? 2}
-                                        color="bg-violet-500"
-                                    />
-                                    <UsageBar
-                                        label="Contacts"
-                                        icon={Users}
-                                        used={usage?.contactCount ?? 0}
-                                        limit={usage?.contactLimit ?? 10}
-                                        color="bg-blue-500"
-                                    />
-                                </div>
-                            </div>
-                        </div>
 
                         {/* Plans Grid */}
                         <div>

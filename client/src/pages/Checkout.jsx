@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { Check, Shield, ArrowLeft, Loader, Tag, Calendar, MessageSquare, Users, Layout, AlertTriangle, Gift, X, Receipt, Building, Copy, CreditCard, Banknote, Clock, ChevronDown, ChevronUp, Edit, Sparkles, CheckCircle2, Layers } from 'lucide-react';
+import { Check, Shield, ArrowLeft, Loader, Tag, Calendar, MessageSquare, Users, Layout, AlertTriangle, Gift, X, Receipt, Building, Copy, CreditCard, Banknote, Clock, ChevronDown, ChevronUp, Edit, Sparkles, CheckCircle2, XCircle, Layers, Store, HardDrive, Zap } from 'lucide-react';
 import { useUI } from '../context/UIContext';
 import BillingProfileComp from '../components/BillingProfile';
 import { usePayment } from '../hooks/usePayment';
@@ -434,27 +434,28 @@ const Checkout = () => {
                                             {plan.name} Plan
                                         </h2>
                                     </div>
-                                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/40 rounded-full text-xs font-bold shadow-xs">
-                                        <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-                                        All Modules Included
-                                    </div>
+
                                 </div>
 
                                 {/* Included Products Strip */}
                                 <div className="py-4 border-b border-slate-100 dark:border-white/10">
-                                    <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2.5">Core Included Departments</p>
+                                    <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2.5">Core Features Included </p>
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                         {[
-                                            { name: 'WhatsApp API', desc: 'Cloud Platform' },
-                                            { name: 'Online Store', desc: 'E-Commerce' },
-                                            { name: 'Meta Ads', desc: 'Campaign Hub' },
-                                            { name: 'Digital vCards', desc: 'Smart Profiles' }
+                                            { name: 'WhatsApp API', desc: 'Cloud Platform', enabled: true },
+                                            { name: 'Online Store', desc: 'E-Commerce', enabled: !!plan.allowWaStore },
+                                            { name: 'Meta Ads', desc: 'Campaign Hub', enabled: !!plan.allowMetaAds },
+                                            { name: 'Digital vCards', desc: 'Smart Profiles', enabled: !!plan.allowVcard }
                                         ].map((app, idx) => (
-                                            <div key={idx} className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-900/40 border border-slate-200/60 dark:border-white/5">
-                                                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                                            <div key={idx} className={`flex items-center gap-2 p-2.5 rounded-xl border ${app.enabled ? 'bg-slate-50/80 dark:bg-slate-900/40 border-slate-200/60 dark:border-white/5' : 'bg-red-50/50 dark:bg-red-900/10 border-red-100 dark:border-red-900/20 opacity-75'}`}>
+                                                {app.enabled ? (
+                                                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                                                ) : (
+                                                    <XCircle className="w-4 h-4 text-red-500 shrink-0" />
+                                                )}
                                                 <div className="min-w-0">
-                                                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{app.name}</p>
-                                                    <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate">{app.desc}</p>
+                                                    <p className={`text-xs font-bold truncate ${app.enabled ? 'text-slate-800 dark:text-slate-200' : 'text-red-700 dark:text-red-400'}`}>{app.name}</p>
+                                                    <p className={`text-[10px] truncate ${app.enabled ? 'text-slate-400 dark:text-slate-500' : 'text-red-400 dark:text-red-500/70'}`}>{app.desc}</p>
                                                 </div>
                                             </div>
                                         ))}
@@ -465,7 +466,6 @@ const Checkout = () => {
                                 <div className="py-5 border-b border-slate-100 dark:border-white/10">
                                     <div className="flex items-center justify-between mb-3">
                                         <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Select Billing Duration</p>
-                                        <span className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold">Switch or cancel anytime</span>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                                         {[
@@ -486,40 +486,52 @@ const Checkout = () => {
                                                         setCouponCode('');
                                                         setProceedWithoutGst(false);
                                                     }}
-                                                    className={`relative flex flex-col p-4 rounded-xl text-left transition-all duration-200 cursor-pointer ${
-                                                        isSelected
+                                                    className={`relative w-full p-3 sm:p-4 rounded-xl text-left transition-all duration-200 cursor-pointer ${isSelected
                                                             ? 'bg-indigo-50/60 dark:bg-indigo-950/40 border-2 border-indigo-600 dark:border-indigo-500 shadow-md ring-2 ring-indigo-500/10'
                                                             : 'bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 hover:bg-slate-50/50'
-                                                    }`}
+                                                        }`}
                                                 >
                                                     {int.save > 0 && (
                                                         <span className="absolute -top-2.5 right-3 px-2 py-0.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[10px] font-black rounded-full shadow-sm tracking-wide uppercase">
                                                             SAVE {int.save}%
                                                         </span>
                                                     )}
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <div>
-                                                            <p className={`text-sm font-bold ${isSelected ? 'text-indigo-950 dark:text-white' : 'text-slate-800 dark:text-slate-200'}`}>
-                                                                {int.label}
-                                                            </p>
-                                                            <p className="text-[11px] text-slate-400 font-medium">{int.period}</p>
+                                                    
+                                                    <div className="flex flex-row sm:flex-col sm:items-stretch items-center justify-between w-full">
+                                                        
+                                                        {/* Label & Desktop Radio */}
+                                                        <div className="flex items-center justify-between flex-1 sm:flex-none sm:w-full sm:mb-2 pr-2 sm:pr-0">
+                                                            <div>
+                                                                <p className={`text-sm font-bold ${isSelected ? 'text-indigo-950 dark:text-white' : 'text-slate-800 dark:text-slate-200'}`}>
+                                                                    {int.label}
+                                                                </p>
+                                                                <p className="text-[11px] text-slate-400 font-medium hidden sm:block">{int.period}</p>
+                                                            </div>
+                                                            <div className={`hidden sm:flex shrink-0 w-4 h-4 rounded-full border-2 items-center justify-center transition-colors ${isSelected ? 'border-indigo-600 bg-indigo-600 dark:border-indigo-400 dark:bg-indigo-400' : 'border-slate-300 dark:border-slate-600'}`}>
+                                                                {isSelected && <div className="w-1.5 h-1.5 bg-white dark:bg-slate-900 rounded-full"></div>}
+                                                            </div>
                                                         </div>
-                                                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'border-indigo-600 bg-indigo-600 dark:border-indigo-400 dark:bg-indigo-400' : 'border-slate-300 dark:border-slate-600'}`}>
-                                                            {isSelected && <div className="w-1.5 h-1.5 bg-white dark:bg-slate-900 rounded-full"></div>}
+
+                                                        {/* Price, Sub & Mobile Radio */}
+                                                        <div className="flex items-center sm:block gap-3 shrink-0 text-right sm:text-left sm:mt-2 sm:pt-2 sm:border-t border-slate-100 dark:border-white/5">
+                                                            <div>
+                                                                <div className="flex items-baseline gap-1.5 justify-end sm:justify-start">
+                                                                    <span className={`text-base sm:text-lg font-black ${isSelected ? 'text-indigo-950 dark:text-white' : 'text-slate-900 dark:text-white'}`}>
+                                                                        {sym}{parseFloat(int.price || 0).toLocaleString()}
+                                                                    </span>
+                                                                    {int.save > 0 && (
+                                                                        <span className="text-[10px] sm:text-[11px] text-slate-400 line-through">
+                                                                            {sym}{parseFloat(int.original || 0).toLocaleString()}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 mt-0 sm:mt-0.5 font-medium">{int.sub}</p>
+                                                            </div>
+                                                            <div className={`flex sm:hidden shrink-0 w-4 h-4 rounded-full border-2 items-center justify-center transition-colors ${isSelected ? 'border-indigo-600 bg-indigo-600 dark:border-indigo-400 dark:bg-indigo-400' : 'border-slate-300 dark:border-slate-600'}`}>
+                                                                {isSelected && <div className="w-1.5 h-1.5 bg-white dark:bg-slate-900 rounded-full"></div>}
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                    <div className="mt-2 pt-2 border-t border-slate-100 dark:border-white/5">
-                                                        <div className="flex items-baseline gap-1.5">
-                                                            <span className={`text-lg font-black ${isSelected ? 'text-indigo-950 dark:text-white' : 'text-slate-900 dark:text-white'}`}>
-                                                                {sym}{parseFloat(int.price || 0).toLocaleString()}
-                                                            </span>
-                                                            {int.save > 0 && (
-                                                                <span className="text-[11px] text-slate-400 line-through">
-                                                                    {sym}{parseFloat(int.original || 0).toLocaleString()}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 font-medium">{int.sub}</p>
+
                                                     </div>
                                                 </button>
                                             );
@@ -546,23 +558,53 @@ const Checkout = () => {
 
                                     {showFeatures && (
                                         <div className="mt-3 p-4 rounded-xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-white/5 space-y-4 animate-in fade-in duration-150">
-                                            {/* 3 Core Limits */}
-                                            <div className="grid grid-cols-3 gap-2.5">
-                                                <div className="p-3 rounded-lg bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-white/5 text-center shadow-2xs">
-                                                    <MessageSquare className="w-4 h-4 text-indigo-500 mx-auto mb-1" />
-                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Messages</p>
-                                                    <p className="text-xs font-extrabold text-slate-800 dark:text-slate-100 mt-0.5">{plan.messageLimit === -1 ? 'Unlimited' : plan.messageLimit?.toLocaleString()}</p>
-                                                </div>
-                                                <div className="p-3 rounded-lg bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-white/5 text-center shadow-2xs">
-                                                    <Users className="w-4 h-4 text-indigo-500 mx-auto mb-1" />
-                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Contacts</p>
-                                                    <p className="text-xs font-extrabold text-slate-800 dark:text-slate-100 mt-0.5">{plan.contactLimit === -1 ? 'Unlimited' : plan.contactLimit?.toLocaleString()}</p>
-                                                </div>
-                                                <div className="p-3 rounded-lg bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-white/5 text-center shadow-2xs">
-                                                    <Layout className="w-4 h-4 text-indigo-500 mx-auto mb-1" />
-                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Templates</p>
-                                                    <p className="text-xs font-extrabold text-slate-800 dark:text-slate-100 mt-0.5">{plan.templateLimit === -1 ? 'Unlimited' : plan.templateLimit?.toLocaleString()}</p>
-                                                </div>
+                                            {/* Quotas Grid */}
+                                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
+                                                {[
+                                                    { key: 'messageLimit', label: 'Messages', icon: MessageSquare },
+                                                    { key: 'contactLimit', label: 'Contacts', icon: Users },
+                                                    { key: 'templateLimit', label: 'Templates', icon: Layout },
+                                                    { key: 'teamMemberLimit', label: 'Team', icon: Users },
+                                                    { key: 'quickReplyLimit', label: 'Quick Replies', icon: Zap },
+                                                    { key: 'tagLimit', label: 'Tags', icon: Tag },
+                                                    { key: 'groupLimit', label: 'Groups', icon: Users },
+                                                    { key: 'vcardLimit', label: 'veCards', icon: CreditCard },
+                                                    { key: 'waStoreLimit', label: 'Stores', icon: Store },
+                                                    { key: 'flowLimit', label: 'FlowBots', icon: Layers },
+                                                ].map((lim, idx) => {
+                                                    const val = plan[lim.key];
+                                                    if (val === undefined || val === null) return null;
+                                                    const Icon = lim.icon;
+                                                    const isUnlimited = val === -1 || (val === 0 && lim.key === 'flowLimit');
+                                                    const displayVal = isUnlimited ? 'Unlimited' : val.toLocaleString();
+                                                    return (
+                                                        <div key={idx} className="p-3 rounded-lg bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-white/5 text-center shadow-2xs">
+                                                            <Icon className="w-4 h-4 text-indigo-500 mx-auto mb-1.5" />
+                                                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">{lim.label}</p>
+                                                            <p className="text-xs font-extrabold text-slate-800 dark:text-slate-100 mt-0.5">{displayVal}</p>
+                                                        </div>
+                                                    );
+                                                })}
+                                                {/* Storage Limit */}
+                                                {plan.storageLimitMb !== undefined && (
+                                                    <div className="p-3 rounded-lg bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-white/5 text-center shadow-2xs">
+                                                        <HardDrive className="w-4 h-4 text-indigo-500 mx-auto mb-1.5" />
+                                                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Storage</p>
+                                                        <p className="text-xs font-extrabold text-slate-800 dark:text-slate-100 mt-0.5">
+                                                            {plan.storageLimitMb === 0 ? 'Unlimited' : `${plan.storageLimitMb} MB`}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                                {/* AI Tokens */}
+                                                {plan.aiTokensAllowance !== undefined && plan.aiTokensAllowance > 0 && (
+                                                    <div className="p-3 rounded-lg bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-white/5 text-center shadow-2xs">
+                                                        <Sparkles className="w-4 h-4 text-indigo-500 mx-auto mb-1.5" />
+                                                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">AI Tokens</p>
+                                                        <p className="text-xs font-extrabold text-slate-800 dark:text-slate-100 mt-0.5">
+                                                            {plan.aiTokensAllowance.toLocaleString()}
+                                                        </p>
+                                                    </div>
+                                                )}
                                             </div>
 
                                             {/* Feature Grid */}
@@ -954,8 +996,8 @@ const Checkout = () => {
                                                         {screenshotPreviews.length < 3 && (
                                                             <label
                                                                 className={`flex flex-col items-center justify-center gap-2 w-full h-24 border-2 border-dashed rounded-xl cursor-pointer transition-all ${submittingManual || uploadingScreenshot
-                                                                        ? 'border-slate-200 dark:border-white/5 opacity-50 cursor-not-allowed'
-                                                                        : 'border-amber-300 dark:border-amber-700/50 hover:border-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-900/10'
+                                                                    ? 'border-slate-200 dark:border-white/5 opacity-50 cursor-not-allowed'
+                                                                    : 'border-amber-300 dark:border-amber-700/50 hover:border-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-900/10'
                                                                     }`}
                                                                 onDragOver={(e) => e.preventDefault()}
                                                                 onDrop={(e) => { e.preventDefault(); if (!submittingManual && !uploadingScreenshot) handleScreenshotSelect(e.dataTransfer.files[0]); }}
@@ -1108,13 +1150,13 @@ function ManualPaymentConfirmModal({ open, onCancel, onConfirm, submitting, amou
                             <label
                                 key={item.id}
                                 className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all select-none ${checked[item.id]
-                                        ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700/50'
-                                        : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20'
+                                    ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700/50'
+                                    : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20'
                                     }`}
                             >
                                 <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all ${checked[item.id]
-                                        ? 'bg-emerald-500 border-emerald-500'
-                                        : 'border-slate-300 dark:border-white/20 bg-white dark:bg-black/20'
+                                    ? 'bg-emerald-500 border-emerald-500'
+                                    : 'border-slate-300 dark:border-white/20 bg-white dark:bg-black/20'
                                     }`}>
                                     {checked[item.id] && (
                                         <svg className="w-3 h-3 text-white" viewBox="0 0 20 20" fill="currentColor">

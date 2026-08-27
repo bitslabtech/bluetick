@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowLeft, Home, SearchX } from 'lucide-react';
 import DOMPurify from 'dompurify';
+import { motion } from 'framer-motion';
+import { getStoreRoute } from '../utils/storeRouting';
 
 import WaStoreFooter from '../components/WaStoreFooter';
 import WaStoreHeader from '../components/WaStoreHeader';
@@ -50,10 +52,11 @@ function PageInnerWithAuth({ store, theme, slug, products, categories, cartCount
     );
 }
 
-export default function PublicWaStorePage({ customSlug }) {
+export default function PublicWaStorePage({ customSlug, customPageType }) {
     const params = useParams();
+    const navigate = useNavigate();
     const slug = customSlug || params.slug;
-    const pageType = params.pageType?.toLowerCase();
+    const pageType = customPageType || params.pageType?.toLowerCase();
     
     const [store, setStore] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -184,7 +187,64 @@ export default function PublicWaStorePage({ customSlug }) {
                 setIsCartOpen={setIsCartOpen}
                 isContactPage={isContactPage}
             >
-                {isContactPage ? (
+                {pageType === '404' ? (
+                    <div className="w-full bg-white dark:bg-surface-dark px-4 sm:px-6 md:px-8 lg:px-12 py-16 md:py-24 flex flex-col items-center justify-center text-center">
+                        <motion.div 
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ type: "spring", bounce: 0.5 }}
+                            className="w-24 h-24 mb-6 rounded-3xl flex items-center justify-center"
+                            style={{ background: `${theme.text}10`, color: theme.text }}
+                        >
+                            <SearchX size={48} strokeWidth={1.5} />
+                        </motion.div>
+                        <motion.h1 
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.1 }}
+                            className={`text-3xl md:text-5xl font-black mb-4 tracking-tight ${theme.text}`}
+                        >
+                            404
+                        </motion.h1>
+                        <motion.h2
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.15 }}
+                            className={`text-xl md:text-2xl font-bold mb-3 ${theme.text}`}
+                        >
+                            Page Not Found
+                        </motion.h2>
+                        <motion.p 
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.2 }}
+                            className={`max-w-md mx-auto mb-10 text-sm md:text-base ${theme.textMuted}`}
+                        >
+                            The page you're looking for doesn't exist or has been moved.
+                        </motion.p>
+                        <motion.div 
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.25 }}
+                            className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto"
+                        >
+                            <button 
+                                onClick={() => navigate(-1)}
+                                className="w-full sm:w-auto px-6 py-3 rounded-xl border flex items-center justify-center gap-2 font-semibold transition-colors text-sm"
+                                style={{ borderColor: `${theme.text}30`, color: theme.text }}
+                            >
+                                <ArrowLeft size={16} /> Go Back
+                            </button>
+                            <button 
+                                onClick={() => navigate(getStoreRoute(slug))}
+                                className="w-full sm:w-auto px-6 py-3 rounded-xl flex items-center justify-center gap-2 font-semibold transition-opacity hover:opacity-90 text-sm"
+                                style={{ background: theme.text, color: theme.pageBg }}
+                            >
+                                <Home size={16} /> Store Home
+                            </button>
+                        </motion.div>
+                    </div>
+                ) : isContactPage ? (
                     <WaStoreContactUs store={store} theme={theme} />
                 ) : (
                     <div className="w-full bg-white dark:bg-surface-dark px-4 sm:px-6 md:px-8 lg:px-12 py-8 md:py-12">

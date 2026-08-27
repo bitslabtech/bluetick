@@ -171,13 +171,14 @@ router.post('/exchange-token', auth, async (req, res) => {
             try {
                 const phoneRes = await axios.get(`https://graph.facebook.com/v22.0/${phoneIdToUse}`, {
                     params: {
-                        fields: 'id,display_phone_number,quality_rating,messaging_limit_tier,verified_name,name_status',
+                        fields: 'id,display_phone_number,quality_rating,messaging_limit_tier,verified_name,name_status,code_verification_status',
                         access_token: accessToken
                     }
                 });
                 const phoneData = phoneRes.data;
                 if (phoneData?.id) {
                     console.log('[WA DEBUG] ✅ Phone Data via hintPhoneNumberId:', JSON.stringify(phoneData));
+                    console.log('[WA DEBUG] code_verification_status:', phoneData.code_verification_status);
                     user.metaPhoneNumberId = phoneData.id;
                     user.metaDisplayPhoneNumber = phoneData.display_phone_number;
                     user.metaQualityRating = phoneData.quality_rating;
@@ -196,13 +197,14 @@ router.post('/exchange-token', auth, async (req, res) => {
             try {
                 const phoneResponse = await axios.get(`https://graph.facebook.com/v22.0/${wabaId}/phone_numbers`, {
                     params: {
-                        fields: 'id,display_phone_number,quality_rating,messaging_limit_tier,verified_name,name_status',
+                        fields: 'id,display_phone_number,quality_rating,messaging_limit_tier,verified_name,name_status,code_verification_status',
                         access_token: accessToken
                     }
                 });
                 if (phoneResponse.data?.data?.length > 0) {
                     const phoneData = phoneResponse.data.data[0];
                     console.log('[WA DEBUG] Phone Data fetched from WABA list:', JSON.stringify(phoneData));
+                    console.log('[WA DEBUG] code_verification_status:', phoneData.code_verification_status);
                     user.metaPhoneNumberId = phoneData.id;
                     user.metaDisplayPhoneNumber = phoneData.display_phone_number;
                     user.metaQualityRating = phoneData.quality_rating;
@@ -299,6 +301,60 @@ router.post('/exchange-token', auth, async (req, res) => {
         const finalToken = permanentToken || accessToken;
         const tokenType = permanentToken ? 'PERMANENT (never expires)' : 'LONG-LIVED (~60 days)';
         console.log(`[WA DEBUG] ✅ finalToken type: ${tokenType}, length: ${finalToken.length}`);
+
+        // =====================================================================
+        // STEP: Register the phone number on the WhatsApp Cloud API
+        // ─────────────────────────────────────────────────────────────────────
+        // This is REQUIRED for Tech Providers after Embedded Signup.
+        // Without this POST, the phone number stays in "Pending" in WhatsApp
+        // Manager and cannot send or receive any messages.
+        //
+        // PIN strategy: last 6 digits of the customer's WhatsApp Business
+        // phone number. This is:
+        //   • Unique per customer
+        //   • Deterministic — always recoverable from the phone number
+        //   • Requires no extra DB storage
+        // =====================================================================
+        if (user.metaPhoneNumberId && finalToken) {
+            try {
+                // Derive PIN from last 6 digits of the display phone number
+                // e.g. "+91 98765 43210" → "919876543210" → PIN: "543210"
+                const rawPhone = user.metaDisplayPhoneNumber || '';
+                const digitsOnly = rawPhone.replace(/\D/g, '');
+                const registrationPin = digitsOnly.length >= 6
+                    ? digitsOnly.slice(-6)
+                    : (process.env.WA_REGISTRATION_PIN || '000000'); // fallback if phone not yet known
+
+                console.log(`[WA DEBUG] Step REGISTER: Registering phone ${user.metaDisplayPhoneNumber} (ID: ${user.metaPhoneNumberId}) with PIN derived from last 6 digits...`);
+
+                const regRes = await axios.post(
+                    `https://graph.facebook.com/v22.0/${user.metaPhoneNumberId}/register`,
+                    {
+                        messaging_product: 'whatsapp',
+                        pin: registrationPin
+                    },
+                    {
+                        headers: { Authorization: `Bearer ${finalToken}` }
+                    }
+                );
+
+                console.log('[WA DEBUG] ✅ Phone registration successful:', JSON.stringify(regRes.data));
+
+            } catch (regErr) {
+                const regErrData = regErr.response?.data?.error;
+                // Error code 80007 = phone number is already registered — not a real error, skip silently
+                if (regErrData?.code === 80007) {
+                    console.log('[WA DEBUG] ℹ️ Phone number already registered on Cloud API — skipping re-registration.');
+                } else {
+                    // Log the failure but do NOT block the rest of the signup flow.
+                    // The user is connected — registration can be retried via /api/whatsapp/register-phone.
+                    console.error('[WA DEBUG] ⚠️ Phone registration failed (number may remain Pending):', regErrData || regErr.message);
+                    console.error('[WA DEBUG] Registration error code:', regErrData?.code, '| message:', regErrData?.message);
+                }
+            }
+        } else {
+            console.warn('[WA DEBUG] ⚠️ Skipping phone registration — metaPhoneNumberId or finalToken is missing.');
+        }
 
         // Save all fields to User model
         // If the WABA ID changed, clear old templates
@@ -654,6 +710,78 @@ router.post('/heal-settings', auth, async (req, res) => {
     } catch (err) {
         console.error('[WA HEAL] Error:', err);
         res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /api/whatsapp/register-phone
+// One-shot repair: registers the phone number on the Cloud API for customers
+// who are stuck in "Pending" status without needing to redo Embedded Signup.
+// Uses the same PIN strategy as /exchange-token: last 6 digits of display phone number.
+router.post('/register-phone', auth, async (req, res) => {
+    try {
+        const user = await User.findByPk(req.user.id);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const Settings = require('../models/Settings');
+        const settings = await Settings.findOne({ where: { userId: req.user.id } });
+
+        const phoneNumberId  = user.metaPhoneNumberId  || settings?.metaPhoneNumberId;
+        const displayPhone   = user.metaDisplayPhoneNumber || '';
+        const accessToken    = user.fbAccessToken       || settings?.metaAccessToken;
+
+        if (!phoneNumberId || !accessToken) {
+            return res.status(400).json({ error: 'WhatsApp is not configured. Please complete Embedded Signup first.' });
+        }
+
+        // Derive PIN from last 6 digits of the customer's WhatsApp Business phone number
+        const digitsOnly = displayPhone.replace(/\D/g, '');
+        const registrationPin = digitsOnly.length >= 6
+            ? digitsOnly.slice(-6)
+            : (process.env.WA_REGISTRATION_PIN || '000000');
+
+        console.log(`[WA REGISTER] Registering phone ${displayPhone} (ID: ${phoneNumberId}) for user ${user.id}...`);
+
+        const regRes = await axios.post(
+            `https://graph.facebook.com/v22.0/${phoneNumberId}/register`,
+            {
+                messaging_product: 'whatsapp',
+                pin: registrationPin
+            },
+            {
+                headers: { Authorization: `Bearer ${accessToken}` }
+            }
+        );
+
+        console.log('[WA REGISTER] ✅ Registration successful:', JSON.stringify(regRes.data));
+
+        return res.json({
+            success: true,
+            message: `Phone number ${displayPhone || phoneNumberId} registered successfully on the WhatsApp Cloud API. Status should change to Connected within a few minutes.`,
+            data: regRes.data
+        });
+
+    } catch (err) {
+        const errData = err.response?.data?.error;
+
+        // 80007 = already registered — treat as success
+        if (errData?.code === 80007) {
+            return res.json({
+                success: true,
+                message: 'Phone number is already registered on the Cloud API. No action needed.',
+                alreadyRegistered: true
+            });
+        }
+
+        console.error('[WA REGISTER] ❌ Registration failed:', errData || err.message);
+        return res.status(500).json({
+            error: errData?.message || err.message,
+            code: errData?.code,
+            hint: errData?.code === 10
+                ? 'This phone number may already be registered under a different WABA or BSP. The customer must release it from that account first via Meta Business Manager.'
+                : errData?.code === 131031
+                ? 'Business verification is required before a phone number can be registered.'
+                : null
+        });
     }
 });
 

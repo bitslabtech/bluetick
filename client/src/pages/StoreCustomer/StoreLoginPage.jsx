@@ -54,7 +54,7 @@ export default function StoreLoginPage({ store, products = [] }) {
     const handleSendOtp = async () => {
         const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
         if (!cleanPhone) { setPhoneError('Enter a phone number'); return; }
-        if (!validatePhone(dialCode, cleanPhone)) { setPhoneError('Invalid phone format'); return; }
+        if (!validatePhone(dialCode, cleanPhone)) { setPhoneError('Enter 10 digit phone number'); return; }
 
         setSubmitting(true);
         try {
@@ -167,7 +167,7 @@ export default function StoreLoginPage({ store, products = [] }) {
                                     <div className="relative">
                                         <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                                         <input 
-                                            type="email" 
+                                            type="text" 
                                             value={email} 
                                             onChange={e => setEmail(e.target.value)}
                                             placeholder={hasOtp || authConfig?.whatsappRequirement === 'mandatory' ? 'Email or Phone' : 'you@example.com'} 
@@ -254,7 +254,7 @@ export default function StoreLoginPage({ store, products = [] }) {
                                                     setDialCode(e.target.value);
                                                     if (phone) {
                                                         const isValid = validatePhone(e.target.value, phone);
-                                                        setPhoneError(isValid ? '' : 'Invalid format for selected country');
+                                                        setPhoneError(isValid ? '' : 'Enter 10 digit phone number');
                                                     }
                                                 }}
                                                 disabled={otpSent}
@@ -277,7 +277,7 @@ export default function StoreLoginPage({ store, products = [] }) {
                                                     setPhone(e.target.value);
                                                     if (e.target.value) {
                                                         const isValid = validatePhone(dialCode, e.target.value);
-                                                        setPhoneError(isValid ? '' : 'Invalid format');
+                                                        setPhoneError(isValid ? '' : 'Enter 10 digit phone number');
                                                     } else {
                                                         setPhoneError('');
                                                     }

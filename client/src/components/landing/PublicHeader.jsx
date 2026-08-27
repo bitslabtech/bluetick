@@ -11,6 +11,8 @@ const PublicHeader = () => {
     const [publicSettings, setPublicSettings] = useState(null);
     const { user } = useAuth();
 
+    const [loading, setLoading] = useState(true);
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -22,6 +24,8 @@ const PublicHeader = () => {
                 setPublicSettings(settingsRes.data);
             } catch (err) {
                 console.error("Failed to load header config", err);
+            } finally {
+                setLoading(false);
             }
         };
         fetchData();
@@ -35,7 +39,9 @@ const PublicHeader = () => {
         <nav className="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-xl border-b border-slate-200 transition-colors duration-300">
             <div className="max-w-7xl mx-auto px-4 md:px-6 h-20 flex items-center justify-between">
                 <Link to="/" className="flex items-center gap-2 font-bold text-xl tracking-tight">
-                    {logoUrl ? (
+                    {loading ? (
+                        <div className="w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
+                    ) : logoUrl ? (
                         <img src={logoUrl} alt={brandName} className="h-8 object-contain" />
                     ) : (
                         <div className="w-8 h-8 bg-gradient-to-tr from-indigo-600 to-indigo-400 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">

@@ -138,7 +138,7 @@ export default function StoreEmbeddedLogin({ store }) {
                         <div className="relative">
                             <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                             <input 
-                                type="email" 
+                                type="text" 
                                 value={email} 
                                 onChange={e => setEmail(e.target.value)}
                                 placeholder={hasOtp || authConfig?.whatsappRequirement === 'mandatory' ? 'Email or Phone' : 'you@example.com'} 

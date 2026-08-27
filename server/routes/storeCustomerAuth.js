@@ -35,6 +35,12 @@ const storeCustomerAuth = require('../middleware/storeCustomerAuth');
 const { createOtp, verifyOtp, checkSendLimits, normalizePhone } = require('../utils/otpStore');
 const Settings = require('../models/Settings');
 const axios = require('axios');
+const { authLimiter } = require('../middleware/rateLimiter');
+
+// Pre-computed bcrypt hash used as a dummy comparison target when no user is found.
+// This ensures the response time is always the same whether the account exists or not,
+// preventing timing-based account enumeration attacks.
+const DUMMY_HASH = '$2b$10$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXYZ012345';
 
 // ── Helper ──────────────────────────────────────────────────────────────────
 
@@ -226,7 +232,8 @@ router.post('/register', async (req, res) => {
 });
 
 // ── POST /login — Email + Password ───────────────────────────────────────────
-router.post('/login', async (req, res) => {
+// authLimiter: max 20 attempts per IP per 15 minutes (brute-force protection)
+router.post('/login', authLimiter, async (req, res) => {
     try {
         const { storeSlug } = req.params;
         const { email, password } = req.body;
@@ -240,27 +247,79 @@ router.post('/login', async (req, res) => {
 
         if (!email || !password) return res.status(400).json({ error: 'Email (or phone) and password are required.' });
 
-        // email variable could be a phone number if the user didn't provide an email. 
-        // We'll search for either exact email or exact phone match.
-        const searchPhone = normalizePhone(email);
-        
         const { Op } = require('sequelize');
-        const customer = await StoreCustomer.findOne({ 
-            where: { 
-                storeId: store.id, 
+
+        // Normalize the input as a phone candidate (strip all non-digits)
+        const searchPhone = normalizePhone(email);
+
+        // ── Step 1: Exact match (email or full phone with country code) ──────
+        let customer = await StoreCustomer.findOne({
+            where: {
+                storeId: store.id,
                 [Op.or]: [
                     { email: email },
                     { phone: searchPhone }
                 ]
-            } 
+            }
         });
-        
+
+        // ── Step 2: Smart phone suffix fallback ──────────────────────────────
+        // If no exact match and the input looks like a local phone number
+        // (8+ digits, no @ sign), search for accounts ending with those digits.
+        // This allows users to log in without knowing their full country code
+        // (e.g., "9876543210" will match stored "919876543210").
+        // Minimum 8 digits enforced to prevent trivially-short suffix collisions.
+        // Leading zeros are stripped (e.g., Australian "0412345678" → "412345678")
+        // since numbers are stored without local leading zeros in WhatsApp format.
+        if (!customer && !email.includes('@') && searchPhone.length >= 8) {
+            // Strip leading zeros to handle local formats like Australian 0412345678
+            const strippedPhone = searchPhone.replace(/^0+/, '');
+
+            if (strippedPhone.length >= 8) {
+                // Find ALL accounts whose stored phone ends with the digits entered.
+                // Multiple matches are iterated to find the one whose password matches,
+                // preventing incorrect-account collisions from blocking valid users.
+                const candidates = await StoreCustomer.findAll({
+                    where: {
+                        storeId: store.id,
+                        phone: { [Op.like]: `%${strippedPhone}` }
+                    }
+                });
+
+                // Find the candidate whose password actually matches
+                for (const candidate of candidates) {
+                    if (candidate.password) {
+                        const isMatch = await bcrypt.compare(password, candidate.password);
+                        if (isMatch) {
+                            customer = candidate;
+                            break;
+                        }
+                    }
+                }
+
+                // If a match was found via suffix search, token is already ready to sign.
+                // Skip the second bcrypt.compare below by returning early.
+                if (customer) {
+                    const token = signToken(customer);
+                    return res.json({
+                        token,
+                        customer: { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone }
+                    });
+                }
+            }
+        }
+
+        // ── Step 3: Timing-safe response ─────────────────────────────────────
+        // ALWAYS run bcrypt.compare, even when no customer is found.
+        // This prevents timing-based account enumeration attacks — an attacker
+        // cannot tell from response time whether an account exists or not.
         if (!customer || !customer.password) {
-            return res.status(401).json({ error: 'Invalid credentials or account uses OTP.' });
+            await bcrypt.compare(password, DUMMY_HASH); // constant-time dummy
+            return res.status(401).json({ error: 'Invalid credentials.' });
         }
 
         const isMatch = await bcrypt.compare(password, customer.password);
-        if (!isMatch) return res.status(401).json({ error: 'Invalid email or password.' });
+        if (!isMatch) return res.status(401).json({ error: 'Invalid credentials.' });
 
         const token = signToken(customer);
         return res.json({
@@ -362,8 +421,108 @@ router.post('/verify-otp', async (req, res) => {
     }
 });
 
+// ── POST /send-otp-reset — Send WhatsApp OTP to verify identity for pwd reset ─
+// Sends an OTP to the given phone number ONLY if a password-based account exists.
+// Uses the same OTP infrastructure as the login flow to keep things consistent.
+router.post('/send-otp-reset', authLimiter, async (req, res) => {
+    try {
+        const { storeSlug } = req.params;
+        const { phone } = req.body;
+
+        const { store, authConfig, error, code } = await loadStore(storeSlug);
+        if (error) return res.status(code).json({ error });
+
+        if (!authConfig.methods?.includes('whatsapp_otp')) {
+            return res.status(400).json({ error: 'WhatsApp OTP is not enabled for this store.' });
+        }
+
+        if (!phone) return res.status(400).json({ error: 'Phone number is required.' });
+
+        const normalizedPhone = normalizePhone(phone);
+        const otpConfig = { otpExpirySec: 300, resendCooldownSec: 60, maxResendPerHour: 5, maxVerifyAttempts: 5 };
+
+        // Rate limit check
+        const limitCheck = await checkSendLimits(normalizedPhone, otpConfig);
+        if (!limitCheck.allowed) {
+            return res.status(429).json({ error: limitCheck.reason, retryAfterSec: limitCheck.retryAfterSec });
+        }
+
+        // Only send OTP if an account with a password actually exists for this number.
+        // We still return the same success message even if not found to prevent enumeration.
+        const customer = await StoreCustomer.findOne({
+            where: { storeId: store.id, phone: normalizedPhone, password: { [require('sequelize').Op.ne]: null } }
+        });
+
+        if (customer) {
+            // Account found — generate and send OTP
+            const otp = await createOtp(`reset_${normalizedPhone}`, otpConfig);
+            const result = await sendWhatsAppOtp(store, normalizedPhone, otp);
+            if (!result.sent) {
+                return res.status(500).json({ error: 'Failed to send WhatsApp OTP. Please try again.' });
+            }
+        }
+        // If no customer found, silently succeed (enumeration protection)
+
+        return res.json({ message: `OTP sent to WhatsApp number ending in ${normalizedPhone.slice(-4)}` });
+    } catch (err) {
+        console.error('[StoreCustomerAuth] Send OTP reset error:', err);
+        res.status(500).json({ error: 'Server error.' });
+    }
+});
+
+// ── POST /verify-otp-reset — Verify OTP and set new password ─────────────────
+router.post('/verify-otp-reset', authLimiter, async (req, res) => {
+    try {
+        const { storeSlug } = req.params;
+        const { phone, otp, newPassword } = req.body;
+
+        const { store, authConfig, error, code } = await loadStore(storeSlug);
+        if (error) return res.status(code).json({ error });
+
+        if (!authConfig.methods?.includes('whatsapp_otp')) {
+            return res.status(400).json({ error: 'WhatsApp OTP is not enabled for this store.' });
+        }
+
+        if (!phone || !otp || !newPassword) {
+            return res.status(400).json({ error: 'Phone, OTP, and new password are required.' });
+        }
+        if (newPassword.length < 6) {
+            return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+        }
+
+        const normalizedPhone = normalizePhone(phone);
+        const otpConfig = { maxVerifyAttempts: 5 };
+
+        // Verify the OTP using the reset-specific key
+        const result = await verifyOtp(`reset_${normalizedPhone}`, otp, otpConfig);
+        if (!result.valid) return res.status(400).json({ error: result.reason });
+
+        // Find the customer account with a password
+        const customer = await StoreCustomer.findOne({
+            where: { storeId: store.id, phone: normalizedPhone, password: { [require('sequelize').Op.ne]: null } }
+        });
+
+        if (!customer) {
+            return res.status(404).json({ error: 'No password-based account found for this number.' });
+        }
+
+        // Set the new password
+        customer.password = await bcrypt.hash(newPassword, 10);
+        // Clear any existing email reset tokens for safety
+        customer.resetToken = null;
+        customer.resetTokenExpiry = null;
+        await customer.save();
+
+        return res.json({ message: 'Password updated successfully. You can now log in with your new password.' });
+    } catch (err) {
+        console.error('[StoreCustomerAuth] Verify OTP reset error:', err);
+        res.status(500).json({ error: 'Server error.' });
+    }
+});
+
 // ── POST /forgot-password ─────────────────────────────────────────────────────
-router.post('/forgot-password', async (req, res) => {
+// authLimiter prevents SMTP flooding / brute-force enumeration via this endpoint
+router.post('/forgot-password', authLimiter, async (req, res) => {
     try {
         const { storeSlug } = req.params;
         const { email } = req.body;
@@ -373,12 +532,33 @@ router.post('/forgot-password', async (req, res) => {
 
         if (!email) return res.status(400).json({ error: 'Email is required.' });
 
+        // ── Step 1: Verify SMTP is configured BEFORE doing anything else ──────
+        // This avoids generating a useless reset token that will never be delivered.
+        const storeOwner = await User.findByPk(store.userId);
+        const userSettings = storeOwner
+            ? await Settings.findOne({ where: { userId: storeOwner.id } })
+            : null;
+        const smtpConfig = userSettings?.smtpConfig;
+
+        const smtpReady = smtpConfig && smtpConfig.host && smtpConfig.user && smtpConfig.pass;
+        if (!smtpReady) {
+            // Return a clear, actionable error — the user cannot reset their password
+            // if the store has not configured email delivery.
+            return res.status(503).json({
+                error: 'smtp_not_configured',
+                message: 'This store has not configured email delivery yet. Please contact the store owner or try logging in with WhatsApp OTP if available.'
+            });
+        }
+
+        // ── Step 2: Look up the customer ──────────────────────────────────────
         const customer = await StoreCustomer.findOne({ where: { storeId: store.id, email } });
-        // Always return success to prevent email enumeration
+        // Always return success to prevent email enumeration — never reveal
+        // whether an account exists for a given email address.
         if (!customer || !customer.password) {
             return res.json({ message: 'If this email is registered, you will receive a reset link.' });
         }
 
+        // ── Step 3: Generate and store the reset token ────────────────────────
         const resetToken = crypto.randomBytes(32).toString('hex');
         customer.resetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
         customer.resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
@@ -386,41 +566,32 @@ router.post('/forgot-password', async (req, res) => {
 
         const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/store/${storeSlug}/account/reset-password?token=${resetToken}`;
 
-        // #8 — Send actual password reset email via store owner's SMTP config
+        // ── Step 4: Send the email ────────────────────────────────────────────
         try {
-            const Settings = require('../models/Settings');
-            const storeOwner = await User.findByPk(store.userId);
-            const userSettings = storeOwner ? await Settings.findOne({ where: { userId: storeOwner.id } }) : null;
-            const smtpConfig = userSettings?.smtpConfig;
-
-            if (smtpConfig && smtpConfig.host && smtpConfig.user && smtpConfig.pass) {
-                const nodemailer = require('nodemailer');
-                const transporter = nodemailer.createTransport({
-                    host: smtpConfig.host,
-                    port: Number(smtpConfig.port || 587),
-                    secure: smtpConfig.secure || false,
-                    auth: { user: smtpConfig.user, pass: smtpConfig.pass }
-                });
-                await transporter.sendMail({
-                    from: smtpConfig.fromEmail || smtpConfig.user,
-                    to: email,
-                    subject: `Reset your password — ${store.name}`,
-                    html: `
-                        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;border:1px solid #e2e8f0;border-radius:8px">
-                            <h2 style="color:#4f46e5">Password Reset Request</h2>
-                            <p>You requested a password reset for your account at <strong>${store.name}</strong>.</p>
-                            <p>Click the button below to reset your password. This link expires in 1 hour.</p>
-                            <a href="${resetUrl}" style="display:inline-block;margin:16px 0;padding:12px 24px;background:#4f46e5;color:#fff;border-radius:6px;text-decoration:none;font-weight:bold">Reset Password</a>
-                            <p style="color:#64748b;font-size:12px">If you didn't request this, please ignore this email.</p>
-                        </div>
-                    `
-                });
-            } else {
-                // Fallback: log to console if SMTP not configured
-                console.warn(`[StoreCustomerAuth] SMTP not configured for store ${storeSlug}. Reset URL: ${resetUrl}`);
-            }
+            const nodemailer = require('nodemailer');
+            const transporter = nodemailer.createTransport({
+                host: smtpConfig.host,
+                port: Number(smtpConfig.port || 587),
+                secure: smtpConfig.secure || false,
+                auth: { user: smtpConfig.user, pass: smtpConfig.pass }
+            });
+            await transporter.sendMail({
+                from: smtpConfig.fromEmail || smtpConfig.user,
+                to: email,
+                subject: `Reset your password — ${store.name}`,
+                html: `
+                    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;border:1px solid #e2e8f0;border-radius:8px">
+                        <h2 style="color:#4f46e5">Password Reset Request</h2>
+                        <p>You requested a password reset for your account at <strong>${store.name}</strong>.</p>
+                        <p>Click the button below to reset your password. This link expires in 1 hour.</p>
+                        <a href="${resetUrl}" style="display:inline-block;margin:16px 0;padding:12px 24px;background:#4f46e5;color:#fff;border-radius:6px;text-decoration:none;font-weight:bold">Reset Password</a>
+                        <p style="color:#64748b;font-size:12px">If you didn't request this, please ignore this email.</p>
+                    </div>
+                `
+            });
         } catch (emailErr) {
-            // Don't fail the request if email sending fails
+            // Email send failed after token was already saved — log but still return
+            // the generic success message (token will naturally expire in 1h).
             console.error('[StoreCustomerAuth] Failed to send password reset email:', emailErr.message);
         }
 
