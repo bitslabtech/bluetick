@@ -691,9 +691,11 @@ router.post('/test', auth, async (req, res) => {
         metaPhoneNumberId = metaPhoneNumberId.replace(/[^\x20-\x7E]/g, '').trim();
         metaAccessToken = metaAccessToken.replace(/[^\x20-\x7E]/g, '').trim();
 
-        // Verify with Meta Graph API
         // If a test phone number is provided, try to send a message
         if (req.body.testPhoneNumber) {
+            // Strip any non-digit characters from the phone number
+            const sanitizedPhone = req.body.testPhoneNumber.toString().replace(/\D/g, '');
+            
             // Ensure we have dbSettings to get wabaId
             if (!dbSettings) {
                 dbSettings = await Settings.findOne({ where: { userId: req.user.id } });
@@ -744,7 +746,7 @@ router.post('/test', auth, async (req, res) => {
             const sendTestMessage = async (langCode) => {
                 return axios.post(`https://graph.facebook.com/v21.0/${metaPhoneNumberId}/messages`, {
                     messaging_product: 'whatsapp',
-                    to: req.body.testPhoneNumber,
+                    to: sanitizedPhone,
                     type: 'template',
                     template: {
                         name: 'hello_world',
@@ -810,9 +812,17 @@ router.post('/test', auth, async (req, res) => {
                 });
             } catch (err) {
                 console.error("Meta API Message Send Failed:", err.response?.data || err.message);
+                
+                const metaErr = err.response?.data?.error;
+                let errorMsg = metaErr?.error_user_msg || metaErr?.message || err.message || 'Failed to send test message.';
+                
+                if (metaErr?.error_data?.details) {
+                    errorMsg += ` (${metaErr.error_data.details})`;
+                }
+                
                 return res.status(400).json({
-                    error: err.response?.data?.error?.message || 'Failed to send test message.',
-                    details: err.response?.data?.error
+                    error: errorMsg,
+                    details: metaErr
                 });
             }
         }
