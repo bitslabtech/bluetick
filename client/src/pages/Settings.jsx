@@ -630,18 +630,26 @@ const Settings = () => {
                 metaAccessToken: formData.metaAccessToken,
                 testPhoneNumber
             });
-            if (response.data.status === 'pending') {
+            const { status, message } = response.data;
+            if (status === 'creating') {
                 showModal({
                     type: 'info',
-                    title: 'Template Pending',
-                    message: response.data.message,
+                    title: '⏳ Template Being Created',
+                    message: message,
+                    confirmText: 'Got it'
+                });
+            } else if (status === 'pending') {
+                showModal({
+                    type: 'info',
+                    title: '⏳ Template Pending Approval',
+                    message: message,
                     confirmText: 'Got it'
                 });
             } else {
                 showModal({
                     type: 'success',
-                    title: 'Test Successful',
-                    message: response.data.message || 'Test message sent successfully.',
+                    title: '✅ Test Successful',
+                    message: message || 'Test message sent successfully.',
                     confirmText: 'OK'
                 });
             }
@@ -649,7 +657,7 @@ const Settings = () => {
             showModal({
                 type: 'error',
                 title: 'Test Failed',
-                message: 'Test failed: ' + (error.response?.data?.error || error.message),
+                message: error.response?.data?.error || error.message,
                 confirmText: 'Close'
             });
         } finally {
