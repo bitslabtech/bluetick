@@ -1,7 +1,7 @@
-require('dotenv').config();
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 const axios = require('axios');
-const { User, Settings } = require('./models'); // Adjust path if necessary depending on your setup
-const sequelize = require('./config/database');
+const { User, Settings } = require('../models'); // Adjusted path for scripts folder
+const sequelize = require('../config/database');
 
 async function healPendingNumbers() {
     console.log('===============================================================');
