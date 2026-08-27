@@ -516,9 +516,11 @@ router.post('/:userId', (req, res, next) => {
                         if (referralData) {
                             console.log(`[WEBHOOK][CTWA] Ad referral detected! Ad ID: ${referralData.source_id} | Headline: "${referralData.headline}"`);
                             // Phase 5: Auto-fire CAPI Lead event
-                            fireCapiEvent(user.id, 'Lead', {
-                                ph: [require('crypto').createHash('sha256').update(senderNumber).digest('hex')]
-                            }).catch(() => {});
+                            try {
+                                fireCapiEvent(user.id, 'Lead', {
+                                    ph: [require('crypto').createHash('sha256').update(contactWaId).digest('hex')]
+                                }).catch(() => {});
+                            } catch (_capiErr) { /* non-fatal — do not abort message processing */ }
                         }
 
                         let messageType = message.type;
