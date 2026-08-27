@@ -1,6 +1,7 @@
 require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 const axios = require('axios');
-const { User, Settings } = require('../models'); // Adjusted path for scripts folder
+const User = require('../models/User');
+const Settings = require('../models/Settings');
 const sequelize = require('../config/database');
 
 async function healPendingNumbers() {
