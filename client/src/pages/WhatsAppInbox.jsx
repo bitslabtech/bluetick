@@ -163,6 +163,14 @@ const WhatsAppInbox = () => {
     // ── DELETE CHAT ─────────────────────────────────────────────────────────
     const handleDeleteChat = async () => {
         if (!selectedChat) return;
+        if (typeof selectedChat.id === 'string' && selectedChat.id.startsWith('new-')) {
+            // It's a local placeholder, just remove it from state
+            setConversations(prev => prev.filter(c => c.id !== selectedChat.id));
+            setSelectedChat(null);
+            setShowDeleteModal(false);
+            return;
+        }
+
         setIsDeleting(true);
         try {
             await axios.delete(`${API_BASE}/api/whatsapp/chat/conversations/${selectedChat.id}`);
@@ -351,9 +359,13 @@ const WhatsAppInbox = () => {
                 isInitialChatLoad.current = true;
                 prevChatIdRef.current = selectedChat.id;
             }
-            fetchMessages(selectedChat.id);
-            // Fetch groups for header
-            if (selectedChat.id) {
+            if (typeof selectedChat.id === 'string' && selectedChat.id.startsWith('new-')) {
+                setMessages([]);
+                setHeaderGroups([]);
+                setHeaderContactId(null);
+            } else {
+                fetchMessages(selectedChat.id);
+                // Fetch groups for header
                 axios.get(`${API_BASE}/api/whatsapp/chat/conversations/${selectedChat.id}/contact`).then(res => {
                     setHeaderGroups(res.data.tags || []);
                     setHeaderContactId(res.data.id);
@@ -361,9 +373,6 @@ const WhatsAppInbox = () => {
                     setHeaderGroups([]);
                     setHeaderContactId(null);
                 });
-            } else {
-                setHeaderGroups([]);
-                setHeaderContactId(null);
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -468,6 +477,11 @@ const WhatsAppInbox = () => {
     }, [searchQuery, activeFilter]);
 
     const fetchMessages = async (chatId) => {
+        if (typeof chatId === 'string' && chatId.startsWith('new-')) {
+            setMessages([]);
+            setLoadingMessages(false);
+            return;
+        }
         setLoadingMessages(true);
         setMessages([]);
         try {
@@ -617,7 +631,7 @@ const WhatsAppInbox = () => {
             } else {
                 // Standard template
 
-                // 1. Header component (IMAGE / VIDEO / DOCUMENT) — if template has one
+                // 1. Header component (IMAGE / VIDEO / DOCUMENT) — if template has a media header
                 const stdHeaderType = selectedTemplate.headerType?.toUpperCase();
                 if (stdHeaderType && stdHeaderType !== 'NONE' && stdHeaderType !== 'TEXT') {
                     const mediaId = cardParams['std_headerMediaId'];
@@ -639,12 +653,40 @@ const WhatsAppInbox = () => {
                         parameters: uniqueVarNums.map(n => ({ type: 'text', text: templateVariables[n] || '' }))
                     });
                 }
+
+                // 3. Button components for standard templates
+                // URL buttons with {{1}} dynamic suffix need a button component with the suffix value.
+                // QUICK_REPLY buttons always need a button component with payload.
+                // PHONE_NUMBER buttons never need a component.
+                const stdButtons = Array.isArray(selectedTemplate.buttons) ? selectedTemplate.buttons : [];
+                stdButtons.forEach((btn, btnIdx) => {
+                    if (btn.type === 'URL') {
+                        const hasVar = /\{\{\d+\}\}/.test(btn.url || '');
+                        if (hasVar) {
+                            const suffix = templateVariables[`std_btn_${btnIdx}_url`] || '';
+                            components.push({
+                                type: 'button',
+                                sub_type: 'url',
+                                index: String(btnIdx),
+                                parameters: [{ type: 'text', text: suffix }]
+                            });
+                        }
+                    } else if (btn.type === 'QUICK_REPLY') {
+                        components.push({
+                            type: 'button',
+                            sub_type: 'quick_reply',
+                            index: String(btnIdx),
+                            parameters: [{ type: 'payload', payload: btn.text || `reply_${btnIdx}` }]
+                        });
+                    }
+                    // PHONE_NUMBER: no component needed
+                });
             }
 
             // Build request payload — pass phoneNumber+contactName so the backend can
             // auto-create the conversation when it is a placeholder (id starts with 'new-')
             const isPlaceholder = typeof selectedChat.id === 'string' && selectedChat.id.startsWith('new-');
-            await axios.post(`${API_BASE}/api/whatsapp/chat/send/template`, {
+            const resp = await axios.post(`${API_BASE}/api/whatsapp/chat/send/template`, {
                 conversationId: selectedChat.id,
                 templateId: selectedTemplate.id,
                 templateName: selectedTemplate.name,
@@ -658,7 +700,18 @@ const WhatsAppInbox = () => {
             });
 
             setShowTemplateModal(false);
-            fetchMessages(selectedChat.id);
+
+            // After a placeholder conversation was auto-created, the backend returns the real
+            // conversationId. Update selectedChat so all follow-up calls use the real UUID.
+            const realConvId = resp.data?.conversationId || selectedChat.id;
+            if (isPlaceholder && realConvId !== selectedChat.id) {
+                setSelectedChat(prev => ({ ...prev, id: realConvId }));
+                setConversations(prev =>
+                    prev.map(c => c.id === selectedChat.id ? { ...c, id: realConvId } : c)
+                );
+            }
+
+            fetchMessages(realConvId);
             fetchConversations();
         } catch (err) {
             console.error('Failed to send template:', err);
@@ -1186,7 +1239,7 @@ const WhatsAppInbox = () => {
                                             <span className={isSubMember && teamPolicy.phonePrivacy === 'blurred' ? 'blur-sm select-none' : ''}>
                                                 {isSubMember && teamPolicy.phonePrivacy === 'masked'
                                                     ? `****${selectedChat.phoneNumber?.slice(-4) || ''}`
-                                                    : `+${selectedChat.phoneNumber}`
+                                                    : selectedChat.phoneNumber
                                                 }
                                             </span>
                                         )}
@@ -2030,13 +2083,23 @@ const extractVariables = (template) => {
             }))
         };
     }
-    // Standard template — expose headerType so the UI can show upload field
+    // Standard template — expose headerType, textHeader and buttons so the UI can show all fields
     const ht = template.headerType?.toUpperCase() || null;
     const hasMediaHeader = ht && ht !== 'NONE' && ht !== 'TEXT';
+    const stdButtons = Array.isArray(template.buttons) ? template.buttons : [];
+    // URL buttons that have a {{N}} suffix variable require user input
+    const btnUrlVarKeys = stdButtons
+        .map((btn, i) => ({ btn, i }))
+        .filter(({ btn }) => btn.type === 'URL' && /\{\{\d+\}\}/.test(btn.url || ''))
+        .map(({ i }) => `std_btn_${i}_url`);
     return {
         isCarousel: false,
         mainVars: extractVarsFromText(template.content),
         headerType: hasMediaHeader ? ht : null,
+        textHeader: ht === 'TEXT' ? (template.headerContent || null) : null,
+        footer: template.footer || null,
+        buttons: stdButtons,
+        btnUrlVarKeys,
         cards: []
     };
 };
@@ -2061,22 +2124,22 @@ const TemplateModal = ({
         !templateSearch || t.name.toLowerCase().includes(templateSearch.toLowerCase())
     );
 
-    const { isCarousel, mainVars, cards, headerType } = selectedTemplate ? extractVariables(selectedTemplate) : { isCarousel: false, mainVars: [], cards: [], headerType: null };
+    const { isCarousel, mainVars, cards, headerType, textHeader, footer, buttons: stdButtons, btnUrlVarKeys } =
+        selectedTemplate ? extractVariables(selectedTemplate) : { isCarousel: false, mainVars: [], cards: [], headerType: null, textHeader: null, footer: null, buttons: [], btnUrlVarKeys: [] };
 
     // Flat set of all required keys for canSend
     const allRequiredKeys = isCarousel
         ? [
             ...mainVars.map(n => `body_${n}`),
             ...cards.flatMap(c => c.vars.map(n => `card_${c.cardIndex}_var_${n}`)),
-            // Cards with header type IMAGE/VIDEO require a media upload
             ...cards
                 .filter(c => c.headerType && c.headerType !== 'NONE')
                 .map(c => `card_${c.cardIndex}_headerMediaId`)
         ]
         : [
-            // Standard: if template has a media header, require the upload
             ...(headerType ? ['std_headerMediaId'] : []),
-            ...mainVars
+            ...mainVars,
+            ...(btnUrlVarKeys || [])
           ];
 
     const previewText = !isCarousel && selectedTemplate
@@ -2458,24 +2521,86 @@ const TemplateModal = ({
                                             </div>
                                         )}
 
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Variables</p>
-                                        {mainVars.length === 0 ? (
+                                        {/* Body variables */}
+                                        {mainVars.length > 0 && (
+                                            <div>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Body Variables</p>
+                                                <div className="space-y-3">
+                                                    {mainVars.map(n => (
+                                                        <div key={n}>
+                                                            <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">
+                                                                Variable <span className="font-mono bg-slate-100 dark:bg-white/10 px-1.5 py-0.5 rounded text-xs">{`{{${n}}}`}</span>
+                                                            </label>
+                                                            <input type="text" value={templateVariables[n] || ''} onChange={e => onVariableChange(n, e.target.value)} placeholder={`Enter value for {{${n}}}`} className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition" />
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Buttons section */}
+                                        {stdButtons && stdButtons.length > 0 && (
+                                            <div>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Buttons</p>
+                                                <div className="space-y-2">
+                                                    {stdButtons.map((btn, btnIdx) => {
+                                                        const hasVar = btn.type === 'URL' && /\{\{\d+\}\}/.test(btn.url || '');
+                                                        const varKey = `std_btn_${btnIdx}_url`;
+                                                        // Extract static prefix (before {{1}}) for placeholder hint
+                                                        const urlPrefix = btn.type === 'URL' ? (btn.url || '').replace(/\{\{\d+\}\}.*$/, '').slice(-30) : '';
+                                                        return (
+                                                            <div key={btnIdx} className="rounded-xl border border-slate-200 dark:border-white/10 overflow-hidden">
+                                                                <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-white/5">
+                                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
+                                                                        btn.type === 'URL' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                                                                        btn.type === 'PHONE_NUMBER' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                                                        'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                                                                    }`}>
+                                                                        {btn.type === 'URL' ? '🔗 URL' : btn.type === 'PHONE_NUMBER' ? '📞 Phone' : '↩ Reply'}
+                                                                    </span>
+                                                                    <span className="text-xs text-slate-700 dark:text-slate-300 font-medium truncate">{btn.text}</span>
+                                                                </div>
+                                                                {/* URL button with dynamic suffix variable */}
+                                                                {hasVar && (
+                                                                    <div className="px-3 pb-2.5 pt-1.5 bg-white dark:bg-white/5">
+                                                                        <label className="block text-[10px] text-slate-500 dark:text-slate-400 mb-1">
+                                                                            URL suffix <span className="font-mono text-blue-500">{{'{{'}}1{{'}}'}}</span> <span className="text-red-400">*</span>
+                                                                        </label>
+                                                                        <input
+                                                                            type="text"
+                                                                            value={templateVariables[varKey] || ''}
+                                                                            onChange={e => onVariableChange(varKey, e.target.value)}
+                                                                            placeholder={urlPrefix ? `…${urlPrefix}[suffix]` : 'e.g. ORDER-12345'}
+                                                                            className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                                                                        />
+                                                                    </div>
+                                                                )}
+                                                                {/* Phone number info */}
+                                                                {btn.type === 'PHONE_NUMBER' && (
+                                                                    <div className="px-3 py-1.5 bg-white dark:bg-white/5">
+                                                                        <p className="text-[10px] text-slate-400 font-mono">{btn.phoneNumber || btn.phone_number || 'Static number'}</p>
+                                                                    </div>
+                                                                )}
+                                                                {/* Static URL info */}
+                                                                {btn.type === 'URL' && !hasVar && (
+                                                                    <div className="px-3 py-1.5 bg-white dark:bg-white/5">
+                                                                        <p className="text-[10px] text-slate-400 font-mono truncate">{btn.url || 'Static URL'}</p>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* No fields at all */}
+                                        {mainVars.length === 0 && (!stdButtons || stdButtons.length === 0) && !headerType && (
                                             <div className="flex flex-col items-center justify-center py-8 text-center">
                                                 <div className="size-12 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center mb-3">
                                                     <Check className="w-6 h-6 text-green-500" />
                                                 </div>
                                                 <p className="text-sm text-slate-500 dark:text-slate-400">No variables — ready to send!</p>
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-3">
-                                                {mainVars.map(n => (
-                                                    <div key={n}>
-                                                        <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">
-                                                            Variable <span className="font-mono bg-slate-100 dark:bg-white/10 px-1.5 py-0.5 rounded text-xs">{`{{${n}}}`}</span>
-                                                        </label>
-                                                        <input type="text" value={templateVariables[n] || ''} onChange={e => onVariableChange(n, e.target.value)} placeholder={`Enter value for {{${n}}}`} className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition" />
-                                                    </div>
-                                                ))}
                                             </div>
                                         )}
                                     </>)
@@ -2602,25 +2727,78 @@ const TemplateModal = ({
                                         <p className="text-[10px] text-center text-white/50 mt-2">← Swipe cards →</p>
                                     </div>)
                                 ) : (
-                                    /* Standard preview */
-                                    (<div className="self-end max-w-[90%]">
-                                        <div
-                                            className="rounded-2xl rounded-br-sm px-3.5 py-2.5 shadow-md"
-                                            style={{ background: '#dcf8c6' }}
-                                        >
-                                            <div className="mb-1.5">
+                                    /* Standard preview — full WhatsApp template bubble */
+                                    (<div className="self-end max-w-[90%] w-full">
+                                        <div className="rounded-2xl rounded-br-sm shadow-md overflow-hidden" style={{ background: '#dcf8c6' }}>
+
+                                            {/* Header — IMAGE/VIDEO/DOCUMENT */}
+                                            {headerType && (
+                                                (cardParams || {})['std_previewUrl'] ? (
+                                                    headerType === 'VIDEO'
+                                                        ? <video src={(cardParams || {})['std_previewUrl']} muted className="w-full object-cover" style={{ maxHeight: '160px' }} />
+                                                        : headerType === 'DOCUMENT'
+                                                            ? <div className="flex items-center gap-2 px-3.5 py-2 bg-white/50">
+                                                                <span className="text-2xl">📄</span>
+                                                                <span className="text-xs text-slate-600 truncate">{(cardParams || {})['std_headerFileName'] || 'Document'}</span>
+                                                              </div>
+                                                            : <img src={(cardParams || {})['std_previewUrl']} alt="Header" className="w-full object-cover" style={{ maxHeight: '160px' }} />
+                                                ) : (
+                                                    <div className="w-full flex flex-col items-center justify-center gap-1.5" style={{ height: '110px', background: 'rgba(0,0,0,0.06)' }}>
+                                                        <span className="text-3xl">{headerType === 'VIDEO' ? '🎥' : headerType === 'DOCUMENT' ? '📄' : '🖼️'}</span>
+                                                        <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">{headerType} Header</span>
+                                                    </div>
+                                                )
+                                            )}
+
+                                            {/* Header — TEXT */}
+                                            {textHeader && (
+                                                <div className="px-3.5 pt-3 pb-0">
+                                                    <p className="text-[13px] font-bold text-slate-900 leading-snug">{textHeader}</p>
+                                                </div>
+                                            )}
+
+                                            {/* Category badge */}
+                                            <div className="px-3.5 pt-2.5 pb-0.5">
                                                 <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase ${CATEGORY_COLORS[selectedTemplate.category] || 'bg-slate-100 text-slate-600'}`}>
                                                     {selectedTemplate.category}
                                                 </span>
                                             </div>
-                                            <p className="text-[13px] leading-[1.45] text-slate-800 whitespace-pre-wrap break-words" style={{ minHeight: '30px' }}>
-                                                {previewText || <span className="text-slate-400 italic text-xs">Template body will appear here</span>}
-                                            </p>
-                                            <div className="flex justify-end items-center gap-1 mt-1.5">
+
+                                            {/* Body text */}
+                                            <div className="px-3.5 pt-1.5 pb-1">
+                                                <p className="text-[13px] leading-[1.45] text-slate-800 whitespace-pre-wrap break-words" style={{ minHeight: '20px' }}>
+                                                    {previewText || <span className="text-slate-400 italic text-xs">Template body will appear here</span>}
+                                                </p>
+                                            </div>
+
+                                            {/* Footer */}
+                                            {footer && (
+                                                <div className="px-3.5 pb-1">
+                                                    <p className="text-[11px] text-slate-400">{footer}</p>
+                                                </div>
+                                            )}
+
+                                            {/* Timestamp */}
+                                            <div className="flex justify-end items-center gap-1 px-3.5 pb-2">
                                                 <span className="text-[10px]" style={{ color: '#919191' }}>Now</span>
                                                 <svg width="16" height="11" viewBox="0 0 16 11" fill="none"><path d="M11.071 0L5 6.071l-2.071-2.07L1.5 5.43l3.5 3.5 7.5-7.5-1.429-1.43z" fill="#53bdeb" /><path d="M15.071 0L9 6.071 7.5 4.571 6.071 6l2.929 2.929 7.5-7.5-1.429-1.43z" fill="#53bdeb" /></svg>
                                             </div>
                                         </div>
+
+                                        {/* Buttons row outside bubble — as WA renders them */}
+                                        {stdButtons && stdButtons.length > 0 && (
+                                            <div className="mt-1 space-y-1">
+                                                {stdButtons.map((btn, i) => (
+                                                    <div
+                                                        key={i}
+                                                        className="rounded-xl shadow-sm text-center py-2 text-[12px] font-semibold"
+                                                        style={{ background: '#dcf8c6', color: '#0a85e3' }}
+                                                    >
+                                                        {btn.type === 'URL' ? '🔗 ' : btn.type === 'PHONE_NUMBER' ? '📞 ' : '↩ '}{btn.text}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>)
                                 )}
                             </div>

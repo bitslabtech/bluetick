@@ -16,6 +16,23 @@ const ContactFlowState = require('../models/ContactFlowState');
 
 router.use(auth);
 
+// Safety Middleware: Prevent frontend placeholder 'new-...' UUIDs from reaching Postgres
+// This ensures that navigating to an unsaved conversation never crashes the DB.
+router.use((req, res, next) => {
+    // 1. Check URL params
+    if (req.params.id && typeof req.params.id === 'string' && req.params.id.startsWith('new-')) {
+        // Safe empty returns depending on route type
+        if (req.path.endsWith('/messages')) return res.json([]);
+        if (req.path.endsWith('/contact')) return res.json({});
+        return res.status(404).json({ error: 'Conversation not found (placeholder)' });
+    }
+    // 2. Check request body (except for /send/template which handles new- IDs)
+    if (req.body && typeof req.body.conversationId === 'string' && req.body.conversationId.startsWith('new-') && req.path !== '/send/template') {
+        return res.status(404).json({ error: 'Cannot perform this action on an unsaved conversation' });
+    }
+    next();
+});
+
 // Helper: Send to Meta API
 const sendToMeta = async (settings, payload) => {
     const res = await fetch(`https://graph.facebook.com/v21.0/${settings.metaPhoneNumberId}/messages`, {
@@ -282,6 +299,12 @@ router.post('/send/text', async (req, res) => {
 
         const metaRes = await sendToMeta(settings, payload);
 
+        if (metaRes.contacts?.[0]?.wa_id && metaRes.contacts[0].wa_id !== conversation.phoneNumber) {
+            const oldPhone = conversation.phoneNumber;
+            conversation.phoneNumber = metaRes.contacts[0].wa_id;
+            Contact.update({ phone: metaRes.contacts[0].wa_id }, { where: { phone: oldPhone, userId: ownerId } }).catch(e => console.error(e));
+        }
+
         // 4. Save to DB
         const msg = await ChatMessage.create({
             conversationId: conversation.id,
@@ -367,6 +390,12 @@ router.post('/send/media', async (req, res) => {
         }
 
         const metaRes = await sendToMeta(settings, payload);
+
+        if (metaRes.contacts?.[0]?.wa_id && metaRes.contacts[0].wa_id !== conversation.phoneNumber) {
+            const oldPhone = conversation.phoneNumber;
+            conversation.phoneNumber = metaRes.contacts[0].wa_id;
+            Contact.update({ phone: metaRes.contacts[0].wa_id }, { where: { phone: oldPhone, userId: ownerId } }).catch(e => console.error(e));
+        }
 
         // 4. Save to DB
         const msg = await ChatMessage.create({
@@ -502,6 +531,12 @@ router.post('/send/template', async (req, res) => {
 
         const metaRes = await sendToMeta(settings, payload);
 
+        if (metaRes.contacts?.[0]?.wa_id && metaRes.contacts[0].wa_id !== conversation.phoneNumber) {
+            const oldPhone = conversation.phoneNumber;
+            conversation.phoneNumber = metaRes.contacts[0].wa_id;
+            Contact.update({ phone: metaRes.contacts[0].wa_id }, { where: { phone: oldPhone, userId: ownerId } }).catch(e => console.error(e));
+        }
+
         // Build rich renderer-friendly templateData from the template DB record
         let richTemplateComponents = [];
         try {
@@ -530,7 +565,16 @@ router.post('/send/template', async (req, res) => {
                         })
                     });
                 } else {
+                    // Standard template — include all parts for rich rendering in chat history
+                    if (template.headerType && template.headerType !== 'NONE') {
+                        richTemplateComponents.push({
+                            type: 'HEADER',
+                            format: template.headerType.toUpperCase(),
+                            text: template.headerType.toUpperCase() === 'TEXT' ? (template.headerContent || '') : undefined
+                        });
+                    }
                     if (template.content) richTemplateComponents.push({ type: 'BODY', text: template.content });
+                    if (template.footer) richTemplateComponents.push({ type: 'FOOTER', text: template.footer });
                     if (template.buttons && template.buttons.length > 0) {
                         richTemplateComponents.push({ type: 'BUTTONS', buttons: template.buttons });
                     }
@@ -563,7 +607,8 @@ router.post('/send/template', async (req, res) => {
         conversation.lastMessageAt = new Date();
         await conversation.save();
 
-        res.json({ success: true });
+        // Return conversationId so the frontend can update placeholder 'new-...' IDs
+        res.json({ success: true, conversationId: conversation.id });
 
     } catch (err) {
         console.error("Send Template Error:", err);
