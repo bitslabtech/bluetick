@@ -693,144 +693,99 @@ router.post('/test', auth, async (req, res) => {
 
         // If a test phone number is provided, try to send a message
         if (req.body.testPhoneNumber) {
-            // Strip any non-digit characters from the phone number
+            // Strip any non-digit characters (spaces, +, dashes) from the phone number
             const sanitizedPhone = req.body.testPhoneNumber.toString().replace(/\D/g, '');
-            
-            // Ensure we have dbSettings to get wabaId
-            if (!dbSettings) {
-                dbSettings = await Settings.findOne({ where: { userId: req.user.id } });
-            }
-            const wabaId = dbSettings?.metaBusinessAccountId;
 
-            if (!wabaId) {
-                return res.status(400).json({ error: 'WhatsApp Business Account ID is missing. Please reconnect your account.' });
+            if (!sanitizedPhone || sanitizedPhone.length < 7) {
+                return res.status(400).json({ error: 'Invalid test phone number. Please enter a valid number with country code (e.g. 919876543210).' });
             }
 
-            const checkTemplate = async (templateName) => {
-                try {
-                    const res = await axios.get(`https://graph.facebook.com/v21.0/${wabaId}/message_templates?name=${templateName}`, {
-                        headers: { 'Authorization': `Bearer ${metaAccessToken}` }
-                    });
-                    if (res.data.data && res.data.data.length > 0) {
-                        return res.data.data[0];
-                    }
-                    return null;
-                } catch (err) {
-                    console.error(`Error fetching template ${templateName}:`, err.response?.data || err.message);
-                    return null;
-                }
+            // Helper to attempt sending a template message
+            const sendTemplate = async (templateName, langCode) => {
+                return axios.post(
+                    `https://graph.facebook.com/v21.0/${metaPhoneNumberId}/messages`,
+                    {
+                        messaging_product: 'whatsapp',
+                        to: sanitizedPhone,
+                        type: 'template',
+                        template: { name: templateName, language: { code: langCode } }
+                    },
+                    { headers: { 'Authorization': `Bearer ${metaAccessToken}`, 'Content-Type': 'application/json' } }
+                );
             };
 
-            const createTemplate = async () => {
-                try {
-                    const res = await axios.post(`https://graph.facebook.com/v21.0/${wabaId}/message_templates`, {
-                        name: 'bluetick_test_msg',
-                        language: 'en_US',
-                        category: 'UTILITY',
-                        components: [
-                            {
-                                type: 'BODY',
-                                text: 'Welcome and congratulations!! This message demonstrates your ability to send a WhatsApp message notification from the Cloud API, hosted by Meta. Thank you for taking the time to test with us.'
-                            }
-                        ]
-                    }, {
-                        headers: { 'Authorization': `Bearer ${metaAccessToken}`, 'Content-Type': 'application/json' }
-                    });
-                    return res.data;
-                } catch (err) {
-                    console.error('Error creating template:', err.response?.data || err.message);
-                    throw err;
-                }
-            };
-
-            const sendTestMessage = async (templateName, langCode) => {
-                return axios.post(`https://graph.facebook.com/v21.0/${metaPhoneNumberId}/messages`, {
-                    messaging_product: 'whatsapp',
-                    to: sanitizedPhone,
-                    type: 'template',
-                    template: {
-                        name: templateName,
-                        language: { code: langCode }
-                    }
-                }, {
-                    headers: {
-                        'Authorization': `Bearer ${metaAccessToken}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-            };
-
+            // We attempt hello_world (en_US → en fallback). 
+            // If Meta says the template doesn't exist (132001/132000), we inform the user
+            // to create it in their Meta Business Manager — we no longer try to auto-create
+            // because template creation requires whatsapp_business_management permission
+            // which may not be present on all token types.
             try {
-                // 1. Check if 'hello_world' template exists
-                let template = await checkTemplate('hello_world');
-                let targetTemplateName = 'hello_world';
-                
-                // 2. If 'hello_world' doesn't exist, check 'bluetick_test_msg'
-                if (!template) {
-                    template = await checkTemplate('bluetick_test_msg');
-                    targetTemplateName = 'bluetick_test_msg';
-                }
-                
-                if (!template) {
-                    // 3. Create 'bluetick_test_msg' template if neither exists
-                    await createTemplate();
-                    return res.json({
-                        success: true,
-                        status: 'pending',
-                        message: 'The test template was not found in your Meta account, so we automatically created it for you (named bluetick_test_msg)! It is currently in a PENDING state. Please try sending the test message again in 15 minutes once Meta approves it.'
-                    });
-                }
-
-                // 3. Check status if exists
-                if (template.status === 'PENDING' || template.status === 'IN_APPEAL') {
-                    return res.json({
-                        success: true,
-                        status: 'pending',
-                        message: `The "${targetTemplateName}" template is currently in a PENDING state. Meta takes a few minutes to approve it. Please try again in 15 minutes.`
-                    });
-                }
-
-                if (template.status === 'REJECTED') {
-                    return res.status(400).json({
-                        error: `The "${targetTemplateName}" template was rejected by Meta. Please check your WhatsApp Business Manager.`
-                    });
-                }
-
-                // 4. Send message if approved/active
                 let messageResponse;
+
                 try {
-                    // Try standard US English first
-                    messageResponse = await sendTestMessage(targetTemplateName, 'en_US');
-                } catch (err) {
-                    // Code 132001: Template name does not exist in the translation
-                    if (err.response?.data?.error?.code === 132001) {
-                        console.log(`[WA TEST] en_US failed for ${targetTemplateName}, falling back to en...`);
-                        messageResponse = await sendTestMessage(targetTemplateName, 'en');
+                    messageResponse = await sendTemplate('hello_world', 'en_US');
+                } catch (firstErr) {
+                    const code = firstErr.response?.data?.error?.code;
+                    const subcode = firstErr.response?.data?.error?.error_subcode;
+
+                    if (code === 132001 || code === 132000) {
+                        // en_US variant not found — try generic 'en'
+                        try {
+                            messageResponse = await sendTemplate('hello_world', 'en');
+                        } catch (secondErr) {
+                            const code2 = secondErr.response?.data?.error?.code;
+                            if (code2 === 132001 || code2 === 132000) {
+                                // hello_world template doesn't exist at all on this WABA
+                                return res.status(400).json({
+                                    error: 'The "hello_world" template was not found on your WhatsApp Business Account. Please log in to your Meta Business Manager → WhatsApp Manager → Message Templates, and create a template named "hello_world" (Category: Utility). Then try again.',
+                                    templateMissing: true
+                                });
+                            }
+                            throw secondErr;
+                        }
+                    } else if (code === 200 || subcode === 200) {
+                        // Permission error — token doesn't have messaging_send permission
+                        return res.status(400).json({
+                            error: 'Permission denied by Meta (Error 200). Your Access Token does not have the "whatsapp_business_messaging" permission. Please reconnect your WhatsApp account using the Connect button, or generate a new System User token with the correct permissions in Meta Business Manager.',
+                            permissionError: true
+                        });
                     } else {
-                        throw err;
+                        throw firstErr;
                     }
                 }
 
                 return res.json({
                     success: true,
                     status: 'sent',
-                    message: 'Connection successful! Test message sent.',
+                    message: '✅ Connection successful! Test WhatsApp message sent successfully.',
                     data: messageResponse.data
                 });
+
             } catch (err) {
-                console.error("Meta API Message Send Failed:", err.response?.data || err.message);
-                
+                console.error('[WA TEST] Meta API call failed:', err.response?.data || err.message);
+
                 const metaErr = err.response?.data?.error;
-                let errorMsg = metaErr?.error_user_msg || metaErr?.message || err.message || 'Failed to send test message.';
-                
-                if (metaErr?.error_data?.details) {
-                    errorMsg += ` (${metaErr.error_data.details})`;
+                const code = metaErr?.code;
+                const subcode = metaErr?.error_subcode;
+
+                // Map common Meta error codes to friendly messages
+                let errorMsg;
+                if (code === 200 || subcode === 200) {
+                    errorMsg = 'Permission denied by Meta (Error 200). Your Access Token does not have the required permissions. Please reconnect your WhatsApp account.';
+                } else if (code === 131047) {
+                    errorMsg = 'This message could not be delivered because the recipient has not messaged you in the last 24 hours and you are trying to send a non-template message.';
+                } else if (code === 131026) {
+                    errorMsg = 'Message undeliverable — recipient phone number is not a valid WhatsApp account. Please verify the test phone number.';
+                } else if (code === 131030) {
+                    errorMsg = 'Recipient phone number is not registered on WhatsApp.';
+                } else if (code === 100) {
+                    errorMsg = `Invalid parameter: ${metaErr?.message || 'one of the values sent is invalid'}. Check your Phone Number ID and Access Token.`;
+                } else {
+                    errorMsg = metaErr?.error_user_msg || metaErr?.message || err.message || 'Failed to send test message.';
+                    if (metaErr?.error_data?.details) errorMsg += ` (${metaErr.error_data.details})`;
                 }
-                
-                return res.status(400).json({
-                    error: errorMsg,
-                    details: metaErr
-                });
+
+                return res.status(400).json({ error: errorMsg, details: metaErr });
             }
         }
 
