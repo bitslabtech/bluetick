@@ -2,7 +2,7 @@ require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') }
 const axios = require('axios');
 const User = require('../models/User');
 const Settings = require('../models/Settings');
-const sequelize = require('../config/database');
+const { sequelize } = require('../config/database');
 
 async function healPendingNumbers() {
     console.log('===============================================================');
@@ -14,7 +14,7 @@ async function healPendingNumbers() {
         const users = await User.findAll({
             where: {
                 // Find users that have at least some WhatsApp credentials
-                metaPhoneNumberId: { [sequelize.Sequelize.Op.not]: null }
+                metaPhoneNumberId: { [require('sequelize').Op.not]: null }
             }
         });
 
