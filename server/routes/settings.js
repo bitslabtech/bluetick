@@ -676,9 +676,10 @@ router.post('/test', auth, async (req, res) => {
             return res.status(400).json({ error: 'Phone Number ID and Access Token are required.' });
         }
 
+        let dbSettings;
         // If the frontend sent masked values (••••••••), read real credentials from DB
         if (isMasked(metaAccessToken) || isMasked(metaPhoneNumberId)) {
-            const dbSettings = await Settings.findOne({ where: { userId: req.user.id } });
+            dbSettings = await Settings.findOne({ where: { userId: req.user.id } });
             if (!dbSettings || !dbSettings.metaAccessToken || !dbSettings.metaPhoneNumberId) {
                 return res.status(400).json({ error: 'No saved WhatsApp credentials found. Please save your settings first.' });
             }
@@ -693,6 +694,53 @@ router.post('/test', auth, async (req, res) => {
         // Verify with Meta Graph API
         // If a test phone number is provided, try to send a message
         if (req.body.testPhoneNumber) {
+            // Ensure we have dbSettings to get wabaId
+            if (!dbSettings) {
+                dbSettings = await Settings.findOne({ where: { userId: req.user.id } });
+            }
+            const wabaId = dbSettings?.metaBusinessAccountId;
+
+            if (!wabaId) {
+                return res.status(400).json({ error: 'WhatsApp Business Account ID is missing. Please reconnect your account.' });
+            }
+
+            const checkTemplate = async () => {
+                try {
+                    const res = await axios.get(`https://graph.facebook.com/v21.0/${wabaId}/message_templates?name=hello_world`, {
+                        headers: { 'Authorization': `Bearer ${metaAccessToken}` }
+                    });
+                    if (res.data.data && res.data.data.length > 0) {
+                        return res.data.data[0];
+                    }
+                    return null;
+                } catch (err) {
+                    console.error('Error fetching template:', err.response?.data || err.message);
+                    return null;
+                }
+            };
+
+            const createTemplate = async () => {
+                try {
+                    const res = await axios.post(`https://graph.facebook.com/v21.0/${wabaId}/message_templates`, {
+                        name: 'hello_world',
+                        language: 'en_US',
+                        category: 'UTILITY',
+                        components: [
+                            {
+                                type: 'BODY',
+                                text: 'Welcome and congratulations!! This message demonstrates your ability to send a WhatsApp message notification from the Cloud API, hosted by Meta. Thank you for taking the time to test with us.'
+                            }
+                        ]
+                    }, {
+                        headers: { 'Authorization': `Bearer ${metaAccessToken}`, 'Content-Type': 'application/json' }
+                    });
+                    return res.data;
+                } catch (err) {
+                    console.error('Error creating template:', err.response?.data || err.message);
+                    throw err;
+                }
+            };
+
             const sendTestMessage = async (langCode) => {
                 return axios.post(`https://graph.facebook.com/v21.0/${metaPhoneNumberId}/messages`, {
                     messaging_product: 'whatsapp',
@@ -711,13 +759,41 @@ router.post('/test', auth, async (req, res) => {
             };
 
             try {
+                // 1. Check if template exists
+                let template = await checkTemplate();
+                
+                if (!template) {
+                    // 2. Create template if not exists
+                    await createTemplate();
+                    return res.json({
+                        success: true,
+                        status: 'pending',
+                        message: 'The "hello_world" template was not found in your Meta account, so we automatically created it for you! It is currently in a PENDING state. Please try sending the test message again in 15 minutes once Meta approves it.'
+                    });
+                }
+
+                // 3. Check status if exists
+                if (template.status === 'PENDING' || template.status === 'IN_APPEAL') {
+                    return res.json({
+                        success: true,
+                        status: 'pending',
+                        message: 'The "hello_world" template is currently in a PENDING state. Meta takes a few minutes to approve it. Please try again in 15 minutes.'
+                    });
+                }
+
+                if (template.status === 'REJECTED') {
+                    return res.status(400).json({
+                        error: 'The "hello_world" template was rejected by Meta. Please check your WhatsApp Business Manager.'
+                    });
+                }
+
+                // 4. Send message if approved/active
                 let messageResponse;
                 try {
                     // Try standard US English first
                     messageResponse = await sendTestMessage('en_US');
                 } catch (err) {
                     // Code 132001: Template name does not exist in the translation
-                    // Many modern WABAs default to 'en' instead of 'en_US'
                     if (err.response?.data?.error?.code === 132001) {
                         console.log('[WA TEST] en_US failed, falling back to en...');
                         messageResponse = await sendTestMessage('en');
@@ -728,6 +804,7 @@ router.post('/test', auth, async (req, res) => {
 
                 return res.json({
                     success: true,
+                    status: 'sent',
                     message: 'Connection successful! Test message sent.',
                     data: messageResponse.data
                 });

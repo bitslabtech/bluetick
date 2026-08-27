@@ -630,12 +630,21 @@ const Settings = () => {
                 metaAccessToken: formData.metaAccessToken,
                 testPhoneNumber
             });
-            showModal({
-                type: 'success',
-                title: 'Test Successful',
-                message: response.data.message || 'Test message sent successfully.',
-                confirmText: 'OK'
-            });
+            if (response.data.status === 'pending') {
+                showModal({
+                    type: 'info',
+                    title: 'Template Pending',
+                    message: response.data.message,
+                    confirmText: 'Got it'
+                });
+            } else {
+                showModal({
+                    type: 'success',
+                    title: 'Test Successful',
+                    message: response.data.message || 'Test message sent successfully.',
+                    confirmText: 'OK'
+                });
+            }
         } catch (error) {
             showModal({
                 type: 'error',
