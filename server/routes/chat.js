@@ -289,10 +289,14 @@ router.post('/send/text', async (req, res) => {
         if (!settings?.metaAccessToken) return res.status(403).json({ error: 'WhatsApp not configured' });
 
         // 3. Send to Meta
+        const targetPhone = conversation.phoneNumber.startsWith('0') 
+            ? conversation.phoneNumber.slice(1) 
+            : conversation.phoneNumber;
+
         const payload = {
             messaging_product: "whatsapp",
             recipient_type: "individual",
-            to: conversation.phoneNumber,
+            to: targetPhone,
             type: "text",
             text: { preview_url: false, body }
         };
@@ -377,10 +381,14 @@ router.post('/send/media', async (req, res) => {
         if (!settings?.metaAccessToken) return res.status(403).json({ error: 'WhatsApp not configured' });
 
         // 3. Send to Meta
+        const targetPhone = conversation.phoneNumber.startsWith('0') 
+            ? conversation.phoneNumber.slice(1) 
+            : conversation.phoneNumber;
+
         const payload = {
             messaging_product: "whatsapp",
             recipient_type: "individual",
-            to: conversation.phoneNumber,
+            to: targetPhone,
             type: mediaType
         };
         
@@ -518,9 +526,13 @@ router.post('/send/template', async (req, res) => {
         const settings = await Settings.findOne({ where: { userId: ownerId } });
         if (!settings?.metaAccessToken) return res.status(403).json({ error: 'WhatsApp not configured' });
 
+        const targetPhone = conversation.phoneNumber.startsWith('0') 
+            ? conversation.phoneNumber.slice(1) 
+            : conversation.phoneNumber;
+
         const payload = {
             messaging_product: "whatsapp",
-            to: conversation.phoneNumber,
+            to: targetPhone,
             type: "template",
             template: {
                 name: templateName,
