@@ -706,9 +706,9 @@ router.post('/test', auth, async (req, res) => {
                 return res.status(400).json({ error: 'WhatsApp Business Account ID is missing. Please reconnect your account.' });
             }
 
-            const checkTemplate = async () => {
+            const checkTemplate = async (templateName) => {
                 try {
-                    const res = await axios.get(`https://graph.facebook.com/v21.0/${wabaId}/message_templates?name=hello_world`, {
+                    const res = await axios.get(`https://graph.facebook.com/v21.0/${wabaId}/message_templates?name=${templateName}`, {
                         headers: { 'Authorization': `Bearer ${metaAccessToken}` }
                     });
                     if (res.data.data && res.data.data.length > 0) {
@@ -716,7 +716,7 @@ router.post('/test', auth, async (req, res) => {
                     }
                     return null;
                 } catch (err) {
-                    console.error('Error fetching template:', err.response?.data || err.message);
+                    console.error(`Error fetching template ${templateName}:`, err.response?.data || err.message);
                     return null;
                 }
             };
@@ -724,7 +724,7 @@ router.post('/test', auth, async (req, res) => {
             const createTemplate = async () => {
                 try {
                     const res = await axios.post(`https://graph.facebook.com/v21.0/${wabaId}/message_templates`, {
-                        name: 'hello_world',
+                        name: 'bluetick_test_msg',
                         language: 'en_US',
                         category: 'UTILITY',
                         components: [
@@ -743,13 +743,13 @@ router.post('/test', auth, async (req, res) => {
                 }
             };
 
-            const sendTestMessage = async (langCode) => {
+            const sendTestMessage = async (templateName, langCode) => {
                 return axios.post(`https://graph.facebook.com/v21.0/${metaPhoneNumberId}/messages`, {
                     messaging_product: 'whatsapp',
                     to: sanitizedPhone,
                     type: 'template',
                     template: {
-                        name: 'hello_world',
+                        name: templateName,
                         language: { code: langCode }
                     }
                 }, {
@@ -761,16 +761,23 @@ router.post('/test', auth, async (req, res) => {
             };
 
             try {
-                // 1. Check if template exists
-                let template = await checkTemplate();
+                // 1. Check if 'hello_world' template exists
+                let template = await checkTemplate('hello_world');
+                let targetTemplateName = 'hello_world';
+                
+                // 2. If 'hello_world' doesn't exist, check 'bluetick_test_msg'
+                if (!template) {
+                    template = await checkTemplate('bluetick_test_msg');
+                    targetTemplateName = 'bluetick_test_msg';
+                }
                 
                 if (!template) {
-                    // 2. Create template if not exists
+                    // 3. Create 'bluetick_test_msg' template if neither exists
                     await createTemplate();
                     return res.json({
                         success: true,
                         status: 'pending',
-                        message: 'The "hello_world" template was not found in your Meta account, so we automatically created it for you! It is currently in a PENDING state. Please try sending the test message again in 15 minutes once Meta approves it.'
+                        message: 'The test template was not found in your Meta account, so we automatically created it for you (named bluetick_test_msg)! It is currently in a PENDING state. Please try sending the test message again in 15 minutes once Meta approves it.'
                     });
                 }
 
@@ -779,13 +786,13 @@ router.post('/test', auth, async (req, res) => {
                     return res.json({
                         success: true,
                         status: 'pending',
-                        message: 'The "hello_world" template is currently in a PENDING state. Meta takes a few minutes to approve it. Please try again in 15 minutes.'
+                        message: `The "${targetTemplateName}" template is currently in a PENDING state. Meta takes a few minutes to approve it. Please try again in 15 minutes.`
                     });
                 }
 
                 if (template.status === 'REJECTED') {
                     return res.status(400).json({
-                        error: 'The "hello_world" template was rejected by Meta. Please check your WhatsApp Business Manager.'
+                        error: `The "${targetTemplateName}" template was rejected by Meta. Please check your WhatsApp Business Manager.`
                     });
                 }
 
@@ -793,12 +800,12 @@ router.post('/test', auth, async (req, res) => {
                 let messageResponse;
                 try {
                     // Try standard US English first
-                    messageResponse = await sendTestMessage('en_US');
+                    messageResponse = await sendTestMessage(targetTemplateName, 'en_US');
                 } catch (err) {
                     // Code 132001: Template name does not exist in the translation
                     if (err.response?.data?.error?.code === 132001) {
-                        console.log('[WA TEST] en_US failed, falling back to en...');
-                        messageResponse = await sendTestMessage('en');
+                        console.log(`[WA TEST] en_US failed for ${targetTemplateName}, falling back to en...`);
+                        messageResponse = await sendTestMessage(targetTemplateName, 'en');
                     } else {
                         throw err;
                     }
