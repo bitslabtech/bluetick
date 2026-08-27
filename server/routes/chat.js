@@ -431,7 +431,7 @@ router.post('/conversations/:id/contact/groups', async (req, res) => {
 // POST /send/template - Send template message (Bypasses 24h check)
 router.post('/send/template', async (req, res) => {
     try {
-        const { conversationId, templateName, languageCode, components, templateId } = req.body;
+        const { conversationId, templateName, languageCode, components, templateId, phoneNumber, contactName } = req.body;
         const ownerId = req.user.parentUserId || req.user.id;
         const isSubMember = !!req.user.parentUserId;
 
@@ -448,8 +448,35 @@ router.post('/send/template', async (req, res) => {
             });
         }
 
-        const conversation = await Conversation.findOne({ where: { id: conversationId, userId: ownerId } });
-        if (!conversation) return res.status(404).json({ error: 'Conversation not found' });
+        // Handle placeholder conversations (id starts with 'new-') —
+        // these are created on the frontend when the user initiates a chat from Contacts
+        // and the conversation doesn't exist in the DB yet.
+        let conversation;
+        const isPlaceholder = typeof conversationId === 'string' && conversationId.startsWith('new-');
+
+        if (isPlaceholder) {
+            if (!phoneNumber) {
+                return res.status(400).json({ error: 'phoneNumber is required to start a new conversation.' });
+            }
+            // Try to find an existing conversation with this phone number first
+            conversation = await Conversation.findOne({ where: { phoneNumber, userId: ownerId } });
+            if (!conversation) {
+                // Create a brand-new conversation row
+                conversation = await Conversation.create({
+                    userId: ownerId,
+                    phoneNumber,
+                    contactName: contactName || phoneNumber,
+                    status: 'active',
+                    lastMessage: `Template: ${templateName}`,
+                    lastMessageAt: new Date(),
+                    unreadCount: 0
+                });
+                console.log(`[CHAT] Created new conversation ${conversation.id} for placeholder ${conversationId}`);
+            }
+        } else {
+            conversation = await Conversation.findOne({ where: { id: conversationId, userId: ownerId } });
+            if (!conversation) return res.status(404).json({ error: 'Conversation not found' });
+        }
 
         // Apply Team Policy Reply Lock
         if (isSubMember && req.user.teamRole !== 'admin') {

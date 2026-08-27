@@ -616,6 +616,21 @@ const WhatsAppInbox = () => {
 
             } else {
                 // Standard template
+
+                // 1. Header component (IMAGE / VIDEO / DOCUMENT) — if template has one
+                const stdHeaderType = selectedTemplate.headerType?.toUpperCase();
+                if (stdHeaderType && stdHeaderType !== 'NONE' && stdHeaderType !== 'TEXT') {
+                    const mediaId = cardParams['std_headerMediaId'];
+                    if (mediaId) {
+                        const mediaType = stdHeaderType.toLowerCase(); // image | video | document
+                        components.push({
+                            type: 'header',
+                            parameters: [{ type: mediaType, [mediaType]: { id: mediaId } }]
+                        });
+                    }
+                }
+
+                // 2. Body variables
                 const mainVarMatches = (selectedTemplate.content || '').match(/\{\{([^}]+)\}\}/g) || [];
                 const uniqueVarNums = [...new Set(mainVarMatches.map(v => v.replace(/[{}]/g, '')))].sort();
                 if (uniqueVarNums.length > 0) {
@@ -626,12 +641,20 @@ const WhatsAppInbox = () => {
                 }
             }
 
+            // Build request payload — pass phoneNumber+contactName so the backend can
+            // auto-create the conversation when it is a placeholder (id starts with 'new-')
+            const isPlaceholder = typeof selectedChat.id === 'string' && selectedChat.id.startsWith('new-');
             await axios.post(`${API_BASE}/api/whatsapp/chat/send/template`, {
                 conversationId: selectedChat.id,
                 templateId: selectedTemplate.id,
                 templateName: selectedTemplate.name,
                 languageCode: selectedTemplate.language || 'en_US',
-                components
+                components,
+                // Only needed for placeholder conversations:
+                ...(isPlaceholder && {
+                    phoneNumber: selectedChat.phoneNumber,
+                    contactName: selectedChat.contactName
+                })
             });
 
             setShowTemplateModal(false);
@@ -1991,11 +2014,12 @@ const extractVarsFromText = (text) => {
 // For standard template: flat sorted array of var numbers
 // For carousel: { mainVars, cards: [{cardIndex, label, content, headerType, buttons, vars}] }
 const extractVariables = (template) => {
-    if (!template) return { isCarousel: false, mainVars: [], cards: [] };
+    if (!template) return { isCarousel: false, mainVars: [], cards: [], headerType: null };
     if (template.archetype === 'carousel' && Array.isArray(template.cards) && template.cards.length > 0) {
         return {
             isCarousel: true,
             mainVars: extractVarsFromText(template.content),
+            headerType: null, // carousel cards handle their own headers
             cards: template.cards.map((card, i) => ({
                 cardIndex: i,
                 label: `Card ${i + 1}`,
@@ -2006,7 +2030,15 @@ const extractVariables = (template) => {
             }))
         };
     }
-    return { isCarousel: false, mainVars: extractVarsFromText(template.content), cards: [] };
+    // Standard template — expose headerType so the UI can show upload field
+    const ht = template.headerType?.toUpperCase() || null;
+    const hasMediaHeader = ht && ht !== 'NONE' && ht !== 'TEXT';
+    return {
+        isCarousel: false,
+        mainVars: extractVarsFromText(template.content),
+        headerType: hasMediaHeader ? ht : null,
+        cards: []
+    };
 };
 
 // Replace {{N}} with filled values for preview
@@ -2029,7 +2061,7 @@ const TemplateModal = ({
         !templateSearch || t.name.toLowerCase().includes(templateSearch.toLowerCase())
     );
 
-    const { isCarousel, mainVars, cards } = selectedTemplate ? extractVariables(selectedTemplate) : { isCarousel: false, mainVars: [], cards: [] };
+    const { isCarousel, mainVars, cards, headerType } = selectedTemplate ? extractVariables(selectedTemplate) : { isCarousel: false, mainVars: [], cards: [], headerType: null };
 
     // Flat set of all required keys for canSend
     const allRequiredKeys = isCarousel
@@ -2041,7 +2073,11 @@ const TemplateModal = ({
                 .filter(c => c.headerType && c.headerType !== 'NONE')
                 .map(c => `card_${c.cardIndex}_headerMediaId`)
         ]
-        : mainVars;
+        : [
+            // Standard: if template has a media header, require the upload
+            ...(headerType ? ['std_headerMediaId'] : []),
+            ...mainVars
+          ];
 
     const previewText = !isCarousel && selectedTemplate
         ? fillVariables(selectedTemplate.content, templateVariables)
@@ -2361,6 +2397,67 @@ const TemplateModal = ({
                                 ) : (
                                     /* === STANDARD configure === */
                                     (<>
+                                        {/* Header media upload (IMAGE / VIDEO / DOCUMENT) */}
+                                        {headerType && (
+                                            <div>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                                                    {headerType === 'VIDEO' ? '🎥 Header Video' : headerType === 'DOCUMENT' ? '📄 Header Document' : '🖼️ Header Image'}
+                                                    <span className="text-red-400 ml-1">*</span>
+                                                </p>
+                                                <label
+                                                    htmlFor="std-header-upload"
+                                                    className="flex items-center gap-3 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-xl p-3 cursor-pointer hover:border-green-400 hover:bg-green-50/20 dark:hover:bg-green-900/10 transition-all group"
+                                                >
+                                                    <div className="bg-sky-500/10 p-2 rounded-lg">
+                                                        <span className="text-base">{headerType === 'VIDEO' ? '🎥' : headerType === 'DOCUMENT' ? '📄' : '🖼️'}</span>
+                                                    </div>
+                                                    {(cardParams || {})['std_uploading'] ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-3.5 h-3.5 border-2 border-green-500/30 border-t-green-500 rounded-full animate-spin" />
+                                                            <span className="text-xs text-slate-500">Uploading to Meta...</span>
+                                                        </div>
+                                                    ) : (cardParams || {})['std_headerFileName'] ? (
+                                                        <span className="text-xs text-green-600 dark:text-green-400 font-medium truncate">
+                                                            {(cardParams || {})['std_headerMediaId'] ? '✓ ' : '⏳ '}{(cardParams || {})['std_headerFileName']}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-xs text-slate-500 dark:text-slate-400">Click to upload {headerType.toLowerCase()}</span>
+                                                    )}
+                                                    <input
+                                                        id="std-header-upload"
+                                                        type="file"
+                                                        accept={headerType === 'VIDEO' ? 'video/*' : headerType === 'DOCUMENT' ? '*/*' : 'image/*'}
+                                                        className="hidden"
+                                                        onChange={async (e) => {
+                                                            const file = e.target.files[0];
+                                                            if (!file) return;
+                                                            onCardParamChange('std_headerFileName', file.name);
+                                                            onCardParamChange('std_uploading', 'true');
+                                                            try {
+                                                                const fd = new FormData();
+                                                                fd.append('file', file);
+                                                                const r = await axios.post(`${API_BASE}/api/templates/upload-message-media`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                                                                onCardParamChange('std_headerMediaId', r.data.mediaId);
+                                                                onCardParamChange('std_previewUrl', URL.createObjectURL(file));
+                                                            } catch (uploadErr) {
+                                                                console.error('Header upload failed:', uploadErr);
+                                                                alert('Media upload failed: ' + (uploadErr.response?.data?.error || uploadErr.message));
+                                                            } finally {
+                                                                onCardParamChange('std_uploading', '');
+                                                            }
+                                                        }}
+                                                    />
+                                                </label>
+                                                {/* Preview */}
+                                                {(cardParams || {})['std_previewUrl'] && headerType === 'IMAGE' && (
+                                                    <img src={(cardParams || {})['std_previewUrl']} alt="Header preview" className="w-full h-28 object-cover rounded-xl mt-2 border border-slate-200 dark:border-white/10" />
+                                                )}
+                                                {(cardParams || {})['std_previewUrl'] && headerType === 'VIDEO' && (
+                                                    <video src={(cardParams || {})['std_previewUrl']} muted className="w-full h-28 object-cover rounded-xl mt-2 border border-slate-200 dark:border-white/10" />
+                                                )}
+                                            </div>
+                                        )}
+
                                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Variables</p>
                                         {mainVars.length === 0 ? (
                                             <div className="flex flex-col items-center justify-center py-8 text-center">
