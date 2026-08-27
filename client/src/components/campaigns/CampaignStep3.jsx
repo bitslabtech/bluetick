@@ -1324,10 +1324,20 @@ const CampaignStep3 = ({ data, updateData, onBack, onSubmit }) => {
                                                 )}
                                             </div>
                                         )}
+                                        {/* Text header */}
+                                        {((selectedTemplate.headerType || selectedTemplate.type || '').toUpperCase() === 'TEXT') && selectedTemplate.headerContent && (
+                                            <div className="px-1.5 pt-2 pb-0">
+                                                <p className="text-slate-900 dark:text-[#e9edef] text-[13px] font-bold leading-snug">{selectedTemplate.headerContent}</p>
+                                            </div>
+                                        )}
                                         <div className="px-1.5 pb-1 pt-0.5">
                                             <p className="text-slate-800 dark:text-[#e9edef] text-[13px] leading-snug whitespace-pre-wrap">
                                                 {getPreviewText() || 'No content'}
                                             </p>
+                                            {/* Footer text */}
+                                            {selectedTemplate.footer && (
+                                                <p className="text-[11px] text-slate-400 dark:text-[#8696a0] mt-1">{selectedTemplate.footer}</p>
+                                            )}
                                             <div className="flex justify-end items-center gap-1 mt-1">
                                                 <span className="text-[9px] text-slate-400 dark:text-[#8696a0] font-medium">10:30 AM</span>
                                                 <CheckCheck className="w-3 h-3 text-[#53bdeb]" />

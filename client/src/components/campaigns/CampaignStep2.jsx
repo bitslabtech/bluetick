@@ -373,26 +373,42 @@ const CampaignStep2 = ({ data, updateData, onNext, onBack }) => {
                                                             <span className="absolute bottom-1.5 left-2 text-[10px] font-bold text-blue-700 dark:text-blue-300 bg-blue-200/50 dark:bg-blue-900/50 px-1.5 py-0.5 rounded">DOCUMENT</span>
                                                         </div>
                                                     )}
+                                                    {/* Text Header */}
+                                                    {(selectedTemplate.headerType || selectedTemplate.type || '').toUpperCase() === 'TEXT' && selectedTemplate.headerContent && (
+                                                        <div className="px-1.5 pt-2 pb-0">
+                                                            <p className="text-slate-900 dark:text-[#e9edef] text-[13px] font-bold leading-snug">{selectedTemplate.headerContent}</p>
+                                                        </div>
+                                                    )}
                                                     <div className="px-1.5 pb-1 pt-0.5">
                                                         <p className="text-slate-800 dark:text-[#e9edef] text-[13px] leading-snug whitespace-pre-wrap">
                                                             {selectedTemplate.content || 'No content'}
                                                         </p>
+                                                        {/* Footer text */}
+                                                        {selectedTemplate.footer && (
+                                                            <p className="text-[11px] text-slate-400 dark:text-[#8696a0] mt-1">{selectedTemplate.footer}</p>
+                                                        )}
                                                         <div className="flex justify-end items-center gap-1 mt-1">
                                                             <span className="text-[9px] text-slate-400 dark:text-[#8696a0] font-medium">10:30 AM</span>
                                                             <CheckCheck className="w-3 h-3 text-[#53bdeb]" />
                                                         </div>
                                                     </div>
                                                     
-                                                    {/* Template Buttons Preview if exist */}
-                                                    {selectedTemplate.components?.some(c => c.type === 'BUTTONS') && (
-                                                        <div className="mt-1.5 border-t border-slate-100 dark:border-white/5 mx-1.5">
-                                                            {selectedTemplate.components.find(c => c.type === 'BUTTONS').buttons?.map((btn, idx) => (
-                                                                <div key={idx} className="py-2.5 text-[#00a884] dark:text-[#53bdeb] text-[12px] font-semibold text-center border-b last:border-0 border-slate-100 dark:border-white/5">
-                                                                    {btn.text || btn.type}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
+                                                    {/* Template Buttons Preview — reads from 'buttons' (DB field) or falls back to components array */}
+                                                    {(() => {
+                                                        const btns = selectedTemplate.buttons?.length > 0
+                                                            ? selectedTemplate.buttons
+                                                            : selectedTemplate.components?.find(c => c.type === 'BUTTONS')?.buttons || [];
+                                                        return btns.length > 0 ? (
+                                                            <div className="mt-1.5 border-t border-slate-100 dark:border-white/5 mx-1.5">
+                                                                {btns.map((btn, idx) => (
+                                                                    <div key={idx} className="py-2.5 text-[#00a884] dark:text-[#53bdeb] text-[12px] font-semibold text-center border-b last:border-0 border-slate-100 dark:border-white/5 flex items-center justify-center gap-1">
+                                                                        {btn.type === 'URL' ? '🔗 ' : btn.type === 'PHONE_NUMBER' ? '📞 ' : btn.type === 'COPY_CODE' ? '📋 ' : '↩ '}
+                                                                        {btn.text || btn.type}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        ) : null;
+                                                    })()}
                                                 </div>
                                             )}
                                         </div>
