@@ -2564,7 +2564,7 @@ const TemplateModal = ({
                                                                 {hasVar && (
                                                                     <div className="px-3 pb-2.5 pt-1.5 bg-white dark:bg-white/5">
                                                                         <label className="block text-[10px] text-slate-500 dark:text-slate-400 mb-1">
-                                                                            URL suffix <span className="font-mono text-blue-500">{{'{{'}}1{{'}}'}}</span> <span className="text-red-400">*</span>
+                                                                            URL suffix <span className="font-mono text-blue-500">{"{{"}1{"}}"}</span> <span className="text-red-400">*</span>
                                                                         </label>
                                                                         <input
                                                                             type="text"
