@@ -33,7 +33,7 @@ const SOURCE_LABELS = {
     general_media: "Gallery Upload"
 };
 
-export default function MediaGallery({ accessMode = 'dashboard' }) {
+export default function MediaGallery({ accessMode = 'dashboard', pickerMode = false, onSelect = null, pickerFilter = null }) {
     const { user } = useAuth();
     const { showToast } = useUI();
     const token = user?.token || localStorage.getItem("token");
@@ -330,6 +330,7 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
     return (
         <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto">
             {/* Header */}
+            {!pickerMode && (
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -364,6 +365,7 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                     </label>
                 </div>
             </div>
+            )}
             {/* Storage Overview */}
             {usage && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -492,8 +494,8 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                 >
                     <RefreshCw className="w-4 h-4" />
                 </button>
-                {/* Select All */}
-                {files.length > 0 && (
+                {/* Select All — hidden in picker mode */}
+                {files.length > 0 && !pickerMode && (
                     <button
                         onClick={selectAll}
                         className="px-3 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-lg text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
@@ -502,8 +504,8 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                     </button>
                 )}
             </div>
-            {/* Drop Zone Banner — clicking anywhere triggers file picker */}
-            <div
+            {/* Drop Zone Banner — hidden in picker mode */}
+            {!pickerMode && <div
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
@@ -533,7 +535,7 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                     </p>
                     <p className="text-xs text-slate-400">Images (JPG/PNG/WebP/GIF/SVG), Videos (MP4/WebM), Documents (PDF/CSV/DOCX). Max 50 MB.</p>
                 </div>
-            </div>
+            </div>}
             
             {/* Active Uploads */}
             {Object.keys(uploadProgress).length > 0 && (
@@ -669,29 +671,41 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                                     ? "bg-gradient-to-t from-black/80 via-black/10 to-transparent"
                                     : "bg-black/50"
                             }`}>
-                                <div className="w-full p-2 flex items-center gap-1 justify-end">
-                                    <button
-                                        onClick={e => { e.stopPropagation(); setPreviewFile(file); }}
-                                        className="p-1.5 bg-white/20 hover:bg-white/40 text-white rounded-lg transition-colors"
-                                        title="Preview"
-                                    >
-                                        <ZoomIn className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button
-                                        onClick={e => { e.stopPropagation(); copyUrl(file.url); }}
-                                        className="p-1.5 bg-white/20 hover:bg-white/40 text-white rounded-lg transition-colors"
-                                        title="Copy URL"
-                                    >
-                                        <Copy className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button
-                                        onClick={e => { e.stopPropagation(); handleDelete(file.id); }}
-                                        className="p-1.5 bg-red-500/70 hover:bg-red-600 text-white rounded-lg transition-colors"
-                                        title="Delete"
-                                    >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
+                                {pickerMode ? (
+                                    /* Picker mode: show a single Select button centred */
+                                    <div className="w-full h-full flex items-center justify-center">
+                                        <button
+                                            onClick={e => { e.stopPropagation(); onSelect && onSelect(file); }}
+                                            className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-lg transition-all scale-95 hover:scale-100"
+                                        >
+                                            ✓ Select
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="w-full p-2 flex items-center gap-1 justify-end">
+                                        <button
+                                            onClick={e => { e.stopPropagation(); setPreviewFile(file); }}
+                                            className="p-1.5 bg-white/20 hover:bg-white/40 text-white rounded-lg transition-colors"
+                                            title="Preview"
+                                        >
+                                            <ZoomIn className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                            onClick={e => { e.stopPropagation(); copyUrl(file.url); }}
+                                            className="p-1.5 bg-white/20 hover:bg-white/40 text-white rounded-lg transition-colors"
+                                            title="Copy URL"
+                                        >
+                                            <Copy className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                            onClick={e => { e.stopPropagation(); handleDelete(file.id); }}
+                                            className="p-1.5 bg-red-500/70 hover:bg-red-600 text-white rounded-lg transition-colors"
+                                            title="Delete"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Metadata */}
@@ -785,36 +799,47 @@ export default function MediaGallery({ accessMode = 'dashboard' }) {
                                     </td>
                                     <td className="px-4 py-3">
                                         <div className="flex items-center justify-end gap-1">
-                                            <button
-                                                onClick={() => setPreviewFile(file)}
-                                                className="p-1.5 text-slate-400 hover:text-primary rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
-                                                title="Preview"
-                                            >
-                                                <ZoomIn className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => copyUrl(file.url)}
-                                                className="p-1.5 text-slate-400 hover:text-primary rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
-                                                title="Copy URL"
-                                            >
-                                                <Copy className="w-4 h-4" />
-                                            </button>
-                                            <a
-                                                href={file.url}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="p-1.5 text-slate-400 hover:text-primary rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
-                                                title="Open in new tab"
-                                            >
-                                                <ExternalLink className="w-4 h-4" />
-                                            </a>
-                                            <button
-                                                onClick={() => handleDelete(file.id)}
-                                                className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
-                                                title="Delete"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
+                                            {pickerMode ? (
+                                                <button
+                                                    onClick={() => onSelect && onSelect(file)}
+                                                    className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg transition-colors"
+                                                >
+                                                    ✓ Select
+                                                </button>
+                                            ) : (
+                                                <>
+                                                    <button
+                                                        onClick={() => setPreviewFile(file)}
+                                                        className="p-1.5 text-slate-400 hover:text-primary rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                                                        title="Preview"
+                                                    >
+                                                        <ZoomIn className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => copyUrl(file.url)}
+                                                        className="p-1.5 text-slate-400 hover:text-primary rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                                                        title="Copy URL"
+                                                    >
+                                                        <Copy className="w-4 h-4" />
+                                                    </button>
+                                                    <a
+                                                        href={file.url}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="p-1.5 text-slate-400 hover:text-primary rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                                                        title="Open in new tab"
+                                                    >
+                                                        <ExternalLink className="w-4 h-4" />
+                                                    </a>
+                                                    <button
+                                                        onClick={() => handleDelete(file.id)}
+                                                        className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>

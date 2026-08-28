@@ -2357,20 +2357,16 @@ export default function LandingPage() {
                                                         </div>
 
 
-                                                        <div className="space-y-5 mb-8 flex-1">
+                                                        <div className="space-y-6 mb-8 flex-1">
                                                             {/* Meta Message Pricing Box */}
                                                             {metaRates && (
-                                                                <div className="mb-6 relative rounded-xl bg-gradient-to-br from-emerald-50/10 to-green-50/5 dark:from-emerald-950/5 dark:to-green-950/5 border border-emerald-200/60 dark:border-emerald-900/40 shadow-sm">
-                                                                    {/* Decorative subtle glows in a clipped wrapper */}
-                                                                    <div className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none">
-                                                                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl" />
-                                                                        <div className="absolute bottom-0 left-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl" />
-                                                                    </div>
-
-                                                                    <div className="relative p-4">
-                                                                        <div className="flex items-center justify-between mb-4">
-                                                                            <div className="flex items-center gap-1.5">
-                                                                                <MessageSquare className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                                                                <div className="mb-6 relative rounded-2xl bg-slate-50/70 dark:bg-white/[0.03] border border-slate-200/70 dark:border-white/10 shadow-sm overflow-hidden">
+                                                                    <div className="p-4">
+                                                                        <div className="flex items-center justify-between mb-3.5">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <div className="p-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                                                                    <MessageSquare className="w-3.5 h-3.5" />
+                                                                                </div>
                                                                                 <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Template Rates</h4>
                                                                                 <div className="relative group flex items-center">
                                                                                     <Info className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 hover:text-emerald-500 cursor-help transition-colors" />
@@ -2384,62 +2380,64 @@ export default function LandingPage() {
 
                                                                         <div className="space-y-2 text-xs font-semibold relative z-10">
                                                                             <div className="flex justify-between items-center pb-2 border-b border-slate-200/50 dark:border-white/5">
-                                                                                <span className="text-slate-500 dark:text-slate-400">Marketing</span>
-                                                                                <span className="text-slate-900 dark:text-white">{metaRates.symbol}{metaRates.rates.marketing}</span>
+                                                                                <span className="text-slate-500 dark:text-slate-400 font-medium">Marketing</span>
+                                                                                <span className="text-slate-900 dark:text-white font-bold">{metaRates.symbol}{metaRates.rates.marketing}</span>
                                                                             </div>
                                                                             <div className="flex justify-between items-center pb-2 border-b border-slate-200/50 dark:border-white/5">
-                                                                                <span className="text-slate-500 dark:text-slate-400">Utility</span>
-                                                                                <span className="text-slate-900 dark:text-white">{metaRates.symbol}{metaRates.rates.utility}</span>
+                                                                                <span className="text-slate-500 dark:text-slate-400 font-medium">Utility</span>
+                                                                                <span className="text-slate-900 dark:text-white font-bold">{metaRates.symbol}{metaRates.rates.utility}</span>
                                                                             </div>
                                                                             <div className="flex justify-between items-center pb-2 border-b border-slate-200/50 dark:border-white/5">
-                                                                                <span className="text-slate-500 dark:text-slate-400">Authentication</span>
-                                                                                <span className="text-slate-900 dark:text-white">{metaRates.symbol}{metaRates.rates.authentication}</span>
+                                                                                <span className="text-slate-500 dark:text-slate-400 font-medium">Authentication</span>
+                                                                                <span className="text-slate-900 dark:text-white font-bold">{metaRates.symbol}{metaRates.rates.authentication}</span>
                                                                             </div>
                                                                             <div className="flex justify-between items-center pt-0.5">
-                                                                                <span className="text-emerald-600 dark:text-emerald-400">Service</span>
-                                                                                <span className="text-emerald-500">{metaRates.rates.service}</span>
+                                                                                <span className="text-emerald-600 dark:text-emerald-400 font-medium">Service</span>
+                                                                                <span className="text-emerald-500 font-bold">{metaRates.rates.service}</span>
                                                                             </div>
                                                                         </div>
                                                                     </div>
                                                                 </div>
                                                             )}
 
-                                                            {/* ─── 4 Product Sections ─── */}
+                                                            {/* ─── 4 Product Sections (Minimalist Dividers) ─── */}
 
                                                             {/* 1. WhatsApp CRM & Automation */}
-                                                            <div className="rounded-xl border border-indigo-100 dark:border-indigo-900/30 overflow-hidden">
-                                                                <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 dark:bg-indigo-900/20">
-                                                                    <div className="p-1 rounded-md bg-indigo-100 dark:bg-indigo-900/50 shrink-0">
-                                                                        <MessageSquare className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
+                                                            <div className="space-y-3">
+                                                                <div className="flex items-center gap-2 pb-2 border-b border-slate-200/70 dark:border-white/10">
+                                                                    <div className="p-1 rounded-md bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 shrink-0">
+                                                                        <MessageSquare className="w-3.5 h-3.5" />
                                                                     </div>
-                                                                    <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700 dark:text-indigo-300">WhatsApp CRM &amp; Automation</span>
+                                                                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                                                                        WhatsApp CRM &amp; Automation
+                                                                    </span>
                                                                 </div>
-                                                                <ul className="px-3 py-2.5 space-y-2">
+                                                                <ul className="space-y-2.5 pl-0.5">
                                                                     <li className="flex items-center gap-2.5 text-sm font-semibold">
-                                                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-2.5 h-2.5" /></div>
+                                                                        <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"><Check className="w-2.5 h-2.5 stroke-[3]" /></div>
                                                                         <span>{plan.messageLimit === -1 ? 'Unlimited' : plan.messageLimit.toLocaleString()} Messages/mo</span>
                                                                     </li>
                                                                     <li className="flex items-center gap-2.5 text-sm font-semibold">
-                                                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-2.5 h-2.5" /></div>
+                                                                        <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"><Check className="w-2.5 h-2.5 stroke-[3]" /></div>
                                                                         <span>{plan.contactLimit === -1 ? 'Unlimited' : plan.contactLimit.toLocaleString()} Contacts</span>
                                                                     </li>
                                                                     {(plan.templateLimit > 0 || plan.templateLimit === -1) && (
                                                                         <li className="flex items-center gap-2.5 text-sm font-semibold">
-                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-2.5 h-2.5" /></div>
+                                                                            <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"><Check className="w-2.5 h-2.5 stroke-[3]" /></div>
                                                                             <span>{plan.templateLimit === -1 ? 'Unlimited' : plan.templateLimit} Templates</span>
                                                                         </li>
                                                                     )}
                                                                     {(plan.teamMemberLimit > 0 || plan.teamMemberLimit === -1) && (
                                                                         <li className="flex items-center gap-2.5 text-sm font-semibold">
-                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-2.5 h-2.5" /></div>
+                                                                            <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"><Check className="w-2.5 h-2.5 stroke-[3]" /></div>
                                                                             <span>{plan.teamMemberLimit === -1 ? 'Unlimited' : plan.teamMemberLimit} Team Members</span>
                                                                         </li>
                                                                     )}
-                                                                    <li className={`flex items-center gap-2.5 text-sm font-semibold ${!plan.flowBotEnabled ? 'opacity-55' : ''}`}>
-                                                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${plan.flowBotEnabled ? theme.checkSubtle : 'bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500'}`}>
-                                                                            {plan.flowBotEnabled ? <Check className="w-2.5 h-2.5" /> : <X className="w-2.5 h-2.5" />}
+                                                                    <li className="flex items-center gap-2.5 text-sm font-semibold">
+                                                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${plan.flowBotEnabled ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' : 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400'}`}>
+                                                                            {plan.flowBotEnabled ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : <X className="w-2.5 h-2.5 stroke-[3]" />}
                                                                         </div>
-                                                                        <span className={!plan.flowBotEnabled ? 'text-slate-400 dark:text-slate-500' : ''}>
+                                                                        <span>
                                                                             {plan.flowBotEnabled && plan.flowLimit !== undefined
                                                                                 ? `${plan.flowLimit === -1 ? 'Unlimited' : plan.flowLimit} AI FlowBots`
                                                                                 : 'AI FlowBot Builder'}
@@ -2447,22 +2445,22 @@ export default function LandingPage() {
                                                                     </li>
                                                                     {(plan.aiTokensAllowance > 0 || plan.aiTokensAllowance === -1) && (
                                                                         <li className="flex items-center gap-2.5 text-sm font-semibold">
-                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-2.5 h-2.5" /></div>
+                                                                            <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"><Check className="w-2.5 h-2.5 stroke-[3]" /></div>
                                                                             <span>{plan.aiTokensAllowance === -1 ? 'Unlimited' : plan.aiTokensAllowance.toLocaleString()} AI Tokens</span>
                                                                         </li>
                                                                     )}
                                                                     {Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0 && plan.includedAddons.map(addonKey => (
                                                                         <li key={addonKey} className="flex items-center gap-2.5 text-sm font-semibold">
-                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-2.5 h-2.5" /></div>
+                                                                            <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"><Check className="w-2.5 h-2.5 stroke-[3]" /></div>
                                                                             <span>{addonKey.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</span>
                                                                         </li>
                                                                     ))}
                                                                     {Array.isArray(plan.coreFeatures) && plan.coreFeatures.filter(f => !f.category || f.category === 'whatsapp').map((feat, fi) => (
-                                                                        <li key={`wa-cf-${fi}`} className={`flex items-center gap-2.5 text-sm font-semibold ${(!feat.qty || feat.qty === '0') ? 'opacity-50' : ''}`}>
-                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${(!feat.qty || feat.qty === '0') ? 'bg-slate-100 dark:bg-slate-800/60 text-slate-400' : theme.checkSubtle}`}>
-                                                                                {(!feat.qty || feat.qty === '0') ? <X className="w-2.5 h-2.5" /> : <Check className="w-2.5 h-2.5" />}
+                                                                        <li key={`wa-cf-${fi}`} className="flex items-center gap-2.5 text-sm font-semibold">
+                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${(!feat.qty || feat.qty === '0') ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'}`}>
+                                                                                {(!feat.qty || feat.qty === '0') ? <X className="w-2.5 h-2.5 stroke-[3]" /> : <Check className="w-2.5 h-2.5 stroke-[3]" />}
                                                                             </div>
-                                                                            <span className={`leading-tight ${(!feat.qty || feat.qty === '0') ? 'text-slate-400 dark:text-slate-500' : ''}`}>
+                                                                            <span className="leading-tight">
                                                                                 {feat.qty && feat.qty !== '0' && <span className="font-extrabold mr-1">{feat.qty}</span>}
                                                                                 {feat.name}
                                                                             </span>
@@ -2472,31 +2470,33 @@ export default function LandingPage() {
                                                             </div>
 
                                                             {/* 2. Smart eCommerce Store */}
-                                                            <div className="rounded-xl border border-emerald-100 dark:border-emerald-900/30 overflow-hidden">
-                                                                <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20">
-                                                                    <div className="p-1 rounded-md bg-emerald-100 dark:bg-emerald-900/50 shrink-0">
-                                                                        <Store className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                                            <div className="space-y-3">
+                                                                <div className="flex items-center gap-2 pb-2 border-b border-slate-200/70 dark:border-white/10">
+                                                                    <div className="p-1 rounded-md bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 shrink-0">
+                                                                        <Store className="w-3.5 h-3.5" />
                                                                     </div>
-                                                                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Smart eCommerce Store</span>
+                                                                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                                                                        Smart eCommerce Store
+                                                                    </span>
                                                                 </div>
-                                                                <ul className="px-3 py-2.5 space-y-2">
+                                                                <ul className="space-y-2.5 pl-0.5">
                                                                     {plan.waStoreLimit > 0 || plan.waStoreLimit === -1 ? (
                                                                         <li className="flex items-center gap-2.5 text-sm font-semibold">
-                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-2.5 h-2.5" /></div>
+                                                                            <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"><Check className="w-2.5 h-2.5 stroke-[3]" /></div>
                                                                             <span>{plan.waStoreLimit === -1 ? 'Unlimited' : plan.waStoreLimit} Online Store{plan.waStoreLimit !== 1 ? 's' : ''}</span>
                                                                         </li>
                                                                     ) : (
-                                                                        <li className="flex items-center gap-2.5 text-sm font-semibold opacity-55">
-                                                                            <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-400"><X className="w-2.5 h-2.5" /></div>
-                                                                            <span className="text-slate-400 dark:text-slate-500">Not Included</span>
+                                                                        <li className="flex items-center gap-2.5 text-sm font-semibold">
+                                                                            <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400"><X className="w-2.5 h-2.5 stroke-[3]" /></div>
+                                                                            <span>Online Store</span>
                                                                         </li>
                                                                     )}
                                                                     {Array.isArray(plan.coreFeatures) && plan.coreFeatures.filter(f => f.category === 'store').map((feat, fi) => (
-                                                                        <li key={`st-cf-${fi}`} className={`flex items-center gap-2.5 text-sm font-semibold ${(!feat.qty || feat.qty === '0') ? 'opacity-50' : ''}`}>
-                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${(!feat.qty || feat.qty === '0') ? 'bg-slate-100 dark:bg-slate-800/60 text-slate-400' : theme.checkSubtle}`}>
-                                                                                {(!feat.qty || feat.qty === '0') ? <X className="w-2.5 h-2.5" /> : <Check className="w-2.5 h-2.5" />}
+                                                                        <li key={`st-cf-${fi}`} className="flex items-center gap-2.5 text-sm font-semibold">
+                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${(!feat.qty || feat.qty === '0') ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'}`}>
+                                                                                {(!feat.qty || feat.qty === '0') ? <X className="w-2.5 h-2.5 stroke-[3]" /> : <Check className="w-2.5 h-2.5 stroke-[3]" />}
                                                                             </div>
-                                                                            <span className={`leading-tight ${(!feat.qty || feat.qty === '0') ? 'text-slate-400 dark:text-slate-500' : ''}`}>
+                                                                            <span className="leading-tight">
                                                                                 {feat.qty && feat.qty !== '0' && <span className="font-extrabold mr-1">{feat.qty}</span>}
                                                                                 {feat.name}
                                                                             </span>
@@ -2506,32 +2506,34 @@ export default function LandingPage() {
                                                             </div>
 
                                                             {/* 3. Meta Digital Marketing */}
-                                                            <div className="rounded-xl border border-rose-100 dark:border-rose-900/30 overflow-hidden">
-                                                                <div className="flex items-center gap-2 px-3 py-2 bg-rose-50 dark:bg-rose-900/20">
-                                                                    <div className="p-1 rounded-md bg-rose-100 dark:bg-rose-900/50 shrink-0">
-                                                                        <Megaphone className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                                                            <div className="space-y-3">
+                                                                <div className="flex items-center gap-2 pb-2 border-b border-slate-200/70 dark:border-white/10">
+                                                                    <div className="p-1 rounded-md bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 shrink-0">
+                                                                        <Megaphone className="w-3.5 h-3.5" />
                                                                     </div>
-                                                                    <span className="text-[10px] font-black uppercase tracking-wider text-rose-700 dark:text-rose-300">Meta Digital Marketing</span>
+                                                                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                                                                        Meta Digital Marketing
+                                                                    </span>
                                                                 </div>
-                                                                <ul className="px-3 py-2.5 space-y-2">
-                                                                    <li className={`flex items-center gap-2.5 text-sm font-semibold ${!plan.allowMetaAds ? 'opacity-55' : ''}`}>
-                                                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${plan.allowMetaAds ? theme.checkSubtle : 'bg-slate-100 dark:bg-slate-800/60 text-slate-400'}`}>
-                                                                            {plan.allowMetaAds ? <Check className="w-2.5 h-2.5" /> : <X className="w-2.5 h-2.5" />}
+                                                                <ul className="space-y-2.5 pl-0.5">
+                                                                    <li className="flex items-center gap-2.5 text-sm font-semibold">
+                                                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${plan.allowMetaAds ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' : 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400'}`}>
+                                                                            {plan.allowMetaAds ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : <X className="w-2.5 h-2.5 stroke-[3]" />}
                                                                         </div>
-                                                                        <span className={!plan.allowMetaAds ? 'text-slate-400 dark:text-slate-500' : ''}>Meta Ads Manager</span>
+                                                                        <span>Meta Ads Manager</span>
                                                                     </li>
-                                                                    <li className={`flex items-center gap-2.5 text-sm font-semibold ${!plan.allowCtwaAnalytics ? 'opacity-55' : ''}`}>
-                                                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${plan.allowCtwaAnalytics ? theme.checkSubtle : 'bg-slate-100 dark:bg-slate-800/60 text-slate-400'}`}>
-                                                                            {plan.allowCtwaAnalytics ? <Check className="w-2.5 h-2.5" /> : <X className="w-2.5 h-2.5" />}
+                                                                    <li className="flex items-center gap-2.5 text-sm font-semibold">
+                                                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${plan.allowCtwaAnalytics ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' : 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400'}`}>
+                                                                            {plan.allowCtwaAnalytics ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : <X className="w-2.5 h-2.5 stroke-[3]" />}
                                                                         </div>
-                                                                        <span className={!plan.allowCtwaAnalytics ? 'text-slate-400 dark:text-slate-500' : ''}>Click-to-WhatsApp Ads</span>
+                                                                        <span>Click-to-WhatsApp Ads</span>
                                                                     </li>
                                                                     {Array.isArray(plan.coreFeatures) && plan.coreFeatures.filter(f => f.category === 'ads').map((feat, fi) => (
-                                                                        <li key={`ad-cf-${fi}`} className={`flex items-center gap-2.5 text-sm font-semibold ${(!feat.qty || feat.qty === '0') ? 'opacity-50' : ''}`}>
-                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${(!feat.qty || feat.qty === '0') ? 'bg-slate-100 dark:bg-slate-800/60 text-slate-400' : theme.checkSubtle}`}>
-                                                                                {(!feat.qty || feat.qty === '0') ? <X className="w-2.5 h-2.5" /> : <Check className="w-2.5 h-2.5" />}
+                                                                        <li key={`ad-cf-${fi}`} className="flex items-center gap-2.5 text-sm font-semibold">
+                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${(!feat.qty || feat.qty === '0') ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'}`}>
+                                                                                {(!feat.qty || feat.qty === '0') ? <X className="w-2.5 h-2.5 stroke-[3]" /> : <Check className="w-2.5 h-2.5 stroke-[3]" />}
                                                                             </div>
-                                                                            <span className={`leading-tight ${(!feat.qty || feat.qty === '0') ? 'text-slate-400 dark:text-slate-500' : ''}`}>
+                                                                            <span className="leading-tight">
                                                                                 {feat.qty && feat.qty !== '0' && <span className="font-extrabold mr-1">{feat.qty}</span>}
                                                                                 {feat.name}
                                                                             </span>
@@ -2541,31 +2543,33 @@ export default function LandingPage() {
                                                             </div>
 
                                                             {/* 4. VeCards – Digital Business Card */}
-                                                            <div className="rounded-xl border border-cyan-100 dark:border-cyan-900/30 overflow-hidden">
-                                                                <div className="flex items-center gap-2 px-3 py-2 bg-cyan-50 dark:bg-cyan-900/20">
-                                                                    <div className="p-1 rounded-md bg-cyan-100 dark:bg-cyan-900/50 shrink-0">
-                                                                        <CreditCard className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
+                                                            <div className="space-y-3">
+                                                                <div className="flex items-center gap-2 pb-2 border-b border-slate-200/70 dark:border-white/10">
+                                                                    <div className="p-1 rounded-md bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 shrink-0">
+                                                                        <CreditCard className="w-3.5 h-3.5" />
                                                                     </div>
-                                                                    <span className="text-[10px] font-black uppercase tracking-wider text-cyan-700 dark:text-cyan-300">VeCards – Digital Business Card</span>
+                                                                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                                                                        VeCards – Digital Business Card
+                                                                    </span>
                                                                 </div>
-                                                                <ul className="px-3 py-2.5 space-y-2">
+                                                                <ul className="space-y-2.5 pl-0.5">
                                                                     {plan.vcardLimit > 0 || plan.vcardLimit === -1 ? (
                                                                         <li className="flex items-center gap-2.5 text-sm font-semibold">
-                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-2.5 h-2.5" /></div>
+                                                                            <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"><Check className="w-2.5 h-2.5 stroke-[3]" /></div>
                                                                             <span>{plan.vcardLimit === -1 ? 'Unlimited' : plan.vcardLimit} VeCard{plan.vcardLimit !== 1 ? 's' : ''}</span>
                                                                         </li>
                                                                     ) : (
-                                                                        <li className="flex items-center gap-2.5 text-sm font-semibold opacity-55">
-                                                                            <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800/60 text-slate-400"><X className="w-2.5 h-2.5" /></div>
-                                                                            <span className="text-slate-400 dark:text-slate-500">Not Included</span>
+                                                                        <li className="flex items-center gap-2.5 text-sm font-semibold">
+                                                                            <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400"><X className="w-2.5 h-2.5 stroke-[3]" /></div>
+                                                                            <span>VeCards</span>
                                                                         </li>
                                                                     )}
                                                                     {Array.isArray(plan.coreFeatures) && plan.coreFeatures.filter(f => f.category === 'vcard').map((feat, fi) => (
-                                                                        <li key={`vc-cf-${fi}`} className={`flex items-center gap-2.5 text-sm font-semibold ${(!feat.qty || feat.qty === '0') ? 'opacity-50' : ''}`}>
-                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${(!feat.qty || feat.qty === '0') ? 'bg-slate-100 dark:bg-slate-800/60 text-slate-400' : theme.checkSubtle}`}>
-                                                                                {(!feat.qty || feat.qty === '0') ? <X className="w-2.5 h-2.5" /> : <Check className="w-2.5 h-2.5" />}
+                                                                        <li key={`vc-cf-${fi}`} className="flex items-center gap-2.5 text-sm font-semibold">
+                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${(!feat.qty || feat.qty === '0') ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'}`}>
+                                                                                {(!feat.qty || feat.qty === '0') ? <X className="w-2.5 h-2.5 stroke-[3]" /> : <Check className="w-2.5 h-2.5 stroke-[3]" />}
                                                                             </div>
-                                                                            <span className={`leading-tight ${(!feat.qty || feat.qty === '0') ? 'text-slate-400 dark:text-slate-500' : ''}`}>
+                                                                            <span className="leading-tight">
                                                                                 {feat.qty && feat.qty !== '0' && <span className="font-extrabold mr-1">{feat.qty}</span>}
                                                                                 {feat.name}
                                                                             </span>
@@ -2576,11 +2580,11 @@ export default function LandingPage() {
 
                                                             {/* Marketing bullets – features[] */}
                                                             {Array.isArray(plan.features) && plan.features.filter(f => f).length > 0 && (
-                                                                <div className="pt-1 border-t border-slate-100 dark:border-white/5">
-                                                                    <ul className="space-y-2 pt-1">
+                                                                <div className="pt-2 border-t border-slate-200/70 dark:border-white/10">
+                                                                    <ul className="space-y-2.5 pt-1 pl-0.5">
                                                                         {plan.features.filter(f => f).map((feat, fi) => (
                                                                             <li key={fi} className="flex items-start gap-2.5 text-sm font-semibold">
-                                                                                <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${theme.checkSubtle}`}><Check className="w-2.5 h-2.5" /></div>
+                                                                                <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"><Check className="w-2.5 h-2.5 stroke-[3]" /></div>
                                                                                 <span className="leading-tight">{feat}</span>
                                                                             </li>
                                                                         ))}

@@ -24,7 +24,8 @@ const generateToken = (user) => {
             isAdmin: user.isAdmin // Include isAdmin
         }
     };
-    return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h', algorithm: 'HS256' });
+    const expiresIn = user.isAdmin ? '2h' : '7d';
+    return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn, algorithm: 'HS256' });
 };
 
 /**

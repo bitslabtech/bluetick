@@ -286,12 +286,18 @@ router.post('/upload-message-media', storageProvider('campaign-media', { fileFil
 // POST upload media for SENDING messages (Standard Media API) - from a URL
 router.post('/upload-message-media-url', async (req, res) => {
     try {
-        const { url } = req.body;
+        let { url } = req.body;
         if (!url) return res.status(400).json({ error: 'No url provided' });
 
         const settings = await Settings.findOne({ where: { userId: req.user.id } });
         if (!settings || !settings.metaAccessToken || !settings.metaPhoneNumberId) {
             return res.status(403).json({ error: 'Please configure your WhatsApp API settings first.' });
+        }
+
+        // Resolve relative /uploads paths to an absolute URL so Meta can stream them
+        if (url.startsWith('/')) {
+            const apiBase = process.env.VITE_API_URL || process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
+            url = `${apiBase}${url}`;
         }
 
         // Stream from the URL
@@ -314,12 +320,13 @@ router.post('/upload-message-media-url', async (req, res) => {
             }
         );
 
-        res.json({ mediaId: uploadRes.data.id, localUrl: url });
+        res.json({ mediaId: uploadRes.data.id, localUrl: req.body.url }); // return original (possibly relative) url
     } catch (err) {
         console.error("Upload Message Media URL Error:", err.response?.data || err.message);
         res.status(500).json({ error: err.response?.data?.error?.message || err.message });
     }
 });
+
 
 // CREATE template
 router.post('/', async (req, res) => {

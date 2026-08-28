@@ -468,7 +468,7 @@ router.post('/conversations/:id/contact/groups', async (req, res) => {
 // POST /send/template - Send template message (Bypasses 24h check)
 router.post('/send/template', async (req, res) => {
     try {
-        const { conversationId, templateName, languageCode, components, templateId, phoneNumber, contactName } = req.body;
+        const { conversationId, templateName, languageCode, components, templateId, phoneNumber, contactName, localUrls } = req.body;
         const ownerId = req.user.parentUserId || req.user.id;
         const isSubMember = !!req.user.parentUserId;
 
@@ -558,18 +558,39 @@ router.post('/send/template', async (req, res) => {
                 : await Template.findOne({ where: { name: templateName, userId: ownerId } });
 
             if (template) {
+                // Helper: resolve {{N}} placeholders from sent components array
+                const resolveBody = (rawText, sentComponents) => {
+                    if (!rawText) return rawText;
+                    const bodyComp = (sentComponents || []).find(c => c.type === 'body');
+                    if (!bodyComp || !Array.isArray(bodyComp.parameters)) return rawText;
+                    let text = rawText;
+                    bodyComp.parameters.forEach((p, i) => {
+                        text = text.replace(new RegExp(`\\{\\{${i + 1}\\}\\}`, 'g'), p.text || '');
+                    });
+                    return text;
+                };
+
                 if (template.archetype === 'carousel' && Array.isArray(template.cards) && template.cards.length > 0) {
                     if (template.content) {
-                        richTemplateComponents.push({ type: 'BODY', text: template.content });
+                        // Resolve main body variables from the sent components
+                        const resolvedBody = resolveBody(template.content, components);
+                        richTemplateComponents.push({ type: 'BODY', text: resolvedBody });
                     }
                     richTemplateComponents.push({
                         type: 'CAROUSEL',
-                        cards: template.cards.map((card) => {
+                        cards: template.cards.map((card, cardIdx) => {
                             const cardComps = [];
                             if (card.headerType && card.headerType !== 'NONE') {
-                                cardComps.push({ type: 'HEADER', format: card.headerType });
+                                const lUrl = (localUrls || {})[`card_${cardIdx}_headerLocalUrl`] || null;
+                                cardComps.push({ type: 'HEADER', format: card.headerType, localUrl: lUrl });
                             }
-                            if (card.content) cardComps.push({ type: 'BODY', text: card.content });
+                            if (card.content) {
+                                // Find this card's sent component block to resolve its body vars
+                                const carouselComp = (components || []).find(c => c.type === 'carousel');
+                                const cardBlock = carouselComp?.cards?.find(cc => cc.card_index === cardIdx);
+                                const resolvedCardBody = resolveBody(card.content, cardBlock?.components || []);
+                                cardComps.push({ type: 'BODY', text: resolvedCardBody });
+                            }
                             if (card.buttons && card.buttons.length > 0) {
                                 cardComps.push({ type: 'BUTTONS', buttons: card.buttons });
                             }
@@ -579,13 +600,19 @@ router.post('/send/template', async (req, res) => {
                 } else {
                     // Standard template — include all parts for rich rendering in chat history
                     if (template.headerType && template.headerType !== 'NONE') {
+                        const lUrl = (localUrls || {}).std_headerLocalUrl || null;
                         richTemplateComponents.push({
                             type: 'HEADER',
                             format: template.headerType.toUpperCase(),
-                            text: template.headerType.toUpperCase() === 'TEXT' ? (template.headerContent || '') : undefined
+                            text: template.headerType.toUpperCase() === 'TEXT' ? (template.headerContent || '') : undefined,
+                            localUrl: lUrl
                         });
                     }
-                    if (template.content) richTemplateComponents.push({ type: 'BODY', text: template.content });
+                    if (template.content) {
+                        // Resolve body variables from sent components
+                        const resolvedBody = resolveBody(template.content, components);
+                        richTemplateComponents.push({ type: 'BODY', text: resolvedBody });
+                    }
                     if (template.footer) richTemplateComponents.push({ type: 'FOOTER', text: template.footer });
                     if (template.buttons && template.buttons.length > 0) {
                         richTemplateComponents.push({ type: 'BUTTONS', buttons: template.buttons });

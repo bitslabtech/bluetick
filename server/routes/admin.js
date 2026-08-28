@@ -828,7 +828,7 @@ router.post('/users/:id/impersonate', async (req, res) => {
             }
         };
 
-        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h', algorithm: 'HS256' }); // Short-lived token
+        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '2h', algorithm: 'HS256' }); // Extended token
 
         // Log Activity
         await ActivityLog.create({

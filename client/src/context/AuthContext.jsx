@@ -194,6 +194,41 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // ── Idle Timeout (2 hours for admin, 7 days for users) ──
+    useEffect(() => {
+        if (!user) return;
+
+        const timeoutDuration = user.isAdmin ? 2 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+        let lastActivity = Date.now();
+        let timeoutId;
+
+        const checkIdle = () => {
+            const now = Date.now();
+            if (now - lastActivity >= timeoutDuration) {
+                logout().then(() => {
+                    window.location.href = '/login?reason=idle';
+                });
+            } else {
+                // Check once every minute
+                timeoutId = setTimeout(checkIdle, 60000);
+            }
+        };
+
+        const handleActivity = () => {
+            lastActivity = Date.now();
+        };
+
+        timeoutId = setTimeout(checkIdle, 60000);
+
+        const events = ['mousemove', 'keydown', 'mousedown', 'scroll', 'touchstart'];
+        events.forEach(event => window.addEventListener(event, handleActivity, { passive: true }));
+
+        return () => {
+            clearTimeout(timeoutId);
+            events.forEach(event => window.removeEventListener(event, handleActivity));
+        };
+    }, [user]);
+
     return (
         <AuthContext.Provider value={{ user, login, register, logout, loading, impersonate, exitImpersonation, isImpersonating, isTransitioning, fetchUser }}>
             {children}

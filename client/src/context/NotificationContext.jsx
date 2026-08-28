@@ -76,6 +76,16 @@ export const NotificationProvider = ({ children }) => {
         return () => clearInterval(interval);
     }, [user, isAdmin, fetchNotifications]);
 
+    // Real-time refresh — SocketContext dispatches the custom 'notification_refresh'
+    // window event when the server emits 'notification_update'. Using a window event
+    // keeps the two contexts fully decoupled with no circular imports.
+    useEffect(() => {
+        if (!user) return;
+        const handler = () => fetchNotifications();
+        window.addEventListener('notification_refresh', handler);
+        return () => window.removeEventListener('notification_refresh', handler);
+    }, [user, fetchNotifications]);
+
     const markAllRead = useCallback(async () => {
         if (isAdmin) {
             try {

@@ -10,42 +10,24 @@ import {
     Tag, Users, UserCheck, Lock, Layout, ChevronRight, Eye, AlertCircle, Zap, Sparkles, Wand2, Hand, Bot, ChevronLeft, Trash2
 } from 'lucide-react';
 import { format, isToday, isYesterday, differenceInHours } from 'date-fns';
-import { io } from 'socket.io-client';
+import { useSocket } from '../context/SocketContext';
 import EmojiPicker from '../components/EmojiPicker';
 import QuickReplySuggestions from '../components/QuickReplySuggestions';
 import ContactInfoPanel from '../components/ContactInfoPanel';
 import AssignAgentPopover from '../components/AssignAgentPopover';
 import TopHeader from '../components/TopHeader';
 import MediaPickerModal, { MIME_PRESETS } from '../components/MediaPickerModal';
+import MediaGallery from './MediaGallery';
 
-const API_BASE = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL}`;
 
-// Notification sound (simple beep via AudioContext)
-const playNotificationSound = () => {
-    try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.frequency.value = 880;
-        gain.gain.setValueAtTime(0.1, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-        osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.3);
-    } catch (err) { console.error('AudioContext error:', err); }
-};
-
-// Show browser notification
-const showBrowserNotification = (title, body) => {
-    if (Notification.permission === 'granted') {
-        new Notification(title, { body, icon: '/logo.png', silent: false });
-    }
-};
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 const WhatsAppInbox = () => {
     const { user } = useAuth();
     const { showToast } = useUI();
     const location = useLocation();
     const navigate = useNavigate();
+    const { socket, notificationsEnabled, setNotificationsEnabled, setActiveChatId } = useSocket();
 
     // Core state
     const [conversations, setConversations] = useState([]);
@@ -94,25 +76,16 @@ const WhatsAppInbox = () => {
     const [headerContactId, setHeaderContactId] = useState(null); // Corresponding contact ID
     const [availableGroups, setAvailableGroups] = useState([]); // All groups
     const [showHeaderGroupDropdown, setShowHeaderGroupDropdown] = useState(false);
-    const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
-        const saved = localStorage.getItem('whatsapp_notifications_enabled');
-        return saved !== null ? JSON.parse(saved) : true; // Defaulting to true as per standard expectation, but user said "default set to silent", I will check if they want silent by default. User said "is default set to silent... fix this". Usually users WANT it to be on by default but the current code might be bugged. Actually, let's set it to true if not found, or false if that's what "default set to silent" implies they want to change. Wait, "fix this" usually means they want it to WORK and not be silent. I'll default to true.
-    });
-    const notificationsRef = useRef(notificationsEnabled);
-
     // Modal states
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    // Keep refs in sync with state
-    useEffect(() => {
-        notificationsRef.current = notificationsEnabled;
-        localStorage.setItem('whatsapp_notifications_enabled', JSON.stringify(notificationsEnabled));
-    }, [notificationsEnabled]);
-
     useEffect(() => {
         selectedChatRef.current = selectedChat;
-    }, [selectedChat]);
+        // Tell global SocketContext which chat is currently open so it suppresses
+        // duplicate sound/notifications for the conversation the user is viewing.
+        setActiveChatId(selectedChat?.id || null);
+    }, [selectedChat, setActiveChatId]);
 
     // Close header group dropdown on outside click
     useEffect(() => {
@@ -156,7 +129,6 @@ const WhatsAppInbox = () => {
     const conversationsRef = useRef([]);
     const selectedChatRef = useRef(null);   // always reflects latest selectedChat without stale closure
     const inputRef = useRef(null);
-    const socketRef = useRef(null);
     const prevChatIdRef = useRef(null);
     const isInitialChatLoad = useRef(false);
 
@@ -188,11 +160,10 @@ const WhatsAppInbox = () => {
         }
     };
 
-    // ── Init: Fetch conversations + socket + quick replies + notification permission ──────────────────────────
+    // ── Init: Fetch conversations + quick replies on mount ─────────────────
     useEffect(() => {
         fetchConversations();
         fetchQuickReplies();
-
 
         // Check if WhatsApp is configured
         if (user?.id) {
@@ -209,68 +180,44 @@ const WhatsAppInbox = () => {
         if (user?.id) {
             axios.get(`${API_BASE}/api/groups`).then(res => setAvailableGroups(res.data)).catch(err => console.error('Failed to fetch groups:', err));
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id]);
 
-        // Request notification permission
-        if ('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission();
-        }
+    // ── Attach real-time socket listeners for inbox-specific UI updates ─────
+    // The global socket lives in SocketContext and is shared across all pages.
+    // Here we attach handlers that update the inbox UI (conversation list, open
+    // chat messages, bot/flow state). Sound, browser notifications, and sidebar
+    // badge updates are handled globally by SocketContext and are NOT duplicated.
+    useEffect(() => {
+        if (!socket) return;
 
-        // Socket setup — withCredentials sends the auth cookie to the server
-        const socket = io(API_BASE, { withCredentials: true });
-        socketRef.current = socket;
-
-        const joinRooms = () => {
-            if (user?.id) {
-                // Join own personal room (for direct notifications like assignment)
-                socket.emit('join_waba', user.id);
-                socket.emit('join_personal', user.id);
-                // Also register in team presence room — critical for sub-members so they
-                // join team_${parentId} and receive new_message events from the webhook
-                socket.emit('user_connected', {
-                    userId: user.id,
-                    parentId: user.parentUserId || null
-                });
-            }
-        };
-
-        socket.on('connect', joinRooms);
-        socket.on('reconnect', joinRooms); // re-join after network drop
-
-        // Real-time assignment notification
-        socket.on('conversation_assigned', ({ conversation, assignedBy }) => {
-            // Show toast-like notification
-            const toastId = `assign-${Date.now()}`;
+        // ── Conversation assignment toast ─────────────────────────────────────
+        const handleAssigned = ({ conversation, assignedBy }) => {
             const toastDiv = document.createElement('div');
-            toastDiv.id = toastId;
             toastDiv.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:white;padding:12px 18px;border-radius:16px;font-size:13px;font-weight:600;box-shadow:0 8px 32px rgba(79,70,229,0.4);animation:slideInRight 0.3s ease;max-width:300px;';
-            const displayName = conversation.contactName || conversation.phoneNumber;
             const safeName = !conversation.contactName || conversation.contactName === conversation.phoneNumber || /^\d+$/.test(conversation.contactName.replace(/\D/g, ''))
                 ? (isSubMember && teamPolicy.phonePrivacy === 'masked' ? `****${conversation.phoneNumber?.slice(-4)}` : conversation.phoneNumber)
                 : conversation.contactName;
-
             toastDiv.innerHTML = `<div style="display:flex;align-items:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>${assignedBy} assigned you a chat with <strong class="${isSubMember && teamPolicy.phonePrivacy === 'blurred' && (!conversation.contactName || conversation.contactName === conversation.phoneNumber || /^\d+$/.test(conversation.contactName.replace(/\D/g, ''))) ? 'blur-sm select-none' : ''}">${safeName}</strong></span></div>`;
             document.body.appendChild(toastDiv);
             setTimeout(() => { toastDiv.remove(); }, 4000);
 
-            // Update conversations list to include this conversation
             setConversations(prev => {
                 const exists = prev.find(c => c.id === conversation.id);
                 if (exists) return prev.map(c => c.id === conversation.id ? { ...c, ...conversation } : c);
                 return [conversation, ...prev];
             });
             setMineCount(n => n + 1);
-        });
+        };
 
-        socket.on('new_message', (data) => {
-            const { conversation, message } = data;
-
+        // ── New message — inbox UI update only ────────────────────────────────
+        // Sound / browser notification / sidebar badge are handled by SocketContext.
+        const handleNewMessage = ({ conversation, message }) => {
             // 1. Update conversation list (sort by latest)
             setConversations(prev => {
                 const existing = prev.find(c => c.id === conversation.id);
                 let updated;
                 if (!existing) {
-                    // New conversation — prepend it directly so the inbox updates instantly.
-                    // Also kick off a background fetch to get fully-enriched data (inFlow, etc.)
                     fetchConversations();
                     updated = [conversation, ...prev];
                 } else {
@@ -281,76 +228,61 @@ const WhatsAppInbox = () => {
                 return sorted;
             });
 
-            // 2. Append message to currently open chat (use ref — no stale closure)
+            // 2. Append message to the currently open chat
             const currentChat = selectedChatRef.current;
             if (currentChat?.id === conversation.id) {
                 setMessages(prev =>
                     prev.find(m => m.id === message.id) ? prev : [...prev, message]
                 );
-                // Update active chat metadata (e.g. 24-hour window, lastMessageAt) instantly
                 setSelectedChat(prev => prev ? { ...prev, ...conversation } : prev);
             }
+        };
 
-            // 3. Notifications for inbound messages
-            if (message.direction === 'INBOUND') {
-                const isViewingThisChat = currentChat?.id === conversation.id && !document.hidden;
-
-                // Sound: always play if notifications enabled, UNLESS user is actively viewing this exact chat
-                if (notificationsRef.current && !isViewingThisChat) {
-                    playNotificationSound();
-                }
-
-                // Browser notification: only when tab is hidden or user is on a different chat
-                if (!isViewingThisChat) {
-                    const safeName = !conversation.contactName ||
-                        conversation.contactName === conversation.phoneNumber ||
-                        /^\d+$/.test(conversation.contactName.replace(/\D/g, ''))
-                        ? (isSubMember && teamPolicy.phonePrivacy === 'masked'
-                            ? `****${conversation.phoneNumber?.slice(-4)}`
-                            : conversation.phoneNumber)
-                        : conversation.contactName;
-                    showBrowserNotification(safeName, message.body || '📎 Media');
-                }
-                
-                // Instantly update sidebar badge
-                window.dispatchEvent(new Event('whatsapp_unread_update'));
-            }
-        });
-
-        socket.on('message_status_update', ({ messageId, status, conversationId }) => {
+        // ── Message delivery status update ────────────────────────────────────
+        const handleStatusUpdate = ({ messageId, status, conversationId }) => {
             setSelectedChat(prevChat => {
                 if (prevChat?.id === conversationId) {
                     setMessages(prev => prev.map(m => m.messageId === messageId ? { ...m, status } : m));
                 }
                 return prevChat;
             });
-        });
+        };
 
-        socket.on('conversation_flow_state', ({ conversationId, inFlow }) => {
+        // ── Flow state change ─────────────────────────────────────────────────
+        const handleFlowState = ({ conversationId, inFlow }) => {
             setConversations(prev => prev.map(c => c.id === conversationId ? { ...c, inFlow } : c));
             conversationsRef.current = conversationsRef.current.map(c => c.id === conversationId ? { ...c, inFlow } : c);
-            
             setSelectedChat(prevChat => {
-                if (prevChat?.id === conversationId) {
-                    return { ...prevChat, inFlow };
-                }
+                if (prevChat?.id === conversationId) return { ...prevChat, inFlow };
                 return prevChat;
             });
-        });
+        };
 
-        socket.on('conversation_bot_update', ({ conversationId, botStatus }) => {
+        // ── Bot status change ─────────────────────────────────────────────────
+        const handleBotUpdate = ({ conversationId, botStatus }) => {
             setConversations(prev => prev.map(c => c.id === conversationId ? { ...c, botStatus } : c));
             conversationsRef.current = conversationsRef.current.map(c => c.id === conversationId ? { ...c, botStatus } : c);
             setSelectedChat(prevChat => {
-                if (prevChat?.id === conversationId) {
-                    return { ...prevChat, botStatus };
-                }
+                if (prevChat?.id === conversationId) return { ...prevChat, botStatus };
                 return prevChat;
             });
-        });
+        };
 
-        return () => socket.disconnect();
-    }, [user?.id]);
+        socket.on('conversation_assigned', handleAssigned);
+        socket.on('new_message', handleNewMessage);
+        socket.on('message_status_update', handleStatusUpdate);
+        socket.on('conversation_flow_state', handleFlowState);
+        socket.on('conversation_bot_update', handleBotUpdate);
+
+        return () => {
+            // Detach only our handlers — never disconnect the shared global socket
+            socket.off('conversation_assigned', handleAssigned);
+            socket.off('new_message', handleNewMessage);
+            socket.off('message_status_update', handleStatusUpdate);
+            socket.off('conversation_flow_state', handleFlowState);
+            socket.off('conversation_bot_update', handleBotUpdate);
+        };
+    }, [socket, isSubMember, teamPolicy.phonePrivacy]);
 
     // Fetch messages and contact groups when chat opens
     useEffect(() => {
@@ -686,13 +618,27 @@ const WhatsAppInbox = () => {
             // Build request payload — pass phoneNumber+contactName so the backend can
             // auto-create the conversation when it is a placeholder (id starts with 'new-')
             const isPlaceholder = typeof selectedChat.id === 'string' && selectedChat.id.startsWith('new-');
+
+            // Build localUrls so the server can persist media URLs in templateData for inbox display
+            const localUrls = {};
+            if (cardParams['std_headerLocalUrl']) localUrls.std_headerLocalUrl = cardParams['std_headerLocalUrl'];
+            if (isCarousel && Array.isArray(selectedTemplate.cards)) {
+                selectedTemplate.cards.forEach((_, cardIdx) => {
+                    const lUrl = cardParams[`card_${cardIdx}_headerLocalUrl`];
+                    if (lUrl) localUrls[`card_${cardIdx}_headerLocalUrl`] = lUrl;
+                });
+            }
+
             const resp = await axios.post(`${API_BASE}/api/whatsapp/chat/send/template`, {
+
                 conversationId: selectedChat.id,
                 templateId: selectedTemplate.id,
                 templateName: selectedTemplate.name,
                 languageCode: selectedTemplate.language || 'en_US',
                 components,
+                localUrls,
                 // Only needed for placeholder conversations:
+
                 ...(isPlaceholder && {
                     phoneNumber: selectedChat.phoneNumber,
                     contactName: selectedChat.contactName
@@ -1400,15 +1346,36 @@ const WhatsAppInbox = () => {
                                                                     <div className="flex flex-col" style={{ minWidth: carousel ? 260 : 200 }}>
                                                                         {/* Standard header (non-carousel) */}
                                                                         {!carousel && header?.format === 'IMAGE' && (
-                                                                            <div className="w-full h-36 bg-gradient-to-br from-slate-300 to-slate-400 dark:from-slate-600 dark:to-slate-700 rounded-t-xl overflow-hidden flex items-center justify-center -mx-3 -mt-2 mb-2" style={{ width: 'calc(100% + 24px)' }}>
-                                                                                <ImageIcon className="w-10 h-10 text-white/60" />
+                                                                            <div className="w-full h-36 rounded-t-xl overflow-hidden -mx-3 -mt-2 mb-2" style={{ width: 'calc(100% + 24px)' }}>
+                                                                                {header.localUrl ? (
+                                                                                    <img
+                                                                                        src={header.localUrl.startsWith('/uploads') ? `${API_BASE}${header.localUrl}` : header.localUrl}
+                                                                                        alt="Header"
+                                                                                        className="w-full h-full object-cover"
+                                                                                    />
+                                                                                ) : (
+                                                                                    <div className="w-full h-full bg-gradient-to-br from-slate-300 to-slate-400 dark:from-slate-600 dark:to-slate-700 flex items-center justify-center">
+                                                                                        <ImageIcon className="w-10 h-10 text-white/60" />
+                                                                                    </div>
+                                                                                )}
                                                                             </div>
                                                                         )}
                                                                         {!carousel && header?.format === 'VIDEO' && (
-                                                                            <div className="w-full h-36 bg-slate-800 dark:bg-black rounded-t-xl overflow-hidden flex items-center justify-center -mx-3 -mt-2 mb-2 relative" style={{ width: 'calc(100% + 24px)' }}>
-                                                                                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                                                                                    <div className="w-0 h-0 border-t-[8px] border-t-transparent border-l-[14px] border-l-white border-b-[8px] border-b-transparent ml-1" />
-                                                                                </div>
+                                                                            <div className="w-full h-36 rounded-t-xl overflow-hidden -mx-3 -mt-2 mb-2 relative" style={{ width: 'calc(100% + 24px)' }}>
+                                                                                {header.localUrl ? (
+                                                                                    <video
+                                                                                        src={header.localUrl.startsWith('/uploads') ? `${API_BASE}${header.localUrl}` : header.localUrl}
+                                                                                        className="w-full h-full object-cover"
+                                                                                        muted
+                                                                                        playsInline
+                                                                                    />
+                                                                                ) : (
+                                                                                    <div className="w-full h-full bg-slate-800 dark:bg-black flex items-center justify-center">
+                                                                                        <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                                                                                            <div className="w-0 h-0 border-t-[8px] border-t-transparent border-l-[14px] border-l-white border-b-[8px] border-b-transparent ml-1" />
+                                                                                        </div>
+                                                                                    </div>
+                                                                                )}
                                                                             </div>
                                                                         )}
                                                                         {!carousel && header?.format === 'DOCUMENT' && (
@@ -2116,7 +2083,40 @@ const TemplateModal = ({
     onCardParamChange, onCardMediaUpload, onBack, onSend, onClose
 }) => {
     const navigate = useNavigate();
-    // Same lock logic as Templates.jsx: first N (by index in sorted array) are active
+    // Media Gallery picker state: null = closed, 'std' = standard header, 'card_N' = card N header
+    const [galleryPickerFor, setGalleryPickerFor] = React.useState(null);
+    const [galleryUploading, setGalleryUploading] = React.useState(false);
+
+    // Handle a file selected from the Media Gallery picker
+    const handleGallerySelect = React.useCallback(async (file) => {
+        if (!galleryPickerFor) return;
+        const localUrl = file.url;
+        const slotKey = galleryPickerFor; // 'std' or 'card_N'
+        setGalleryPickerFor(null);
+        setGalleryUploading(true);
+        try {
+            const r = await axios.post(`${API_BASE}/api/templates/upload-message-media-url`, { url: localUrl });
+            const mediaId = r.data.mediaId;
+            if (slotKey === 'std') {
+                onCardParamChange('std_headerMediaId', mediaId);
+                onCardParamChange('std_headerLocalUrl', localUrl);
+                onCardParamChange('std_previewUrl', localUrl);
+                onCardParamChange('std_headerFileName', file.fileName || file.url.split('/').pop());
+            } else if (slotKey.startsWith('card_')) {
+                const cardIdx = parseInt(slotKey.split('_')[1], 10);
+                onCardParamChange(`card_${cardIdx}_headerMediaId`, mediaId);
+                onCardParamChange(`card_${cardIdx}_headerLocalUrl`, localUrl);
+                onCardParamChange(`card_${cardIdx}_previewUrl`, localUrl);
+                onCardParamChange(`card_${cardIdx}_fileName`, file.fileName || file.url.split('/').pop());
+            }
+        } catch (err) {
+            console.error('Gallery media upload to Meta failed:', err);
+            alert('Media upload failed: ' + (err.response?.data?.error || err.message));
+        } finally {
+            setGalleryUploading(false);
+        }
+    }, [galleryPickerFor, onCardParamChange]);
+
     const isLocked = (index) => templateLimit !== -1 && index >= templateLimit;
     const lockedCount = templateLimit !== -1 ? Math.max(0, templates.length - templateLimit) : 0;
 
@@ -2153,6 +2153,7 @@ const TemplateModal = ({
     );
 
     return (
+        <>
         <div
             className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200 cursor-pointer"
             onClick={onClose}
@@ -2360,20 +2361,23 @@ const TemplateModal = ({
                                                         </div>
                                                         <div className="p-3 space-y-3">
 
-                                                            {/* Card image/video upload */}
+                                                                                                            {/* Card image/video upload */}
                                                             {hasMedia && (
                                                                 <div>
                                                                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                                                                         {card.headerType === 'VIDEO' ? '🎥 Card Video' : '🖼️ Card Image'} <span className="text-red-400">*</span>
                                                                     </label>
-                                                                    <label
-                                                                        htmlFor={`card-img-${card.cardIndex}`}
-                                                                        className="flex items-center gap-2 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-lg p-2.5 cursor-pointer hover:border-green-400 hover:bg-green-50/20 dark:hover:bg-green-900/10 transition-all group"
+                                                                    {/* Gallery picker button */}
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setGalleryPickerFor(`card_${card.cardIndex}`)}
+                                                                        disabled={galleryUploading}
+                                                                        className="w-full flex items-center gap-2 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-lg p-2.5 cursor-pointer hover:border-green-400 hover:bg-green-50/20 dark:hover:bg-green-900/10 transition-all group text-left"
                                                                     >
                                                                         <div className="bg-sky-500/10 p-1.5 rounded-lg">
                                                                             <span className="text-sm">{card.headerType === 'VIDEO' ? '🎥' : '🖼️'}</span>
                                                                         </div>
-                                                                        {isUploading ? (
+                                                                        {galleryUploading && galleryPickerFor === `card_${card.cardIndex}` ? (
                                                                             <div className="flex items-center gap-2">
                                                                                 <div className="w-3.5 h-3.5 border-2 border-green-500/30 border-t-green-500 rounded-full animate-spin" />
                                                                                 <span className="text-xs text-slate-500">Uploading to Meta...</span>
@@ -2383,10 +2387,9 @@ const TemplateModal = ({
                                                                                 {mediaId ? '✓ ' : '⏳ '}{fileName}
                                                                             </span>
                                                                         ) : (
-                                                                            <span className="text-xs text-slate-500 dark:text-slate-400">Click to upload</span>
+                                                                            <span className="text-xs text-slate-500 dark:text-slate-400">Select from Media Gallery</span>
                                                                         )}
-                                                                        <input id={`card-img-${card.cardIndex}`} type="file" accept={accept} className="hidden" onChange={e => onCardMediaUpload(card.cardIndex, e.target.files[0])} />
-                                                                    </label>
+                                                                    </button>
                                                                     {previewUrl && card.headerType === 'IMAGE' && (
                                                                         <img src={previewUrl} alt={`Card ${card.cardIndex + 1}`} className="w-full h-24 object-cover rounded-lg mt-1.5 border border-slate-200 dark:border-slate-700" />
                                                                     )}
@@ -2461,20 +2464,23 @@ const TemplateModal = ({
                                     /* === STANDARD configure === */
                                     (<>
                                         {/* Header media upload (IMAGE / VIDEO / DOCUMENT) */}
-                                        {headerType && (
+                                                                                {headerType && (
                                             <div>
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
                                                     {headerType === 'VIDEO' ? '🎥 Header Video' : headerType === 'DOCUMENT' ? '📄 Header Document' : '🖼️ Header Image'}
                                                     <span className="text-red-400 ml-1">*</span>
                                                 </p>
-                                                <label
-                                                    htmlFor="std-header-upload"
-                                                    className="flex items-center gap-3 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-xl p-3 cursor-pointer hover:border-green-400 hover:bg-green-50/20 dark:hover:bg-green-900/10 transition-all group"
+                                                {/* Gallery picker button — replaces bare file input */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setGalleryPickerFor('std')}
+                                                    disabled={galleryUploading}
+                                                    className="w-full flex items-center gap-3 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-xl p-3 cursor-pointer hover:border-green-400 hover:bg-green-50/20 dark:hover:bg-green-900/10 transition-all group text-left"
                                                 >
                                                     <div className="bg-sky-500/10 p-2 rounded-lg">
                                                         <span className="text-base">{headerType === 'VIDEO' ? '🎥' : headerType === 'DOCUMENT' ? '📄' : '🖼️'}</span>
                                                     </div>
-                                                    {(cardParams || {})['std_uploading'] ? (
+                                                    {galleryUploading && galleryPickerFor === 'std' ? (
                                                         <div className="flex items-center gap-2">
                                                             <div className="w-3.5 h-3.5 border-2 border-green-500/30 border-t-green-500 rounded-full animate-spin" />
                                                             <span className="text-xs text-slate-500">Uploading to Meta...</span>
@@ -2484,33 +2490,9 @@ const TemplateModal = ({
                                                             {(cardParams || {})['std_headerMediaId'] ? '✓ ' : '⏳ '}{(cardParams || {})['std_headerFileName']}
                                                         </span>
                                                     ) : (
-                                                        <span className="text-xs text-slate-500 dark:text-slate-400">Click to upload {headerType.toLowerCase()}</span>
+                                                        <span className="text-xs text-slate-500 dark:text-slate-400">Select from Media Gallery</span>
                                                     )}
-                                                    <input
-                                                        id="std-header-upload"
-                                                        type="file"
-                                                        accept={headerType === 'VIDEO' ? 'video/*' : headerType === 'DOCUMENT' ? '*/*' : 'image/*'}
-                                                        className="hidden"
-                                                        onChange={async (e) => {
-                                                            const file = e.target.files[0];
-                                                            if (!file) return;
-                                                            onCardParamChange('std_headerFileName', file.name);
-                                                            onCardParamChange('std_uploading', 'true');
-                                                            try {
-                                                                const fd = new FormData();
-                                                                fd.append('file', file);
-                                                                const r = await axios.post(`${API_BASE}/api/templates/upload-message-media`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-                                                                onCardParamChange('std_headerMediaId', r.data.mediaId);
-                                                                onCardParamChange('std_previewUrl', URL.createObjectURL(file));
-                                                            } catch (uploadErr) {
-                                                                console.error('Header upload failed:', uploadErr);
-                                                                alert('Media upload failed: ' + (uploadErr.response?.data?.error || uploadErr.message));
-                                                            } finally {
-                                                                onCardParamChange('std_uploading', '');
-                                                            }
-                                                        }}
-                                                    />
-                                                </label>
+                                                </button>
                                                 {/* Preview */}
                                                 {(cardParams || {})['std_previewUrl'] && headerType === 'IMAGE' && (
                                                     <img src={(cardParams || {})['std_previewUrl']} alt="Header preview" className="w-full h-28 object-cover rounded-xl mt-2 border border-slate-200 dark:border-white/10" />
@@ -2836,5 +2818,42 @@ const TemplateModal = ({
                 )}
             </div>
         </div>
+
+        {/* ── Media Gallery Picker Overlay ────────────────────────────────── */}
+        {galleryPickerFor && (
+            <div
+                className="fixed inset-0 z-[300] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+                onClick={() => setGalleryPickerFor(null)}
+            >
+                <div
+                    className="bg-white dark:bg-[#1a2332] rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col"
+                    onClick={e => e.stopPropagation()}
+                >
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/10 shrink-0">
+                        <div>
+                            <h3 className="font-bold text-slate-800 dark:text-white text-base">Select Media</h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                {galleryPickerFor === 'std' ? 'Select header media for this template' : `Select media for Card ${parseInt(galleryPickerFor.split('_')[1], 10) + 1}`}
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => setGalleryPickerFor(null)}
+                            className="p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto">
+                        <MediaGallery
+                            accessMode="dashboard"
+                            pickerMode={true}
+                            onSelect={handleGallerySelect}
+                        />
+                    </div>
+                </div>
+            </div>
+        )}
+        </>
     );
 };
+

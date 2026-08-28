@@ -8,6 +8,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import GuestRoute from './components/GuestRoute';
 import { UIProvider } from './context/UIContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { SocketProvider } from './context/SocketContext';
 import Layout from './components/Layout';
 import { PaymentRedirectHandler } from './components/PaymentRedirectHandler';
 import { StoreCustomerProvider } from './context/StoreCustomerContext';
@@ -385,7 +386,8 @@ function App() {
             <ErrorBoundary>
                 <AuthProvider>
                     <UIProvider>
-                        <NotificationProvider>
+                        <SocketProvider>
+                            <NotificationProvider>
                             <Router>
                                 <ReferralCapture />
                                 <Toaster position="top-right" />
@@ -533,7 +535,8 @@ function App() {
                                     </CustomDomainRouter>
                                 </Suspense>
                             </Router>
-                        </NotificationProvider>
+                            </NotificationProvider>
+                        </SocketProvider>
                     </UIProvider>
                 </AuthProvider>
             </ErrorBoundary>
