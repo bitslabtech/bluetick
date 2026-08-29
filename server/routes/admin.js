@@ -1355,4 +1355,68 @@ router.post('/fix-whatsapp-data', async (req, res) => {
     }
 });
 
+// POST /api/admin/migrate/clear-store-payment-config
+// SEC-H3: One-time admin migration to clear stale/unencrypted payment secrets from
+// the WaStore.paymentConfig column for stores whose owner already has credentials
+// saved in global Settings (Settings → Payment Gateway).
+// paymentConfig is now deprecated in favour of Settings.paymentGateways.
+// Supports dryRun=true (default) to preview before committing.
+router.post('/migrate/clear-store-payment-config', auth, admin, async (req, res) => {
+    const { dryRun = true } = req.body;
+    const Settings = require('../models/Settings');
+    const log = [];
+    let cleared = 0;
+
+    try {
+        // Find all stores that still have a non-empty paymentConfig
+        const storesWithConfig = await WaStore.findAll({
+            where: sequelize.where(
+                sequelize.cast(sequelize.col('paymentConfig'), 'text'),
+                { [Op.not]: '{}' }
+            ),
+            attributes: ['id', 'slug', 'userId', 'paymentConfig']
+        });
+
+        for (const store of storesWithConfig) {
+            const pc = store.paymentConfig || {};
+            const hasLegacyCreds = pc.razorpayKeyId || pc.razorpayKeySecret ||
+                                   pc.phonepeMerchantId || pc.phonepeSaltKey;
+            if (!hasLegacyCreds) continue;
+
+            // Check if owner already has global Settings with PG credentials
+            const ownerSettings = await Settings.findOne({
+                where: { userId: store.userId },
+                attributes: ['paymentGateways']
+            });
+            const pg = ownerSettings?.paymentGateways || {};
+            const hasGlobalCreds = (pg.razorpay?.keyId && pg.razorpay?.keySecret) ||
+                                   (pg.phonepe?.merchantId && pg.phonepe?.saltKey);
+
+            log.push({
+                storeId: store.id,
+                slug: store.slug,
+                userId: store.userId,
+                hasGlobalCreds,
+                action: hasGlobalCreds ? (dryRun ? 'would_clear' : 'cleared') : 'skipped_no_global'
+            });
+
+            if (hasGlobalCreds && !dryRun) {
+                await store.update({ paymentConfig: {} });
+                cleared++;
+            }
+        }
+
+        res.json({
+            success: true,
+            dryRun,
+            storesScanned: storesWithConfig.length,
+            storesCleared: cleared,
+            log
+        });
+    } catch (err) {
+        console.error('[ADMIN MIGRATE] clear-store-payment-config error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 module.exports = router;

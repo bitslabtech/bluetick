@@ -8,6 +8,7 @@ const User = require('../models/User');
 const Plan = require('../models/Plan');
 const AiTokenLog = require('../models/AiTokenLog');
 const SystemConfig = require('../models/SystemConfig');
+const Settings = require('../models/Settings');
 const auth = require('../middleware/auth');
 const axios = require('axios');
 const storageProvider = require('../utils/storageProvider');
@@ -17,6 +18,27 @@ const { sequelize } = require('../config/database'); // for transactions (FUNC-3
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { fireCAPIEvent } = require('../utils/capi');
 const dns = require('dns').promises;
+
+// ── Payment Credentials Helper ───────────────────────────────────────────────
+// Reads payment gateway credentials from the store owner's global Settings.
+// Falls back to legacy store.paymentConfig for backward compatibility.
+// This centralises credentials: users configure once in Settings → Payment Gateway.
+const getStorePaymentCredentials = async (store) => {
+    const ownerSettings = await Settings.findOne({ where: { userId: store.userId } });
+    const globalPg = ownerSettings?.paymentGateways || {};
+
+    return {
+        razorpay: {
+            keyId:     globalPg.razorpay?.keyId     || store.paymentConfig?.razorpayKeyId     || '',
+            keySecret: globalPg.razorpay?.keySecret || store.paymentConfig?.razorpayKeySecret || '',
+        },
+        phonepe: {
+            merchantId: globalPg.phonepe?.merchantId || store.paymentConfig?.phonepeMerchantId || '',
+            saltKey:    globalPg.phonepe?.saltKey    || store.paymentConfig?.phonepeSaltKey    || '',
+            saltIndex:  globalPg.phonepe?.saltIndex  || store.paymentConfig?.phonepeSaltIndex  || '1',
+        },
+    };
+};
 
 // ── Cloudflare Custom Hostname Helper ────────────────────────────────────────
 // Manages Custom Hostnames in Cloudflare for SaaS so SSL is auto-provisioned
@@ -61,6 +83,24 @@ const publicOrderLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Too many requests. Please try again later.' }
+});
+
+// SEC-7 — Rate limiter for payment verification (prevents signature brute-force)
+const verifyPaymentLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10, // 10 attempts per IP per 15 min
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many verification attempts. Please try again later.' }
+});
+
+// SEC-8 — Rate limiter for PhonePe S2S callbacks (prevents DoS flooding)
+const phonepeCbLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 30, // 30 callbacks per IP per minute
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: 'Too many requests.'
 });
 
 // UX-7: Rate limiter for the /view endpoint to prevent view-count inflation from bots
@@ -427,11 +467,20 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
         // If checkout mode is gateway, initialize payment
         if (store.checkoutMode === 'gateway') {
             try {
+                // Resolve credentials from global Settings (Settings → Payment Gateway),
+                // falling back to legacy store.paymentConfig for backward compatibility.
+                const pgCreds = await getStorePaymentCredentials(store);
+
                 if (store.paymentProvider === 'razorpay') {
+                // SEC-H1 FIX: Validate credentials exist before attempting to init Razorpay.
+                // Without this, empty creds cause a 500 but the order is already created in DB.
+                if (!pgCreds.razorpay.keyId || !pgCreds.razorpay.keySecret) {
+                    return res.status(400).json({ error: 'Razorpay is not configured. Please contact the store owner.' });
+                }
                 const Razorpay = require('razorpay');
                 const rzp = new Razorpay({
-                    key_id: store.paymentConfig?.razorpayKeyId,
-                    key_secret: store.paymentConfig?.razorpayKeySecret
+                    key_id: pgCreds.razorpay.keyId,
+                    key_secret: pgCreds.razorpay.keySecret
                 });
 
                 // #6 — Use order.total (includes tax) not order.subtotal (pre-tax)
@@ -447,7 +496,7 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
                     orderNumber,
                     gatewayOptions: {
                         provider: 'razorpay',
-                        keyId: store.paymentConfig?.razorpayKeyId,
+                        keyId: pgCreds.razorpay.keyId,
                         amount: rzpOrder.amount,
                         currency: rzpOrder.currency,
                         orderId: rzpOrder.id
@@ -455,15 +504,21 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
                 });
             } else if (store.paymentProvider === 'phonepe') {
                 const crypto = require('crypto');
-                const merchantId = store.paymentConfig?.phonepeMerchantId;
-                const saltKey = store.paymentConfig?.phonepeSaltKey;
-                const saltIndex = store.paymentConfig?.phonepeSaltIndex || '1';
+                // SEC-H1 FIX: Validate PhonePe credentials before init
+                if (!pgCreds.phonepe.merchantId || !pgCreds.phonepe.saltKey) {
+                    return res.status(400).json({ error: 'PhonePe is not configured. Please contact the store owner.' });
+                }
+                const merchantId = pgCreds.phonepe.merchantId;
+                const saltKey = pgCreds.phonepe.saltKey;
+                const saltIndex = pgCreds.phonepe.saltIndex;
 
                 const payload = {
                     merchantId: merchantId,
                     merchantTransactionId: order.orderNumber,
                     merchantUserId: customerPhone.replace(/\D/g, '') || 'USER123',
-                    amount: Math.round(order.subtotal * 100),
+                    // SEC-H2 FIX: Use order.total (includes tax), not order.subtotal (pre-tax).
+                    // Previously PhonePe charged customers the pre-tax amount — store owners lost GST revenue.
+                    amount: Math.round((order.total || order.subtotal) * 100),
                     // Redirect back to the store
                     redirectUrl: `${process.env.APP_URL || 'http://localhost:5173'}/store/${store.slug}/verify?order=${order.orderNumber}`,
                     redirectMode: "POST",
@@ -754,7 +809,8 @@ router.post('/:storeId/orders/pos', auth, async (req, res) => {
 });
 
 // POST /api/wastore/public/:slug/verify-payment  — Public: verify gateway payment
-router.post('/public/:slug/verify-payment', async (req, res) => {
+// SEC-7: Rate-limited to 10 attempts per IP per 15 min to prevent signature brute-force.
+router.post('/public/:slug/verify-payment', verifyPaymentLimiter, async (req, res) => {
     try {
         const { orderNumber, paymentData, provider } = req.body;
         const store = await WaStore.findOne({ where: { slug: req.params.slug.toLowerCase(), isActive: true } });
@@ -766,10 +822,23 @@ router.post('/public/:slug/verify-payment', async (req, res) => {
         if (provider === 'razorpay') {
             const crypto = require('crypto');
             const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = paymentData;
-            
+            // Use credentials from global Settings (centralised), fallback to legacy store config
+            const pgCreds = await getStorePaymentCredentials(store);
+
+            // SEC-C2 FIX: Reject immediately if keySecret is missing/empty.
+            // An empty HMAC key would produce a deterministic signature — completely bypassable.
+            if (!pgCreds.razorpay.keySecret) {
+                return res.status(500).json({ error: 'Payment gateway not configured on this store.' });
+            }
+
+            // SEC: Idempotency guard — don't double-confirm already-confirmed orders
+            if (order.status === 'confirmed' || order.paymentStatus === 'paid') {
+                return res.json({ success: true, order });
+            }
+
             const body = razorpay_order_id + "|" + razorpay_payment_id;
             const expectedSignature = crypto
-                .createHmac('sha256', store.paymentConfig?.razorpayKeySecret || '')
+                .createHmac('sha256', pgCreds.razorpay.keySecret)
                 .update(body.toString())
                 .digest('hex');
                 
@@ -800,9 +869,15 @@ router.post('/public/:slug/verify-payment', async (req, res) => {
         if (provider === 'phonepe-check') {
              // For PhonePe we can check the status API
              const crypto = require('crypto');
-             const merchantId = store.paymentConfig?.phonepeMerchantId;
-             const saltKey = store.paymentConfig?.phonepeSaltKey;
-             const saltIndex = store.paymentConfig?.phonepeSaltIndex || '1';
+             // SEC-L1 FIX: Sanitize orderNumber before using it in external API URL
+             if (!/^[A-Za-z0-9_-]+$/.test(orderNumber)) {
+                 return res.status(400).json({ error: 'Invalid order number format' });
+             }
+             // Use credentials from global Settings (centralised), fallback to legacy store config
+             const pgCreds = await getStorePaymentCredentials(store);
+             const merchantId = pgCreds.phonepe.merchantId;
+             const saltKey = pgCreds.phonepe.saltKey;
+             const saltIndex = pgCreds.phonepe.saltIndex;
 
              const checksum = crypto.createHash('sha256').update(`/pg/v1/status/${merchantId}/${orderNumber}` + saltKey).digest('hex') + "###" + saltIndex;
              
@@ -849,7 +924,8 @@ router.post('/public/:slug/verify-payment', async (req, res) => {
 });
 
 // POST /api/wastore/public/:slug/phonepe-callback
-router.post('/public/:slug/phonepe-callback', async (req, res) => {
+// SEC-8: Rate-limited to prevent DoS flooding of S2S callback endpoint.
+router.post('/public/:slug/phonepe-callback', phonepeCbLimiter, async (req, res) => {
     try {
         const { response } = req.body;
         if (!response) return res.status(400).send('No response');
@@ -858,8 +934,10 @@ router.post('/public/:slug/phonepe-callback', async (req, res) => {
         const store = await WaStore.findOne({ where: { slug: req.params.slug, isActive: true } });
         if (!store) return res.status(404).send('Store not found');
 
-        const saltKey = store.paymentConfig?.phonepeSaltKey;
-        const saltIndex = store.paymentConfig?.phonepeSaltIndex || '1';
+        // Use credentials from global Settings (centralised), fallback to legacy store config
+        const pgCreds = await getStorePaymentCredentials(store);
+        const saltKey = pgCreds.phonepe.saltKey;
+        const saltIndex = pgCreds.phonepe.saltIndex;
         const xVerifyHeader = req.headers['x-verify'];
         // SEC-5 FIX: Always reject if saltKey is not configured OR header is missing.
         // Previously, missing header skipped verification entirely — forgeable.
@@ -882,6 +960,10 @@ router.post('/public/:slug/phonepe-callback', async (req, res) => {
         const orderNumber = decoded.data.merchantTransactionId;
         
         const order = await WaOrder.findOne({ where: { orderNumber, storeId: store.id } });
+        // SEC: Idempotency — don't double-confirm orders already marked as confirmed
+        if (order && order.status === 'confirmed') {
+            return res.send('OK');
+        }
         if (order && decoded.code === 'PAYMENT_SUCCESS') {
             order.status = 'confirmed';
             await order.save();
@@ -1095,6 +1177,52 @@ router.get('/', async (req, res) => {
         res.json(stores);
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch stores' });
+    }
+});
+
+// GET /api/wastore/payment-gateway-status — Returns configured status of each payment gateway
+// from the authenticated user's global Settings (Settings -> Payment Gateway).
+// Accepts optional ?storeId=<id> to scope the lookup to a specific store's owner.
+// Never returns raw secrets — safe to call from the frontend.
+router.get('/payment-gateway-status', auth, async (req, res) => {
+    try {
+        // SEC-M3 FIX: If a storeId is provided, verify it belongs to req.user.id
+        // and use the store owner's userId (handles team members / impersonation correctly).
+        let targetUserId = req.user.id;
+        if (req.query.storeId) {
+            const storeForCheck = await WaStore.findOne({
+                where: { id: req.query.storeId, userId: req.user.id },
+                attributes: ['userId']
+            });
+            if (storeForCheck) {
+                targetUserId = storeForCheck.userId;
+            }
+            // If store doesn't belong to this user, silently fall back to their own userId
+            // (avoids leaking whether a storeId exists for another user)
+        }
+
+        const ownerSettings = await Settings.findOne({ where: { userId: targetUserId } });
+        const pg = ownerSettings?.paymentGateways || {};
+
+        const maskPreview = (val) => {
+            if (!val || typeof val !== 'string') return null;
+            return val.length > 6 ? val.slice(0, 6) + '...' + val.slice(-4) : '••••';
+        };
+
+        res.json({
+            razorpay: {
+                configured: !!(pg.razorpay?.keyId && pg.razorpay?.keySecret),
+                enabled:    !!(pg.razorpay?.enabled),
+                keyIdPreview: maskPreview(pg.razorpay?.keyId),
+            },
+            phonepe: {
+                configured: !!(pg.phonepe?.merchantId && pg.phonepe?.saltKey),
+                enabled:    !!(pg.phonepe?.enabled),
+                merchantIdPreview: maskPreview(pg.phonepe?.merchantId),
+            },
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch payment gateway status' });
     }
 });
 

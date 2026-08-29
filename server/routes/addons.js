@@ -197,6 +197,7 @@ router.post('/:id/create-order', async (req, res) => {
             orderNotes: { userId: req.user.id, addonId: addon.id },
             userEmail: req.user.email,
             userName: req.user.name,
+            userPhone: req.user.phone || '', // PaymentService will DB-lookup if empty
             successUrl: successUrl || `${process.env.FRONTEND_URL || 'http://localhost:5173'}/app/marketplace/${addon.id}`,
             cancelUrl: cancelUrl || `${process.env.FRONTEND_URL || 'http://localhost:5173'}/app/marketplace/${addon.id}`
         });

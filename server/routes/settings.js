@@ -16,7 +16,7 @@ const fs = require('fs');
 
 // ── Security: Mask sensitive values before sending to client ──
 const MASK = '••••••••';
-const isMasked = (val) => typeof val === 'string' && val.startsWith('••••••••');
+const isMasked = (val) => typeof val === 'string' && val.startsWith('••••••••') && val.length <= 12; // MASK(8) + up to 4-char suffix
 
 const maskSecret = (value) => {
     if (!value || typeof value !== 'string') return value;

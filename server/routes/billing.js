@@ -829,6 +829,7 @@ router.post('/create-order', async (req, res) => {
             orderNotes,
             userEmail: user.email,
             userName: user.name,
+            userPhone: user.phone || '',
             successUrl: successUrl || `${process.env.FRONTEND_URL || 'http://localhost:5173'}/app/checkout`,
             cancelUrl: cancelUrl || `${process.env.FRONTEND_URL || 'http://localhost:5173'}/app/checkout`
         });

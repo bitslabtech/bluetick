@@ -48,6 +48,7 @@ router.post('/order', async (req, res) => {
             orderNotes: { userId: req.user.id, orderId: order.id },
             userEmail: user.email,
             userName: user.name,
+            userPhone: contactNumber || '',
             successUrl: successUrl || `${frontendUrl}/dashboard?nfc_success=true&order_id=${order.id}`,
             cancelUrl: cancelUrl || `${frontendUrl}/dashboard?nfc_canceled=true`
         });

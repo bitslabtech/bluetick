@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Settings, Trash2, AlertTriangle, BarChart2, Eye, Globe, Info, ChevronDown, ChevronUp, LayoutGrid, Smartphone, Monitor, ShoppingBag, FileText, ClipboardList, Sparkles, CheckCircle, XCircle, Copy, ExternalLink, RefreshCw, Shield, Zap, ArrowRight, Clock, HelpCircle, Link2, Unlink, Search } from 'lucide-react';
+import { Settings, Trash2, AlertTriangle, AlertCircle, BarChart2, Eye, Globe, Info, ChevronDown, ChevronUp, LayoutGrid, Smartphone, Monitor, ShoppingBag, FileText, ClipboardList, Sparkles, CheckCircle, XCircle, Copy, ExternalLink, RefreshCw, Shield, Zap, ArrowRight, Clock, HelpCircle, Link2, Unlink, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const INDIAN_STATES = [
@@ -90,6 +90,7 @@ export default function WaStoreSettings() {
     const [paymentConfig, setPaymentConfig] = useState({ razorpayKeyId: '', razorpayKeySecret: '', phonepeMerchantId: '', phonepeSaltKey: '', phonepeSaltIndex: '1' });
     const [checkoutConfig, setCheckoutConfig] = useState({ minOrderValue: 0, flatShippingRate: 0, freeShippingThreshold: 0 });
     const [savingCheckout, setSavingCheckout] = useState(false);
+    const [globalPgStatus, setGlobalPgStatus] = useState(null); // null = loading, {} = loaded
 
     const [taxConfig, setTaxConfig] = useState({
         enabled: false, type: 'gst', taxInclusive: false, slabs: [], rate: 0,
@@ -164,6 +165,11 @@ export default function WaStoreSettings() {
         };
         fetchStore();
         fetchTemplates();
+        // Fetch global payment gateway configuration status.
+        // Pass storeId so the backend verifies ownership and returns the correct owner's PG config.
+        axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/payment-gateway-status?storeId=${storeId}`)
+            .then(res => setGlobalPgStatus(res.data))
+            .catch(() => setGlobalPgStatus({}));
     }, [storeId]);
 
     const handleDelete = async () => {
@@ -1058,35 +1064,71 @@ export default function WaStoreSettings() {
                                                     </select>
                                                 </div>
 
-                                                {paymentProvider === 'razorpay' && (
-                                                    <div className="space-y-3">
-                                                        <div>
-                                                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Razorpay Key ID</label>
-                                                            <input type="text" value={paymentConfig.razorpayKeyId || ''} onChange={e => setPaymentConfig(p => ({ ...p, razorpayKeyId: e.target.value }))} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
-                                                        </div>
-                                                        <div>
-                                                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Razorpay Key Secret</label>
-                                                            <input type="password" value={paymentConfig.razorpayKeySecret || ''} onChange={e => setPaymentConfig(p => ({ ...p, razorpayKeySecret: e.target.value }))} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
-                                                        </div>
-                                                    </div>
-                                                )}
+                                                {/* Payment Gateway Status Banner — reads from global Settings */}
+                                                {paymentProvider && (() => {
+                                                    const pgKey = paymentProvider === 'razorpay' ? 'razorpay' : 'phonepe';
+                                                    const status = globalPgStatus?.[pgKey];
+                                                    const isConfigured = status?.configured;
+                                                    const preview = paymentProvider === 'razorpay'
+                                                        ? status?.keyIdPreview
+                                                        : status?.merchantIdPreview;
 
-                                                {paymentProvider === 'phonepe' && (
-                                                    <div className="space-y-3">
-                                                        <div>
-                                                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Merchant ID</label>
-                                                            <input type="text" value={paymentConfig.phonepeMerchantId || ''} onChange={e => setPaymentConfig(p => ({ ...p, phonepeMerchantId: e.target.value }))} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
+                                                    if (globalPgStatus === null) {
+                                                        return (
+                                                            <div className="flex items-center gap-2 p-3 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 text-sm animate-pulse">
+                                                                <RefreshCw className="w-4 h-4 animate-spin" />
+                                                                Checking gateway configuration...
+                                                            </div>
+                                                        );
+                                                    }
+
+                                                    if (isConfigured) {
+                                                        return (
+                                                            <div className="flex flex-col gap-2 p-4 rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-900/20">
+                                                                <div className="flex items-center gap-2">
+                                                                    <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                                                    <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                                                                        {paymentProvider === 'razorpay' ? 'Razorpay' : 'PhonePe'} credentials configured ✓
+                                                                    </span>
+                                                                </div>
+                                                                {preview && (
+                                                                    <p className="text-xs text-emerald-600 dark:text-emerald-500 ml-6">
+                                                                        {paymentProvider === 'razorpay' ? 'Key ID' : 'Merchant ID'}: <code className="font-mono bg-emerald-100 dark:bg-emerald-900/40 px-1.5 py-0.5 rounded">{preview}</code>
+                                                                    </p>
+                                                                )}
+                                                                <p className="text-xs text-emerald-600 dark:text-emerald-500 ml-6">
+                                                                    Credentials are automatically used from your global <strong>Settings → Payment Gateway</strong>. No re-entry needed.
+                                                                </p>
+                                                            </div>
+                                                        );
+                                                    }
+
+                                                    // Not configured — direct user to global Settings (no manual fallback)
+                                                    return (
+                                                        <div className="flex flex-col gap-3 p-4 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-900/20">
+                                                            <div className="flex items-start gap-2">
+                                                                <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                                                                <div>
+                                                                    <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+                                                                        {paymentProvider === 'razorpay' ? 'Razorpay' : 'PhonePe'} not configured yet
+                                                                    </p>
+                                                                    <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
+                                                                        Configure your {paymentProvider === 'razorpay' ? 'Razorpay' : 'PhonePe'} API credentials once in your global Settings. They will be automatically used across all your stores — no need to enter them multiple times.
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <a
+                                                                href="/settings?tab=payment_gateway"
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg transition-colors w-fit"
+                                                            >
+                                                                <ExternalLink className="w-3.5 h-3.5" />
+                                                                Configure in Settings → Payment Gateway
+                                                            </a>
                                                         </div>
-                                                        <div>
-                                                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Salt Key</label>
-                                                            <input type="password" value={paymentConfig.phonepeSaltKey || ''} onChange={e => setPaymentConfig(p => ({ ...p, phonepeSaltKey: e.target.value }))} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
-                                                        </div>
-                                                        <div>
-                                                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Salt Index</label>
-                                                            <input type="text" value={paymentConfig.phonepeSaltIndex || '1'} onChange={e => setPaymentConfig(p => ({ ...p, phonepeSaltIndex: e.target.value }))} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm" />
-                                                        </div>
-                                                    </div>
-                                                )}
+                                                    );
+                                                })()}
                                             </div>
                                         )}
 

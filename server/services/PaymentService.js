@@ -7,6 +7,36 @@ const Razorpay = require('razorpay');
 
 class PaymentService {
     /**
+     * Sanitize a raw gateway config object to only expose fields needed for that gateway.
+     * This prevents the full DB config object (which may contain extra fields) from being
+     * passed around in memory or accidentally logged in error stack traces. (SEC-M2)
+     */
+    static _sanitizeConfig(name, raw) {
+        if (!raw) return {};
+        switch (name) {
+            case 'razorpay':
+                return { keyId: raw.keyId || '', keySecret: raw.keySecret || '' };
+            case 'stripe':
+                return { secretKey: raw.secretKey || '' };
+            case 'phonepe':
+                return {
+                    merchantId: raw.merchantId || '',
+                    saltKey: raw.saltKey || '',
+                    saltIndex: raw.saltIndex || '1',
+                    mode: raw.mode || 'TEST'
+                };
+            case 'cashfree':
+                return {
+                    appId: raw.appId || '',
+                    secretKey: raw.secretKey || '',
+                    mode: raw.mode || 'TEST'
+                };
+            default:
+                return {};
+        }
+    }
+
+    /**
      * Get the currently active and enabled payment gateway from Superadmin Settings
      * Priority: Admin selected defaultGateway -> First enabled -> throw error
      */
@@ -28,7 +58,7 @@ class PaymentService {
         if (defaultGtw && gateways[defaultGtw] && gateways[defaultGtw].enabled) {
             return {
                 name: defaultGtw,
-                config: gateways[defaultGtw]
+                config: this._sanitizeConfig(defaultGtw, gateways[defaultGtw])
             };
         }
 
@@ -38,7 +68,7 @@ class PaymentService {
             if (gateways[gtw] && gateways[gtw].enabled) {
                 return {
                     name: gtw,
-                    config: gateways[gtw]
+                    config: this._sanitizeConfig(gtw, gateways[gtw])
                 };
             }
         }
@@ -47,10 +77,10 @@ class PaymentService {
         if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
             return {
                 name: 'razorpay',
-                config: {
+                config: this._sanitizeConfig('razorpay', {
                     keyId: process.env.RAZORPAY_KEY_ID,
                     keySecret: process.env.RAZORPAY_KEY_SECRET
-                }
+                })
             };
         }
 
@@ -59,8 +89,9 @@ class PaymentService {
 
     /**
      * Create a payment intent/order across any supported gateway
+     * @param {string} userPhone - Optional. Caller's phone number (used by Cashfree). Falls back to DB lookup.
      */
-    static async createPaymentIntent({ amount, currency, description, orderNotes, userEmail, userName, successUrl, cancelUrl }) {
+    static async createPaymentIntent({ amount, currency, description, orderNotes, userEmail, userName, userPhone, successUrl, cancelUrl }) {
         const { name, config } = await this.getActiveGateway();
         
         // Amounts are passed in standard units (e.g. 10.00 USD)
@@ -177,6 +208,18 @@ class PaymentService {
 
             const orderId = `order_${Date.now()}`;
 
+            // SEC-L2 FIX: Use the caller-supplied phone or look it up from DB.
+            // Previously hardcoded to '9999999999', which polluted Cashfree transaction records.
+            let resolvedPhone = userPhone || '';
+            if (!resolvedPhone && orderNotes?.userId) {
+                try {
+                    const payingUser = await User.findByPk(orderNotes.userId, { attributes: ['phone'] });
+                    resolvedPhone = payingUser?.phone || '';
+                } catch (_) { /* non-fatal */ }
+            }
+            // Cashfree requires a non-empty phone — use a safe placeholder only as last resort
+            const cashfreePhone = resolvedPhone || '0000000000';
+
             const payload = {
                 order_id: orderId,
                 order_amount: amount,
@@ -184,7 +227,7 @@ class PaymentService {
                 customer_details: {
                     customer_id: String(orderNotes.userId || 'guest'),
                     customer_email: userEmail || 'customer@example.com',
-                    customer_phone: '9999999999' // fallback
+                    customer_phone: cashfreePhone
                 },
                 order_meta: {
                     return_url: `${successUrl}?payment_success=true&gateway=cashfree&order_id=${orderId}`
