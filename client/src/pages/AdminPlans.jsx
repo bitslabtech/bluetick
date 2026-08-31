@@ -114,13 +114,13 @@ const AdminPlans = () => {
         try {
             if (editingPlan) {
                 const res = await axios.put(`/api/plans/${editingPlan.id}`, formData);
-                setPlans(plans.map(p => p.id === editingPlan.id ? res.data : p));
                 showToast({ type: 'success', message: `${res.data.name} plan updated!` });
             } else {
                 const res = await axios.post('/api/plans', formData);
-                setPlans([...plans, res.data]);
                 showToast({ type: 'success', message: `${res.data.name} plan created!` });
             }
+            // Re-fetch ALL plans so deleted features are purged from every plan's state
+            await fetchPlans();
             setIsPlanModalOpen(false);
         } catch (err) {
             showModal({ type: 'error', title: 'Error', message: err.response?.data?.error || "Failed to save plan", confirmText: 'Close' });
@@ -1417,16 +1417,20 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                                                     <span className={`${isIncluded ? 'translate-x-4' : 'translate-x-1'} inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm`} />
                                                                 </button>
 
-                                                                <span className={`text-sm font-medium flex-1 ${isIncluded ? 'text-slate-800 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`}>
+                                                                <span 
+                                                                    style={{ flex: 7 }}
+                                                                    className={`text-sm font-medium ${isIncluded ? 'text-slate-800 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`}
+                                                                >
                                                                     {mf.name}
                                                                 </span>
 
                                                                 {/* Qty/value input when included */}
                                                                 {isIncluded && (
                                                                     <input
+                                                                        style={{ flex: 3 }}
                                                                         value={planFeat?.qty === '✓' ? '' : (planFeat?.qty || '')}
                                                                         onChange={e => planFeat && handleCoreFeatureChange(planFeat._id, 'qty', e.target.value || '✓')}
-                                                                        className="modern-input w-28 text-center text-sm py-1.5"
+                                                                        className="modern-input text-center text-sm py-1.5"
                                                                         placeholder="e.g. 100 / ✓"
                                                                         title="Optional: enter a quantity (e.g. 100 messages) or leave blank for a simple checkmark"
                                                                     />
@@ -1459,24 +1463,26 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                                         </div>
                                                     )}
                                                     {localOnly.map(feat => (
-                                                        <div key={feat._id} className="flex gap-3 items-center">
+                                                        <div key={feat._id} className="flex gap-3 items-center w-full">
                                                             <input
+                                                                style={{ flex: 7 }}
                                                                 value={feat.name || ''}
                                                                 onChange={e => handleCoreFeatureChange(feat._id, 'name', e.target.value)}
-                                                                className="modern-input flex-[7]"
+                                                                className="modern-input min-w-0"
                                                                 placeholder="e.g. WhatsApp Broadcasts"
                                                             />
                                                             <input
+                                                                style={{ flex: 3 }}
                                                                 value={feat.qty || ''}
                                                                 onChange={e => handleCoreFeatureChange(feat._id, 'qty', e.target.value)}
-                                                                className="modern-input flex-[3] text-center"
+                                                                className="modern-input text-center min-w-0"
                                                                 placeholder="e.g. Unlimited"
                                                                 title="What to show next to this feature on the pricing card. E.g. 'Unlimited', '100/mo', '5 seats'. Leave blank for a plain ✓ checkmark."
                                                             />
                                                             <button
                                                                 type="button"
                                                                 onClick={() => removeCoreFeature(feat._id)}
-                                                                className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all shrink-0"
+                                                                className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
                                                                 title="Delete this feature"
                                                             >
                                                                 <Trash2 className="w-5 h-5" />
