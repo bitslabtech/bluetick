@@ -1424,6 +1424,18 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                                                 )}
 
                                                                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider bg-slate-100 dark:bg-white/10 px-2 py-0.5 rounded-full shrink-0">master</span>
+                                                                
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        if (planFeat) removeCoreFeature(planFeat._id);
+                                                                    }}
+                                                                    className={`p-2.5 rounded-xl transition-all shrink-0 ml-1 ${planFeat ? 'text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10' : 'opacity-0 cursor-default'}`}
+                                                                    title={planFeat ? "Remove feature from this plan" : ""}
+                                                                    disabled={!planFeat}
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
                                                             </div>
                                                         );
                                                     })}
