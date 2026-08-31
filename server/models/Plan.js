@@ -95,6 +95,11 @@ const Plan = sequelize.define('Plan', {
         type: DataTypes.JSON, // Stores array of objects: [{ name: '...', qty: '...' }]
         defaultValue: []
     },
+    featureOrder: {
+        type: DataTypes.JSON, // { whatsapp: ['_s_msg', '_s_contacts', ...coreId], store: [...], ads: [...], vcard: [...] }
+        defaultValue: {},
+        comment: 'Superadmin-defined display order for all items in each product section on the pricing card'
+    },
     flowBotEnabled: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,

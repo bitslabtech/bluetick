@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
-import { CreditCard, Plus, Check, X, Edit, Trash2, ShieldCheck, Users, Store, Zap, MessageSquare, FileText, Sparkles, Save, Loader2, Settings, DollarSign, Activity, Layers, List, Star } from 'lucide-react';
+import { CreditCard, Plus, Check, X, Edit, Trash2, ShieldCheck, Users, Store, Zap, MessageSquare, FileText, Sparkles, Save, Loader2, Settings, DollarSign, Activity, Layers, List, Star, Eye, GripVertical } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
 import AdminHeader from '../components/AdminHeader';
 import ThemeToggle from '../components/ThemeToggle';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const AdminPlans = () => {
     const { user } = useAuth();
@@ -746,14 +749,63 @@ const LimitInputCard = ({ name, value, onChange, label, icon: Icon, colorClass }
 };
 
 // ════════════════════════════════════════════
+//  SORTABLE REVIEW ROW (handles both static and coreFeature items)
+// ════════════════════════════════════════════
+const SortableReviewRow = ({ id, label, included, qty }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.45 : 1,
+        zIndex: isDragging ? 20 : 'auto',
+    };
+    const isGreen = included !== false && qty !== '0';
+    return (
+        <li
+            ref={setNodeRef}
+            style={style}
+            className={`flex items-center gap-2.5 text-sm font-semibold ${
+                isDragging ? 'bg-white dark:bg-slate-800 rounded-lg px-1 shadow-xl ring-2 ring-[#0088cc]/30' : ''
+            }`}
+        >
+            <button
+                type="button"
+                {...attributes}
+                {...listeners}
+                className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 dark:hover:text-slate-400 shrink-0 p-0.5 rounded transition-colors"
+                title="Drag to reorder"
+            >
+                <GripVertical className="w-3.5 h-3.5" />
+            </button>
+            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
+                isGreen
+                    ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400'
+            }`}>
+                {isGreen ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : <X className="w-2.5 h-2.5 stroke-[3]" />}
+            </div>
+            <span className="leading-tight flex-1">
+                {qty && qty !== '0' && qty !== '✓' && (
+                    <span className="font-bold mr-1">{qty}</span>
+                )}
+                {label}
+            </span>
+        </li>
+    );
+};
+
+// ════════════════════════════════════════════
 //  PLAN MODAL
 // ════════════════════════════════════════════
 const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClose, onSave }) => {
+    const genId = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
+
     const initializeCoreFeatures = () => {
         const planFeatures = plan?.coreFeatures || [];
         const merged = masterCoreFeatures.map(mf => {
             const existing = planFeatures.find(f => f.name === mf.name);
             return {
+                _id: genId(),
                 name: mf.name,
                 qty: existing ? existing.qty : '',
                 category: existing?.category || mf.category || 'whatsapp'
@@ -761,7 +813,7 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
         });
         planFeatures.forEach(f => {
             if (!merged.find(m => m.name === f.name)) {
-                merged.push({ name: f.name, qty: f.qty, category: f.category || 'whatsapp' });
+                merged.push({ _id: genId(), name: f.name, qty: f.qty, category: f.category || 'whatsapp' });
             }
         });
         return merged;
@@ -804,6 +856,7 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
         flowBotEnabled: plan?.flowBotEnabled || false,
         flowLimit: plan?.flowLimit !== undefined ? plan.flowLimit : 5,
         storageLimitMb: plan?.storageLimitMb !== undefined ? plan.storageLimitMb : 100,
+        featureOrder: plan?.featureOrder || {},
     });
 
     const handleChange = (e) => {
@@ -829,26 +882,138 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
         }));
     };
 
-    const handleCoreFeatureChange = (idx, field, value) => {
-        const newCore = [...formData.coreFeatures];
-        newCore[idx] = { ...newCore[idx], [field]: value };
-        setFormData({ ...formData, coreFeatures: newCore });
+    // Uses stable _id so that lookups never collide on empty-name rows
+    const handleCoreFeatureChange = (_id, field, value) => {
+        setFormData(prev => ({
+            ...prev,
+            coreFeatures: prev.coreFeatures.map(f => f._id === _id ? { ...f, [field]: value } : f)
+        }));
     };
 
-    const addCoreFeature = () => setFormData({ ...formData, coreFeatures: [...formData.coreFeatures, { name: '', qty: '' }] });
-    const removeCoreFeature = (idx) => setFormData({ ...formData, coreFeatures: formData.coreFeatures.filter((_, i) => i !== idx) });
+    const removeCoreFeature = (_id) => setFormData(prev => ({
+        ...prev,
+        coreFeatures: prev.coreFeatures.filter(f => f._id !== _id)
+    }));
+
+    // Reorders coreFeatures within a single category, preserving all other categories' items
+    const handleCoreFeatureReorder = (category, reorderedItems) => {
+        setFormData(prev => {
+            const others = prev.coreFeatures.filter(f => (f.category || 'whatsapp') !== category);
+            return { ...prev, coreFeatures: [...others, ...reorderedItems] };
+        });
+    };
+
+    // ── Build static item definitions per category ──
+    // These are computed lazily inside the Review tab render but we define
+    // the stable static ID constants here so both the initializer and
+    // the DnD handler reference the same keys.
+    const STATIC_ITEM_DEFS = {
+        whatsapp: [
+            { id: '_s_msg',       getLabel: d => Number(d.messageLimit) === 0 ? 'Messages/mo' : `${d.messageLimit === -1 ? 'Unlimited' : Number(d.messageLimit).toLocaleString()} Messages/mo`,       always: true, included: d => Number(d.messageLimit) > 0 || d.messageLimit === -1 },
+            { id: '_s_contacts',  getLabel: d => Number(d.contactLimit) === 0 ? 'Contacts' : `${d.contactLimit === -1 ? 'Unlimited' : Number(d.contactLimit).toLocaleString()} Contacts`,           always: true, included: d => Number(d.contactLimit) > 0 || d.contactLimit === -1 },
+            { id: '_s_templates', getLabel: d => Number(d.templateLimit) === 0 ? 'Templates' : `${d.templateLimit === -1 ? 'Unlimited' : d.templateLimit} Templates`,                                  always: true, included: d => Number(d.templateLimit) > 0 || d.templateLimit === -1 },
+            { id: '_s_team',      getLabel: d => Number(d.teamMemberLimit) === 0 ? 'Team Members' : `${d.teamMemberLimit === -1 ? 'Unlimited' : d.teamMemberLimit} Team Members`,                           always: true, included: d => Number(d.teamMemberLimit) > 0 || d.teamMemberLimit === -1 },
+            { id: '_s_flowbot',   getLabel: d => d.flowBotEnabled ? `${d.flowLimit === -1 ? 'Unlimited' : d.flowLimit} AI FlowBots` : 'AI FlowBot Builder', always: true, included: d => d.flowBotEnabled },
+            { id: '_s_ai',        getLabel: d => Number(d.aiTokensAllowance) === 0 ? 'AI Tokens' : `${d.aiTokensAllowance === -1 ? 'Unlimited' : Number(d.aiTokensAllowance).toLocaleString()} AI Tokens`, always: true, included: d => Number(d.aiTokensAllowance) > 0 || d.aiTokensAllowance === -1 },
+        ],
+        store: [
+            { id: '_s_store', getLabel: d => (Number(d.waStoreLimit) > 0 || d.waStoreLimit === -1) ? `${d.waStoreLimit === -1 ? 'Unlimited' : d.waStoreLimit} Online Store${d.waStoreLimit !== 1 ? 's' : ''}` : 'Online Store', always: true, included: d => Number(d.waStoreLimit) > 0 || d.waStoreLimit === -1 },
+        ],
+        ads: [
+            { id: '_s_meta', getLabel: () => 'Meta Ads Manager',          always: true, included: d => d.allowMetaAds },
+            { id: '_s_ctwa', getLabel: () => 'Click-to-WhatsApp Ads',     always: true, included: d => d.allowCtwaAnalytics },
+        ],
+        vcard: [
+            { id: '_s_vcard', getLabel: d => (Number(d.vcardLimit) > 0 || d.vcardLimit === -1) ? `${d.vcardLimit === -1 ? 'Unlimited' : d.vcardLimit} VeCard${d.vcardLimit !== 1 ? 's' : ''}` : 'VeCards', always: true, included: d => Number(d.vcardLimit) > 0 || d.vcardLimit === -1 },
+        ],
+    };
+
+    // Build default section order: all visible static IDs first, then coreFeature IDs by category
+    const buildDefaultSectionOrder = (data, coreFeats) => {
+        const order = {};
+        Object.entries(STATIC_ITEM_DEFS).forEach(([cat, defs]) => {
+            const staticIds = defs.filter(d => d.always || (d.show && d.show(data))).map(d => d.id);
+            const coreIds = coreFeats.filter(f => (f.category || 'whatsapp') === cat && f.name && f.name.trim()).map(f => f._id);
+            order[cat] = [...staticIds, ...coreIds];
+        });
+        return order;
+    };
+
+    // sectionOrder is the source of truth for the ordering of all items in each
+    // category inside the Review card. Initialised from plan.featureOrder if present.
+    const [sectionOrder, setSectionOrder] = useState(() => {
+        const saved = plan?.featureOrder;
+        if (saved && typeof saved === 'object' && Object.keys(saved).length > 0) {
+            return saved;
+        }
+        return buildDefaultSectionOrder(
+            {
+                messageLimit: plan?.messageLimit ?? 30,
+                contactLimit: plan?.contactLimit ?? 10,
+                templateLimit: plan?.templateLimit ?? 2,
+                teamMemberLimit: plan?.teamMemberLimit ?? 0,
+                flowBotEnabled: plan?.flowBotEnabled ?? false,
+                flowLimit: plan?.flowLimit ?? 5,
+                aiTokensAllowance: plan?.aiTokensAllowance ?? 0,
+                waStoreLimit: plan?.waStoreLimit ?? 0,
+                allowMetaAds: plan?.allowMetaAds ?? false,
+                allowCtwaAnalytics: plan?.allowCtwaAnalytics ?? false,
+                vcardLimit: plan?.vcardLimit ?? 0,
+            },
+            initializeCoreFeatures()
+        );
+    });
+
+    // Called when a drag ends in the Review card.
+    // Updates sectionOrder, re-derives coreFeatures order, and syncs featureOrder into formData.
+    const handleSectionDragEnd = (category, activeId, overId) => {
+        if (!overId || activeId === overId) return;
+        setSectionOrder(prev => {
+            const current = prev[category] || [];
+            const oldIdx = current.indexOf(activeId);
+            const newIdx = current.indexOf(overId);
+            if (oldIdx === -1 || newIdx === -1) return prev;
+            const newOrder = arrayMove(current, oldIdx, newIdx);
+            const updated = { ...prev, [category]: newOrder };
+            // Also re-derive coreFeatures order from the new section ordering
+            setFormData(fd => {
+                const coreFeatMap = {};
+                fd.coreFeatures.forEach(f => { coreFeatMap[f._id] = f; });
+                // Collect all coreFeature ids in the new global order across all categories
+                const newCoreOrder = [];
+                Object.entries(updated).forEach(([, ids]) => {
+                    ids.forEach(id => {
+                        if (coreFeatMap[id]) newCoreOrder.push(coreFeatMap[id]);
+                    });
+                });
+                // Append any coreFeatures not tracked in section order (safety net)
+                fd.coreFeatures.forEach(f => {
+                    if (!newCoreOrder.find(x => x._id === f._id)) newCoreOrder.push(f);
+                });
+                return { ...fd, coreFeatures: newCoreOrder, featureOrder: updated };
+            });
+            return updated;
+        });
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        // Strip the internal _id before sending to backend
+        const cleanCore = formData.coreFeatures
+            .filter(f => f.name && f.name.trim() !== '')
+            // eslint-disable-next-line no-unused-vars
+            .map(({ _id, ...rest }) => rest);
         const cleaned = { 
             ...formData, 
             features: formData.features.filter(f => f.trim() !== ''),
-            coreFeatures: formData.coreFeatures.filter(f => f.name && f.name.trim() !== '')
+            coreFeatures: cleanCore
         };
         cleaned.price = parseFloat(cleaned.monthlyPrice) || parseFloat(cleaned.halfYearlyPrice) || parseFloat(cleaned.yearlyPrice) || 0;
         cleaned.interval = cleaned.monthlyPrice > 0 ? 'month' : cleaned.halfYearlyPrice > 0 ? 'half-year' : 'year';
         onSave(cleaned);
     };
+
+    const reviewSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
     const tabs = [
         { id: 'general', label: 'General', icon: Settings },
@@ -856,6 +1021,7 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
         { id: 'limits', label: 'Usage Limits', icon: Activity },
         { id: 'modules', label: 'Modules & Access', icon: Layers },
         { id: 'features', label: 'Features List', icon: List },
+        { id: 'review', label: 'Review Card', icon: Eye },
     ];
 
     const currentTabIndex = tabs.findIndex(t => t.id === activeTab);
@@ -968,7 +1134,7 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Monthly Price</label>
                                             <div className="relative">
                                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">{formData.currency === 'INR' ? '₹' : formData.currency === 'EUR' ? '€' : '$'}</span>
-                                                <input type="number" step="0.01" name="monthlyPrice" value={formData.monthlyPrice} onChange={handleChange} className="modern-input pl-8" placeholder="0.00" />
+                                                <input type="number" step="0.01" name="monthlyPrice" value={formData.monthlyPrice} onChange={handleChange} className="modern-input pl-10" placeholder="0.00" />
                                             </div>
                                             <p className="text-[10px] text-slate-400 mt-1">Optional. Leave blank to disable.</p>
                                         </div>
@@ -976,7 +1142,7 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Half-Yearly Price</label>
                                             <div className="relative">
                                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">{formData.currency === 'INR' ? '₹' : formData.currency === 'EUR' ? '€' : '$'}</span>
-                                                <input type="number" step="0.01" name="halfYearlyPrice" value={formData.halfYearlyPrice} onChange={handleChange} className="modern-input pl-8" placeholder="0.00" />
+                                                <input type="number" step="0.01" name="halfYearlyPrice" value={formData.halfYearlyPrice} onChange={handleChange} className="modern-input pl-10" placeholder="0.00" />
                                             </div>
                                             <p className="text-[10px] text-slate-400 mt-1">Optional. Leave blank to disable.</p>
                                         </div>
@@ -984,7 +1150,7 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Yearly Price</label>
                                             <div className="relative">
                                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">{formData.currency === 'INR' ? '₹' : formData.currency === 'EUR' ? '€' : '$'}</span>
-                                                <input type="number" step="0.01" name="yearlyPrice" value={formData.yearlyPrice} onChange={handleChange} className="modern-input pl-8" placeholder="0.00" />
+                                                <input type="number" step="0.01" name="yearlyPrice" value={formData.yearlyPrice} onChange={handleChange} className="modern-input pl-10" placeholder="0.00" />
                                             </div>
                                         </div>
                                     </div>
@@ -1222,8 +1388,7 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                                 <div className="p-5 space-y-3">
                                                     {/* Master features — appear across all plans */}
                                                     {masterInCat.map(mf => {
-                                                        const featIdx = formData.coreFeatures.findIndex(f => f.name === mf.name);
-                                                        const planFeat = featIdx >= 0 ? formData.coreFeatures[featIdx] : null;
+                                                        const planFeat = formData.coreFeatures.find(f => f.name === mf.name);
                                                         const isIncluded = planFeat && planFeat.qty && planFeat.qty !== '0';
 
                                                         return (
@@ -1232,10 +1397,10 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => {
-                                                                        if (featIdx >= 0) {
-                                                                            handleCoreFeatureChange(featIdx, 'qty', isIncluded ? '' : '✓');
+                                                                        if (planFeat) {
+                                                                            handleCoreFeatureChange(planFeat._id, 'qty', isIncluded ? '' : '✓');
                                                                         } else {
-                                                                            setFormData(prev => ({ ...prev, coreFeatures: [...prev.coreFeatures, { name: mf.name, qty: '✓', category }] }));
+                                                                            setFormData(prev => ({ ...prev, coreFeatures: [...prev.coreFeatures, { _id: genId(), name: mf.name, qty: '✓', category }] }));
                                                                         }
                                                                     }}
                                                                     className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none ${isIncluded ? toggleOn : 'bg-slate-300 dark:bg-slate-600'}`}
@@ -1247,13 +1412,14 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                                                     {mf.name}
                                                                 </span>
 
-                                                                {/* Qty input when included */}
+                                                                {/* Qty/value input when included */}
                                                                 {isIncluded && (
                                                                     <input
                                                                         value={planFeat?.qty === '✓' ? '' : (planFeat?.qty || '')}
-                                                                        onChange={e => featIdx >= 0 && handleCoreFeatureChange(featIdx, 'qty', e.target.value || '✓')}
+                                                                        onChange={e => planFeat && handleCoreFeatureChange(planFeat._id, 'qty', e.target.value || '✓')}
                                                                         className="modern-input w-28 text-center text-sm py-1.5"
-                                                                        placeholder="Qty (optional)"
+                                                                        placeholder="e.g. 100 / ✓"
+                                                                        title="Optional: enter a quantity (e.g. 100 messages) or leave blank for a simple checkmark"
                                                                     />
                                                                 )}
 
@@ -1263,44 +1429,51 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                                     })}
 
                                                     {/* Local-only features (defined in this plan, not in master yet) */}
-                                                    {localOnly.map(feat => {
-                                                        const idx = formData.coreFeatures.findIndex(f => f.name === feat.name && (f.category || 'whatsapp') === category);
-                                                        return (
-                                                            <div key={`local-${feat.name}-${idx}`} className="flex gap-3 items-center group">
-                                                                <input
-                                                                    value={feat.qty || ''}
-                                                                    onChange={e => handleCoreFeatureChange(idx, 'qty', e.target.value)}
-                                                                    className="modern-input w-28 text-center"
-                                                                    placeholder="Qty"
-                                                                />
-                                                                <input
-                                                                    value={feat.name || ''}
-                                                                    onChange={e => handleCoreFeatureChange(idx, 'name', e.target.value)}
-                                                                    className="modern-input flex-1"
-                                                                    placeholder="Feature name (e.g. WhatsApp Forms)"
-                                                                />
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => removeCoreFeature(idx)}
-                                                                    className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 shrink-0"
-                                                                >
-                                                                    <Trash2 className="w-5 h-5" />
-                                                                </button>
-                                                            </div>
-                                                        );
-                                                    })}
+                                                    {/* Each row is keyed and identified by stable _id — fixes the state-leakage bug */}
+                                                    {localOnly.length > 0 && (
+                                                        <div className="flex gap-3 items-center px-1 mb-1">
+                                                            <span className="flex-[7] text-[10px] font-bold text-slate-400 uppercase tracking-wider">Feature Name</span>
+                                                            <span className="flex-[3] text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">Display Value</span>
+                                                            <span className="w-11 shrink-0" />
+                                                        </div>
+                                                    )}
+                                                    {localOnly.map(feat => (
+                                                        <div key={feat._id} className="flex gap-3 items-center">
+                                                            <input
+                                                                value={feat.name || ''}
+                                                                onChange={e => handleCoreFeatureChange(feat._id, 'name', e.target.value)}
+                                                                className="modern-input flex-[7]"
+                                                                placeholder="e.g. WhatsApp Broadcasts"
+                                                            />
+                                                            <input
+                                                                value={feat.qty || ''}
+                                                                onChange={e => handleCoreFeatureChange(feat._id, 'qty', e.target.value)}
+                                                                className="modern-input flex-[3] text-center"
+                                                                placeholder="e.g. Unlimited"
+                                                                title="What to show next to this feature on the pricing card. E.g. 'Unlimited', '100/mo', '5 seats'. Leave blank for a plain ✓ checkmark."
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removeCoreFeature(feat._id)}
+                                                                className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all shrink-0"
+                                                                title="Delete this feature"
+                                                            >
+                                                                <Trash2 className="w-5 h-5" />
+                                                            </button>
+                                                        </div>
+                                                    ))}
 
                                                     {masterInCat.length === 0 && localOnly.length === 0 && (
-                                                        <p className="text-sm text-slate-400 dark:text-slate-500 italic text-center py-1">No features yet — add one below.</p>
+                                                        <p className="text-sm text-slate-400 dark:text-slate-500 italic text-center py-1">No features yet — click the button below to add one.</p>
                                                     )}
 
-                                                    {/* Add feature button */}
+                                                    {/* Add feature button — passes a stable _id so every new row is uniquely tracked */}
                                                     <button
                                                         type="button"
-                                                        onClick={() => setFormData(prev => ({ ...prev, coreFeatures: [...prev.coreFeatures, { name: '', qty: '', category }] }))}
+                                                        onClick={() => setFormData(prev => ({ ...prev, coreFeatures: [...prev.coreFeatures, { _id: genId(), name: '', qty: '', category }] }))}
                                                         className={`flex items-center gap-2 px-4 py-2.5 font-bold rounded-xl border border-dashed transition-all w-full justify-center text-sm ${btnClass}`}
                                                     >
-                                                        <Plus className="w-4 h-4" /> Add to {label.split('–')[0].trim().split('& ').pop().split(' ').slice(0,2).join(' ')}
+                                                        <Plus className="w-4 h-4" /> Add to {label.split('–')[0].trim()}
                                                     </button>
                                                 </div>
                                             </div>
@@ -1309,6 +1482,193 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                 </div>
                             </div>
                         )}
+
+                        {/* ════ REVIEW TAB ════ */}
+                        {activeTab === 'review' && (() => {
+                            const d = formData; // live alias
+                            const currencySymbol = d.currency === 'INR' ? '₹' : d.currency === 'EUR' ? '€' : '$';
+
+                            // For each category, build an ordered flat list of all items
+                            // respecting sectionOrder. Items not in sectionOrder are appended.
+                            const categorySections = [
+                                { category: 'whatsapp', label: 'WhatsApp CRM & Automation', Icon: MessageSquare, headerBg: 'bg-indigo-50 dark:bg-indigo-900/20', iconBg: 'bg-indigo-100 dark:bg-indigo-900/40', iconColor: 'text-indigo-600 dark:text-indigo-400', titleColor: 'text-indigo-800 dark:text-indigo-200', border: 'border-indigo-100 dark:border-indigo-900/30' },
+                                { category: 'store',    label: 'Smart eCommerce Store',       Icon: Store,         headerBg: 'bg-emerald-50 dark:bg-emerald-900/20', iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400', titleColor: 'text-emerald-800 dark:text-emerald-200', border: 'border-emerald-100 dark:border-emerald-900/30' },
+                                { category: 'ads',      label: 'Meta Digital Marketing',     Icon: Activity,      headerBg: 'bg-rose-50 dark:bg-rose-900/20', iconBg: 'bg-rose-100 dark:bg-rose-900/40', iconColor: 'text-rose-600 dark:text-rose-400', titleColor: 'text-rose-800 dark:text-rose-200', border: 'border-rose-100 dark:border-rose-900/30' },
+                                { category: 'vcard',    label: 'VeCards – Digital Business Card', Icon: CreditCard, headerBg: 'bg-cyan-50 dark:bg-cyan-900/20', iconBg: 'bg-cyan-100 dark:bg-cyan-900/40', iconColor: 'text-cyan-600 dark:text-cyan-400', titleColor: 'text-cyan-800 dark:text-cyan-200', border: 'border-cyan-100 dark:border-cyan-900/30' },
+                            ];
+
+                            return (
+                                <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                                    <div className="mb-5">
+                                        <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Live Preview</h4>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">Exact replica of the public pricing card. <span className="font-semibold text-[#0088cc]">Drag any row to reorder — all items are moveable.</span></p>
+                                    </div>
+
+                                    <div className="max-w-[340px] mx-auto">
+                                        <div className="relative p-5 rounded-[2rem] border border-slate-200 dark:border-white/10 bg-white dark:bg-surface-dark shadow-xl flex flex-col gap-5">
+                                            {/* Popular badge */}
+                                            {d.isPopular && (
+                                                <div className="absolute top-0 right-6 px-3.5 py-1.5 bg-gradient-to-r from-indigo-500 to-violet-600 text-white text-[9px] uppercase tracking-widest font-bold rounded-b-xl shadow-lg whitespace-nowrap z-10">
+                                                    MOST POPULAR
+                                                </div>
+                                            )}
+
+                                            {/* Plan name & prices */}
+                                            <div>
+                                                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1 pt-2">{d.name || 'Plan Name'}</h3>
+                                                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4">{d.description || 'Your plan tagline here.'}</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {parseFloat(d.monthlyPrice) > 0 && (
+                                                        <div className="flex-1 text-center p-2 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5">
+                                                            <div className="text-lg font-extrabold text-slate-900 dark:text-white">{currencySymbol}{parseFloat(d.monthlyPrice).toLocaleString()}</div>
+                                                            <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Monthly</div>
+                                                        </div>
+                                                    )}
+                                                    {parseFloat(d.halfYearlyPrice) > 0 && (
+                                                        <div className="flex-1 text-center p-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-900/30">
+                                                            <div className="text-lg font-extrabold text-indigo-700 dark:text-indigo-300">{currencySymbol}{parseFloat(d.halfYearlyPrice).toLocaleString()}</div>
+                                                            <div className="text-[10px] text-indigo-400 uppercase font-bold tracking-wider">6-Month</div>
+                                                        </div>
+                                                    )}
+                                                    {parseFloat(d.yearlyPrice) > 0 && (
+                                                        <div className="flex-1 text-center p-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/30">
+                                                            <div className="text-lg font-extrabold text-emerald-700 dark:text-emerald-300">{currencySymbol}{parseFloat(d.yearlyPrice).toLocaleString()}</div>
+                                                            <div className="text-[10px] text-emerald-400 uppercase font-bold tracking-wider">Yearly</div>
+                                                        </div>
+                                                    )}
+                                                    {!parseFloat(d.monthlyPrice) && !parseFloat(d.halfYearlyPrice) && !parseFloat(d.yearlyPrice) && (
+                                                        <div className="text-sm text-slate-400 italic">Free / No pricing set</div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* 4 Category Sections — all items draggable */}
+                                            <div className="space-y-4">
+                                                {categorySections.map(({ category, label, Icon, headerBg, iconBg, iconColor, titleColor, border }) => {
+                                                    // Build a map of static item defs for quick lookup
+                                                    const staticDefs = STATIC_ITEM_DEFS[category] || [];
+                                                    const staticDefMap = {};
+                                                    staticDefs.forEach(def => { staticDefMap[def.id] = def; });
+
+                                                    // Build map of coreFeature items for this category
+                                                    const coreFeatMap = {};
+                                                    formData.coreFeatures
+                                                        .filter(f => (f.category || 'whatsapp') === category && f.name && f.name.trim())
+                                                        .forEach(f => { coreFeatMap[f._id] = f; });
+
+                                                    // Resolve current order for this category
+                                                    const currentOrder = sectionOrder[category] || [];
+
+                                                    // Build ordered rows — only items that are visible
+                                                    const orderedRows = [];
+                                                    const seenIds = new Set();
+
+                                                    currentOrder.forEach(id => {
+                                                        seenIds.add(id);
+                                                        if (staticDefMap[id]) {
+                                                            const def = staticDefMap[id];
+                                                            if (!def.show || def.show(d)) {
+                                                                orderedRows.push({
+                                                                    id: def.id,
+                                                                    label: def.getLabel(d),
+                                                                    included: def.included ? def.included(d) : undefined,
+                                                                    qty: undefined,
+                                                                });
+                                                            }
+                                                        } else if (coreFeatMap[id]) {
+                                                            const f = coreFeatMap[id];
+                                                            orderedRows.push({
+                                                                id: f._id,
+                                                                label: f.name,
+                                                                included: undefined,
+                                                                qty: f.qty,
+                                                            });
+                                                        }
+                                                    });
+
+                                                    // Append anything not yet in sectionOrder (new items)
+                                                    staticDefs.forEach(def => {
+                                                        if (!seenIds.has(def.id) && (def.always || (def.show && def.show(d)))) {
+                                                            orderedRows.push({ id: def.id, label: def.getLabel(d), included: def.included ? def.included(d) : undefined });
+                                                        }
+                                                    });
+                                                    Object.values(coreFeatMap).forEach(f => {
+                                                        if (!seenIds.has(f._id)) {
+                                                            orderedRows.push({ id: f._id, label: f.name, qty: f.qty });
+                                                        }
+                                                    });
+
+                                                    const ids = orderedRows.map(r => r.id);
+
+                                                    return (
+                                                        <div key={category} className={`rounded-2xl border ${border} overflow-hidden`}>
+                                                            <div className={`flex items-center gap-2.5 px-4 py-2.5 ${headerBg}`}>
+                                                                <div className={`p-1.5 rounded-lg ${iconBg} shrink-0`}>
+                                                                    <Icon className={`w-3.5 h-3.5 ${iconColor}`} />
+                                                                </div>
+                                                                <span className={`text-[11px] font-extrabold uppercase tracking-wider ${titleColor}`}>{label}</span>
+                                                            </div>
+                                                            <div className="px-4 py-3">
+                                                                {orderedRows.length > 0 ? (
+                                                                    <DndContext
+                                                                        sensors={reviewSensors}
+                                                                        collisionDetection={closestCenter}
+                                                                        onDragEnd={({ active, over }) => handleSectionDragEnd(category, active.id, over?.id)}
+                                                                    >
+                                                                        <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+                                                                            <ul className="space-y-2.5 pl-0.5">
+                                                                                {orderedRows.map(row => (
+                                                                                    <SortableReviewRow
+                                                                                        key={row.id}
+                                                                                        id={row.id}
+                                                                                        label={row.label}
+                                                                                        included={row.included}
+                                                                                        qty={row.qty}
+                                                                                    />
+                                                                                ))}
+                                                                            </ul>
+                                                                        </SortableContext>
+                                                                    </DndContext>
+                                                                ) : (
+                                                                    <p className="text-xs text-slate-400 italic">No items in this section.</p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            {/* Marketing highlights */}
+                                            {Array.isArray(d.features) && d.features.filter(f => f && f.trim()).length > 0 && (
+                                                <div className="pt-1 border-t border-slate-200 dark:border-white/10">
+                                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Highlights</div>
+                                                    <ul className="space-y-2 pl-0.5">
+                                                        {d.features.filter(f => f && f.trim()).map((feat, fi) => (
+                                                            <li key={fi} className="flex items-start gap-2.5 text-sm font-semibold">
+                                                                <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
+                                                                    <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                                                </div>
+                                                                <span className="leading-tight text-slate-700 dark:text-slate-200">{feat}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+
+                                            <button type="button" className="w-full py-3.5 rounded-xl font-bold bg-emerald-500 text-white text-sm cursor-default">
+                                                Choose {d.name || 'This Plan'}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <p className="text-center text-[11px] text-slate-400 dark:text-slate-500 mt-4 flex items-center justify-center gap-1.5">
+                                        <GripVertical className="w-3.5 h-3.5" />
+                                        Every row is draggable — reorder freely within each section. Order saves with the plan.
+                                    </p>
+                                </div>
+                            );
+                        })()}
+
 
                     </div>
 

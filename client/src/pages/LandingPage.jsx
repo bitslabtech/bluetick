@@ -2318,6 +2318,90 @@ export default function LandingPage() {
 
                                                 const planCurrencySymbol = plan.currency ? (CURRENCY_SYMBOLS[plan.currency] || plan.currency) : currencySymbol;
 
+                                                const STATIC_ITEM_DEFS = {
+                                                    whatsapp: [
+                                                        { id: '_s_msg',       getLabel: d => Number(d.messageLimit) === 0 ? 'Messages/mo' : `${d.messageLimit === -1 ? 'Unlimited' : Number(d.messageLimit).toLocaleString()} Messages/mo`,       always: true, included: d => Number(d.messageLimit) > 0 || d.messageLimit === -1 },
+                                                        { id: '_s_contacts',  getLabel: d => Number(d.contactLimit) === 0 ? 'Contacts' : `${d.contactLimit === -1 ? 'Unlimited' : Number(d.contactLimit).toLocaleString()} Contacts`,           always: true, included: d => Number(d.contactLimit) > 0 || d.contactLimit === -1 },
+                                                        { id: '_s_templates', getLabel: d => Number(d.templateLimit) === 0 ? 'Templates' : `${d.templateLimit === -1 ? 'Unlimited' : d.templateLimit} Templates`,                                  always: true, included: d => Number(d.templateLimit) > 0 || d.templateLimit === -1 },
+                                                        { id: '_s_team',      getLabel: d => Number(d.teamMemberLimit) === 0 ? 'Team Members' : `${d.teamMemberLimit === -1 ? 'Unlimited' : d.teamMemberLimit} Team Members`,                           always: true, included: d => Number(d.teamMemberLimit) > 0 || d.teamMemberLimit === -1 },
+                                                        { id: '_s_flowbot',   getLabel: d => d.flowBotEnabled ? `${d.flowLimit === -1 ? 'Unlimited' : d.flowLimit} AI FlowBots` : 'AI FlowBot Builder', always: true, included: d => d.flowBotEnabled },
+                                                        { id: '_s_ai',        getLabel: d => Number(d.aiTokensAllowance) === 0 ? 'AI Tokens' : `${d.aiTokensAllowance === -1 ? 'Unlimited' : Number(d.aiTokensAllowance).toLocaleString()} AI Tokens`, always: true, included: d => Number(d.aiTokensAllowance) > 0 || d.aiTokensAllowance === -1 },
+                                                    ],
+                                                    store: [
+                                                        { id: '_s_store', getLabel: d => (Number(d.waStoreLimit) > 0 || d.waStoreLimit === -1) ? `${d.waStoreLimit === -1 ? 'Unlimited' : d.waStoreLimit} Online Store${d.waStoreLimit !== 1 ? 's' : ''}` : 'Online Store', always: true, included: d => Number(d.waStoreLimit) > 0 || d.waStoreLimit === -1 },
+                                                    ],
+                                                    ads: [
+                                                        { id: '_s_meta', getLabel: () => 'Meta Ads Manager',          always: true, included: d => d.allowMetaAds },
+                                                        { id: '_s_ctwa', getLabel: () => 'Click-to-WhatsApp Ads',     always: true, included: d => d.allowCtwaAnalytics },
+                                                    ],
+                                                    vcard: [
+                                                        { id: '_s_vcard', getLabel: d => (Number(d.vcardLimit) > 0 || d.vcardLimit === -1) ? `${d.vcardLimit === -1 ? 'Unlimited' : d.vcardLimit} VeCard${d.vcardLimit !== 1 ? 's' : ''}` : 'VeCards', always: true, included: d => Number(d.vcardLimit) > 0 || d.vcardLimit === -1 },
+                                                    ],
+                                                };
+
+                                                const renderSectionItems = (category) => {
+                                                    const staticDefs = STATIC_ITEM_DEFS[category] || [];
+                                                    const staticDefMap = {};
+                                                    staticDefs.forEach(def => { staticDefMap[def.id] = def; });
+
+                                                    const coreFeatMap = {};
+                                                    (plan.coreFeatures || [])
+                                                        .filter(f => (f.category || 'whatsapp') === category && f.name && f.name.trim())
+                                                        .forEach(f => { coreFeatMap[f._id || f.name] = f; });
+
+                                                    const currentOrder = (plan.featureOrder && plan.featureOrder[category]) || [];
+                                                    
+                                                    const orderedRows = [];
+                                                    const seenIds = new Set();
+
+                                                    currentOrder.forEach(id => {
+                                                        seenIds.add(id);
+                                                        if (staticDefMap[id]) {
+                                                            const def = staticDefMap[id];
+                                                            orderedRows.push({
+                                                                id: def.id,
+                                                                label: def.getLabel(plan),
+                                                                included: def.included ? def.included(plan) : undefined,
+                                                                qty: undefined,
+                                                            });
+                                                        } else if (coreFeatMap[id]) {
+                                                            const f = coreFeatMap[id];
+                                                            orderedRows.push({
+                                                                id: f._id || f.name,
+                                                                label: f.name,
+                                                                included: undefined,
+                                                                qty: f.qty,
+                                                            });
+                                                        }
+                                                    });
+
+                                                    staticDefs.forEach(def => {
+                                                        if (!seenIds.has(def.id)) {
+                                                            orderedRows.push({ id: def.id, label: def.getLabel(plan), included: def.included ? def.included(plan) : undefined });
+                                                        }
+                                                    });
+                                                    Object.values(coreFeatMap).forEach(f => {
+                                                        if (!seenIds.has(f._id || f.name)) {
+                                                            orderedRows.push({ id: f._id || f.name, label: f.name, qty: f.qty });
+                                                        }
+                                                    });
+                                                    
+                                                    return orderedRows.map(row => {
+                                                        const isGreen = row.included !== false && row.qty !== '0';
+                                                        return (
+                                                            <li key={row.id} className="flex items-center gap-2.5 text-sm font-semibold">
+                                                                <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${isGreen ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' : 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400'}`}>
+                                                                    {isGreen ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : <X className="w-2.5 h-2.5 stroke-[3]" />}
+                                                                </div>
+                                                                <span className="leading-tight">
+                                                                    {row.qty && row.qty !== '0' && row.qty !== '✓' && <span className="font-bold mr-1">{row.qty}</span>}
+                                                                    {row.label}
+                                                                </span>
+                                                            </li>
+                                                        );
+                                                    });
+                                                };
+
                                                 return (
                                                     <motion.div key={plan.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
                                                         className={`relative w-[85vw] sm:w-[300px] lg:w-auto lg:flex-1 lg:min-w-[260px] lg:max-w-[320px] shrink-0 snap-center p-5 lg:p-6 rounded-[2rem] border flex flex-col h-auto min-h-full transition-all ${isPopular ? theme.bgPop : theme.bgReg}`}
@@ -2413,57 +2497,11 @@ export default function LandingPage() {
                                                                     </span>
                                                                 </div>
                                                                 <ul className="space-y-2.5 pl-0.5">
-                                                                    <li className="flex items-center gap-2.5 text-sm font-semibold">
-                                                                        <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"><Check className="w-2.5 h-2.5 stroke-[3]" /></div>
-                                                                        <span>{plan.messageLimit === -1 ? 'Unlimited' : plan.messageLimit.toLocaleString()} Messages/mo</span>
-                                                                    </li>
-                                                                    <li className="flex items-center gap-2.5 text-sm font-semibold">
-                                                                        <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"><Check className="w-2.5 h-2.5 stroke-[3]" /></div>
-                                                                        <span>{plan.contactLimit === -1 ? 'Unlimited' : plan.contactLimit.toLocaleString()} Contacts</span>
-                                                                    </li>
-                                                                    {(plan.templateLimit > 0 || plan.templateLimit === -1) && (
-                                                                        <li className="flex items-center gap-2.5 text-sm font-semibold">
-                                                                            <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"><Check className="w-2.5 h-2.5 stroke-[3]" /></div>
-                                                                            <span>{plan.templateLimit === -1 ? 'Unlimited' : plan.templateLimit} Templates</span>
-                                                                        </li>
-                                                                    )}
-                                                                    {(plan.teamMemberLimit > 0 || plan.teamMemberLimit === -1) && (
-                                                                        <li className="flex items-center gap-2.5 text-sm font-semibold">
-                                                                            <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"><Check className="w-2.5 h-2.5 stroke-[3]" /></div>
-                                                                            <span>{plan.teamMemberLimit === -1 ? 'Unlimited' : plan.teamMemberLimit} Team Members</span>
-                                                                        </li>
-                                                                    )}
-                                                                    <li className="flex items-center gap-2.5 text-sm font-semibold">
-                                                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${plan.flowBotEnabled ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' : 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400'}`}>
-                                                                            {plan.flowBotEnabled ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : <X className="w-2.5 h-2.5 stroke-[3]" />}
-                                                                        </div>
-                                                                        <span>
-                                                                            {plan.flowBotEnabled && plan.flowLimit !== undefined
-                                                                                ? `${plan.flowLimit === -1 ? 'Unlimited' : plan.flowLimit} AI FlowBots`
-                                                                                : 'AI FlowBot Builder'}
-                                                                        </span>
-                                                                    </li>
-                                                                    {(plan.aiTokensAllowance > 0 || plan.aiTokensAllowance === -1) && (
-                                                                        <li className="flex items-center gap-2.5 text-sm font-semibold">
-                                                                            <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"><Check className="w-2.5 h-2.5 stroke-[3]" /></div>
-                                                                            <span>{plan.aiTokensAllowance === -1 ? 'Unlimited' : plan.aiTokensAllowance.toLocaleString()} AI Tokens</span>
-                                                                        </li>
-                                                                    )}
+                                                                    {renderSectionItems('whatsapp')}
                                                                     {Array.isArray(plan.includedAddons) && plan.includedAddons.length > 0 && plan.includedAddons.map(addonKey => (
                                                                         <li key={addonKey} className="flex items-center gap-2.5 text-sm font-semibold">
                                                                             <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"><Check className="w-2.5 h-2.5 stroke-[3]" /></div>
                                                                             <span>{addonKey.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</span>
-                                                                        </li>
-                                                                    ))}
-                                                                    {Array.isArray(plan.coreFeatures) && plan.coreFeatures.filter(f => !f.category || f.category === 'whatsapp').map((feat, fi) => (
-                                                                        <li key={`wa-cf-${fi}`} className="flex items-center gap-2.5 text-sm font-semibold">
-                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${(!feat.qty || feat.qty === '0') ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'}`}>
-                                                                                {(!feat.qty || feat.qty === '0') ? <X className="w-2.5 h-2.5 stroke-[3]" /> : <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                                                                            </div>
-                                                                            <span className="leading-tight">
-                                                                                {feat.qty && feat.qty !== '0' && <span className="font-extrabold mr-1">{feat.qty}</span>}
-                                                                                {feat.name}
-                                                                            </span>
                                                                         </li>
                                                                     ))}
                                                                 </ul>
@@ -2480,28 +2518,7 @@ export default function LandingPage() {
                                                                     </span>
                                                                 </div>
                                                                 <ul className="space-y-2.5 pl-0.5">
-                                                                    {plan.waStoreLimit > 0 || plan.waStoreLimit === -1 ? (
-                                                                        <li className="flex items-center gap-2.5 text-sm font-semibold">
-                                                                            <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"><Check className="w-2.5 h-2.5 stroke-[3]" /></div>
-                                                                            <span>{plan.waStoreLimit === -1 ? 'Unlimited' : plan.waStoreLimit} Online Store{plan.waStoreLimit !== 1 ? 's' : ''}</span>
-                                                                        </li>
-                                                                    ) : (
-                                                                        <li className="flex items-center gap-2.5 text-sm font-semibold">
-                                                                            <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400"><X className="w-2.5 h-2.5 stroke-[3]" /></div>
-                                                                            <span>Online Store</span>
-                                                                        </li>
-                                                                    )}
-                                                                    {Array.isArray(plan.coreFeatures) && plan.coreFeatures.filter(f => f.category === 'store').map((feat, fi) => (
-                                                                        <li key={`st-cf-${fi}`} className="flex items-center gap-2.5 text-sm font-semibold">
-                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${(!feat.qty || feat.qty === '0') ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'}`}>
-                                                                                {(!feat.qty || feat.qty === '0') ? <X className="w-2.5 h-2.5 stroke-[3]" /> : <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                                                                            </div>
-                                                                            <span className="leading-tight">
-                                                                                {feat.qty && feat.qty !== '0' && <span className="font-extrabold mr-1">{feat.qty}</span>}
-                                                                                {feat.name}
-                                                                            </span>
-                                                                        </li>
-                                                                    ))}
+                                                                    {renderSectionItems('store')}
                                                                 </ul>
                                                             </div>
 
@@ -2516,29 +2533,7 @@ export default function LandingPage() {
                                                                     </span>
                                                                 </div>
                                                                 <ul className="space-y-2.5 pl-0.5">
-                                                                    <li className="flex items-center gap-2.5 text-sm font-semibold">
-                                                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${plan.allowMetaAds ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' : 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400'}`}>
-                                                                            {plan.allowMetaAds ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : <X className="w-2.5 h-2.5 stroke-[3]" />}
-                                                                        </div>
-                                                                        <span>Meta Ads Manager</span>
-                                                                    </li>
-                                                                    <li className="flex items-center gap-2.5 text-sm font-semibold">
-                                                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${plan.allowCtwaAnalytics ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' : 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400'}`}>
-                                                                            {plan.allowCtwaAnalytics ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : <X className="w-2.5 h-2.5 stroke-[3]" />}
-                                                                        </div>
-                                                                        <span>Click-to-WhatsApp Ads</span>
-                                                                    </li>
-                                                                    {Array.isArray(plan.coreFeatures) && plan.coreFeatures.filter(f => f.category === 'ads').map((feat, fi) => (
-                                                                        <li key={`ad-cf-${fi}`} className="flex items-center gap-2.5 text-sm font-semibold">
-                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${(!feat.qty || feat.qty === '0') ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'}`}>
-                                                                                {(!feat.qty || feat.qty === '0') ? <X className="w-2.5 h-2.5 stroke-[3]" /> : <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                                                                            </div>
-                                                                            <span className="leading-tight">
-                                                                                {feat.qty && feat.qty !== '0' && <span className="font-extrabold mr-1">{feat.qty}</span>}
-                                                                                {feat.name}
-                                                                            </span>
-                                                                        </li>
-                                                                    ))}
+                                                                    {renderSectionItems('ads')}
                                                                 </ul>
                                                             </div>
 
@@ -2553,28 +2548,7 @@ export default function LandingPage() {
                                                                     </span>
                                                                 </div>
                                                                 <ul className="space-y-2.5 pl-0.5">
-                                                                    {plan.vcardLimit > 0 || plan.vcardLimit === -1 ? (
-                                                                        <li className="flex items-center gap-2.5 text-sm font-semibold">
-                                                                            <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"><Check className="w-2.5 h-2.5 stroke-[3]" /></div>
-                                                                            <span>{plan.vcardLimit === -1 ? 'Unlimited' : plan.vcardLimit} VeCard{plan.vcardLimit !== 1 ? 's' : ''}</span>
-                                                                        </li>
-                                                                    ) : (
-                                                                        <li className="flex items-center gap-2.5 text-sm font-semibold">
-                                                                            <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400"><X className="w-2.5 h-2.5 stroke-[3]" /></div>
-                                                                            <span>VeCards</span>
-                                                                        </li>
-                                                                    )}
-                                                                    {Array.isArray(plan.coreFeatures) && plan.coreFeatures.filter(f => f.category === 'vcard').map((feat, fi) => (
-                                                                        <li key={`vc-cf-${fi}`} className="flex items-center gap-2.5 text-sm font-semibold">
-                                                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${(!feat.qty || feat.qty === '0') ? 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400' : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'}`}>
-                                                                                {(!feat.qty || feat.qty === '0') ? <X className="w-2.5 h-2.5 stroke-[3]" /> : <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                                                                            </div>
-                                                                            <span className="leading-tight">
-                                                                                {feat.qty && feat.qty !== '0' && <span className="font-extrabold mr-1">{feat.qty}</span>}
-                                                                                {feat.name}
-                                                                            </span>
-                                                                        </li>
-                                                                    ))}
+                                                                    {renderSectionItems('vcard')}
                                                                 </ul>
                                                             </div>
 
