@@ -799,6 +799,7 @@ const SortableReviewRow = ({ id, label, included, qty }) => {
 // ════════════════════════════════════════════
 const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClose, onSave }) => {
     const genId = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
+    const { showToast } = useUI();
 
     const initializeCoreFeatures = () => {
         const planFeatures = plan?.coreFeatures || [];
@@ -1039,6 +1040,14 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
 
     const handleNext = (e) => {
         if (e) e.preventDefault();
+        // Validate: when leaving the features tab, ensure every included feature has a value
+        if (activeTab === 'features') {
+            const missingValue = formData.coreFeatures.find(f => f.name && f.name.trim() !== '' && (!f.qty || f.qty.trim() === ''));
+            if (missingValue) {
+                showToast({ type: 'error', message: `Set a value for "${missingValue.name}" — enter text, a number, or click ✓ / ✗.` });
+                return;
+            }
+        }
         if (!isLastTab) setActiveTab(tabs[currentTabIndex + 1].id);
     };
 
@@ -1424,16 +1433,31 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                                                     {mf.name}
                                                                 </span>
 
-                                                                {/* Qty/value input when included */}
+                                                                {/* Qty/value picker when included */}
                                                                 {isIncluded && (
-                                                                    <input
-                                                                        style={{ flex: 3 }}
-                                                                        value={planFeat?.qty === '✓' ? '' : (planFeat?.qty || '')}
-                                                                        onChange={e => planFeat && handleCoreFeatureChange(planFeat._id, 'qty', e.target.value || '✓')}
-                                                                        className="modern-input text-center text-sm py-1.5"
-                                                                        placeholder="e.g. 100 / ✓"
-                                                                        title="Optional: enter a quantity (e.g. 100 messages) or leave blank for a simple checkmark"
-                                                                    />
+                                                                    <div style={{ flex: 3 }} className="flex items-center gap-1 min-w-0">
+                                                                        <input
+                                                                            type="text"
+                                                                            style={{ flex: 1 }}
+                                                                            value={['✓','✗'].includes(planFeat?.qty) ? '' : (planFeat?.qty || '')}
+                                                                            onChange={e => planFeat && handleCoreFeatureChange(planFeat._id, 'qty', e.target.value)}
+                                                                            className="modern-input text-center text-sm py-1.5 min-w-0"
+                                                                            placeholder="Qty"
+                                                                            title="Enter a number, or click ✓ / ✗"
+                                                                        />
+                                                                        <button type="button" onClick={() => planFeat && handleCoreFeatureChange(planFeat._id, 'qty', '✓')}
+                                                                            className={`shrink-0 w-8 h-8 rounded-lg text-sm font-bold transition-all border ${
+                                                                                planFeat?.qty === '✓' ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' : 'bg-white dark:bg-white/5 text-slate-500 border-slate-200 dark:border-white/10 hover:border-emerald-400 hover:text-emerald-500'
+                                                                            }`} title="Set to Checkmark (✓)">
+                                                                            ✓
+                                                                        </button>
+                                                                        <button type="button" onClick={() => planFeat && handleCoreFeatureChange(planFeat._id, 'qty', '✗')}
+                                                                            className={`shrink-0 w-8 h-8 rounded-lg text-sm font-bold transition-all border ${
+                                                                                planFeat?.qty === '✗' ? 'bg-red-500 text-white border-red-500 shadow-sm' : 'bg-white dark:bg-white/5 text-slate-500 border-slate-200 dark:border-white/10 hover:border-red-400 hover:text-red-500'
+                                                                            }`} title="Set to Cross (✗)">
+                                                                            ✗
+                                                                        </button>
+                                                                    </div>
                                                                 )}
 
                                                                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider bg-slate-100 dark:bg-white/10 px-2 py-0.5 rounded-full shrink-0">master</span>
@@ -1471,14 +1495,30 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                                                 className="modern-input min-w-0"
                                                                 placeholder="e.g. WhatsApp Broadcasts"
                                                             />
-                                                            <input
-                                                                style={{ flex: 3 }}
-                                                                value={feat.qty || ''}
-                                                                onChange={e => handleCoreFeatureChange(feat._id, 'qty', e.target.value)}
-                                                                className="modern-input text-center min-w-0"
-                                                                placeholder="e.g. Unlimited"
-                                                                title="What to show next to this feature on the pricing card. E.g. 'Unlimited', '100/mo', '5 seats'. Leave blank for a plain ✓ checkmark."
-                                                            />
+                                                            {/* Value picker: number input + ✓ + ✗ */}
+                                                            <div style={{ flex: 3 }} className="flex items-center gap-1 min-w-0">
+                                                                <input
+                                                                    type="number"
+                                                                    style={{ flex: 1 }}
+                                                                    value={['✓','✗'].includes(feat.qty) ? '' : (feat.qty || '')}
+                                                                    onChange={e => handleCoreFeatureChange(feat._id, 'qty', e.target.value)}
+                                                                    className="modern-input text-center min-w-0 py-1.5 text-sm"
+                                                                    placeholder="Qty"
+                                                                    title="Enter a number, or click ✓ / ✗"
+                                                                />
+                                                                <button type="button" onClick={() => handleCoreFeatureChange(feat._id, 'qty', '✓')}
+                                                                    className={`shrink-0 w-8 h-8 rounded-lg text-sm font-bold transition-all border ${
+                                                                        feat.qty === '✓' ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' : 'bg-white dark:bg-white/5 text-slate-500 border-slate-200 dark:border-white/10 hover:border-emerald-400 hover:text-emerald-500'
+                                                                    }`} title="Set to Checkmark (✓)">
+                                                                    ✓
+                                                                </button>
+                                                                <button type="button" onClick={() => handleCoreFeatureChange(feat._id, 'qty', '✗')}
+                                                                    className={`shrink-0 w-8 h-8 rounded-lg text-sm font-bold transition-all border ${
+                                                                        feat.qty === '✗' ? 'bg-red-500 text-white border-red-500 shadow-sm' : 'bg-white dark:bg-white/5 text-slate-500 border-slate-200 dark:border-white/10 hover:border-red-400 hover:text-red-500'
+                                                                    }`} title="Set to Cross (✗)">
+                                                                    ✗
+                                                                </button>
+                                                            </div>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => removeCoreFeature(feat._id)}
