@@ -859,6 +859,9 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
         featureOrder: plan?.featureOrder || {},
     });
 
+    // Track feature names that the admin wants permanently deleted from ALL plans
+    const [deletedFeatureNames, setDeletedFeatureNames] = useState([]);
+
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
         setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
@@ -890,10 +893,16 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
         }));
     };
 
-    const removeCoreFeature = (_id) => setFormData(prev => ({
-        ...prev,
-        coreFeatures: prev.coreFeatures.filter(f => f._id !== _id)
-    }));
+    const removeCoreFeature = (_id) => {
+        const feat = formData.coreFeatures.find(f => f._id === _id);
+        if (feat && feat.name && feat.name.trim()) {
+            setDeletedFeatureNames(prev => [...prev, feat.name.trim()]);
+        }
+        setFormData(prev => ({
+            ...prev,
+            coreFeatures: prev.coreFeatures.filter(f => f._id !== _id)
+        }));
+    };
 
     // Reorders coreFeatures within a single category, preserving all other categories' items
     const handleCoreFeatureReorder = (category, reorderedItems) => {
@@ -1010,7 +1019,7 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
         };
         cleaned.price = parseFloat(cleaned.monthlyPrice) || parseFloat(cleaned.halfYearlyPrice) || parseFloat(cleaned.yearlyPrice) || 0;
         cleaned.interval = cleaned.monthlyPrice > 0 ? 'month' : cleaned.halfYearlyPrice > 0 ? 'half-year' : 'year';
-        onSave(cleaned);
+        onSave({ ...cleaned, deleteFeatureNames: deletedFeatureNames });
     };
 
     const reviewSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -1387,7 +1396,7 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
 
                                                 <div className="p-5 space-y-3">
                                                     {/* Master features — appear across all plans */}
-                                                    {masterInCat.map(mf => {
+                                                    {masterInCat.filter(mf => !deletedFeatureNames.includes(mf.name)).map(mf => {
                                                         const planFeat = formData.coreFeatures.find(f => f.name === mf.name);
                                                         const isIncluded = planFeat && planFeat.qty && planFeat.qty !== '0';
 

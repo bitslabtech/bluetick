@@ -297,6 +297,43 @@ router.put('/:id', async (req, res) => {
             }
         }
 
+        // Hard-delete specific feature names from ALL plans if admin requested it
+        if (req.body.deleteFeatureNames && Array.isArray(req.body.deleteFeatureNames) && req.body.deleteFeatureNames.length > 0) {
+            const toDelete = req.body.deleteFeatureNames.map(n => n.trim()).filter(Boolean);
+            const allPlansForDelete = await Plan.findAll();
+            for (let p of allPlansForDelete) {
+                if (p.coreFeatures) {
+                    const filtered = p.coreFeatures.filter(f => !toDelete.includes((f.name || '').trim()));
+                    if (filtered.length !== p.coreFeatures.length) {
+                        await p.update({ coreFeatures: filtered });
+                    }
+                }
+            }
+        } else {
+            // Fallback: clean up orphaned features that have no active usage across all plans
+            const allPlans = await Plan.findAll();
+            const featureUsage = {};
+            allPlans.forEach(p => {
+                if (p.coreFeatures) {
+                    p.coreFeatures.forEach(feat => {
+                        if (!featureUsage[feat.name]) featureUsage[feat.name] = 0;
+                        if (feat.qty && feat.qty !== '0') featureUsage[feat.name]++;
+                    });
+                }
+            });
+            const orphanedFeatures = Object.keys(featureUsage).filter(name => featureUsage[name] === 0);
+            if (orphanedFeatures.length > 0) {
+                for (let p of allPlans) {
+                    if (p.coreFeatures) {
+                        const filtered = p.coreFeatures.filter(f => !orphanedFeatures.includes(f.name));
+                        if (filtered.length !== p.coreFeatures.length) {
+                            await p.update({ coreFeatures: filtered });
+                        }
+                    }
+                }
+            }
+        }
+
         // Invalidate public plans cache
         cacheManager.invalidate('public_plans');
 
