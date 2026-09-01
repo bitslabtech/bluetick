@@ -443,17 +443,23 @@ const PlanCard = ({ plan, currentPlan, billingInterval, usage, metaRates, onUpgr
                                 <span className="leading-tight">{feat}</span>
                             </li>
                         ))}
-                        {Array.isArray(plan.coreFeatures) && plan.coreFeatures.map((feat, fi) => (
-                            <li key={`core-${fi}`} className={`flex items-start gap-3 text-sm font-semibold ${(!feat.qty || feat.qty === '0') ? 'opacity-50 grayscale' : ''}`}>
-                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${(!feat.qty || feat.qty === '0') ? 'bg-red-500 text-white' : theme.checkSubtle}`}>
-                                    {(!feat.qty || feat.qty === '0') ? <X className="w-3 h-3" /> : <Check className="w-3 h-3" />}
-                                </div>
-                                <span className="leading-tight">
-                                    {feat.qty && feat.qty !== '0' && <span className="font-extrabold mr-1">{feat.qty}</span>}
-                                    {feat.name}
-                                </span>
-                            </li>
-                        ))}
+                        {Array.isArray(plan.coreFeatures) && plan.coreFeatures.map((feat, fi) => {
+                            const isCrossed = feat.qty === '✗';
+                            const isIncluded = !isCrossed && feat.qty && feat.qty !== '0';
+                            return (
+                                <li key={`core-${fi}`} className={`flex items-start gap-3 text-sm font-semibold ${isCrossed ? 'opacity-60' : !isIncluded ? 'opacity-50 grayscale' : ''}`}>
+                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
+                                        isIncluded ? theme.checkSubtle : 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400'
+                                    }`}>
+                                        {isIncluded ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                                    </div>
+                                    <span className="leading-tight">
+                                        {isIncluded && feat.qty !== '✓' && <span className="font-extrabold mr-1">{feat.qty}</span>}
+                                        {feat.name}
+                                    </span>
+                                </li>
+                            );
+                        })}
                     </ul>
                 </div>
             </div>

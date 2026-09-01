@@ -759,7 +759,8 @@ const SortableReviewRow = ({ id, label, included, qty }) => {
         opacity: isDragging ? 0.45 : 1,
         zIndex: isDragging ? 20 : 'auto',
     };
-    const isGreen = included !== false && qty !== '0';
+    const isCrossed = qty === '✗';
+    const isGreen = !isCrossed && included !== false && qty !== '0';
     return (
         <li
             ref={setNodeRef}
@@ -785,7 +786,7 @@ const SortableReviewRow = ({ id, label, included, qty }) => {
                 {isGreen ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : <X className="w-2.5 h-2.5 stroke-[3]" />}
             </div>
             <span className="leading-tight flex-1">
-                {qty && qty !== '0' && qty !== '✓' && (
+                {qty && qty !== '0' && qty !== '✓' && qty !== '✗' && (
                     <span className="font-bold mr-1">{qty}</span>
                 )}
                 {label}
@@ -1407,61 +1408,76 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                                     {/* Master features — appear across all plans */}
                                                     {masterInCat.filter(mf => !deletedFeatureNames.includes(mf.name)).map(mf => {
                                                         const planFeat = formData.coreFeatures.find(f => f.name === mf.name);
-                                                        const isIncluded = planFeat && planFeat.qty && planFeat.qty !== '0';
+                                                        const isCrossed = planFeat?.qty === '✗';
+                                                        const isIncluded = planFeat && planFeat.qty && planFeat.qty !== '0' && planFeat.qty !== '✗';
 
                                                         return (
-                                                            <div key={mf.name} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5">
-                                                                {/* Toggle */}
+                                                            <div key={mf.name} className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${
+                                                                isCrossed
+                                                                    ? 'bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-500/10'
+                                                                    : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5'
+                                                            }`}>
+                                                                {/* Toggle — green=on, red=crossed, grey=off */}
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => {
-                                                                        if (planFeat) {
+                                                                        if (isCrossed) {
+                                                                            // Un-cross: reset to off (empty)
+                                                                            handleCoreFeatureChange(planFeat._id, 'qty', '');
+                                                                        } else if (planFeat) {
                                                                             handleCoreFeatureChange(planFeat._id, 'qty', isIncluded ? '' : '✓');
                                                                         } else {
                                                                             setFormData(prev => ({ ...prev, coreFeatures: [...prev.coreFeatures, { _id: genId(), name: mf.name, qty: '✓', category }] }));
                                                                         }
                                                                     }}
-                                                                    className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none ${isIncluded ? toggleOn : 'bg-slate-300 dark:bg-slate-600'}`}
+                                                                    className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none ${
+                                                                        isCrossed ? 'bg-red-500' : isIncluded ? toggleOn : 'bg-slate-300 dark:bg-slate-600'
+                                                                    }`}
+                                                                    title={isCrossed ? 'Explicitly excluded — click to clear' : isIncluded ? 'Included — click to remove' : 'Not included — click to add'}
                                                                 >
-                                                                    <span className={`${isIncluded ? 'translate-x-4' : 'translate-x-1'} inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm`} />
+                                                                    <span className={`${isIncluded || isCrossed ? 'translate-x-4' : 'translate-x-1'} inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm`} />
                                                                 </button>
 
                                                                 <span 
-                                                                    style={{ flex: 7 }}
-                                                                    className={`text-sm font-medium ${isIncluded ? 'text-slate-800 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`}
+                                                                    style={{ flex: 5 }}
+                                                                    className={`text-sm font-medium ${
+                                                                        isCrossed ? 'text-red-400 line-through' : isIncluded ? 'text-slate-800 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'
+                                                                    }`}
                                                                 >
                                                                     {mf.name}
                                                                 </span>
 
-                                                                {/* Qty/value picker when included */}
-                                                                {isIncluded && (
-                                                                    <div style={{ flex: 3 }} className="flex items-center gap-1 min-w-0">
+                                                                {/* Value picker — shown when included OR crossed so user can always switch state */}
+                                                                {(isIncluded || isCrossed) && (
+                                                                    <div style={{ flex: 5 }} className="flex items-center gap-1 min-w-0">
                                                                         <input
                                                                             type="text"
-                                                                            style={{ flex: 1 }}
+                                                                            style={{ flex: 2 }}
                                                                             value={['✓','✗'].includes(planFeat?.qty) ? '' : (planFeat?.qty || '')}
                                                                             onChange={e => planFeat && handleCoreFeatureChange(planFeat._id, 'qty', e.target.value)}
-                                                                            className="modern-input text-center text-sm py-1.5 min-w-0"
-                                                                            placeholder="Qty"
-                                                                            title="Enter a number, or click ✓ / ✗"
+                                                                            className={`modern-input text-center text-sm py-1.5 min-w-0 ${
+                                                                                isCrossed ? 'placeholder:text-red-400' : planFeat?.qty === '✓' ? 'placeholder:text-emerald-500' : ''
+                                                                            }`}
+                                                                            placeholder={isCrossed ? 'Not included' : planFeat?.qty === '✓' ? 'Included' : 'e.g. 100 / Unlimited'}
+                                                                            title={isCrossed ? 'Marked as not included' : planFeat?.qty === '✓' ? 'Shown as included (✓) — type a value to override' : 'Enter any value'}
+                                                                            disabled={isCrossed || planFeat?.qty === '✓'}
                                                                         />
                                                                         <button type="button" onClick={() => planFeat && handleCoreFeatureChange(planFeat._id, 'qty', '✓')}
                                                                             className={`shrink-0 w-8 h-8 rounded-lg text-sm font-bold transition-all border ${
                                                                                 planFeat?.qty === '✓' ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' : 'bg-white dark:bg-white/5 text-slate-500 border-slate-200 dark:border-white/10 hover:border-emerald-400 hover:text-emerald-500'
-                                                                            }`} title="Set to Checkmark (✓)">
+                                                                            }`} title="Set to Checkmark / Included (✓)">
                                                                             ✓
                                                                         </button>
                                                                         <button type="button" onClick={() => planFeat && handleCoreFeatureChange(planFeat._id, 'qty', '✗')}
                                                                             className={`shrink-0 w-8 h-8 rounded-lg text-sm font-bold transition-all border ${
                                                                                 planFeat?.qty === '✗' ? 'bg-red-500 text-white border-red-500 shadow-sm' : 'bg-white dark:bg-white/5 text-slate-500 border-slate-200 dark:border-white/10 hover:border-red-400 hover:text-red-500'
-                                                                            }`} title="Set to Cross (✗)">
+                                                                            }`} title="Mark as excluded (✗)">
                                                                             ✗
                                                                         </button>
                                                                     </div>
                                                                 )}
 
-                                                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider bg-slate-100 dark:bg-white/10 px-2 py-0.5 rounded-full shrink-0">master</span>
-                                                                
+
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => {
@@ -1476,6 +1492,7 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                                             </div>
                                                         );
                                                     })}
+
 
                                                     {/* Local-only features (defined in this plan, not in master yet) */}
                                                     {/* Each row is keyed and identified by stable _id — fixes the state-leakage bug */}
@@ -1498,13 +1515,13 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                                             {/* Value picker: number input + ✓ + ✗ */}
                                                             <div style={{ flex: 3 }} className="flex items-center gap-1 min-w-0">
                                                                 <input
-                                                                    type="number"
+                                                                    type="text"
                                                                     style={{ flex: 1 }}
                                                                     value={['✓','✗'].includes(feat.qty) ? '' : (feat.qty || '')}
                                                                     onChange={e => handleCoreFeatureChange(feat._id, 'qty', e.target.value)}
                                                                     className="modern-input text-center min-w-0 py-1.5 text-sm"
-                                                                    placeholder="Qty"
-                                                                    title="Enter a number, or click ✓ / ✗"
+                                                                    placeholder="e.g. 100 / Unlimited"
+                                                                    title="Enter any value — number, text, or symbol"
                                                                 />
                                                                 <button type="button" onClick={() => handleCoreFeatureChange(feat._id, 'qty', '✓')}
                                                                     className={`shrink-0 w-8 h-8 rounded-lg text-sm font-bold transition-all border ${

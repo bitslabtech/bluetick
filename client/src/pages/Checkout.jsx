@@ -192,10 +192,6 @@ const Checkout = () => {
     };
 
     const handleManualPayment = async () => {
-        if (!utrNumber.trim()) {
-            showToast({ type: 'error', title: 'UTR Required', message: 'Please enter the UTR / transaction reference number.' });
-            return;
-        }
         setSubmittingManual(true);
         try {
             if (isEditingPendingRequest && pendingRequest) {

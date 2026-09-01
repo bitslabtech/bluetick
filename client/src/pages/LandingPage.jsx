@@ -2387,14 +2387,15 @@ export default function LandingPage() {
                                                     });
                                                     
                                                     return orderedRows.map(row => {
-                                                        const isGreen = row.included !== false && row.qty !== '0';
+                                                        const isCrossed = row.qty === '✗';
+                                                        const isGreen = !isCrossed && row.included !== false && row.qty !== '0';
                                                         return (
                                                             <li key={row.id} className="flex items-center gap-2.5 text-sm font-semibold">
                                                                 <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${isGreen ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' : 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400'}`}>
                                                                     {isGreen ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : <X className="w-2.5 h-2.5 stroke-[3]" />}
                                                                 </div>
                                                                 <span className="leading-tight">
-                                                                    {row.qty && row.qty !== '0' && row.qty !== '✓' && <span className="font-bold mr-1">{row.qty}</span>}
+                                                                    {row.qty && row.qty !== '0' && row.qty !== '✓' && row.qty !== '✗' && <span className="font-bold mr-1">{row.qty}</span>}
                                                                     {row.label}
                                                                 </span>
                                                             </li>
