@@ -2346,7 +2346,21 @@ export default function LandingPage() {
 
                                                     const coreFeatMap = {};
                                                     (plan.coreFeatures || [])
-                                                        .filter(f => (f.category || 'whatsapp') === category && f.name && f.name.trim())
+                                                        .filter(f => {
+                                                            if (!f.name || !f.name.trim()) return false;
+                                                            // Resolve category using a master map derived from all plans, to prevent inconsistencies across cards
+                                                            let resolvedCategory = f.category || 'whatsapp';
+                                                            
+                                                            // Find if ANY plan has explicitly categorized this feature into a specific non-default section
+                                                            for (const p of plans) {
+                                                                const matchingFeat = (p.coreFeatures || []).find(feat => feat.name === f.name);
+                                                                if (matchingFeat && matchingFeat.category && matchingFeat.category !== 'whatsapp') {
+                                                                    resolvedCategory = matchingFeat.category;
+                                                                    break; // Found specific canonical category, prefer this over legacy 'whatsapp' default
+                                                                }
+                                                            }
+                                                            return resolvedCategory === category;
+                                                        })
                                                         .forEach(f => { coreFeatMap[f._id || f.name] = f; });
 
                                                     const currentOrder = (plan.featureOrder && plan.featureOrder[category]) || [];

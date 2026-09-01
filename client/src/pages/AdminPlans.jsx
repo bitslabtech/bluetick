@@ -389,7 +389,18 @@ const AdminPlans = () => {
                 <PlanModal
                     plan={editingPlan}
                     availableAddons={availableAddons}
-                    masterCoreFeatures={(() => { const seen = new Set(); return plans.flatMap(p => p.coreFeatures || []).filter(f => f.name && !seen.has(f.name) && seen.add(f.name)).map(f => ({ name: f.name, category: f.category || 'whatsapp' })); })()}
+                    masterCoreFeatures={(() => { 
+                        const map = new Map();
+                        plans.flatMap(p => p.coreFeatures || []).forEach(f => {
+                            if (!f.name) return;
+                            const existing = map.get(f.name);
+                            // If not seen, or if current is 'whatsapp' (default) and new one is specific, upgrade it
+                            if (!existing || (existing === 'whatsapp' && f.category && f.category !== 'whatsapp')) {
+                                map.set(f.name, f.category || 'whatsapp');
+                            }
+                        });
+                        return Array.from(map.entries()).map(([name, category]) => ({ name, category }));
+                    })()}
                     onClose={() => setIsPlanModalOpen(false)}
                     onSave={handleSavePlan}
                 />
