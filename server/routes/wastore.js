@@ -1939,7 +1939,8 @@ router.post('/:storeId/products/import/parse', auth, async (req, res) => {
 
             // ── Description (preserve internal whitespace, only trim leading/trailing) ──
             const description = String(row.description || '').replace(/^\s+|\s+$/g, '');
-            if (description.length > 5000) errors.description = `Too long (${description.length}/5000 chars)`;
+            if (!description) errors.description = 'Required';
+            else if (description.length > 5000) errors.description = `Too long (${description.length}/5000 chars)`;
 
             // ── Meta Description ──
             const metaDescription = String(row.metaDescription || '').trim();
@@ -2128,6 +2129,9 @@ router.post('/:storeId/products', auth, async (req, res) => {
         if (!store) return res.status(404).json({ error: 'Store not found' });
 
         const payload = { ...req.body, storeId: req.params.storeId };
+        if (!payload.description || !payload.description.trim()) {
+            return res.status(400).json({ error: 'Product description is mandatory' });
+        }
         if (payload.compareAtPrice === '') payload.compareAtPrice = null;
         if (payload.wholesalePrice === '') payload.wholesalePrice = null;
         if (payload.minWholesaleQty === '') payload.minWholesaleQty = null;
@@ -2174,6 +2178,9 @@ router.put('/products/:productId', auth, async (req, res) => {
         if (!store) return res.status(403).json({ error: 'Unauthorized' });
 
         const payload = { ...req.body };
+        if (!payload.description || !payload.description.trim()) {
+            return res.status(400).json({ error: 'Product description is mandatory' });
+        }
         if (payload.compareAtPrice === '') payload.compareAtPrice = null;
         if (payload.wholesalePrice === '') payload.wholesalePrice = null;
         if (payload.minWholesaleQty === '') payload.minWholesaleQty = null;

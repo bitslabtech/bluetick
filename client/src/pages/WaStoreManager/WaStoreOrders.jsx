@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import {
     ShoppingBag, X, Search, Filter, RefreshCw, ChevronRight,
     Clock, CheckCircle, Truck, Package, XCircle, AlertCircle,
-    Phone, Mail, MapPin, MessageCircle, StickyNote, User
+    Phone, Mail, MapPin, MessageCircle, StickyNote, User, Download, Printer
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -36,11 +38,272 @@ function formatDate(dateStr) {
 }
 
 // ─── Order Detail Modal ───────────────────────────────────────────────────────
-function OrderDetailModal({ order, storeId, onClose, onUpdate }) {
+function OrderDetailModal({ order, storeId, store, onClose, onUpdate }) {
     const [status, setStatus] = useState(order.status);
     const [notes, setNotes]   = useState(order.notes || '');
     const [saving, setSaving] = useState(false);
     
+    const downloadOrderPDF = () => {
+        try {
+            const doc = new jsPDF();
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            
+            const getPdfCurrency = (code) => {
+                const map = { USD: '$', EUR: '€', GBP: '£', INR: 'Rs.', AED: 'AED', SGD: 'S$', AUD: 'A$', CAD: 'C$' };
+                return map[code || 'USD'] || code || 'USD';
+            };
+            const cSym = getPdfCurrency(order.currency);
+            
+            // 1. Header Background & Title
+            doc.setFillColor(79, 70, 229); // Indigo-600
+            doc.rect(0, 0, pageWidth, 45, 'F');
+            
+            doc.setTextColor(255, 255, 255);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(24);
+            doc.text(store?.name || "Order Details", 14, 28);
+            
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "normal");
+            doc.text("ORDER DETAILS", pageWidth - 14, 28, { align: "right" });
+            
+            // 2. Info Sections
+            let currentY = 55;
+            doc.setTextColor(60, 60, 60);
+            doc.setFontSize(10);
+            
+            // Left: Customer Details
+            doc.setFont("helvetica", "bold");
+            doc.text("Billed To:", 14, currentY);
+            doc.setFont("helvetica", "normal");
+            let leftY = currentY + 6;
+            if (order.customerName) { doc.text(order.customerName, 14, leftY); leftY += 5; }
+            if (order.customerPhone) { doc.text(`Phone: ${order.customerPhone}`, 14, leftY); leftY += 5; }
+            if (order.customerEmail) { doc.text(`Email: ${order.customerEmail}`, 14, leftY); leftY += 5; }
+            if (order.customerAddress) {
+                const splitAddress = doc.splitTextToSize(order.customerAddress, 85);
+                doc.text(splitAddress, 14, leftY);
+                leftY += (splitAddress.length * 5);
+            }
+            if (order.customerGstin) { doc.text(`GSTIN: ${order.customerGstin}`, 14, leftY); leftY += 5; }
+            
+            // Right: Order Details
+            doc.setFont("helvetica", "bold");
+            doc.text("Order Details:", pageWidth - 90, currentY);
+            doc.setFont("helvetica", "normal");
+            let rightY = currentY + 6;
+            doc.text(`Order No: ${order.orderNumber}`, pageWidth - 90, rightY); rightY += 5;
+            doc.text(`Date: ${new Date(order.createdAt).toLocaleDateString()}`, pageWidth - 90, rightY); rightY += 5;
+            doc.text(`Status: ${order.status.charAt(0).toUpperCase() + order.status.slice(1)}`, pageWidth - 90, rightY); rightY += 5;
+            if (order.paymentStatus) {
+                 doc.text(`Payment: ${order.paymentStatus.toUpperCase()}`, pageWidth - 90, rightY); rightY += 5;
+            }
+            if (order.source) {
+                doc.text(`Source: ${order.source.toUpperCase()}`, pageWidth - 90, rightY); rightY += 5;
+            }
+            
+            currentY = Math.max(leftY, rightY) + 10;
+            
+            // 3. Items Table
+            const tableColumn = ["Item Description", "Qty", "Price", "Total"];
+            const tableRows = [];
+            
+            (order.items || []).forEach(item => {
+                const itemTotal = parseFloat(item.price) * parseInt(item.qty);
+                tableRows.push([
+                    item.name,
+                    item.qty.toString(),
+                    `${cSym} ${Number(item.price).toFixed(2)}`,
+                    `${cSym} ${itemTotal.toFixed(2)}`
+                ]);
+            });
+            
+            autoTable(doc, {
+                startY: currentY,
+                head: [tableColumn],
+                body: tableRows,
+                theme: 'striped',
+                headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold' },
+                styles: { fontSize: 10, cellPadding: 6 },
+                columnStyles: {
+                    0: { cellWidth: 'auto' },
+                    1: { cellWidth: 20, halign: 'center' },
+                    2: { cellWidth: 35, halign: 'right' },
+                    3: { cellWidth: 35, halign: 'right' },
+                }
+            });
+            
+            let finalY = doc.lastAutoTable.finalY + 15;
+            
+            // 4. Totals Summary Box
+            const boxWidth = 90;
+            const boxX = pageWidth - boxWidth - 14;
+            
+            const taxAmount = Number(order.taxAmount || order.taxTotal || 0);
+            let shippingCost = Number(order.total) - Number(order.subtotal);
+            if (shippingCost < 0 || isNaN(shippingCost)) shippingCost = 0;
+            
+            // Calculate height for totals box
+            let numTotalLines = 1; // subtotal
+            if (order.couponCode && parseFloat(order.discountAmount) > 0) numTotalLines++;
+            if (taxAmount > 0) numTotalLines++;
+            if (shippingCost > 0) numTotalLines++;
+            
+            const boxHeight = (numTotalLines * 8) + 18; 
+            
+            // Draw Box
+            doc.setFillColor(248, 250, 252); // slate-50
+            doc.setDrawColor(226, 232, 240); // slate-200
+            doc.roundedRect(boxX, finalY - 6, boxWidth, boxHeight, 3, 3, 'FD');
+            
+            doc.setTextColor(60, 60, 60);
+            doc.setFont("helvetica", "normal");
+            
+            const rightAlignX = boxX + boxWidth - 6;
+            const leftAlignX = boxX + 6;
+            let currentBoxY = finalY + 2;
+            
+            // Subtotal
+            doc.text("Subtotal:", leftAlignX, currentBoxY);
+            doc.text(`${cSym} ${Number(order.originalTotal || order.subtotal).toFixed(2)}`, rightAlignX, currentBoxY, { align: "right" });
+            currentBoxY += 8;
+            
+            // Discount
+            if (order.couponCode && parseFloat(order.discountAmount) > 0) {
+                doc.setTextColor(220, 38, 38);
+                doc.text(`Discount (${order.couponCode}):`, leftAlignX, currentBoxY);
+                doc.text(`-${cSym} ${Number(order.discountAmount).toFixed(2)}`, rightAlignX, currentBoxY, { align: "right" });
+                doc.setTextColor(60, 60, 60);
+                currentBoxY += 8;
+            }
+            
+            // Tax
+            if (taxAmount > 0) {
+                doc.text(`Tax (${order.taxName || 'Est.'}):`, leftAlignX, currentBoxY);
+                doc.text(`${cSym} ${taxAmount.toFixed(2)}`, rightAlignX, currentBoxY, { align: "right" });
+                currentBoxY += 8;
+            }
+            
+            // Shipping
+            if (shippingCost > 0) {
+                doc.text("Shipping:", leftAlignX, currentBoxY);
+                doc.text(`${cSym} ${shippingCost.toFixed(2)}`, rightAlignX, currentBoxY, { align: "right" });
+                currentBoxY += 8;
+            }
+            
+            // Divider
+            doc.setDrawColor(203, 213, 225); // slate-300
+            doc.line(leftAlignX, currentBoxY - 3, rightAlignX, currentBoxY - 3);
+            
+            // Grand Total
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(15, 23, 42); // slate-900
+            doc.text("Total:", leftAlignX, currentBoxY + 5);
+            doc.setTextColor(79, 70, 229); // Indigo-600
+            doc.text(`${cSym} ${Number(order.total).toFixed(2)}`, rightAlignX, currentBoxY + 5, { align: "right" });
+            
+            // 5. Notes & Footer
+            let afterBoxY = finalY + boxHeight + 10;
+            if (order.customerNote) {
+                 doc.setFontSize(10);
+                 doc.setFont("helvetica", "bold");
+                 doc.setTextColor(60, 60, 60);
+                 doc.text("Customer Note:", 14, afterBoxY);
+                 doc.setFont("helvetica", "italic");
+                 const splitNotes = doc.splitTextToSize(order.customerNote, pageWidth - 28);
+                 doc.text(splitNotes, 14, afterBoxY + 6);
+            }
+            
+            
+            doc.save(`Order_${order.orderNumber}.pdf`);
+        } catch (error) {
+            console.error("PDF Generation Error:", error);
+            toast.error("Failed to generate Order PDF");
+        }
+    };
+
+    const downloadShippingLabel = () => {
+        try {
+            const doc = new jsPDF({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: [150, 100] // 6x4 inch standard label size roughly
+            });
+
+            doc.setFontSize(18);
+            doc.setFont("helvetica", "bold");
+            doc.text("SHIPPING LABEL", 10, 15);
+
+            doc.setLineWidth(0.5);
+            doc.line(10, 20, 140, 20);
+
+            doc.setFontSize(12);
+            doc.text("TO:", 10, 30);
+            
+            doc.setFont("helvetica", "normal");
+            let y = 38;
+            doc.setFontSize(14);
+            if (order.customerName) { doc.text(order.customerName, 10, y); y += 8; }
+            
+            doc.setFontSize(12);
+            if (order.customerAddress) {
+                const splitAddress = doc.splitTextToSize(order.customerAddress, 130);
+                doc.text(splitAddress, 10, y);
+                y += (splitAddress.length * 6);
+            }
+            
+            if (order.customerPhone) { 
+                doc.text(`Phone: ${order.customerPhone}`, 10, y + 2); 
+            }
+
+            // FROM SECTION
+            if (store) {
+                let fromY = Math.max(y + 12, 65);
+
+                doc.setLineWidth(0.2);
+                doc.line(10, fromY - 6, 140, fromY - 6);
+
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "bold");
+                doc.setTextColor(0);
+                doc.text("FROM:", 10, fromY);
+
+                doc.setFont("helvetica", "normal");
+                fromY += 6;
+                doc.setFontSize(11);
+                if (store.name) {
+                    doc.text(store.name, 10, fromY);
+                    fromY += 5;
+                }
+
+                doc.setFontSize(9);
+                doc.setTextColor(60);
+                const addressParts = [store.address, store.city, store.state, store.country].filter(Boolean);
+                if (addressParts.length > 0) {
+                    const splitFromAddress = doc.splitTextToSize(addressParts.join(', '), 130);
+                    doc.text(splitFromAddress, 10, fromY);
+                    fromY += (splitFromAddress.length * 4.5);
+                }
+
+                const fromPhone = store.phone || store.whatsappNumber;
+                if (fromPhone) {
+                    doc.text(`Phone: ${fromPhone}`, 10, fromY + 1);
+                }
+            }
+
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.text(`Order Ref: ${order.orderNumber}`, 10, 90);
+
+            doc.save(`Shipping_Label_${order.orderNumber}.pdf`);
+        } catch (error) {
+            console.error("Shipping Label Generation Error:", error);
+            toast.error("Failed to generate Shipping Label");
+        }
+    };
+
     // Fulfillment state
     const [trackingProvider, setTrackingProvider] = useState(order.trackingProvider || '');
     const [trackingUrl, setTrackingUrl] = useState(order.trackingUrl || '');
@@ -128,9 +391,17 @@ function OrderDetailModal({ order, storeId, onClose, onUpdate }) {
                         <h2 className="text-xl font-black">Order {order.orderNumber}</h2>
                         <p className="text-xs text-slate-500 mt-0.5">Placed on {formatDate(order.createdAt)}</p>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors">
-                        <X className="w-5 h-5" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button onClick={downloadShippingLabel} className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors group" title="Download Shipping Label">
+                            <Printer className="w-5 h-5 group-hover:text-indigo-500 text-slate-600 dark:text-slate-300" />
+                        </button>
+                        <button onClick={downloadOrderPDF} className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors group" title="Download Order Details">
+                            <Download className="w-5 h-5 group-hover:text-indigo-500 text-slate-600 dark:text-slate-300" />
+                        </button>
+                        <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors" title="Close">
+                            <X className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                        </button>
+                    </div>
                 </div>
 
                 <div className="p-4 md:p-6">
@@ -589,6 +860,7 @@ export default function WaStoreOrders() {
                 <OrderDetailModal
                     order={selected}
                     storeId={storeId}
+                    store={store}
                     onClose={() => setSelected(null)}
                     onUpdate={handleUpdate}
                 />

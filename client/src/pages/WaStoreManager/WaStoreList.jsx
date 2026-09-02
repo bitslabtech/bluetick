@@ -8,7 +8,8 @@ export default function WaStoreList() {
     const [stores, setStores] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [newStore, setNewStore] = useState({ name: '', slug: '', whatsappNumber: '', currency: 'USD' });
+    const [countryCode, setCountryCode] = useState('+91');
+    const [newStore, setNewStore] = useState({ name: '', slug: '', whatsappNumber: '', currency: 'INR' });
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -30,7 +31,11 @@ export default function WaStoreList() {
     const handleCreate = async (e) => {
         e.preventDefault();
         try {
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/wastore`, newStore);
+            const payload = {
+                ...newStore,
+                whatsappNumber: `${countryCode}${newStore.whatsappNumber}`
+            };
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/wastore`, payload);
             toast.success("Store created successfully!");
             setShowCreateModal(false);
             navigate(`/online-store/${res.data.slug}/analytics`);
@@ -162,7 +167,10 @@ export default function WaStoreList() {
                         <form onSubmit={handleCreate} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Store Name</label>
-                                <input required type="text" value={newStore.name} onChange={e => setNewStore({...newStore, name: e.target.value})} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g. My Awesome Shop" />
+                                <input required type="text" value={newStore.name} onChange={e => {
+                                    const titleCase = e.target.value.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                                    setNewStore({...newStore, name: titleCase});
+                                }} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g. My Awesome Shop" />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Store URL Slug</label>
@@ -173,7 +181,28 @@ export default function WaStoreList() {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">WhatsApp Number</label>
-                                <input required type="text" value={newStore.whatsappNumber} onChange={e => setNewStore({...newStore, whatsappNumber: e.target.value})} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g. +1234567890" />
+                                <div className="flex">
+                                    <select 
+                                        value={countryCode} 
+                                        onChange={e => setCountryCode(e.target.value)}
+                                        className="px-3 rounded-l-lg border border-r-0 border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 max-w-[120px]"
+                                    >
+                                        <option value="+91">🇮🇳 +91</option>
+                                        <option value="+1">🇺🇸 +1</option>
+                                        <option value="+44">🇬🇧 +44</option>
+                                        <option value="+61">🇦🇺 +61</option>
+                                        <option value="+971">🇦🇪 +971</option>
+                                        <option value="+65">🇸🇬 +65</option>
+                                    </select>
+                                    <input 
+                                        required 
+                                        type="tel" 
+                                        value={newStore.whatsappNumber} 
+                                        onChange={e => setNewStore({...newStore, whatsappNumber: e.target.value.replace(/[^0-9]/g, '')})} 
+                                        className="flex-1 px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" 
+                                        placeholder="e.g. 9876543210" 
+                                    />
+                                </div>
                                 <p className="text-xs text-slate-500 mt-1">Orders will be sent to this number.</p>
                             </div>
                             <div>

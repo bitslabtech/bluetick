@@ -1648,7 +1648,15 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                                     // Build map of coreFeature items for this category
                                                     const coreFeatMap = {};
                                                     formData.coreFeatures
-                                                        .filter(f => (f.category || 'whatsapp') === category && f.name && f.name.trim())
+                                                        .filter(f => {
+                                                            if (!f.name || !f.name.trim()) return false;
+                                                            let resolvedCategory = f.category || 'whatsapp';
+                                                            const masterFeat = masterCoreFeatures.find(m => m.name === f.name);
+                                                            if (masterFeat && masterFeat.category) {
+                                                                resolvedCategory = masterFeat.category;
+                                                            }
+                                                            return resolvedCategory === category;
+                                                        })
                                                         .forEach(f => { coreFeatMap[f._id] = f; });
 
                                                     // Resolve current order for this category

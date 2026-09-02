@@ -60,6 +60,7 @@ router.put('/', [auth, admin], async (req, res) => {
         settings.changed('footer', true);
         settings.changed('contactInfo', true);
         settings.changed('bookDemo', true);
+        settings.changed('aiChatbot', true); // Force Sequelize to detect JSON changes for chatbot config
 
         await settings.save();
 
@@ -83,10 +84,9 @@ router.post('/chat', async (req, res) => {
             return res.status(400).json({ error: 'Message is required' });
         }
 
-        let settings = _landingCache.get();
-        if (!settings) {
-            settings = await LandingPage.getSettings();
-        }
+        // Always read fresh from DB for the chat route to avoid serving stale chatbot config
+        // (e.g., leadCaptureEnabled toggled but cache still holds old value)
+        const settings = await LandingPage.getSettings();
 
         if (!settings || !settings.aiChatbot || !settings.aiChatbot.enabled) {
             return res.status(403).json({ error: 'Chatbot is currently disabled.' });
@@ -312,7 +312,8 @@ Extract the phone number starting with the country code (e.g. +1234567890) and s
         let replyText = responseText;
 
         // Extract LEAD_DATA block
-        const leadDataMatch = replyText.match(/\[LEAD_DATA:\s*(\{.*?\})\s*\]/);
+        // Use 's' (dotAll) flag so '.' matches newlines — AI often outputs multi-line JSON
+        const leadDataMatch = replyText.match(/\[LEAD_DATA:\s*(\{[\s\S]*?\})\s*\]/);
         console.log('[DEBUG] Chatbot Reply:', replyText);
         console.log('[DEBUG] Lead Data Match:', leadDataMatch ? leadDataMatch[1] : 'No lead block found in reply');
 
@@ -322,9 +323,20 @@ Extract the phone number starting with the country code (e.g. +1234567890) and s
                 const phone = leadData.phone.replace(/[^+\d]/g, ''); // Ensure pure digits with optional +
                 const name = leadData.name || 'AI Chatbot Lead';
                 
-                // Assign to the selected team members (or just the first one if the model only supports single assign)
-                if (phone && aiConfig.crmOwners && aiConfig.crmOwners.length > 0) {
-                    const primaryOwnerId = aiConfig.crmOwners[0]; 
+                // Assign to selected team member, falling back to the global linkedAdminUserId if none configured
+                let primaryOwnerId = (aiConfig.crmOwners && aiConfig.crmOwners.length > 0)
+                    ? aiConfig.crmOwners[0]
+                    : null;
+
+                if (!primaryOwnerId) {
+                    try {
+                        const SystemConfig = require('../models/SystemConfig');
+                        const sysConfig = await SystemConfig.getConfig();
+                        primaryOwnerId = sysConfig?.settings?.linkedAdminUserId || null;
+                    } catch (e) { /* ignore */ }
+                }
+
+                if (phone && primaryOwnerId) {
                     
                     const Contact = require('../models/Contact');
                     const Conversation = require('../models/Conversation');
@@ -341,6 +353,7 @@ Extract the phone number starting with the country code (e.g. +1234567890) and s
                     };
                     
                     const tagsToAdd = [
+                        'AI Chatbot Lead', // source tag — always applied for easy CRM filtering
                         ...parseTags(aiConfig.crmTags),
                         ...parseTags(aiConfig.crmGroups)
                     ];
@@ -438,8 +451,8 @@ Extract the phone number starting with the country code (e.g. +1234567890) and s
                 console.error("Lead extraction/processing error:", e);
             }
             
-            // Remove the secret JSON block from the user-facing output
-            replyText = replyText.replace(/\[LEAD_DATA:\s*(\{.*?\})\s*\]/, '').trim();
+            // Remove the secret JSON block from the user-facing output (use [\s\S] for multi-line match)
+            replyText = replyText.replace(/\[LEAD_DATA:\s*(\{[\s\S]*?\})\s*\]/, '').trim();
         }
 
         res.json({ reply: replyText });

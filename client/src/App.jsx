@@ -330,6 +330,7 @@ function StoreAuthRoute({ page, customSlug }) {
 function CustomDomainRouter({ children }) {
     const [storeSlug, setStoreSlug] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [domainError, setDomainError] = useState(false);
 
     useEffect(() => {
         const hostname = window.location.hostname;
@@ -344,8 +345,17 @@ function CustomDomainRouter({ children }) {
             .then(res => {
                 setStoreSlug(res.data.store.slug);
             })
-            .catch(() => {
-                console.warn('Custom domain not recognized by platform');
+            .catch((err) => {
+                console.warn('Custom domain not recognized by platform or store is inactive/expired');
+                // If it's a 403 (expired plan) or 404 (store not found on this domain),
+                // we should show the StoreNotFound page instead of the SaaS platform.
+                if (err.response && (err.response.status === 403 || err.response.status === 404)) {
+                    setDomainError(true);
+                } else {
+                    // For other generic network errors, we might still want to show an error,
+                    // but falling back to domainError ensures it doesn't bleed into the SaaS platform.
+                    setDomainError(true);
+                }
             })
             .finally(() => {
                 setLoading(false);
@@ -353,6 +363,14 @@ function CustomDomainRouter({ children }) {
     }, []);
 
     if (loading) return <Loading />;
+
+    if (domainError) {
+        return (
+            <Routes>
+                <Route path="*" element={<StoreNotFound slug="custom-domain" />} />
+            </Routes>
+        );
+    }
 
     if (storeSlug) {
         // Render custom domain store routing

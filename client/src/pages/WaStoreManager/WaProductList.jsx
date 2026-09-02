@@ -269,6 +269,11 @@ export default function WaProductList() {
                     return;
                 }
             }
+
+            if (!payload.description || !payload.description.trim()) {
+                toast.error('Please enter a product description.');
+                return;
+            }
             payload.imageUrls = (payload.imageUrls || []).filter(url => url && url.trim() !== '');
             if (payload.imageUrls.length === 0) {
                 toast.error("Please add at least one product image.");

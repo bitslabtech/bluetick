@@ -1038,17 +1038,6 @@ const Settings = () => {
                     </div>
                 </div>
             </main>
-
-            <EmbeddedSignupChecklist 
-                isOpen={showChecklistModal} 
-                onClose={() => setShowChecklistModal(false)}
-                onProceed={() => {
-                    setShowChecklistModal(false);
-                    handleFacebookLogin();
-                }}
-                fbLoading={fbLoading}
-            />
-
         </div>
     );
 
@@ -3545,6 +3534,17 @@ const Settings = () => {
                     {saving ? 'Saving...' : 'Save Settings'}
                 </button>
             </div>
+
+            <EmbeddedSignupChecklist 
+                isOpen={showChecklistModal} 
+                onClose={() => setShowChecklistModal(false)}
+                onProceed={() => {
+                    setShowChecklistModal(false);
+                    handleFacebookLogin();
+                }}
+                fbLoading={fbLoading}
+            />
+
         </div>
     );
 };
