@@ -640,7 +640,7 @@ router.get('/calculate-upgrade/:planName', async (req, res) => {
 // --- POST /create-order --- Step 1 of checkout ---
 router.post('/create-order', async (req, res) => {
     try {
-        const { planName, isUpgrade, couponCode, itemId, interval, successUrl, cancelUrl } = req.body;
+        const { planName, isUpgrade, couponCode, itemId, interval, successUrl, cancelUrl, quantity } = req.body;
         
         const user = await User.findByPk(req.user.id);
         
@@ -656,9 +656,15 @@ router.post('/create-order', async (req, res) => {
             if (!targetItem || !targetItem.isActive) return res.status(404).json({ error: `Store item not found or inactive.` });
             
             finalPriceToCharge = parseFloat(targetItem.price);
+            // For team_members, multiply by quantity if user selected more than 1
+            if (targetItem.itemType === 'team_members' && quantity && quantity > 1) {
+                finalPriceToCharge = finalPriceToCharge * parseInt(quantity, 10);
+            }
             targetCurrency = targetItem.currency || 'USD';
             orderNotes.itemId = itemId;
             orderNotes.itemName = targetItem.name;
+            orderNotes.quantity = (targetItem.itemType === 'team_members' && quantity) ? parseInt(quantity, 10) : 1;
+            orderNotes.validityMonths = targetItem.validityMonths || 12;
         } else {
             // It's a Plan purchase
             let targetPlan = await Plan.findOne({ where: { name: planName } });
@@ -784,6 +790,16 @@ router.post('/create-order', async (req, res) => {
                     user.extraTopupMessages = (user.extraTopupMessages || 0) + targetItem.amount;
                 } else if (targetItem.itemType === 'contacts') {
                     user.extraTopupContacts = (user.extraTopupContacts || 0) + targetItem.amount;
+                } else if (targetItem.itemType === 'team_members') {
+                    const qty = parseInt(orderNotes?.quantity || 1, 10);
+                    const months = parseInt(targetItem.validityMonths || 12, 10);
+                    user.extraTopupTeamMembers = (user.extraTopupTeamMembers || 0) + (targetItem.amount * qty);
+                    // Extend expiry: stack from current expiry if still valid, else start from today
+                    const baseDate = (user.teamMemberTopupExpiry && new Date(user.teamMemberTopupExpiry) > new Date())
+                        ? new Date(user.teamMemberTopupExpiry)
+                        : new Date();
+                    baseDate.setMonth(baseDate.getMonth() + months);
+                    user.teamMemberTopupExpiry = baseDate;
                 }
                 await user.save();
                 
@@ -872,7 +888,7 @@ router.post('/create-order', async (req, res) => {
 // ─── POST /verify-payment ── Step 2: verify signature then upgrade ────────────
 router.post('/verify-payment', async (req, res) => {
     try {
-        const { gateway, payload, planName, couponCode, discountApplied, itemId, interval } = req.body;
+        const { gateway, payload, planName, couponCode, discountApplied, itemId, interval, quantity } = req.body;
 
         if (!gateway || !payload || (!planName && !itemId)) {
             return res.status(400).json({ error: 'Missing payment verification fields.' });
@@ -918,13 +934,15 @@ router.post('/verify-payment', async (req, res) => {
             
             // Record Transaction with actual amount paid (subtract discount if any)
             const discountAppliedStore = parseFloat(discountApplied) || 0;
-            const actualAmountPaid = Math.max(0, parseFloat(targetItem.price) - discountAppliedStore);
+            const purchaseQty = (targetItem.itemType === 'team_members' && quantity) ? parseInt(quantity, 10) : 1;
+            const unitPrice = parseFloat(targetItem.price);
+            const actualAmountPaid = Math.max(0, (unitPrice * purchaseQty) - discountAppliedStore);
 
             const txnData = {
                 userId: user.id,
                 amount: actualAmountPaid,
                 currency: targetItem.currency || 'USD',
-                planName: `Store: ${targetItem.name}`,
+                planName: `Store: ${targetItem.name}${purchaseQty > 1 ? ` × ${purchaseQty}` : ''}`,
                 status: 'COMPLETED',
                 paymentGateway: gateway,
                 transactionReference: transactionReference,
@@ -946,23 +964,23 @@ router.post('/verify-payment', async (req, res) => {
             if (targetItem.itemType === 'ai_tokens') {
                 user.aiTokenBalance = (user.aiTokenBalance || 0) + targetItem.amount;
             } else if (targetItem.itemType === 'messages') {
-                // If they have an active plan, their message limit is dynamically checked against Plan.
-                // We shouldn't permanently alter their DB user limit unless it's designed that way.
-                // Normally Top-up messages might be a separate field like 'extraMessageLimit'.
-                // Since there is no 'extraMessageLimit' field currently, let's treat it as a hard bump
-                // on their underlying active plan limit or store it loosely.
-                // But wait, user doesn't have a messageLimit field directly (it comes from Plan).
-                // Let's create an 'extraMessageLimit' field on User if we need to track this, 
-                // but for now let's just log it if we haven't added that field. 
-                // Actually, let's just assume we add `extraMessageLimit` to User model in the future, 
-                // for now fallback to safely doing nothing or using standard pattern.
-                // To make it functional, I will increment a new field `extraTopupMessages` on the user implicitly via JSON or schema update later, or if it doesn't exist, it will just not fail.
                 if (user.extraTopupMessages === undefined) {
                     console.warn("User model missing extraTopupMessages field. Attempting to set anyway.");
                 }
                 user.extraTopupMessages = (user.extraTopupMessages || 0) + targetItem.amount;
             } else if (targetItem.itemType === 'contacts') {
                 user.extraTopupContacts = (user.extraTopupContacts || 0) + targetItem.amount;
+            } else if (targetItem.itemType === 'team_members') {
+                const seatsGranted = targetItem.amount * purchaseQty;
+                const months = parseInt(targetItem.validityMonths || 12, 10);
+                user.extraTopupTeamMembers = (user.extraTopupTeamMembers || 0) + seatsGranted;
+                // Extend expiry by validityMonths — stack from current if still valid, else from today
+                const baseDate = (user.teamMemberTopupExpiry && new Date(user.teamMemberTopupExpiry) > new Date())
+                    ? new Date(user.teamMemberTopupExpiry)
+                    : new Date();
+                baseDate.setMonth(baseDate.getMonth() + months);
+                user.teamMemberTopupExpiry = baseDate;
+                console.log(`[TEAM TOPUP] User ${user.id}: +${seatsGranted} seats for ${months} months (expiry → ${baseDate.toISOString()})`);
             }
             
             await user.save();

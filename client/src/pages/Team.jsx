@@ -17,6 +17,9 @@ export default function Team() {
     const navigate = useNavigate();
     const [team, setTeam] = useState([]);
     const [memberLimit, setMemberLimit] = useState(0);
+    const [planLimit, setPlanLimit] = useState(0);
+    const [topupSeats, setTopupSeats] = useState(0);
+    const [topupExpiry, setTopupExpiry] = useState(null);
     const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState(false);
     const [inviteLink, setInviteLink] = useState('');
@@ -149,6 +152,9 @@ export default function Team() {
             });
             setTeam(res.data.members || []);
             setMemberLimit(res.data.limit || 0);
+            setPlanLimit(res.data.planLimit || 0);
+            setTopupSeats(res.data.topupSeats || 0);
+            setTopupExpiry(res.data.topupExpiry || null);
         } catch (err) {
             console.error('Failed to fetch team:', err);
             showToast({ type: 'error', message: 'Failed to load team data' });
@@ -598,9 +604,17 @@ export default function Team() {
                                         {isLimitReached ? 'Capacity Reached' : 'Invite New Colleague'}
                                     </button>
                                     {isLimitReached && (
-                                        <p className="mt-3 text-xs sm:text-sm text-red-400 font-semibold flex items-center justify-center sm:justify-start gap-2">
-                                            <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Please upgrade your plan to unlock more seats.
-                                        </p>
+                                        <div className="mt-3 flex flex-col sm:flex-row items-center gap-2">
+                                            <p className="text-xs sm:text-sm text-red-400 font-semibold flex items-center gap-2">
+                                                <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> All seats are filled.
+                                            </p>
+                                            <button
+                                                onClick={() => navigate('/app/billing')}
+                                                className="px-4 py-1.5 rounded-lg bg-violet-500/20 hover:bg-violet-500/30 border border-violet-400/30 text-violet-300 text-xs font-bold transition-all flex items-center gap-1.5"
+                                            >
+                                                <CreditCard className="w-3.5 h-3.5" /> Buy More Seats
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
 
@@ -618,6 +632,20 @@ export default function Team() {
                                                 <div className="flex items-baseline gap-2">
                                                     <span className="text-4xl sm:text-5xl font-black text-white tracking-tight">{occupiedSlots}</span>
                                                     <span className="text-xl sm:text-2xl font-bold text-white/30">/ {memberLimit > 0 ? memberLimit : '∞'}</span>
+                                                </div>
+                                                {/* Seat breakdown: plan + topup */}
+                                                <div className="mt-2 flex flex-wrap gap-2">
+                                                    {planLimit > 0 && (
+                                                        <span className="text-[10px] text-white/50 bg-white/10 px-2 py-0.5 rounded-full">
+                                                            {planLimit} plan seat{planLimit !== 1 ? 's' : ''}
+                                                        </span>
+                                                    )}
+                                                    {topupSeats > 0 && (
+                                                        <span className="text-[10px] text-violet-300 bg-violet-500/20 border border-violet-400/30 px-2 py-0.5 rounded-full">
+                                                            +{topupSeats} purchased
+                                                            {topupExpiry && ` · exp. ${new Date(topupExpiry).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                             

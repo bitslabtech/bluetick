@@ -25,8 +25,9 @@ const StoreItem = sequelize.define('StoreItem', {
         defaultValue: 'USD'
     },
     itemType: {
-        type: DataTypes.ENUM('ai_tokens', 'messages', 'contacts', 'templates'),
-        allowNull: false
+        type: DataTypes.STRING(30),
+        allowNull: false,
+        comment: 'ai_tokens | messages | contacts | templates | team_members'
     },
     amount: {
         type: DataTypes.INTEGER,
@@ -48,6 +49,15 @@ const StoreItem = sequelize.define('StoreItem', {
         type: DataTypes.STRING,
         defaultValue: 'indigo',
         comment: 'Color theme for the store card (e.g., blue, indigo, emerald)'
+    },
+    // For team_members packs: how many months of validity does this pack grant?
+    // 1 = monthly, 3 = quarterly, 6 = half-year, 12 = annual
+    // null / undefined = falls back to 12 months (annual)
+    validityMonths: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue: 12,
+        comment: 'For team_members items: validity duration in months (1, 3, 6, 12). Null = 12.'
     }
 }, {
     timestamps: true

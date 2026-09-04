@@ -48,7 +48,8 @@ const Dashboard = () => {
         waMessagingTier: 'N/A',
         waMessagingProgress: null,
         waMessagingThreshold: 0,
-        waBusinessVerified: false,
+        waDisplayName: null,
+        waDisplayNameStatus: 'UNKNOWN',
         waConversationsFetchedAt: null
     });
     const [chartData, setChartData] = useState([]);
@@ -197,7 +198,8 @@ const Dashboard = () => {
                 waMessagingTier: res.data.waMessagingTier ?? 'N/A',
                 waMessagingProgress: res.data.waMessagingProgress ?? null,
                 waMessagingThreshold: res.data.waMessagingThreshold ?? 0,
-                waBusinessVerified: res.data.waBusinessVerified ?? false,
+                waDisplayName: res.data.waDisplayName ?? null,
+                waDisplayNameStatus: res.data.waDisplayNameStatus ?? 'UNKNOWN',
                 waConversationsFetchedAt: res.data.waConversationsFetchedAt ?? null
             }));
         } catch (err) {
@@ -830,17 +832,22 @@ const Dashboard = () => {
                                 <div className="grid grid-cols-3 gap-3">
 
                                     {/* 1. Account Status */}
-                                    <div className="flex flex-col items-start p-3 bg-slate-50 dark:bg-[#1a2634] rounded-xl border border-slate-200 dark:border-[#2f455a] relative overflow-hidden">
-                                        <div className="absolute -right-4 -top-4 w-16 h-16 bg-blue-500/5 rounded-full blur-xl"></div>
-                                        <p className="text-slate-500 dark:text-text-secondary text-[10px] font-medium uppercase tracking-wider mb-2">Connection</p>
+                                    <div className="flex flex-col items-start p-3 bg-slate-50 dark:bg-[#1a2634] rounded-xl border border-slate-200 dark:border-[#2f455a] relative overflow-hidden group hover:border-blue-400/50 transition-colors">
+                                        <div className="absolute -right-4 -top-4 w-16 h-16 bg-blue-500/5 rounded-full blur-xl group-hover:bg-blue-500/10 transition-colors pointer-events-none"></div>
+                                        <p className="text-slate-500 dark:text-text-secondary text-[10px] font-medium uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                            API Connection
+                                            <span title="Indicates if the system holds valid Meta Access Tokens and Phone Number IDs." className="cursor-help flex items-center">
+                                                <Info className="w-3.5 h-3.5 text-slate-400 hover:text-primary transition-colors" />
+                                            </span>
+                                        </p>
                                         <div className="flex items-center gap-2 mt-auto">
                                             {stats.waAccountStatus === 'CONNECTED' ? (
-                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 rounded-md text-[11px] font-bold">
-                                                    <div className="size-1.5 rounded-full bg-green-500"></div>
-                                                    Connected
+                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 rounded-md text-[11px] font-bold border border-green-200 dark:border-green-500/20 shadow-sm">
+                                                    <div className="size-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                                                    Configured
                                                 </div>
                                             ) : (
-                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-md text-[11px] font-bold">
+                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-md text-[11px] font-bold border border-red-200 dark:border-red-500/20 shadow-sm">
                                                     <div className="size-1.5 rounded-full bg-red-500"></div>
                                                     Disconnected
                                                 </div>
@@ -849,25 +856,30 @@ const Dashboard = () => {
                                     </div>
 
                                     {/* 2. Account Quality */}
-                                    <div className="flex flex-col items-start p-3 bg-slate-50 dark:bg-[#1a2634] rounded-xl border border-slate-200 dark:border-[#2f455a] relative overflow-hidden">
-                                        <div className="absolute -right-4 -top-4 w-16 h-16 bg-emerald-500/5 rounded-full blur-xl"></div>
-                                        <p className="text-slate-500 dark:text-text-secondary text-[10px] font-medium uppercase tracking-wider mb-2">Quality Rating</p>
+                                    <div className="flex flex-col items-start p-3 bg-slate-50 dark:bg-[#1a2634] rounded-xl border border-slate-200 dark:border-[#2f455a] relative overflow-hidden group hover:border-emerald-400/50 transition-colors">
+                                        <div className="absolute -right-4 -top-4 w-16 h-16 bg-emerald-500/5 rounded-full blur-xl group-hover:bg-emerald-500/10 transition-colors pointer-events-none"></div>
+                                        <p className="text-slate-500 dark:text-text-secondary text-[10px] font-medium uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                            Quality Rating
+                                            <span title="Meta's quality rating for your phone number based on recent customer feedback. High quality reduces the chance of rate limits." className="cursor-help flex items-center">
+                                                <Info className="w-3.5 h-3.5 text-slate-400 hover:text-primary transition-colors" />
+                                            </span>
+                                        </p>
                                         <div className="flex items-center mt-auto w-full gap-1">
                                             <div className={(stats.waAccountQuality === 'YELLOW' || stats.waAccountQuality === 'RED') ? "w-[65%]" : "w-full"}>
                                                 {stats.waAccountQuality === 'GREEN' ? (
-                                                    <div className="flex items-center justify-center gap-1.5 px-1 py-1 bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-md text-[11px] font-bold w-full truncate">
+                                                    <div className="flex items-center justify-center gap-1.5 px-1 py-1 bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-md text-[11px] font-bold w-full truncate border border-emerald-200 dark:border-emerald-500/20 shadow-sm">
                                                         <Activity className="w-3 h-3 shrink-0" /> High
                                                     </div>
                                                 ) : stats.waAccountQuality === 'YELLOW' ? (
-                                                    <div className="flex items-center justify-center gap-1.5 px-1 py-1 bg-yellow-100 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 rounded-md text-[11px] font-bold w-full truncate">
+                                                    <div className="flex items-center justify-center gap-1.5 px-1 py-1 bg-yellow-100 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 rounded-md text-[11px] font-bold w-full truncate border border-yellow-200 dark:border-yellow-500/20 shadow-sm">
                                                         <Activity className="w-3 h-3 shrink-0" /> Medium
                                                     </div>
                                                 ) : stats.waAccountQuality === 'RED' ? (
-                                                    <div className="flex items-center justify-center gap-1.5 px-1 py-1 bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-md text-[11px] font-bold w-full truncate">
+                                                    <div className="flex items-center justify-center gap-1.5 px-1 py-1 bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-md text-[11px] font-bold w-full truncate border border-red-200 dark:border-red-500/20 shadow-sm">
                                                         <AlertTriangle className="w-3 h-3 shrink-0" /> Low
                                                     </div>
                                                 ) : (
-                                                    <div className="flex items-center justify-center gap-1.5 px-1 py-1 bg-slate-200 dark:bg-white/5 text-slate-500 dark:text-slate-400 rounded-md text-[11px] font-bold w-full truncate">
+                                                    <div className="flex items-center justify-center gap-1.5 px-1 py-1 bg-slate-200 dark:bg-white/5 text-slate-500 dark:text-slate-400 rounded-md text-[11px] font-bold w-full truncate border border-slate-300 dark:border-white/10 shadow-sm">
                                                         <Activity className="w-3 h-3 shrink-0" /> N/A
                                                     </div>
                                                 )}
@@ -878,7 +890,7 @@ const Dashboard = () => {
                                                     <button
                                                         id="quality-insights-btn"
                                                         onClick={fetchQualityInsights}
-                                                        className="flex items-center justify-center gap-1 px-1 py-1 w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 rounded-md text-[10px] font-semibold hover:bg-slate-100 dark:hover:bg-white/10 transition-all truncate"
+                                                        className="flex items-center justify-center gap-1 px-1 py-1 w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 rounded-md text-[10px] font-semibold hover:bg-slate-100 dark:hover:bg-white/10 transition-all shadow-sm truncate"
                                                         title="View block reasons & improvement tips"
                                                     >
                                                         <Info className="w-3 h-3 shrink-0" /> Details
@@ -888,72 +900,60 @@ const Dashboard = () => {
                                         </div>
                                     </div>
 
-                                    {/* 3. Business Verification */}
-                                    <div className="flex flex-col items-start p-3 bg-slate-50 dark:bg-[#1a2634] rounded-xl border border-slate-200 dark:border-[#2f455a] relative overflow-hidden">
-                                        <div className="absolute -right-4 -top-4 w-16 h-16 bg-purple-500/5 rounded-full blur-xl"></div>
-                                        <p className="text-slate-500 dark:text-text-secondary text-[10px] font-medium uppercase tracking-wider mb-2">Meta Business Page</p>
+                                    {/* 3. Display Name Status */}
+                                    <div className="flex flex-col items-start p-3 bg-slate-50 dark:bg-[#1a2634] rounded-xl border border-slate-200 dark:border-[#2f455a] relative overflow-hidden group hover:border-purple-400/50 transition-colors">
+                                        <div className="absolute -right-4 -top-4 w-16 h-16 bg-purple-500/5 rounded-full blur-xl group-hover:bg-purple-500/10 transition-colors pointer-events-none"></div>
+                                        <p className="text-slate-500 dark:text-text-secondary text-[10px] font-medium uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                            Display Name
+                                            <span title="The current approved display name and the status of any recent name change requests from Meta." className="cursor-help flex items-center">
+                                                <Info className="w-3.5 h-3.5 text-slate-400 hover:text-primary transition-colors" />
+                                            </span>
+                                        </p>
+                                        
+                                        {stats.waDisplayName && (
+                                            <div className="text-[12px] font-bold text-slate-700 dark:text-slate-200 truncate w-full mb-1" title={stats.waDisplayName}>
+                                                {stats.waDisplayName}
+                                            </div>
+                                        )}
+                                        
                                         <div className="flex items-center gap-2 mt-auto">
-                                            {stats.waBusinessVerified ? (
-                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-md text-[11px] font-bold">
-                                                    <BadgeCheck className="w-3 h-3" /> Verified
+                                            {stats.waDisplayNameStatus === 'APPROVED' || stats.waDisplayNameStatus === 'AVAILABLE' ? (
+                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-md text-[10px] font-bold border border-purple-200 dark:border-purple-500/20 shadow-sm">
+                                                    <BadgeCheck className="w-3 h-3" /> Approved
+                                                </div>
+                                            ) : stats.waDisplayNameStatus === 'PENDING_REVIEW' ? (
+                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-yellow-100 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 rounded-md text-[10px] font-bold border border-yellow-200 dark:border-yellow-500/20 shadow-sm">
+                                                    <Info className="w-3 h-3" /> In Review
+                                                </div>
+                                            ) : stats.waDisplayNameStatus === 'DECLINED' ? (
+                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-md text-[10px] font-bold border border-red-200 dark:border-red-500/20 shadow-sm">
+                                                    <AlertTriangle className="w-3 h-3" /> Rejected
                                                 </div>
                                             ) : (
-                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-200 dark:bg-white/5 text-slate-500 dark:text-slate-400 rounded-md text-[11px] font-bold">
-                                                    <Info className="w-3 h-3" /> Unverified
+                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-200 dark:bg-white/5 text-slate-500 dark:text-slate-400 rounded-md text-[10px] font-bold border border-slate-300 dark:border-white/10 shadow-sm">
+                                                    <Info className="w-3 h-3" /> Unknown
                                                 </div>
                                             )}
                                         </div>
                                     </div>
 
                                     {/* 4. Messaging Limit & Progress */}
-                                    <div className="col-span-3 flex flex-col p-3 bg-slate-50 dark:bg-[#1a2634] rounded-xl border border-slate-200 dark:border-[#2f455a] relative overflow-hidden">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <p className="text-slate-500 dark:text-text-secondary text-[10px] font-medium uppercase tracking-wider flex items-center gap-1.5" title="Number of unique business-initiated conversation windows opened in the last 24 hours. Meta limits this per tier.">
-                                                Meta Messaging Limit (in 24 hrs)
-                                                <Info className="w-3 h-3 text-slate-400 hover:text-primary transition-colors" />
-                                            </p>
-                                            <span className="text-primary font-bold text-xs bg-primary/10 px-2 py-0.5 rounded-md">{stats.waMessagingTier}</span>
-                                        </div>
-                                        {stats.waMessagingProgress === null ? (
-                                            // Not yet synced from Meta
-                                            <div className="flex flex-col gap-1 mt-1">
-                                                <p className="text-[11px] text-slate-400 dark:text-slate-500 italic">
-                                                    24hr data not yet synced.
+                                    <div className="col-span-3 flex flex-col p-3 bg-slate-50 dark:bg-[#1a2634] rounded-xl border border-slate-200 dark:border-[#2f455a] relative overflow-hidden justify-center">
+                                        <div className="flex justify-between items-center w-full">
+                                            <div>
+                                                <p className="text-slate-500 dark:text-text-secondary text-[10px] font-medium uppercase tracking-wider flex items-center gap-1.5 mb-1">
+                                                    Rolling Messaging Limit
+                                                    <span title="Meta enforces a rolling 24-hour limit on the number of unique users you can message. Meta does not provide a real-time counter for this." className="cursor-help flex items-center">
+                                                        <Info className="w-3.5 h-3.5 text-slate-400 hover:text-primary transition-colors" />
+                                                    </span>
                                                 </p>
-                                                <button
-                                                    onClick={handleRefreshWaStatus}
-                                                    disabled={refreshingStatus}
-                                                    className="text-[10px] text-primary font-bold hover:underline text-left w-fit"
-                                                >
-                                                    {refreshingStatus ? 'Syncing...' : '↻ Click Refresh Status to fetch live data'}
-                                                </button>
+                                                <div className="text-[12px] text-slate-600 dark:text-slate-400">
+                                                    <span className="text-slate-900 dark:text-white font-bold text-sm mr-1">{stats.waMessagingThreshold === 9999999 ? '∞' : stats.waMessagingThreshold.toLocaleString()}</span>
+                                                    unique users per 24 hours
+                                                </div>
                                             </div>
-                                        ) : (
-                                            <>
-                                                <div className="flex items-end justify-between mt-1 mb-2">
-                                                    <div className="text-[11px] text-slate-500 dark:text-text-secondary">
-                                                        <span className="text-slate-900 dark:text-white font-bold text-sm mr-1">{stats.waMessagingProgress.toLocaleString()}</span>
-                                                        / {stats.waMessagingThreshold === 9999999 ? '∞' : stats.waMessagingThreshold.toLocaleString()} conversations today
-                                                    </div>
-                                                    {stats.waConversationsFetchedAt && (
-                                                        <span className="text-[9px] text-slate-400 dark:text-slate-600">
-                                                            synced {new Date(stats.waConversationsFetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="w-full bg-slate-200 dark:bg-[#2f455a] h-1.5 rounded-full overflow-hidden">
-                                                    <div
-                                                        className={`h-full rounded-full transition-all duration-1000 ${stats.waMessagingThreshold > 0 && (stats.waMessagingProgress / stats.waMessagingThreshold) >= 0.85
-                                                            ? 'bg-red-500'
-                                                            : stats.waMessagingThreshold > 0 && (stats.waMessagingProgress / stats.waMessagingThreshold) >= 0.6
-                                                                ? 'bg-yellow-500'
-                                                                : 'bg-primary'
-                                                            }`}
-                                                        style={{ width: `${stats.waMessagingThreshold > 0 ? Math.min((stats.waMessagingProgress / stats.waMessagingThreshold) * 100, 100) : 0}%` }}
-                                                    ></div>
-                                                </div>
-                                            </>
-                                        )}
+                                            <span className="text-primary font-bold text-xs bg-primary/10 px-3 py-1.5 rounded-md self-center">{stats.waMessagingTier}</span>
+                                        </div>
                                     </div>
 
 

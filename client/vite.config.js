@@ -18,6 +18,8 @@ export default defineConfig({
     exclude: ['@xyflow/react', 'framer-motion', '@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities']
   },
   build: {
+    outDir: '../server/public/dist',  // Build directly into where the Express server serves from
+    emptyOutDir: true,                // Clean old files before each build
     modulePreload: false, // Keep disabled so Vite doesn't preload lazy chunks in index.html
     cssCodeSplit: true,   // Split CSS per-route chunk — reduces render-blocking CSS size
     chunkSizeWarningLimit: 600, // Suppress noise for known large vendor chunks

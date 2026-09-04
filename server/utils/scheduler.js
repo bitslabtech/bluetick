@@ -359,9 +359,12 @@ function initScheduler() {
                     const groupCount = await Group.count({ where: { userId: user.id } });
                     await checkThresholds(groupCount, planDetails.groupLimit, 'Groups');
 
-                    // Team Members Quota
+                    // Team Members Quota — use combined limit (plan + valid topup seats)
                     const teamCount = await User.count({ where: { parentUserId: user.id } });
-                    await checkThresholds(teamCount, planDetails.teamMemberLimit, 'Team Members');
+                    const teamTopupValid = user.teamMemberTopupExpiry && new Date(user.teamMemberTopupExpiry) > new Date();
+                    const teamTopupSeats = teamTopupValid ? (user.extraTopupTeamMembers || 0) : 0;
+                    const effectiveTeamLimit = planDetails.teamMemberLimit + teamTopupSeats;
+                    await checkThresholds(teamCount, effectiveTeamLimit, 'Team Members');
 
                     // FlowBot Flows Quota
                     const flowCount = await Flow.count({ where: { userId: user.id } });

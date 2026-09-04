@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
-import { Store, Plus, Edit, Trash2, X, Zap, MessageSquare, Users, FileText } from 'lucide-react';
+import { Store, Plus, Edit, Trash2, X, Zap, MessageSquare, Users, FileText, UserPlus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
 import AdminHeader from '../components/AdminHeader';
@@ -134,6 +134,7 @@ const StoreItemCard = ({ item, onEdit, onDelete }) => {
         switch (item.icon) {
             case 'MessageSquare': return <MessageSquare className="w-6 h-6" />;
             case 'Users': return <Users className="w-6 h-6" />;
+            case 'UserPlus': return <UserPlus className="w-6 h-6" />;
             case 'FileText': return <FileText className="w-6 h-6" />;
             case 'Zap':
             default: return <Zap className="w-6 h-6" />;
@@ -146,6 +147,7 @@ const StoreItemCard = ({ item, onEdit, onDelete }) => {
         emerald: { bg: 'bg-emerald-600', text: 'text-emerald-600', light: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-200' },
         amber: { bg: 'bg-amber-500', text: 'text-amber-600', light: 'bg-amber-50 dark:bg-amber-900/20', border: 'border-amber-200' },
         rose: { bg: 'bg-rose-500', text: 'text-rose-600', light: 'bg-rose-50 dark:bg-rose-900/20', border: 'border-rose-200' },
+        violet: { bg: 'bg-violet-600', text: 'text-violet-600', light: 'bg-violet-50 dark:bg-violet-900/20', border: 'border-violet-200' },
     };
     const theme = themeColors[item.color] || themeColors.indigo;
 
@@ -174,8 +176,13 @@ const StoreItemCard = ({ item, onEdit, onDelete }) => {
                 {item.description && <p className="text-slate-500 dark:text-slate-400 text-sm">{item.description}</p>}
                 
                 <div className={`mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${theme.light} ${theme.text} text-sm font-bold`}>
-                    <Plus className="w-4 h-4" /> {item.amount.toLocaleString()} {item.itemType === 'ai_tokens' ? 'Tokens' : 'Credits'}
+                    <Plus className="w-4 h-4" /> {item.amount.toLocaleString()} {item.itemType === 'ai_tokens' ? 'Tokens' : item.itemType === 'team_members' ? `Seat${item.amount !== 1 ? 's' : ''} / unit` : 'Credits'}
                 </div>
+                {item.itemType === 'team_members' && item.validityMonths && (
+                    <div className="mt-2 text-[11px] text-violet-500 font-semibold">
+                        🕐 Valid for {item.validityMonths === 1 ? '1 Month' : item.validityMonths === 3 ? '3 Months' : item.validityMonths === 6 ? '6 Months' : '1 Year'} from purchase
+                    </div>
+                )}
             </div>
 
             <div className="pt-4 border-t border-slate-100 dark:border-white/5 flex items-baseline justify-between">
@@ -200,8 +207,11 @@ const StoreItemModal = ({ item, onClose, onSave }) => {
         amount: item?.amount || '',
         icon: item?.icon || 'Zap',
         color: item?.color || 'indigo',
-        isActive: item?.isActive !== false
+        isActive: item?.isActive !== false,
+        validityMonths: item?.validityMonths || 12
     });
+
+    const isTeamMembers = formData.itemType === 'team_members';
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -239,6 +249,7 @@ const StoreItemModal = ({ item, onClose, onSave }) => {
                                 <option value="ai_tokens">AI Tokens</option>
                                 <option value="messages">Message Limit (+ per month)</option>
                                 <option value="contacts">Contact Limit (+ per month)</option>
+                                <option value="team_members">Team Member Seats (1-year validity)</option>
                             </select>
                         </div>
                     </div>
@@ -249,14 +260,23 @@ const StoreItemModal = ({ item, onClose, onSave }) => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Resource Amount</label>
-                            <input type="number" name="amount" value={formData.amount} onChange={handleChange} required className="input-field" placeholder="e.g. 5000" title="The exact number of units to add to the user's balance" />
-                            <p className="text-[10px] text-slate-500 mt-1">Quantity added to balance.</p>
+                    <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Resource Amount
+                                {isTeamMembers && <span className="ml-1 text-xs text-slate-400">(seats per pack)</span>}
+                            </label>
+                            <input type="number" name="amount" value={formData.amount} onChange={handleChange} required className="input-field" placeholder={isTeamMembers ? 'e.g. 1' : 'e.g. 5000'} title="The exact number of units to add to the user's balance" />
+                            <p className="text-[10px] text-slate-500 mt-1">
+                                {isTeamMembers ? 'Seats added per unit purchased.' : 'Quantity added to balance.'}
+                            </p>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Price</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Price
+                                {isTeamMembers && <span className="ml-1 text-xs text-slate-400">(per seat)</span>}
+                            </label>
                             <input type="number" step="0.01" name="price" value={formData.price} onChange={handleChange} required className="input-field" placeholder="0.00" />
+                            {isTeamMembers && (
+                                <p className="text-[10px] text-violet-500 mt-1">Price per seat · User can select quantity at checkout</p>
+                            )}
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Currency</label>
@@ -266,15 +286,39 @@ const StoreItemModal = ({ item, onClose, onSave }) => {
                                 <option value="EUR">EUR (€)</option>
                             </select>
                         </div>
+                        {/* Validity selector — only for team_members */}
+                        {isTeamMembers && (
+                            <div className="md:col-span-3">
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Validity Period</label>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {[{v:1,label:'1 Month'},{v:3,label:'3 Months'},{v:6,label:'6 Months'},{v:12,label:'1 Year'}].map(({v,label}) => (
+                                        <button
+                                            key={v}
+                                            type="button"
+                                            onClick={() => setFormData(p => ({ ...p, validityMonths: v }))}
+                                            className={`py-2 rounded-lg border text-sm font-bold transition-all ${
+                                                formData.validityMonths === v
+                                                    ? 'bg-violet-600 border-violet-600 text-white shadow-lg shadow-violet-500/30'
+                                                    : 'border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:border-violet-400'
+                                            }`}
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className="text-[10px] text-slate-500 mt-1.5">How long the purchased seats remain active from the date of purchase.</p>
+                            </div>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10">
-                         <div>
+                             <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Display Icon</label>
                             <select name="icon" value={formData.icon} onChange={handleChange} className="input-field">
                                 <option value="Zap">Zap (Best for AI Tokens)</option>
                                 <option value="MessageSquare">Message (Best for Messages)</option>
                                 <option value="Users">Users (Best for Contacts)</option>
+                                <option value="UserPlus">UserPlus (Best for Team Members)</option>
                                 <option value="FileText">File (Best for Templates)</option>
                             </select>
                         </div>
@@ -286,6 +330,7 @@ const StoreItemModal = ({ item, onClose, onSave }) => {
                                 <option value="emerald">Emerald</option>
                                 <option value="amber">Amber</option>
                                 <option value="rose">Rose</option>
+                                <option value="violet">Violet (Best for Team Members)</option>
                             </select>
                         </div>
                     </div>

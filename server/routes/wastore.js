@@ -12,7 +12,8 @@ const Settings = require('../models/Settings');
 const auth = require('../middleware/auth');
 const axios = require('axios');
 const storageProvider = require('../utils/storageProvider');
-const { deleteStorageFile } = require('../utils/storageProvider');
+
+
 const { Op, fn, col, literal } = require('sequelize');
 const { sequelize } = require('../config/database'); // for transactions (FUNC-3, FUNC-4)
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -1449,53 +1450,10 @@ router.put('/:id', async (req, res) => {
         delete updates.createdAt;
         delete updates.updatedAt;
 
-        // ── Delete replaced store-level images from storage (fire-and-forget) ──
-        // BUG-2 FIX: These previously used empty IIFEs that did nothing. Now calls deleteStorageFile.
-
-        // Logo replaced or removed
-        if (store.logo && updates.logo !== undefined && updates.logo !== store.logo) {
-            deleteStorageFile(store.logo).catch(() => {});
-        }
-        // Cover image replaced or removed
-        if (store.coverImage && updates.coverImage !== undefined && updates.coverImage !== store.coverImage) {
-            deleteStorageFile(store.coverImage).catch(() => {});
-        }
-        // SEO og:image replaced or removed
-        if (store.seoImage && updates.seoImage !== undefined && updates.seoImage !== store.seoImage) {
-            deleteStorageFile(store.seoImage).catch(() => {});
-        }
-
-        // Hero slides — find slide imageUrls that were removed or replaced
-        if (updates.heroSlides !== undefined) {
-            try {
-                const oldSlides = Array.isArray(store.heroSlides) ? store.heroSlides : [];
-                const newSlides = Array.isArray(updates.heroSlides) ? updates.heroSlides : [];
-                const newUrls = new Set(newSlides.map(s => s?.imageUrl).filter(Boolean));
-                oldSlides.forEach(slide => {
-                    if (slide?.imageUrl && !newUrls.has(slide.imageUrl)) {
-                        deleteStorageFile(slide.imageUrl).catch(() => {});
-                    }
-                });
-            } catch (e) {}
-        }
-
-        // Category images — find image URLs that were removed or replaced
-        if (updates.categoryImages !== undefined) {
-            try {
-                const parseImgs = (val) => {
-                    if (!val) return {};
-                    return typeof val === 'string' ? JSON.parse(val) : val;
-                };
-                const oldCatImgs = parseImgs(store.categoryImages);
-                const newCatImgs = parseImgs(updates.categoryImages);
-                const newUrlSet = new Set(Object.values(newCatImgs).filter(Boolean));
-                Object.values(oldCatImgs).forEach(url => {
-                    if (url && !newUrlSet.has(url)) {
-                        deleteStorageFile(url).catch(() => {});
-                    }
-                });
-            } catch (e) {}
-        }
+        // NOTE: Images are NOT deleted from cloud storage when a store field is updated.
+        // Physical file deletion happens only from the Media Manager (DELETE /api/media/:id).
+        // Removing this behaviour prevents media library files from disappearing when
+        // the store owner swaps or removes an image from store settings.
 
         await store.update(updates);
 
@@ -1666,29 +1624,10 @@ router.delete('/:id', async (req, res) => {
         });
         if (!store) return res.status(404).json({ error: 'Store not found' });
 
-        // ── Collect all product images and delete from storage (fire-and-forget) ──
-        // BUG-2 FIX: Replace ghost IIFEs with actual deleteStorageFile calls.
-        const allProducts = await WaProduct.findAll({ where: { storeId: store.id } });
-        allProducts.forEach(product => {
-            const imageUrls = Array.isArray(product.imageUrls) ? product.imageUrls : [];
-            imageUrls.forEach(url => deleteStorageFile(url).catch(() => {}));
-        });
-
-        // ── Delete store-level images from storage (fire-and-forget) ──
-        if (store.logo)       deleteStorageFile(store.logo).catch(() => {});
-        if (store.coverImage) deleteStorageFile(store.coverImage).catch(() => {});
-
-        // Hero slide images
-        const heroSlides = Array.isArray(store.heroSlides) ? store.heroSlides : [];
-        heroSlides.forEach(slide => { if (slide?.imageUrl) deleteStorageFile(slide.imageUrl).catch(() => {}); });
-
-        // Category images (stored as object { categoryName: url })
-        try {
-            const catImgs = typeof store.categoryImages === 'string'
-                ? JSON.parse(store.categoryImages)
-                : (store.categoryImages || {});
-            Object.values(catImgs).forEach(url => { if (url) deleteStorageFile(url).catch(() => {}); });
-        } catch (e) {}
+        // NOTE: Store and product images are NOT deleted from cloud storage when a store is deleted.
+        // Physical file deletion must be done explicitly from the Media Manager.
+        // This prevents media library files from going missing if the same image is
+        // referenced in multiple places or the user wants to re-use it later.
 
         // Delete all products first
         await WaProduct.destroy({ where: { storeId: store.id } });
@@ -2208,14 +2147,10 @@ router.put('/products/:productId', auth, async (req, res) => {
             }
         }
 
-        // ── Delete images that were removed or replaced (fire-and-forget) ──
-        // BUG-2 FIX: Replace ghost IIFE with actual deleteStorageFile call.
-        if (Array.isArray(payload.imageUrls)) {
-            const oldUrls = Array.isArray(product.imageUrls) ? product.imageUrls : [];
-            const newUrlSet = new Set(payload.imageUrls);
-            const removedUrls = oldUrls.filter(url => !newUrlSet.has(url));
-            removedUrls.forEach(url => deleteStorageFile(url).catch(() => {}));
-        }
+        // NOTE: Images are NOT deleted from cloud storage when a product image is changed or removed.
+        // Physical file deletion happens only from the Media Manager (DELETE /api/media/:id).
+        // Removing this behaviour prevents media library files from disappearing when
+        // the store owner swaps product images.
 
         await product.update(payload);
         res.json(product);
@@ -2234,10 +2169,8 @@ router.delete('/products/:productId', auth, async (req, res) => {
         const store = await WaStore.findOne({ where: { id: product.storeId, userId: req.user.id } });
         if (!store) return res.status(403).json({ error: 'Unauthorized' });
 
-        // ── Delete all product images from storage (fire-and-forget) ──
-        // BUG-2 FIX: Replace ghost IIFE with actual deleteStorageFile call.
-        const imageUrls = Array.isArray(product.imageUrls) ? product.imageUrls : [];
-        imageUrls.forEach(url => deleteStorageFile(url).catch(() => {}));
+        // NOTE: Product images are NOT deleted from cloud storage when a product is deleted.
+        // Physical file deletion must be done explicitly from the Media Manager.
 
         await product.destroy();
         res.json({ success: true, message: 'Product deleted' });

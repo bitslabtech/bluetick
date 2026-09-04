@@ -1,56 +1,64 @@
-import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
-import axios from 'axios';
-import { useAuth } from './AuthContext';
-
-// ── Shared notification state context ─────────────────────────────────────
-// Ensures ALL NotificationBell instances across pages share one source of truth
-// for unread count, notifications list, and read IDs.
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
+import axios from "axios";
+import { useAuth } from "./AuthContext";
 
 const NotificationContext = createContext(null);
 
 export const useNotifications = () => {
     const ctx = useContext(NotificationContext);
-    if (!ctx) throw new Error('useNotifications must be used within NotificationProvider');
+    if (!ctx) throw new Error("useNotifications must be used within NotificationProvider");
     return ctx;
 };
 
 const POLL_INTERVAL_MS = 30_000;
+const ACTIVITY_TYPES = ["USER_REGISTER", "PLAN_CHANGE", "SUPPORT_TICKET"];
 
 export const NotificationProvider = ({ children }) => {
     const { user } = useAuth();
+
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
-    const prevUnreadRef = useRef(null);
-    const isAdminRef = useRef(user?.isAdmin);
 
+    const [errorNotifs, setErrorNotifs] = useState([]);
+    const [unreadErrorCount, setUnreadErrorCount] = useState(0);
+
+    const prevUnreadRef = useRef(null);
+    const prevErrorUnreadRef = useRef(null);
+    const isAdminRef = useRef(user?.isAdmin);
     const isAdmin = user?.isAdmin;
 
     useEffect(() => { isAdminRef.current = isAdmin; }, [isAdmin]);
 
-    // Track read notification IDs in localStorage for standard users
     const getReadIds = useCallback(() => {
-        try { return JSON.parse(localStorage.getItem(`notif_read_${user?.id}`) || '[]'); }
+        try { return JSON.parse(localStorage.getItem("notif_read_" + user?.id) || "[]"); }
         catch { return []; }
     }, [user?.id]);
 
     const saveReadIds = useCallback((ids) => {
-        localStorage.setItem(`notif_read_${user?.id}`, JSON.stringify(ids));
+        localStorage.setItem("notif_read_" + user?.id, JSON.stringify(ids));
     }, [user?.id]);
 
     const fetchNotifications = useCallback(async () => {
         try {
             const admin = isAdminRef.current;
             const endpoint = admin
-                ? `${import.meta.env.VITE_API_URL}/api/admin-notifications`
-                : `${import.meta.env.VITE_API_URL}/api/notifications`;
+                ? import.meta.env.VITE_API_URL + "/api/admin-notifications"
+                : import.meta.env.VITE_API_URL + "/api/notifications";
 
             const res = await axios.get(endpoint);
             let newCount = 0;
+            let newErrorCount = 0;
 
             if (admin) {
-                setNotifications(res.data.notifications || []);
-                newCount = res.data.unreadCount || 0;
+                const all = res.data.notifications || [];
+                const activity = all.filter(n => ACTIVITY_TYPES.includes(n.type));
+                const errors   = all.filter(n => n.type === "SYSTEM_ERROR");
+                setNotifications(activity);
+                setErrorNotifs(errors);
+                newCount      = activity.filter(n => !n.isRead).length;
+                newErrorCount = errors.filter(n => !n.isRead).length;
                 setUnreadCount(newCount);
+                setUnreadErrorCount(newErrorCount);
             } else {
                 setNotifications(res.data);
                 const readIds = getReadIds();
@@ -58,17 +66,17 @@ export const NotificationProvider = ({ children }) => {
                 setUnreadCount(newCount);
             }
 
-            prevUnreadRef.current = newCount;
-            return newCount;
+            prevUnreadRef.current      = newCount;
+            prevErrorUnreadRef.current = newErrorCount;
+            return { newCount, newErrorCount };
         } catch (err) {
             if (err.response && err.response.status !== 401) {
-                console.error('Error loading notifications:', err);
+                console.error("Error loading notifications:", err);
             }
-            return 0;
+            return { newCount: 0, newErrorCount: 0 };
         }
     }, [getReadIds]);
 
-    // Polling — reset interval when isAdmin changes
     useEffect(() => {
         if (!user) return;
         fetchNotifications();
@@ -76,26 +84,21 @@ export const NotificationProvider = ({ children }) => {
         return () => clearInterval(interval);
     }, [user, isAdmin, fetchNotifications]);
 
-    // Real-time refresh — SocketContext dispatches the custom 'notification_refresh'
-    // window event when the server emits 'notification_update'. Using a window event
-    // keeps the two contexts fully decoupled with no circular imports.
     useEffect(() => {
         if (!user) return;
         const handler = () => fetchNotifications();
-        window.addEventListener('notification_refresh', handler);
-        return () => window.removeEventListener('notification_refresh', handler);
+        window.addEventListener("notification_refresh", handler);
+        return () => window.removeEventListener("notification_refresh", handler);
     }, [user, fetchNotifications]);
 
     const markAllRead = useCallback(async () => {
         if (isAdmin) {
             try {
-                await axios.put(`${import.meta.env.VITE_API_URL}/api/admin-notifications/read-all`);
+                await axios.put(import.meta.env.VITE_API_URL + "/api/admin-notifications/read-all");
                 setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
                 setUnreadCount(0);
                 prevUnreadRef.current = 0;
-            } catch (err) {
-                console.error(err);
-            }
+            } catch (err) { console.error(err); }
         } else {
             const allIds = notifications.map(n => n.id);
             saveReadIds(allIds);
@@ -103,6 +106,14 @@ export const NotificationProvider = ({ children }) => {
             prevUnreadRef.current = 0;
         }
     }, [isAdmin, notifications, saveReadIds]);
+
+    const resolveError = useCallback(async (id) => {
+        try {
+            await axios.put(import.meta.env.VITE_API_URL + "/api/admin-notifications/" + id + "/read");
+            setErrorNotifs(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+            setUnreadErrorCount(prev => Math.max(0, prev - 1));
+        } catch (err) { console.error("Failed to resolve error:", err); }
+    }, []);
 
     const markOneRead = useCallback((notifId) => {
         if (!isAdmin) {
@@ -115,14 +126,9 @@ export const NotificationProvider = ({ children }) => {
     }, [isAdmin, getReadIds, saveReadIds]);
 
     const value = {
-        notifications,
-        unreadCount,
-        prevUnreadRef,
-        fetchNotifications,
-        markAllRead,
-        markOneRead,
-        getReadIds,
-        isAdmin,
+        notifications, unreadCount, prevUnreadRef, markAllRead, markOneRead, getReadIds,
+        errorNotifs, unreadErrorCount, prevErrorUnreadRef, resolveError,
+        fetchNotifications, isAdmin,
     };
 
     return (

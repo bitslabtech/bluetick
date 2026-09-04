@@ -12,12 +12,12 @@ import toast from 'react-hot-toast';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
-    pending:    { label: 'Pending',    color: 'text-amber-700   bg-amber-100   dark:bg-amber-900/30  dark:text-amber-300  border-amber-200   dark:border-amber-800',   icon: Clock        },
-    confirmed:  { label: 'Confirmed',  color: 'text-blue-700    bg-blue-100    dark:bg-blue-900/30   dark:text-blue-300   border-blue-200    dark:border-blue-800',    icon: CheckCircle  },
-    processing: { label: 'Processing', color: 'text-violet-700  bg-violet-100  dark:bg-violet-900/30 dark:text-violet-300 border-violet-200  dark:border-violet-800', icon: Package      },
-    shipped:    { label: 'Shipped',    color: 'text-indigo-700  bg-indigo-100  dark:bg-indigo-900/30 dark:text-indigo-300 border-indigo-200  dark:border-indigo-800', icon: Truck        },
-    delivered:  { label: 'Delivered',  color: 'text-emerald-700 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800', icon: CheckCircle },
-    cancelled:  { label: 'Cancelled',  color: 'text-rose-700    bg-rose-100    dark:bg-rose-900/30   dark:text-rose-300   border-rose-200    dark:border-rose-800',   icon: XCircle      },
+    pending: { label: 'Pending', color: 'text-amber-700   bg-amber-100   dark:bg-amber-900/30  dark:text-amber-300  border-amber-200   dark:border-amber-800', icon: Clock },
+    confirmed: { label: 'Confirmed', color: 'text-blue-700    bg-blue-100    dark:bg-blue-900/30   dark:text-blue-300   border-blue-200    dark:border-blue-800', icon: CheckCircle },
+    processing: { label: 'Processing', color: 'text-violet-700  bg-violet-100  dark:bg-violet-900/30 dark:text-violet-300 border-violet-200  dark:border-violet-800', icon: Package },
+    shipped: { label: 'Shipped', color: 'text-indigo-700  bg-indigo-100  dark:bg-indigo-900/30 dark:text-indigo-300 border-indigo-200  dark:border-indigo-800', icon: Truck },
+    delivered: { label: 'Delivered', color: 'text-emerald-700 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800', icon: CheckCircle },
+    cancelled: { label: 'Cancelled', color: 'text-rose-700    bg-rose-100    dark:bg-rose-900/30   dark:text-rose-300   border-rose-200    dark:border-rose-800', icon: XCircle },
 };
 
 const CURRENCY_SYMBOLS = { USD: '$', EUR: '€', GBP: '£', INR: '₹', AED: 'د.إ', SGD: 'S$', AUD: 'A$', CAD: 'C$' };
@@ -40,39 +40,39 @@ function formatDate(dateStr) {
 // ─── Order Detail Modal ───────────────────────────────────────────────────────
 function OrderDetailModal({ order, storeId, store, onClose, onUpdate }) {
     const [status, setStatus] = useState(order.status);
-    const [notes, setNotes]   = useState(order.notes || '');
+    const [notes, setNotes] = useState(order.notes || '');
     const [saving, setSaving] = useState(false);
-    
+
     const downloadOrderPDF = () => {
         try {
             const doc = new jsPDF();
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
-            
+
             const getPdfCurrency = (code) => {
                 const map = { USD: '$', EUR: '€', GBP: '£', INR: 'Rs.', AED: 'AED', SGD: 'S$', AUD: 'A$', CAD: 'C$' };
                 return map[code || 'USD'] || code || 'USD';
             };
             const cSym = getPdfCurrency(order.currency);
-            
+
             // 1. Header Background & Title
             doc.setFillColor(79, 70, 229); // Indigo-600
             doc.rect(0, 0, pageWidth, 45, 'F');
-            
+
             doc.setTextColor(255, 255, 255);
             doc.setFont("helvetica", "bold");
             doc.setFontSize(24);
             doc.text(store?.name || "Order Details", 14, 28);
-            
+
             doc.setFontSize(14);
             doc.setFont("helvetica", "normal");
             doc.text("ORDER DETAILS", pageWidth - 14, 28, { align: "right" });
-            
+
             // 2. Info Sections
             let currentY = 55;
             doc.setTextColor(60, 60, 60);
             doc.setFontSize(10);
-            
+
             // Left: Customer Details
             doc.setFont("helvetica", "bold");
             doc.text("Billed To:", 14, currentY);
@@ -87,7 +87,7 @@ function OrderDetailModal({ order, storeId, store, onClose, onUpdate }) {
                 leftY += (splitAddress.length * 5);
             }
             if (order.customerGstin) { doc.text(`GSTIN: ${order.customerGstin}`, 14, leftY); leftY += 5; }
-            
+
             // Right: Order Details
             doc.setFont("helvetica", "bold");
             doc.text("Order Details:", pageWidth - 90, currentY);
@@ -97,18 +97,18 @@ function OrderDetailModal({ order, storeId, store, onClose, onUpdate }) {
             doc.text(`Date: ${new Date(order.createdAt).toLocaleDateString()}`, pageWidth - 90, rightY); rightY += 5;
             doc.text(`Status: ${order.status.charAt(0).toUpperCase() + order.status.slice(1)}`, pageWidth - 90, rightY); rightY += 5;
             if (order.paymentStatus) {
-                 doc.text(`Payment: ${order.paymentStatus.toUpperCase()}`, pageWidth - 90, rightY); rightY += 5;
+                doc.text(`Payment: ${order.paymentStatus.toUpperCase()}`, pageWidth - 90, rightY); rightY += 5;
             }
             if (order.source) {
                 doc.text(`Source: ${order.source.toUpperCase()}`, pageWidth - 90, rightY); rightY += 5;
             }
-            
+
             currentY = Math.max(leftY, rightY) + 10;
-            
+
             // 3. Items Table
             const tableColumn = ["Item Description", "Qty", "Price", "Total"];
             const tableRows = [];
-            
+
             (order.items || []).forEach(item => {
                 const itemTotal = parseFloat(item.price) * parseInt(item.qty);
                 tableRows.push([
@@ -118,7 +118,7 @@ function OrderDetailModal({ order, storeId, store, onClose, onUpdate }) {
                     `${cSym} ${itemTotal.toFixed(2)}`
                 ]);
             });
-            
+
             autoTable(doc, {
                 startY: currentY,
                 head: [tableColumn],
@@ -133,42 +133,42 @@ function OrderDetailModal({ order, storeId, store, onClose, onUpdate }) {
                     3: { cellWidth: 35, halign: 'right' },
                 }
             });
-            
+
             let finalY = doc.lastAutoTable.finalY + 15;
-            
+
             // 4. Totals Summary Box
             const boxWidth = 90;
             const boxX = pageWidth - boxWidth - 14;
-            
+
             const taxAmount = Number(order.taxAmount || order.taxTotal || 0);
             let shippingCost = Number(order.total) - Number(order.subtotal);
             if (shippingCost < 0 || isNaN(shippingCost)) shippingCost = 0;
-            
+
             // Calculate height for totals box
             let numTotalLines = 1; // subtotal
             if (order.couponCode && parseFloat(order.discountAmount) > 0) numTotalLines++;
             if (taxAmount > 0) numTotalLines++;
             if (shippingCost > 0) numTotalLines++;
-            
-            const boxHeight = (numTotalLines * 8) + 18; 
-            
+
+            const boxHeight = (numTotalLines * 8) + 18;
+
             // Draw Box
             doc.setFillColor(248, 250, 252); // slate-50
             doc.setDrawColor(226, 232, 240); // slate-200
             doc.roundedRect(boxX, finalY - 6, boxWidth, boxHeight, 3, 3, 'FD');
-            
+
             doc.setTextColor(60, 60, 60);
             doc.setFont("helvetica", "normal");
-            
+
             const rightAlignX = boxX + boxWidth - 6;
             const leftAlignX = boxX + 6;
             let currentBoxY = finalY + 2;
-            
+
             // Subtotal
             doc.text("Subtotal:", leftAlignX, currentBoxY);
             doc.text(`${cSym} ${Number(order.originalTotal || order.subtotal).toFixed(2)}`, rightAlignX, currentBoxY, { align: "right" });
             currentBoxY += 8;
-            
+
             // Discount
             if (order.couponCode && parseFloat(order.discountAmount) > 0) {
                 doc.setTextColor(220, 38, 38);
@@ -177,25 +177,25 @@ function OrderDetailModal({ order, storeId, store, onClose, onUpdate }) {
                 doc.setTextColor(60, 60, 60);
                 currentBoxY += 8;
             }
-            
+
             // Tax
             if (taxAmount > 0) {
                 doc.text(`Tax (${order.taxName || 'Est.'}):`, leftAlignX, currentBoxY);
                 doc.text(`${cSym} ${taxAmount.toFixed(2)}`, rightAlignX, currentBoxY, { align: "right" });
                 currentBoxY += 8;
             }
-            
+
             // Shipping
             if (shippingCost > 0) {
                 doc.text("Shipping:", leftAlignX, currentBoxY);
                 doc.text(`${cSym} ${shippingCost.toFixed(2)}`, rightAlignX, currentBoxY, { align: "right" });
                 currentBoxY += 8;
             }
-            
+
             // Divider
             doc.setDrawColor(203, 213, 225); // slate-300
             doc.line(leftAlignX, currentBoxY - 3, rightAlignX, currentBoxY - 3);
-            
+
             // Grand Total
             doc.setFontSize(12);
             doc.setFont("helvetica", "bold");
@@ -203,20 +203,20 @@ function OrderDetailModal({ order, storeId, store, onClose, onUpdate }) {
             doc.text("Total:", leftAlignX, currentBoxY + 5);
             doc.setTextColor(79, 70, 229); // Indigo-600
             doc.text(`${cSym} ${Number(order.total).toFixed(2)}`, rightAlignX, currentBoxY + 5, { align: "right" });
-            
+
             // 5. Notes & Footer
             let afterBoxY = finalY + boxHeight + 10;
             if (order.customerNote) {
-                 doc.setFontSize(10);
-                 doc.setFont("helvetica", "bold");
-                 doc.setTextColor(60, 60, 60);
-                 doc.text("Customer Note:", 14, afterBoxY);
-                 doc.setFont("helvetica", "italic");
-                 const splitNotes = doc.splitTextToSize(order.customerNote, pageWidth - 28);
-                 doc.text(splitNotes, 14, afterBoxY + 6);
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "bold");
+                doc.setTextColor(60, 60, 60);
+                doc.text("Customer Note:", 14, afterBoxY);
+                doc.setFont("helvetica", "italic");
+                const splitNotes = doc.splitTextToSize(order.customerNote, pageWidth - 28);
+                doc.text(splitNotes, 14, afterBoxY + 6);
             }
-            
-            
+
+
             doc.save(`Order_${order.orderNumber}.pdf`);
         } catch (error) {
             console.error("PDF Generation Error:", error);
@@ -241,21 +241,21 @@ function OrderDetailModal({ order, storeId, store, onClose, onUpdate }) {
 
             doc.setFontSize(12);
             doc.text("TO:", 10, 30);
-            
+
             doc.setFont("helvetica", "normal");
             let y = 38;
             doc.setFontSize(14);
             if (order.customerName) { doc.text(order.customerName, 10, y); y += 8; }
-            
+
             doc.setFontSize(12);
             if (order.customerAddress) {
                 const splitAddress = doc.splitTextToSize(order.customerAddress, 130);
                 doc.text(splitAddress, 10, y);
                 y += (splitAddress.length * 6);
             }
-            
-            if (order.customerPhone) { 
-                doc.text(`Phone: ${order.customerPhone}`, 10, y + 2); 
+
+            if (order.customerPhone) {
+                doc.text(`Phone: ${order.customerPhone}`, 10, y + 2);
             }
 
             // FROM SECTION
@@ -318,18 +318,18 @@ function OrderDetailModal({ order, storeId, store, onClose, onUpdate }) {
         if (mainEl) {
             const rect = mainEl.getBoundingClientRect();
             setBounds({ left: rect.left, top: rect.top, width: rect.width, height: rect.height });
-            
+
             // Prevent background scrolling while modal is open
             originalOverflow = window.getComputedStyle(mainEl).overflow;
             mainEl.style.overflow = 'hidden';
-            
+
             // Handle window resize to recalculate bounds
             const handleResize = () => {
                 const newRect = mainEl.getBoundingClientRect();
                 setBounds({ left: newRect.left, top: newRect.top, width: newRect.width, height: newRect.height });
             };
             window.addEventListener('resize', handleResize);
-            
+
             return () => {
                 mainEl.style.overflow = originalOverflow;
                 window.removeEventListener('resize', handleResize);
@@ -378,38 +378,38 @@ function OrderDetailModal({ order, storeId, store, onClose, onUpdate }) {
     };
 
     return (
-        <div 
+        <div
             className="fixed z-50 flex items-center justify-center p-0 sm:p-4 md:p-8 overflow-hidden"
             style={{ left: bounds.left, top: bounds.top, width: bounds.width, height: bounds.height }}
         >
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" onClick={onClose} />
             <div className="relative w-full h-full sm:h-auto max-w-5xl max-h-full overflow-y-auto bg-slate-50 dark:bg-zinc-900 sm:rounded-3xl shadow-2xl text-slate-900 dark:text-white flex flex-col">
-                
+
                 {/* Header */}
                 <div className="sticky top-0 z-10 flex items-center justify-between px-4 md:px-6 py-4 border-b border-slate-200 dark:border-white/10 bg-white dark:bg-zinc-900 sm:rounded-t-3xl shadow-sm">
                     <div>
                         <h2 className="text-xl font-black">Order {order.orderNumber}</h2>
                         <p className="text-xs text-slate-500 mt-0.5">Placed on {formatDate(order.createdAt)}</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <button onClick={downloadShippingLabel} className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors group" title="Download Shipping Label">
-                            <Printer className="w-5 h-5 group-hover:text-indigo-500 text-slate-600 dark:text-slate-300" />
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        <button onClick={downloadShippingLabel} className="px-3 py-1.5 sm:px-4 sm:py-2 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-1.5 sm:gap-2 shadow-sm whitespace-nowrap">
+                            <Printer className="w-4 h-4" /> <span className="hidden sm:inline">Address Label</span><span className="sm:hidden">Label</span>
                         </button>
-                        <button onClick={downloadOrderPDF} className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors group" title="Download Order Details">
-                            <Download className="w-5 h-5 group-hover:text-indigo-500 text-slate-600 dark:text-slate-300" />
+                        <button onClick={downloadOrderPDF} className="px-3 py-1.5 sm:px-4 sm:py-2 text-sm font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors flex items-center gap-1.5 sm:gap-2 shadow-sm whitespace-nowrap">
+                            <Download className="w-4 h-4" /> <span className="hidden sm:inline">Order Receipt</span><span className="sm:hidden">Receipt</span>
                         </button>
-                        <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors" title="Close">
-                            <X className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                        <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors ml-1" title="Close">
+                            <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
                         </button>
                     </div>
                 </div>
 
                 <div className="p-4 md:p-6">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        
+
                         {/* Left Column (Customer Info, Items & Notes) */}
                         <div className="lg:col-span-2 space-y-6">
-                            
+
                             {/* Customer Details (Moved from right to above items) */}
                             <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden">
                                 <div className="px-4 py-3 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02]">
@@ -551,7 +551,7 @@ function OrderDetailModal({ order, storeId, store, onClose, onUpdate }) {
 
                         {/* Right Column (Status, Logistics) */}
                         <div className="space-y-6">
-                            
+
                             {/* Order Status & Actions */}
                             <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden">
                                 <div className="px-4 py-3 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02]">
@@ -599,30 +599,30 @@ function OrderDetailModal({ order, storeId, store, onClose, onUpdate }) {
                                         <div className="space-y-3">
                                             <div>
                                                 <label className="block text-xs text-slate-500 mb-1">Shipping Provider</label>
-                                                <input 
-                                                    type="text" 
-                                                    value={trackingProvider} 
-                                                    onChange={e => setTrackingProvider(e.target.value)} 
+                                                <input
+                                                    type="text"
+                                                    value={trackingProvider}
+                                                    onChange={e => setTrackingProvider(e.target.value)}
                                                     placeholder="e.g. FedEx, UPS"
                                                     className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-slate-900 dark:text-white"
                                                 />
                                             </div>
                                             <div>
                                                 <label className="block text-xs text-slate-500 mb-1">Tracking URL</label>
-                                                <input 
-                                                    type="url" 
-                                                    value={trackingUrl} 
-                                                    onChange={e => setTrackingUrl(e.target.value)} 
+                                                <input
+                                                    type="url"
+                                                    value={trackingUrl}
+                                                    onChange={e => setTrackingUrl(e.target.value)}
                                                     placeholder="https://..."
                                                     className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-slate-900 dark:text-white"
                                                 />
                                             </div>
-                                            <button 
-                                                onClick={handleFulfill} 
+                                            <button
+                                                onClick={handleFulfill}
                                                 disabled={fulfilling}
                                                 className="w-full px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 disabled:opacity-60 text-slate-700 dark:text-slate-300 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 text-sm mt-2"
                                             >
-                                                <Truck className="w-4 h-4" /> 
+                                                <Truck className="w-4 h-4" />
                                                 {fulfilling ? 'Fulfilling...' : 'Fulfill & Notify Customer'}
                                             </button>
                                         </div>
@@ -641,11 +641,11 @@ function OrderDetailModal({ order, storeId, store, onClose, onUpdate }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function WaStoreOrders() {
     const { storeId } = useOutletContext();
-    const [orders, setOrders]       = useState([]);
-    const [store, setStore]         = useState(null);
-    const [loading, setLoading]     = useState(true);
-    const [selected, setSelected]   = useState(null);
-    const [search, setSearch]       = useState('');
+    const [orders, setOrders] = useState([]);
+    const [store, setStore] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [selected, setSelected] = useState(null);
+    const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
 
     const fetchOrders = useCallback(async () => {

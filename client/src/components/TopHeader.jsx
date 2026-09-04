@@ -2,6 +2,7 @@ import React from 'react';
 import ThemeToggle from './ThemeToggle';
 import TrialBanner from './TrialBanner';
 import NotificationBell from './NotificationBell';
+import ErrorBell from './ErrorBell';
 import UserDropdown from './UserDropdown';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -36,6 +37,7 @@ export default function TopHeader({ leftContent, title, subtitle, rightContent }
                 <div className="hidden md:flex items-center gap-4">
                     <TrialBanner />
                     <ThemeToggle />
+                    <ErrorBell />
                     <NotificationBell />
                     <UserDropdown />
                 </div>

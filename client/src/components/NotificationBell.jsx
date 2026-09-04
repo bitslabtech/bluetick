@@ -179,7 +179,7 @@ const NotificationBell = () => {
                     >
                         <div className="p-4 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/5 backdrop-blur-sm">
                             <h3 className="font-bold text-slate-900 dark:text-white">
-                                {isAdmin ? 'System Alerts' : 'Notifications'}
+                                {isAdmin ? 'Activity' : 'Notifications'}
                             </h3>
                             <div className="flex items-center gap-3">
                                 {unreadCount > 0 && (
@@ -267,7 +267,7 @@ const NotificationBell = () => {
                                 onClick={() => navigate(isAdmin ? '/superadmin/alerts' : '/notifications')}
                                 className="text-xs text-slate-500 hover:text-slate-900 dark:text-text-secondary dark:hover:text-white transition-colors"
                             >
-                                {isAdmin ? 'View All Alerts' : 'See all notifications'}
+                                {isAdmin ? 'View All Activity' : 'See all notifications'}
                             </button>
                         </div>
                     </motion.div>

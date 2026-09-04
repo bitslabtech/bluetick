@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
 import {
@@ -26,6 +26,7 @@ const AdminNotifications = () => {
     const [loading, setLoading] = useState(false);
     const [sending, setSending] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
+    const historyRef = useRef(null);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -96,7 +97,9 @@ const AdminNotifications = () => {
                 targetType: 'All Users',
                 targetValue: ''
             });
-            fetchBroadcasts();
+            // Await so list is populated before scrolling to top
+            await fetchBroadcasts();
+            if (historyRef.current) historyRef.current.scrollTop = 0;
         } catch (err) {
             console.error(err);
             showToast({ type: 'error', title: 'Send Failed', message: 'Failed to send broadcast.' });
@@ -300,7 +303,7 @@ const AdminNotifications = () => {
                                 </span>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
+                        <div ref={historyRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
                                 {loading ? (
                                     <div className="flex justify-center py-20">
                                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>

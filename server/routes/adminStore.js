@@ -23,11 +23,17 @@ router.get('/', async (req, res) => {
 // POST new store item
 router.post('/', async (req, res) => {
     try {
-        const { name, description, price, currency, itemType, amount, isActive, icon, color } = req.body;
+        const { name, description, price, currency, itemType, amount, isActive, icon, color, validityMonths } = req.body;
         
         // Basic validation
         if (!name || !price || !itemType || amount === undefined) {
             return res.status(400).json({ error: 'Name, price, itemType, and amount are required.' });
+        }
+
+        // Validate itemType
+        const validTypes = ['ai_tokens', 'messages', 'contacts', 'templates', 'team_members'];
+        if (!validTypes.includes(itemType)) {
+            return res.status(400).json({ error: `Invalid itemType. Must be one of: ${validTypes.join(', ')}` });
         }
 
         const newItem = await StoreItem.create({
@@ -39,7 +45,9 @@ router.post('/', async (req, res) => {
             amount,
             isActive: isActive !== undefined ? isActive : true,
             icon: icon || 'Zap',
-            color: color || 'indigo'
+            color: color || 'indigo',
+            // Only applicable for team_members — how many months of validity
+            validityMonths: itemType === 'team_members' ? (parseInt(validityMonths, 10) || 12) : null
         });
 
         res.status(201).json(newItem);

@@ -42,13 +42,20 @@ router.get('/', auth, async (req, res) => {
         });
 
         // Get limits for UI display
-        const Plan = require('../models/Plan');
         const ownerPlan = await Plan.findOne({ where: { name: req.user.plan } });
-        const memberLimit = ownerPlan ? ownerPlan.teamMemberLimit : 0;
+        const planLimit = ownerPlan ? ownerPlan.teamMemberLimit : 0;
+
+        // Add topup seats only if they haven't expired
+        const topupValid = req.user.teamMemberTopupExpiry && new Date(req.user.teamMemberTopupExpiry) > new Date();
+        const topupSeats = topupValid ? (req.user.extraTopupTeamMembers || 0) : 0;
+        const memberLimit = planLimit + topupSeats;
 
         res.json({
             members: teamWithStatus,
-            limit: memberLimit
+            limit: memberLimit,
+            planLimit,
+            topupSeats,
+            topupExpiry: topupValid ? req.user.teamMemberTopupExpiry : null
         });
     } catch (err) {
         console.error('Fetch team error:', err);
@@ -66,18 +73,17 @@ router.post('/invite', auth, async (req, res) => {
             return res.status(403).json({ error: 'Only the account owner can invite members.' });
         }
 
-        // Check if user has reached their plan's team limit
+        // Check if user has reached their combined team limit (plan + purchased topup)
         const ownerPlan = await Plan.findOne({ where: { name: req.user.plan } });
-        const memberLimit = ownerPlan ? ownerPlan.teamMemberLimit : 0;
+        const planLimit = ownerPlan ? ownerPlan.teamMemberLimit : 0;
+        const topupValid = req.user.teamMemberTopupExpiry && new Date(req.user.teamMemberTopupExpiry) > new Date();
+        const topupSeats = topupValid ? (req.user.extraTopupTeamMembers || 0) : 0;
+        const memberLimit = planLimit + topupSeats;
 
         const currentMemberCount = await User.count({ where: { parentUserId: req.user.id } });
 
-        // Also count any pending tokens active on the exact owner's record! Wait, pending invites are usually stored in a DB or we can just create a temporary dummy user row, or a separate Invites table.
-        // Simplest approach: We just generate a token, store it on the owner's record, or we just encrypt the owner's ID and role into the token JWT.
-        // Actually, creating a separate "Invite" model is cleaner, but to stick to the plan: we can simply encode the owner's ID into the token using JWT or AES, and enforce the limit when they actually TRY to join.
-        // Even better, let's just do a pre-check here.
         if (currentMemberCount >= memberLimit) {
-            return res.status(403).json({ error: `You have reached your team limit of ${memberLimit}. Please upgrade your plan.` });
+            return res.status(403).json({ error: `You have reached your team member limit of ${memberLimit} seat${memberLimit !== 1 ? 's' : ''}. Please upgrade your plan or purchase more seats from the Store.` });
         }
 
         // Generate a random 32-char token
@@ -138,7 +144,11 @@ router.post('/join', auth, async (req, res) => {
         if (!parentUser) return res.status(404).json({ error: 'Parent account not found.' });
 
         const ownerPlan = await Plan.findOne({ where: { name: parentUser.plan } });
-        const memberLimit = ownerPlan ? ownerPlan.teamMemberLimit : 0;
+        const planLimit = ownerPlan ? ownerPlan.teamMemberLimit : 0;
+        // Apply topup seats only if still valid
+        const topupValid = parentUser.teamMemberTopupExpiry && new Date(parentUser.teamMemberTopupExpiry) > new Date();
+        const topupSeats = topupValid ? (parentUser.extraTopupTeamMembers || 0) : 0;
+        const memberLimit = planLimit + topupSeats;
         const currentMemberCount = await User.count({ where: { parentUserId: parentId } });
 
         if (currentMemberCount >= memberLimit) {

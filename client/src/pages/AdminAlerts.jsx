@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import TrialBanner from '../components/TrialBanner';
 import {
@@ -14,6 +14,13 @@ const AdminAlerts = () => {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [activeTab, setActiveTab] = useState('all'); // all | errors | activity
+    const listRef = useRef(null);
+
+    // Sort helper — mirrors server ORDER BY lastOccurredAt DESC
+    const sortDesc = (arr) => [...arr].sort((a, b) =>
+        new Date(b.lastOccurredAt || b.createdAt) - new Date(a.lastOccurredAt || a.createdAt)
+    );
 
     useEffect(() => {
         fetchNotifications();
@@ -23,6 +30,8 @@ const AdminAlerts = () => {
         try {
             const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin-notifications`);
             setNotifications(res.data.notifications || []);
+            // Scroll back to top so newest alert is always visible
+            if (listRef.current) listRef.current.scrollTop = 0;
         } catch (err) {
             console.error("Error fetching notifications:", err);
         } finally {
@@ -33,7 +42,8 @@ const AdminAlerts = () => {
     const handleMarkRead = async (id) => {
         try {
             await axios.put(`${import.meta.env.VITE_API_URL}/api/admin-notifications/${id}/read`);
-            setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+            // Re-sort after marking read so order stays consistent
+            setNotifications(prev => sortDesc(prev.map(n => n.id === id ? { ...n, isRead: true } : n)));
         } catch (err) {
             showToast('Failed to mark read', 'error');
         }
@@ -42,7 +52,7 @@ const AdminAlerts = () => {
     const handleMarkAllRead = async () => {
         try {
             await axios.put(`${import.meta.env.VITE_API_URL}/api/admin-notifications/read-all`);
-            setNotifications(prev => prev.map(n => n.type === 'SYSTEM_ERROR' ? n : { ...n, isRead: true }));
+            setNotifications(prev => sortDesc(prev.map(n => n.type === 'SYSTEM_ERROR' ? n : { ...n, isRead: true })));
             showToast('All marked as read', 'success');
         } catch (err) {
             showToast('Failed to update', 'error');
@@ -81,10 +91,16 @@ const AdminAlerts = () => {
         }
     };
 
-    const filtered = notifications.filter(n =>
+    const searched = notifications.filter(n =>
         (n.message || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (n.type || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    const filtered = searched.filter(n => {
+        if (activeTab === 'errors')   return n.type === 'SYSTEM_ERROR';
+        if (activeTab === 'activity') return n.type !== 'SYSTEM_ERROR';
+        return true;
+    });
 
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark font-display overflow-hidden">
@@ -97,7 +113,7 @@ const AdminAlerts = () => {
                 <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
                     <div>
                         <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">System Alerts</h1>
-                        <p className="text-slate-500 dark:text-slate-400 mt-1">Updates on users, plans, and support tickets.</p>
+                        <p className="text-slate-500 dark:text-slate-400 mt-1">Activity events, errors and support tickets.</p>
                     </div>
                     <div className="flex gap-3">
                         <button
@@ -115,7 +131,26 @@ const AdminAlerts = () => {
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
+                {/* Tab pills */}
+                <div className="flex gap-2 mb-6 flex-wrap">
+                    {[['all','All'], ['errors','Errors Only'], ['activity','Activity Only']].map(([key, label]) => (
+                        <button
+                            key={key}
+                            onClick={() => setActiveTab(key)}
+                            className={`px-4 py-1.5 rounded-full text-sm font-bold transition-all border ${
+                                activeTab === key
+                                    ? key === 'errors'
+                                        ? 'bg-red-500 text-white border-red-500'
+                                        : 'bg-indigo-600 text-white border-indigo-600'
+                                    : 'bg-white dark:bg-surface-dark text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:border-indigo-300'
+                            }`}
+                        >
+                            {label}
+                        </button>
+                    ))}
+                </div>
+
+                <div ref={listRef} className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden overflow-y-auto max-h-[calc(100vh-330px)]">
                     {loading ? (
                         <div className="flex justify-center py-20">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
@@ -123,99 +158,121 @@ const AdminAlerts = () => {
                     ) : filtered.length === 0 ? (
                         <div className="flex flex-col items-center justify-center p-4 md:p-20 text-center">
                             <Shield className="w-16 h-16 text-slate-200 dark:text-slate-700 mb-4" />
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">All Caught Up!</h3>
-                            <p className="text-slate-500 dark:text-slate-400">No new system alerts at the moment.</p>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                                {activeTab === 'errors' ? 'No errors!' : activeTab === 'activity' ? 'No activity yet.' : 'All Caught Up!'}
+                            </h3>
+                            <p className="text-slate-500 dark:text-slate-400">
+                                {activeTab === 'errors' ? 'No system errors have been reported.' : 'No new system alerts at the moment.'}
+                            </p>
                         </div>
                     ) : (
                         <div className="divide-y divide-slate-100 dark:divide-white/5">
-                            {filtered.map(n => (
-                                <div
-                                    key={n.id}
-                                    className={`p-5 flex items-start gap-4 transition-colors hover:bg-slate-50 dark:hover:bg-white/5 border-l-4 ${!n.isRead ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500' : 'border-transparent'}`}
-                                >
-                                    <div className="p-3 bg-slate-100 dark:bg-white/5 rounded-full shrink-0">
-                                        {getIcon(n.type)}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex justify-between items-start mb-1">
-                                            <p className={`text-sm font-medium ${!n.isRead ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-600 dark:text-slate-300'}`}>
-                                                {n.message}
-                                                {n.data?.occurrences > 1 && (
-                                                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
-                                                        {n.data.occurrences}x
+                            {filtered.map(n => {
+                                const isError = n.type === 'SYSTEM_ERROR';
+                                return (
+                                    <div
+                                        key={n.id}
+                                        className={`p-5 flex items-start gap-4 transition-colors hover:bg-slate-50 dark:hover:bg-white/5 border-l-4 ${
+                                            !n.isRead
+                                                ? isError
+                                                    ? 'bg-red-50 dark:bg-red-900/20 border-red-500'
+                                                    : 'bg-blue-50 dark:bg-blue-900/30 border-blue-500'
+                                                : 'border-transparent'
+                                        }`}
+                                    >
+                                        <div className="p-3 bg-slate-100 dark:bg-white/5 rounded-full shrink-0">
+                                            {getIcon(n.type)}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-start mb-1">
+                                                <p className={`text-sm font-medium ${!n.isRead ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-600 dark:text-slate-300'}`}>
+                                                    {n.message}
+                                                    {n.data?.occurrences > 1 && (
+                                                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                                                            {n.data.occurrences}x
+                                                        </span>
+                                                    )}
+                                                </p>
+                                                <div className="flex flex-col items-end whitespace-nowrap ml-2">
+                                                    <span className="text-xs font-medium text-slate-400">
+                                                        {isError && n.lastOccurredAt
+                                                            ? `Last seen: ${formatDistanceToNow(new Date(n.lastOccurredAt), { addSuffix: true })}`
+                                                            : formatDistanceToNow(new Date(n.lastOccurredAt || n.createdAt), { addSuffix: true })}
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-500 mt-0.5">
+                                                        {isError && n.lastOccurredAt ? (
+                                                            <>First seen: {new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</>
+                                                        ) : (
+                                                            <>{new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</>
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 mt-2">
+                                                <span className="px-2 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-white/10 text-slate-500 uppercase font-bold tracking-wider">
+                                                    {n.type.replace('_', ' ')}
+                                                </span>
+                                                {!n.isRead && (
+                                                    <button
+                                                        onClick={() => handleMarkRead(n.id)}
+                                                        className={`text-xs font-bold hover:underline ${
+                                                            isError
+                                                                ? 'text-emerald-600 dark:text-emerald-400'
+                                                                : 'text-indigo-500'
+                                                        }`}
+                                                    >
+                                                        {isError ? 'Resolve' : 'Mark Read'}
+                                                    </button>
+                                                )}
+                                                {n.isRead && isError && (
+                                                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                                                        <CheckCircle2 className="w-3 h-3" /> Resolved
                                                     </span>
                                                 )}
-                                            </p>
-                                            <div className="flex flex-col items-end whitespace-nowrap ml-2">
-                                                <span className="text-xs font-medium text-slate-400">
-                                                    {n.type === 'SYSTEM_ERROR' && n.lastOccurredAt 
-                                                        ? `Last seen: ${formatDistanceToNow(new Date(n.lastOccurredAt), { addSuffix: true })}`
-                                                        : formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
-                                                </span>
-                                                <span className="text-[10px] text-slate-500 mt-0.5">
-                                                    {n.type === 'SYSTEM_ERROR' && n.lastOccurredAt ? (
-                                                        <>First seen: {new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</>
-                                                    ) : (
-                                                        <>{new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</>
-                                                    )}
-                                                </span>
                                             </div>
-                                        </div>
-                                        <div className="flex items-center gap-2 mt-2">
-                                            <span className="px-2 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-white/10 text-slate-500 uppercase font-bold tracking-wider">
-                                                {n.type.replace('_', ' ')}
-                                            </span>
-                                            {!n.isRead && (
-                                                <button
-                                                    onClick={() => handleMarkRead(n.id)}
-                                                    className={`text-xs hover:underline ${n.type === 'SYSTEM_ERROR' ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-indigo-500'}`}
-                                                >
-                                                    {n.type === 'SYSTEM_ERROR' ? 'Resolve' : 'Mark Read'}
-                                                </button>
+
+                                            {/* Extra Details for System Errors */}
+                                            {isError && n.data && (
+                                                <details className="mt-3 border-t border-slate-100 dark:border-white/5 pt-3 group">
+                                                    <summary className="text-xs font-semibold text-slate-500 cursor-pointer hover:text-indigo-500 list-none flex items-center gap-1">
+                                                        <ChevronDown className="w-4 h-4 transition-transform group-open:-rotate-180" />
+                                                        View Error Details
+                                                    </summary>
+                                                    <div className="mt-2 text-xs bg-slate-50 dark:bg-black/20 p-3 rounded-lg overflow-x-auto">
+                                                        {n.data.url && (
+                                                            <div className="mb-2 pb-2 border-b border-slate-200 dark:border-white/10">
+                                                                <strong className="text-slate-600 dark:text-slate-400">URL: </strong>
+                                                                <span className="text-blue-500 break-all">{n.data.url}</span>
+                                                            </div>
+                                                        )}
+                                                        {n.data.userId && (
+                                                            <div className="mb-2 pb-2 border-b border-slate-200 dark:border-white/10">
+                                                                <strong className="text-slate-600 dark:text-slate-400">User ID: </strong>
+                                                                <span className="text-slate-800 dark:text-slate-200">{n.data.userId}</span>
+                                                            </div>
+                                                        )}
+                                                        {n.data.stack && (
+                                                            <div>
+                                                                <strong className="text-slate-600 dark:text-slate-400">Stack Trace:</strong>
+                                                                <pre className="mt-1 text-red-600 dark:text-red-400 font-mono whitespace-pre-wrap">
+                                                                    {n.data.stack}
+                                                                </pre>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </details>
                                             )}
                                         </div>
-                                        
-                                        {/* Extra Details for System Errors */}
-                                        {n.type === 'SYSTEM_ERROR' && n.data && (
-                                            <details className="mt-3 border-t border-slate-100 dark:border-white/5 pt-3 group">
-                                                <summary className="text-xs font-semibold text-slate-500 cursor-pointer hover:text-indigo-500 list-none flex items-center gap-1">
-                                                    <ChevronDown className="w-4 h-4 transition-transform group-open:-rotate-180" />
-                                                    View Error Details
-                                                </summary>
-                                                <div className="mt-2 text-xs bg-slate-50 dark:bg-black/20 p-3 rounded-lg overflow-x-auto">
-                                                    {n.data.url && (
-                                                        <div className="mb-2 pb-2 border-b border-slate-200 dark:border-white/10">
-                                                            <strong className="text-slate-600 dark:text-slate-400">URL: </strong>
-                                                            <span className="text-blue-500 break-all">{n.data.url}</span>
-                                                        </div>
-                                                    )}
-                                                    {n.data.userId && (
-                                                        <div className="mb-2 pb-2 border-b border-slate-200 dark:border-white/10">
-                                                            <strong className="text-slate-600 dark:text-slate-400">User ID: </strong>
-                                                            <span className="text-slate-800 dark:text-slate-200">{n.data.userId}</span>
-                                                        </div>
-                                                    )}
-                                                    {n.data.stack && (
-                                                        <div>
-                                                            <strong className="text-slate-600 dark:text-slate-400">Stack Trace:</strong>
-                                                            <pre className="mt-1 text-red-600 dark:text-red-400 font-mono whitespace-pre-wrap">
-                                                                {n.data.stack}
-                                                            </pre>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </details>
-                                        )}
+                                        <button
+                                            onClick={() => handleDelete(n.id)}
+                                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                            title="Delete"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
                                     </div>
-                                    <button
-                                        onClick={() => handleDelete(n.id)}
-                                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                        title="Delete"
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>

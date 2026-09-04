@@ -100,6 +100,17 @@ const User = sequelize.define('User', {
         defaultValue: 0,
         comment: 'Bonus contact limit added via Store Top-ups'
     },
+    // Extra Team Member Seats (purchased via Store Top-ups)
+    extraTopupTeamMembers: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+        comment: 'Number of extra team member seats purchased via Store Top-ups'
+    },
+    teamMemberTopupExpiry: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: '1-year expiry from purchase date for extra team member seats; null = no topup purchased'
+    },
     // Sub-User specific inbox control
     teamPolicy: {
         type: DataTypes.JSON,

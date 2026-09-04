@@ -5,6 +5,7 @@ import { LogOut, Settings, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import UserDropdown from './UserDropdown';
 import NotificationBell from './NotificationBell';
+import ErrorBell from './ErrorBell';
 
 const AdminHeader = ({ title, subtitle, children, showSearch = true, searchTerm = '', onSearchChange }) => {
     const { user } = useAuth();
@@ -31,7 +32,10 @@ const AdminHeader = ({ title, subtitle, children, showSearch = true, searchTerm 
                 {/* Custom actions passed from parent */}
                 {children}
 
-                {/* Notification Bell */}
+                {/* Error Bell — admin only, system errors */}
+                <ErrorBell />
+
+                {/* Notification Bell — activity / broadcasts */}
                 <NotificationBell />
 
                 {/* Profile Dropdown */}

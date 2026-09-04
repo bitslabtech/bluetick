@@ -310,13 +310,8 @@ router.get('/stats', async (req, res) => {
         // WhatsApp Account Stats — enrich from User model fields (populated by status refresh)
         // These are set on User model by /api/whatsapp/status regardless of setup path
         const waQuality    = user.metaQualityRating || (isWhatsappConfigured ? 'GREEN' : 'UNKNOWN');
-        const waVerified   = !!(
-            user.metaNameStatus === 'APPROVED' ||
-            user.metaNameStatus === 'AVAILABLE' ||
-            user.metaNameStatus === 'approved'  ||
-            user.metaNameStatus === 'available' ||
-            user.metaVerifiedName
-        );
+        const waDisplayName = user.metaVerifiedName || null;
+        const waDisplayNameStatus = user.metaNameStatus ? user.metaNameStatus.toUpperCase() : 'UNKNOWN';
 
         res.json({
             contactsCount,
@@ -349,7 +344,8 @@ router.get('/stats', async (req, res) => {
             // Fetched and cached during status refresh; null means not yet synced
             waMessagingProgress: isWhatsappConfigured ? (user.metaConversations24h ?? null) : null,
             waMessagingThreshold: isWhatsappConfigured ? waMessagingThreshold : 0,
-            waBusinessVerified: isWhatsappConfigured ? waVerified : false,
+            waDisplayName: isWhatsappConfigured ? waDisplayName : null,
+            waDisplayNameStatus: isWhatsappConfigured ? waDisplayNameStatus : 'UNKNOWN',
             waConversationsFetchedAt: user.metaConversationsFetchedAt || null
         });
     } catch (err) {

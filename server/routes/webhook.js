@@ -634,7 +634,11 @@ router.post('/:userId', (req, res, next) => {
                                 break;
                             case 'unsupported':
                                 const errorTitle = message.errors?.[0]?.title || 'Unknown unsupported feature';
-                                messageBody = `[Unsupported Message: ${errorTitle}]`;
+                                if (errorTitle.toLowerCase().includes('message type unknown') || errorTitle.toLowerCase().includes('unsupported')) {
+                                    messageBody = `⚠️ [System: A WhatsApp API account tried to message you. Meta blocked the content because API-to-API messaging is not supported.]`;
+                                } else {
+                                    messageBody = `⚠️ [Unsupported Message: The sender sent a format that cannot be displayed. Reason: ${errorTitle}]`;
+                                }
                                 break;
                             default:
                                 messageBody = `[${messageType}]`;
