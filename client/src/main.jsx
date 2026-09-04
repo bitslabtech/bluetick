@@ -43,21 +43,44 @@ axios.interceptors.request.use((config) => {
   return config;
 });
 
-// Global response interceptor: redirect to /checkout if the server blocks an expired plan.
-// This is a last-resort catch-all — ProtectedRoute handles it on navigation,
-// but this covers any API calls that slip through with stale localStorage data.
+// Global response interceptor:
+// 1. Redirect to /checkout if the server blocks an expired plan.
+// 2. Redirect to /login if the server returns 401 (session/cookie expired).
+// ProtectedRoute handles it on navigation, but this covers any API call
+// made from a stale page where the cookie has expired server-side.
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 403 && error.response?.data?.code === 'PLAN_EXPIRED') {
-      const isAuthPath = window.location.pathname === '/login'
-        || window.location.pathname === '/checkout'
-        || window.location.pathname === '/billing';
-      if (!isAuthPath) {
-        // Don't redirect on auth-related paths to avoid loops
+    const status = error.response?.status;
+    const pathname = window.location.pathname;
+    const isAuthPath = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password';
+
+    // Handle expired/revoked session — any 401 outside auth pages
+    if (status === 401 && !isAuthPath) {
+      // Only act if we actually had a user in localStorage (avoid loops on public pages)
+      const hadUser = (() => {
+        try {
+          const u = localStorage.getItem('user');
+          return !!(u && u !== 'undefined');
+        } catch { return false; }
+      })();
+
+      if (hadUser) {
+        localStorage.removeItem('user');
+        // Preserve the current page so we redirect back after login
+        const returnTo = encodeURIComponent(pathname + window.location.search);
+        window.location.href = `/login?reason=session_expired&returnTo=${returnTo}`;
+      }
+    }
+
+    // Handle expired plan
+    if (status === 403 && error.response?.data?.code === 'PLAN_EXPIRED') {
+      const isCheckoutPath = pathname === '/checkout' || pathname === '/billing';
+      if (!isCheckoutPath && !isAuthPath) {
         window.location.href = '/checkout';
       }
     }
+
     return Promise.reject(error);
   }
 );

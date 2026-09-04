@@ -270,10 +270,7 @@ export default function WaProductList() {
                 }
             }
 
-            if (!payload.description || !payload.description.trim()) {
-                toast.error('Please enter a product description.');
-                return;
-            }
+
             payload.imageUrls = (payload.imageUrls || []).filter(url => url && url.trim() !== '');
             if (payload.imageUrls.length === 0) {
                 toast.error("Please add at least one product image.");
@@ -679,7 +676,7 @@ export default function WaProductList() {
                                                                 </button>
                                                             </div>
                                                         </div>
-                                                        <textarea rows={5} required value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-y shadow-sm text-sm" placeholder="Describe your product..."></textarea>
+                                                        <textarea rows={5} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-y shadow-sm text-sm" placeholder="Describe your product..."></textarea>
                                                     </div>
                                                 </div>
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { LayoutDashboard, Eye, EyeOff } from 'lucide-react';
@@ -12,23 +12,35 @@ const Login = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [turnstileToken, setTurnstileToken] = useState('');
+    const [turnstileExpired, setTurnstileExpired] = useState(false);
+    const turnstileRef = useRef(null);
     const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
     const { login } = useAuth();
     const { publicSettings, publicSettingsLoading } = useUI();
     const navigate = useNavigate();
     const location = useLocation();
+
+    // Read reason & returnTo from URL params (e.g. set by global 401 interceptor)
+    const searchParams = new URLSearchParams(location.search);
+    const sessionReason = searchParams.get('reason');
+    const returnToParam = searchParams.get('returnTo');
+
     // The page the user was trying to reach before being redirected to login
     const fromState = location.state?.from;
-    const from = typeof fromState === 'string' 
-        ? fromState 
+    const fromStatePath = typeof fromState === 'string'
+        ? fromState
         : (fromState?.pathname ? fromState.pathname + (fromState.search || '') : null);
+    // Prefer the URL param (set by interceptor) over router state
+    const from = returnToParam ? decodeURIComponent(returnToParam) : fromStatePath;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
         
         if (TURNSTILE_SITE_KEY && !turnstileToken) {
-            setError('Please complete the security check.');
+            setError(turnstileExpired
+                ? 'Your security check expired. Please click the checkbox to verify again.'
+                : 'Please complete the security check.');
             return;
         }
 
@@ -61,6 +73,20 @@ const Login = () => {
 
                     <p className="text-slate-500">Sign in to your account</p>
                 </div>
+
+                {/* Session expiry / idle notices */}
+                {sessionReason === 'session_expired' && (
+                    <div className="p-3 text-sm text-amber-700 bg-amber-50 rounded-lg border border-amber-200 flex items-start gap-2">
+                        <span className="text-base leading-none mt-0.5">⏱️</span>
+                        <span>Your session has expired. Please sign in again to continue.</span>
+                    </div>
+                )}
+                {sessionReason === 'idle' && (
+                    <div className="p-3 text-sm text-amber-700 bg-amber-50 rounded-lg border border-amber-200 flex items-start gap-2">
+                        <span className="text-base leading-none mt-0.5">💤</span>
+                        <span>You were signed out due to inactivity. Please sign in again.</span>
+                    </div>
+                )}
 
                 {error && (
                     <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg border border-red-100">
@@ -109,13 +135,19 @@ const Login = () => {
                     </div>
 
                     {TURNSTILE_SITE_KEY && (
-                        <div className="flex justify-center mt-4">
+                        <div className="flex flex-col items-center gap-2 mt-4">
                             <Turnstile 
+                                ref={turnstileRef}
                                 siteKey={TURNSTILE_SITE_KEY} 
-                                onSuccess={(token) => setTurnstileToken(token)}
-                                onError={() => setError('Captcha verification failed. Please refresh.')}
-                                onExpire={() => setTurnstileToken('')}
+                                onSuccess={(token) => { setTurnstileToken(token); setTurnstileExpired(false); }}
+                                onError={() => setError('Security check failed. Please refresh the page.')}
+                                onExpire={() => { setTurnstileToken(''); setTurnstileExpired(true); }}
                             />
+                            {turnstileExpired && (
+                                <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-md px-3 py-1.5 text-center">
+                                    ⚠️ Security check expired. Please tick the checkbox above to verify again.
+                                </p>
+                            )}
                         </div>
                     )}
 

@@ -63,6 +63,64 @@ export const AuthProvider = ({ children }) => {
         // No-op for anonymous visitors — loading is already false, /auth/me never fires.
     }, []);
 
+    // ── Tab Visibility: re-verify session the moment user returns to the tab ──
+    // This handles the case where a user leaves the app idle for hours (or overnight),
+    // then comes back. Without this, the page looks normal but the session is expired
+    // server-side. The user would only discover this after clicking something.
+    // With this, the check fires instantly when the tab becomes active — before
+    // the user can click anything — so they are redirected to login immediately.
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState !== 'visible') return;
+
+            // Only check if we still think there's a logged-in user
+            const hasLocalUser = (() => {
+                try {
+                    const u = localStorage.getItem('user');
+                    return !!(u && u !== 'undefined');
+                } catch { return false; }
+            })();
+
+            if (!hasLocalUser) return;
+
+            // Silent background check — fetchUser already handles 401 by clearing state,
+            // and the global axios interceptor redirects to /login?reason=session_expired
+            fetchUser();
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, []);
+
+    // ── Session Heartbeat: periodic check every 15 minutes ──
+    // Catches the case where a user stays on the same tab without switching away.
+    // visibilitychange only fires on tab switch — this covers the "left the app
+    // open all night on the same tab" case. Every 15 mins, if the tab is visible
+    // and we think the user is logged in, we silently verify with the server.
+    // A 401 response will clear state and redirect to login via the global interceptor.
+    useEffect(() => {
+        const HEARTBEAT_INTERVAL = 15 * 60 * 1000; // 15 minutes
+
+        const heartbeat = () => {
+            // Only run when the tab is actually visible (don't wake up background tabs)
+            if (document.visibilityState !== 'visible') return;
+
+            const hasLocalUser = (() => {
+                try {
+                    const u = localStorage.getItem('user');
+                    return !!(u && u !== 'undefined');
+                } catch { return false; }
+            })();
+
+            if (hasLocalUser) {
+                fetchUser(); // 401 → global interceptor → /login?reason=session_expired
+            }
+        };
+
+        const intervalId = setInterval(heartbeat, HEARTBEAT_INTERVAL);
+        return () => clearInterval(intervalId);
+    }, []);
+
     const login = async (email, password, turnstileToken = '') => {
         try {
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login`, { email, password, 'cf-turnstile-response': turnstileToken });
@@ -75,7 +133,7 @@ export const AuthProvider = ({ children }) => {
             setIsImpersonating(false);
             return { success: true };
         } catch (err) {
-            return { success: false, error: err.response?.data?.error || 'Login failed' };
+            return { success: false, error: err.response?.data?.error || err.response?.data?.msg || 'Login failed. Please try again.' };
         }
     };
 

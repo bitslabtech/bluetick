@@ -1878,8 +1878,7 @@ router.post('/:storeId/products/import/parse', auth, async (req, res) => {
 
             // ── Description (preserve internal whitespace, only trim leading/trailing) ──
             const description = String(row.description || '').replace(/^\s+|\s+$/g, '');
-            if (!description) errors.description = 'Required';
-            else if (description.length > 5000) errors.description = `Too long (${description.length}/5000 chars)`;
+            if (description.length > 5000) errors.description = `Too long (${description.length}/5000 chars)`;
 
             // ── Meta Description ──
             const metaDescription = String(row.metaDescription || '').trim();
