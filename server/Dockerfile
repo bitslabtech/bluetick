@@ -12,7 +12,7 @@ WORKDIR /app
 
 # Install dependencies (production only for smaller image)
 COPY package*.json ./
-RUN npm ci --omit=dev --prefer-offline && npm cache clean --force
+RUN npm install --omit=dev --no-audit --no-fund
 
 # Copy server source
 COPY . .

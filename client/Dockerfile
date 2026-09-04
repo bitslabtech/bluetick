@@ -30,7 +30,7 @@ RUN rm /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy built React app
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /server/public/dist /usr/share/nginx/html
 
 EXPOSE 80
 
