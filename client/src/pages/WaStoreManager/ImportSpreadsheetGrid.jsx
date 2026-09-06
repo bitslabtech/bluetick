@@ -57,6 +57,7 @@ const COLUMNS = [
     { key: 'price',           label: 'Price *',      width: 88 },
     { key: 'salePrice',       label: 'Sale Price',   width: 100 },
     { key: 'category',        label: 'Category',     width: 130 },
+    { key: 'subCategories',   label: 'Subcategories', width: 140 },
     { key: 'sku',             label: 'SKU',          width: 120 },
     { key: 'inStock',         label: 'In Stock',     width: 80 },
     { key: 'stockQuantity',   label: 'Qty',          width: 68 },

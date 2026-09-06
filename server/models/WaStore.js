@@ -120,6 +120,11 @@ const WaStore = sequelize.define('WaStore', {
         defaultValue: {},
         comment: 'Map of category names to detail objects { description, metaTitle, metaDesc }'
     },
+    subcategories: {
+        type: DataTypes.JSON,
+        defaultValue: {},
+        comment: 'Map of parent category name => array of subcategory objects { name, image, description, metaTitle, metaDesc }'
+    },
     categoryAutoplay: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,

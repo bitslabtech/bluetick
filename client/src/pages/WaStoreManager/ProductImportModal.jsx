@@ -340,6 +340,7 @@ export default function ProductImportModal({ storeId, storeCategories = [], onCl
                                         { col: 'price', req: true, note: 'Regular price e.g. 699' },
                                         { col: 'salePrice', req: false, note: 'Discounted price (shows regular as strikethrough)' },
                                         { col: 'category', req: false, note: 'Case-insensitive match to existing' },
+                                        { col: 'subCategories', req: false, note: 'Comma-separated subcategories (e.g. Cotton, Casual)' },
                                         { col: 'sku', req: false, note: 'Must be unique per store' },
                                         { col: 'inStock', req: false, note: 'yes / no  (default: yes)' },
                                         { col: 'stockQuantity', req: false, note: 'Integer (default: 0)' },

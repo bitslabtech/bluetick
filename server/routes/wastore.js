@@ -1666,6 +1666,7 @@ router.get('/:storeId/products/import-template', auth, async (req, res) => {
             { key: 'price',             label: 'price',             hint: 'REQUIRED – MRP / Regular price. If salePrice is set this shows as strikethrough.' },
             { key: 'salePrice',         label: 'salePrice',         hint: 'Optional – Actual selling/discounted price. Leave blank if no discount.' },
             { key: 'category',          label: 'category',          hint: 'Optional – Category name (e.g. Electronics, Clothing)' },
+            { key: 'subCategories',     label: 'subCategories',     hint: 'Optional – Comma-separated subcategories (e.g. T-Shirts, Casuals)' },
             { key: 'sku',               label: 'sku',               hint: 'Optional – Unique stock-keeping unit code' },
             { key: 'inStock',           label: 'inStock',           hint: 'yes or no' },
             { key: 'stockQuantity',     label: 'stockQuantity',     hint: 'Number – Current stock count' },
@@ -1680,9 +1681,9 @@ router.get('/:storeId/products/import-template', auth, async (req, res) => {
         // ── Rows ────────────────────────────────────────────────────────────
         const headerRow   = columns.map(c => c.label);
         const hintRow     = columns.map(c => c.hint);
-        const sample1     = ['Blue T-Shirt', 'Comfortable cotton t-shirt, available in size M. Contains vitamin E, magnesium, potassium.', 699, 499, catHint, 'TSHIRT-BLU-M', 'yes', 100, 'yes', 10, 18, 'https://example.com/image1.jpg', 'Blue T-Shirt | Buy Online', 'Premium blue t-shirt for everyday wear'];
-        const sample2     = ['Black Jeans',  'Slim fit stretch denim jeans, size 32. Comfortable & durable.', 1799, 1299, catHint, 'JEANS-BLK-32', 'yes', 50, 'yes', 5, 18, 'https://example.com/jeans1.jpg', 'Black Slim Jeans', 'Stylish black jeans'];
-        const sample3     = ['Gold Ring',    '18k gold ring with diamond.', 4999, '', 'Jewelry', 'RING-GOLD-18K', 'yes', 20, 'no', 3, 3, '', 'Gold Diamond Ring', 'Premium 18k gold ring'];
+        const sample1     = ['Blue T-Shirt', 'Comfortable cotton t-shirt, available in size M. Contains vitamin E, magnesium, potassium.', 699, 499, catHint, 'T-Shirts, Summer Wear', 'TSHIRT-BLU-M', 'yes', 100, 'yes', 10, 18, 'https://example.com/image1.jpg', 'Blue T-Shirt | Buy Online', 'Premium blue t-shirt for everyday wear'];
+        const sample2     = ['Black Jeans',  'Slim fit stretch denim jeans, size 32. Comfortable & durable.', 1799, 1299, catHint, 'Jeans', 'JEANS-BLK-32', 'yes', 50, 'yes', 5, 18, 'https://example.com/jeans1.jpg', 'Black Slim Jeans', 'Stylish black jeans'];
+        const sample3     = ['Gold Ring',    '18k gold ring with diamond.', 4999, '', 'Jewelry', 'Rings', 'RING-GOLD-18K', 'yes', 20, 'no', 3, 3, '', 'Gold Diamond Ring', 'Premium 18k gold ring'];
 
         const wsData = [headerRow, hintRow, sample1, sample2, sample3];
 
@@ -1696,6 +1697,7 @@ router.get('/:storeId/products/import-template', auth, async (req, res) => {
             { wch: 12 }, // price
             { wch: 12 }, // salePrice
             { wch: 18 }, // category
+            { wch: 22 }, // subCategories
             { wch: 18 }, // sku
             { wch: 10 }, // inStock
             { wch: 14 }, // stockQuantity
@@ -1757,6 +1759,7 @@ router.post('/:storeId/products/import/parse', auth, async (req, res) => {
             name: 'name', description: 'description', price: 'price',
             saleprice: 'salePrice', salesprice: 'salePrice',
             category: 'category', sku: 'sku',
+            subcategories: 'subCategories', subcategory: 'subCategories', subcats: 'subCategories', subcat: 'subCategories',
             instock: 'inStock', stockquantity: 'stockQuantity', stockqty: 'stockQuantity',
             trackquantity: 'trackQuantity', trackqty: 'trackQuantity',
             lowstockthreshold: 'lowStockThreshold', lowstock: 'lowStockThreshold',
@@ -1812,6 +1815,16 @@ router.post('/:storeId/products/import/parse', auth, async (req, res) => {
                 } else {
                     // New category will be created
                     newCategoriesSet.add(resolvedCategory);
+                }
+            }
+
+            // ── Subcategories (comma-separated or array) ──
+            let resolvedSubCategories = [];
+            if (row.subCategories) {
+                if (Array.isArray(row.subCategories)) {
+                    resolvedSubCategories = row.subCategories.map(s => String(s).trim()).filter(Boolean);
+                } else if (typeof row.subCategories === 'string') {
+                    resolvedSubCategories = row.subCategories.split(',').map(s => s.trim()).filter(Boolean);
                 }
             }
 
@@ -1897,6 +1910,7 @@ router.post('/:storeId/products/import/parse', auth, async (req, res) => {
                 price: salePrice !== null ? salePrice : (isNaN(price) ? 0 : price),
                 compareAtPrice: salePrice !== null ? (isNaN(price) ? null : price) : null,
                 category: resolvedCategory,
+                subCategories: resolvedSubCategories,
                 sku: sku || null,
                 inStock,
                 stockQuantity,
@@ -2003,6 +2017,7 @@ router.post('/:storeId/products/import/confirm', auth, async (req, res) => {
                 price,
                 compareAtPrice: row.compareAtPrice || null,
                 category,
+                subCategories: Array.isArray(row.subCategories) ? row.subCategories : [],
                 sku: sku || null,
                 inStock: row.inStock !== false,
                 stockQuantity: parseInt(row.stockQuantity) || 0,
@@ -2067,9 +2082,7 @@ router.post('/:storeId/products', auth, async (req, res) => {
         if (!store) return res.status(404).json({ error: 'Store not found' });
 
         const payload = { ...req.body, storeId: req.params.storeId };
-        if (!payload.description || !payload.description.trim()) {
-            return res.status(400).json({ error: 'Product description is mandatory' });
-        }
+
         if (payload.compareAtPrice === '') payload.compareAtPrice = null;
         if (payload.wholesalePrice === '') payload.wholesalePrice = null;
         if (payload.minWholesaleQty === '') payload.minWholesaleQty = null;
@@ -2098,6 +2111,26 @@ router.post('/:storeId/products', auth, async (req, res) => {
             counter++;
         }
 
+        if (payload.subCategories !== undefined) {
+            if (typeof payload.subCategories === 'string') {
+                try { payload.subCategories = JSON.parse(payload.subCategories); } catch { payload.subCategories = [payload.subCategories]; }
+            }
+            if (!Array.isArray(payload.subCategories)) {
+                payload.subCategories = payload.subCategories ? [payload.subCategories] : [];
+            }
+            if (payload.subCategories.length === 0) {
+                return res.status(400).json({ error: 'At least one subcategory must be selected.' });
+            }
+        } else {
+            return res.status(400).json({ error: 'At least one subcategory must be selected.' });
+        }
+
+        if (store.taxConfig && store.taxConfig.enabled) {
+            if (payload.taxRate === null || payload.taxRate === undefined || payload.taxRate === '') {
+                return res.status(400).json({ error: 'Please select a Tax Slab for this product.' });
+            }
+        }
+
         const product = await WaProduct.create(payload);
         res.status(201).json(product);
     } catch (error) {
@@ -2116,12 +2149,30 @@ router.put('/products/:productId', auth, async (req, res) => {
         if (!store) return res.status(403).json({ error: 'Unauthorized' });
 
         const payload = { ...req.body };
-        if (!payload.description || !payload.description.trim()) {
-            return res.status(400).json({ error: 'Product description is mandatory' });
-        }
+
         if (payload.compareAtPrice === '') payload.compareAtPrice = null;
         if (payload.wholesalePrice === '') payload.wholesalePrice = null;
         if (payload.minWholesaleQty === '') payload.minWholesaleQty = null;
+
+        if (payload.subCategories !== undefined) {
+            if (typeof payload.subCategories === 'string') {
+                try { payload.subCategories = JSON.parse(payload.subCategories); } catch { payload.subCategories = [payload.subCategories]; }
+            }
+            if (!Array.isArray(payload.subCategories)) {
+                payload.subCategories = payload.subCategories ? [payload.subCategories] : [];
+            }
+            if (payload.subCategories.length === 0) {
+                return res.status(400).json({ error: 'At least one subcategory must be selected.' });
+            }
+        } else {
+            return res.status(400).json({ error: 'At least one subcategory must be selected.' });
+        }
+
+        if (store.taxConfig && store.taxConfig.enabled) {
+            if (payload.taxRate === null || payload.taxRate === undefined || payload.taxRate === '') {
+                return res.status(400).json({ error: 'Please select a Tax Slab for this product.' });
+            }
+        }
 
         if (!payload.slug && payload.name) {
             // DATA-4 FIX: Safe slug generation for non-Latin product names
@@ -2175,6 +2226,110 @@ router.delete('/products/:productId', auth, async (req, res) => {
         res.json({ success: true, message: 'Product deleted' });
     } catch (error) {
         res.status(500).json({ error: 'Failed to delete product' });
+    }
+});
+
+// PATCH /:storeId/products/bulk-subcategory — Bulk assign category and/or subcategories
+router.patch('/:storeId/products/bulk-subcategory', auth, async (req, res) => {
+    try {
+        const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+
+        const { productIds, category, subCategories, mode } = req.body;
+        if (!Array.isArray(productIds) || productIds.length === 0) {
+            return res.status(400).json({ error: 'productIds (array) is required' });
+        }
+
+        const validSubCategories = Array.isArray(subCategories)
+            ? subCategories.map(s => String(s).trim()).filter(Boolean)
+            : [];
+
+        const products = await WaProduct.findAll({
+            where: {
+                id: { [Op.in]: productIds },
+                storeId: req.params.storeId
+            }
+        });
+
+        for (const product of products) {
+            const updates = {};
+            
+            if (category !== undefined && category !== null && category !== '') {
+                updates.category = category;
+            }
+            
+            if (mode === 'append') {
+                const existingSubs = Array.isArray(product.subCategories) ? product.subCategories : [];
+                // Merge and ensure unique values
+                updates.subCategories = [...new Set([...existingSubs, ...validSubCategories])];
+            } else {
+                // Default replace mode
+                updates.subCategories = validSubCategories;
+            }
+            
+            await product.update(updates);
+        }
+
+        res.json({ success: true, count: products.length });
+    } catch (error) {
+        console.error('Bulk subcategory update error:', error);
+        res.status(500).json({ error: 'Failed to bulk assign subcategories' });
+    }
+});
+
+// PATCH /:storeId/products/bulk-inventory — Bulk update inventory / inStock status
+router.patch('/:storeId/products/bulk-inventory', auth, async (req, res) => {
+    try {
+        const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+
+        const { productIds, inStock } = req.body;
+        if (!Array.isArray(productIds) || productIds.length === 0) {
+            return res.status(400).json({ error: 'productIds (array) is required' });
+        }
+        if (typeof inStock !== 'boolean') {
+            return res.status(400).json({ error: 'inStock (boolean) is required' });
+        }
+
+        const [affectedCount] = await WaProduct.update(
+            { inStock },
+            {
+                where: {
+                    id: { [Op.in]: productIds },
+                    storeId: req.params.storeId
+                }
+            }
+        );
+
+        res.json({ success: true, count: affectedCount, inStock });
+    } catch (error) {
+        console.error('Bulk inventory update error:', error);
+        res.status(500).json({ error: 'Failed to bulk update inventory status' });
+    }
+});
+
+// POST /:storeId/products/bulk-delete — Bulk delete products
+router.post('/:storeId/products/bulk-delete', auth, async (req, res) => {
+    try {
+        const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+
+        const { productIds } = req.body;
+        if (!Array.isArray(productIds) || productIds.length === 0) {
+            return res.status(400).json({ error: 'productIds (array) is required' });
+        }
+
+        const deletedCount = await WaProduct.destroy({
+            where: {
+                id: { [Op.in]: productIds },
+                storeId: req.params.storeId
+            }
+        });
+
+        res.json({ success: true, count: deletedCount, message: `Successfully deleted ${deletedCount} products` });
+    } catch (error) {
+        console.error('Bulk delete products error:', error);
+        res.status(500).json({ error: 'Failed to bulk delete products' });
     }
 });
 
@@ -2309,6 +2464,66 @@ router.get('/:storeId/orders/:orderId', auth, async (req, res) => {
         res.json(order);
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch order' });
+    }
+});
+
+// PATCH /api/wastore/:storeId/orders/bulk-status  — bulk update orders status
+router.patch('/:storeId/orders/bulk-status', auth, async (req, res) => {
+    try {
+        const store = await WaStore.findOne({ where: { id: req.params.storeId, userId: req.user.id } });
+        if (!store) return res.status(404).json({ error: 'Store not found' });
+
+        const { orderIds, status } = req.body;
+        if (!Array.isArray(orderIds) || orderIds.length === 0 || !status) {
+            return res.status(400).json({ error: 'orderIds (array) and status are required' });
+        }
+
+        const validStatuses = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ error: 'Invalid status' });
+        }
+
+        const orders = await WaOrder.findAll({
+            where: {
+                id: { [Op.in]: orderIds },
+                storeId: req.params.storeId
+            }
+        });
+
+        const user = await User.findByPk(req.user.id);
+        const updatedOrders = [];
+
+        for (const order of orders) {
+            const prevStatus = order.status;
+            if (prevStatus !== status) {
+                order.status = status;
+                await order.save();
+
+                // Fire notification for status change
+                const triggerMap = {
+                    confirmed: 'order_confirmed',
+                    processing: 'order_processing',
+                    shipped: 'order_shipped',
+                    delivered: 'order_delivered',
+                    cancelled: 'order_cancelled',
+                };
+                const triggerKey = triggerMap[status];
+                if (triggerKey && user) {
+                    sendOrderNotification(triggerKey, store, user, order).catch(() => {});
+                }
+
+                // Fire CAPI Purchase when owner confirms an order
+                if (status === 'confirmed') {
+                    fireCAPIPurchase(store, order).catch(() => {});
+                }
+            }
+            updatedOrders.push(order);
+        }
+
+        res.json({ success: true, updatedCount: updatedOrders.length, orders: updatedOrders });
+    } catch (error) {
+        console.error('Bulk update orders error:', error);
+        res.status(500).json({ error: 'Failed to bulk update orders' });
     }
 });
 

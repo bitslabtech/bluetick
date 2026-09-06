@@ -47,6 +47,11 @@ const WaProduct = sequelize.define('WaProduct', {
         type: DataTypes.STRING,
         allowNull: true
     },
+    subCategories: {
+        type: DataTypes.JSON,
+        defaultValue: [],
+        comment: 'Array of subcategory name strings. Products can belong to multiple subcategories.'
+    },
     inStock: {
         type: DataTypes.BOOLEAN,
         defaultValue: true

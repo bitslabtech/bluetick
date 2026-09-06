@@ -101,20 +101,67 @@ export default function PublicWaStoreCategory({ customSlug }) {
         localStorage.setItem(`wa_cart_${slug}`, JSON.stringify(cart));
     }, [cart, slug]);
 
+    // Subcategories under this category
+    const categorySubcategories = useMemo(() => {
+        if (!store?.subcategories) return [];
+        let subs = store.subcategories;
+        if (typeof subs === 'string') {
+            try { subs = JSON.parse(subs); } catch (e) { subs = {}; }
+        }
+        const list = subs[categoryName];
+        return Array.isArray(list) ? list : [];
+    }, [store?.subcategories, categoryName]);
+
+    const [selectedSubCategory, setSelectedSubCategory] = useState(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('sub') || '';
+    });
+
+    const handleSelectSubCategory = (subName) => {
+        const next = subName === selectedSubCategory ? '' : subName;
+        setSelectedSubCategory(next);
+        const newUrl = new URL(window.location);
+        if (next) {
+            newUrl.searchParams.set('sub', next);
+        } else {
+            newUrl.searchParams.delete('sub');
+        }
+        window.history.replaceState({}, '', newUrl);
+    };
+
     const categoryProducts = useMemo(() => {
         return products.filter(p => p.category === categoryName);
     }, [products, categoryName]);
+
+    const subCategoryCounts = useMemo(() => {
+        const counts = {};
+        categoryProducts.forEach(p => {
+            let subs = [];
+            if (Array.isArray(p.subCategories)) subs = p.subCategories;
+            else if (typeof p.subCategories === 'string') {
+                try { subs = JSON.parse(p.subCategories); } catch { subs = p.subCategories.split(',').map(s => s.trim()); }
+            }
+            if (Array.isArray(subs)) {
+                subs.forEach(sub => {
+                    counts[sub] = (counts[sub] || 0) + 1;
+                });
+            }
+        });
+        return counts;
+    }, [categoryProducts]);
 
     useEffect(() => {
         if (store) {
             applyStoreSeo(store, categoryName, categoryProducts, window.location.origin);
             
-            let pageTitle = `${categoryName} - ${store.name}`;
-            let pageDesc = `Browse our collection of ${categoryName} at ${store.name}.`;
+            let pageTitle = selectedSubCategory
+                ? `${selectedSubCategory} - ${categoryName} - ${store.name}`
+                : `${categoryName} - ${store.name}`;
+            let pageDesc = `Browse our collection of ${selectedSubCategory ? `${selectedSubCategory} in ` : ''}${categoryName} at ${store.name}.`;
             try {
                 const parsedDetails = typeof store.categoryDetails === 'string' ? JSON.parse(store.categoryDetails) : (store.categoryDetails || {});
                 const details = parsedDetails[categoryName] || {};
-                pageTitle = details.metaTitle || pageTitle;
+                pageTitle = (!selectedSubCategory && details.metaTitle) ? details.metaTitle : pageTitle;
                 pageDesc = details.metaDesc || details.description || pageDesc;
             } catch(e) {}
             
@@ -127,17 +174,32 @@ export default function PublicWaStoreCategory({ customSlug }) {
             }
             metaDesc.content = pageDesc;
         }
-    }, [store, categoryName, categoryProducts]);
+    }, [store, categoryName, selectedSubCategory, categoryProducts]);
 
     const filteredAndSortedProducts = useMemo(() => {
-        let result = [...categoryProducts];
+        let result = categoryProducts;
+        if (selectedSubCategory) {
+            result = result.filter(p => {
+                if (!p.subCategories) return false;
+                if (Array.isArray(p.subCategories)) return p.subCategories.includes(selectedSubCategory);
+                if (typeof p.subCategories === 'string') {
+                    try {
+                        const arr = JSON.parse(p.subCategories);
+                        return Array.isArray(arr) && arr.includes(selectedSubCategory);
+                    } catch {
+                        return p.subCategories.split(',').map(s => s.trim()).includes(selectedSubCategory);
+                    }
+                }
+                return false;
+            });
+        }
 
-        return result.sort((a, b) => {
+        return [...result].sort((a, b) => {
             if (sortBy === 'price-asc') return parseFloat(a.price) - parseFloat(b.price);
             if (sortBy === 'price-desc') return parseFloat(b.price) - parseFloat(a.price);
             return new Date(b.createdAt) - new Date(a.createdAt);
         });
-    }, [categoryProducts, sortBy]);
+    }, [categoryProducts, selectedSubCategory, sortBy]);
 
     const categories = useMemo(() => {
         const fromProducts = products.map(p => p.category).filter(Boolean);
@@ -215,7 +277,7 @@ export default function PublicWaStoreCategory({ customSlug }) {
         <div className={`flex flex-col min-h-screen overflow-x-hidden w-full ${theme.pageBg} font-sans ${theme.text} selection:bg-black selection:text-white pb-20 md:pb-0`} style={{ fontFamily: theme.fontFamily, scrollbarGutter: 'stable' }}>
             <CategoryPageInner store={store} theme={theme} slug={slug} products={products} categories={categories} cartCount={cartCount} setIsCartOpen={setIsCartOpen}>
             <main className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                <nav aria-label="Breadcrumb" className="mb-8">
+                <nav aria-label="Breadcrumb" className="mb-6">
                     <ol className="flex items-center gap-1.5 flex-wrap text-sm">
                         <li>
                             <button
@@ -228,18 +290,109 @@ export default function PublicWaStoreCategory({ customSlug }) {
                         </li>
                         <li className={theme.textMuted}><ChevronRight className="w-3.5 h-3.5" /></li>
                         <li>
-                            <span className={`font-semibold ${theme.text}`}>{categoryName}</span>
+                            {selectedSubCategory ? (
+                                <button
+                                    onClick={() => handleSelectSubCategory('')}
+                                    className={`hover:underline font-medium ${theme.textMuted} hover:${theme.text} transition-colors`}
+                                >
+                                    {categoryName}
+                                </button>
+                            ) : (
+                                <span className={`font-semibold ${theme.text}`}>{categoryName}</span>
+                            )}
                         </li>
+                        {selectedSubCategory && (
+                            <>
+                                <li className={theme.textMuted}><ChevronRight className="w-3.5 h-3.5" /></li>
+                                <li>
+                                    <span className={`font-semibold ${theme.text}`}>{selectedSubCategory}</span>
+                                </li>
+                            </>
+                        )}
                     </ol>
                 </nav>
 
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-                    <h1 className={`text-3xl font-bold ${theme.text}`}>{categoryName}</h1>
+                {/* ─── SUBCATEGORIES SHOWCASE ─── */}
+                {categorySubcategories.length > 0 && (
+                    <div className="mb-8 w-full bg-slate-50/70 dark:bg-zinc-800/40 border border-slate-200/60 dark:border-white/5 rounded-2xl p-4 sm:p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <h2 className={`text-base sm:text-lg font-bold ${theme.text}`}>Explore {categoryName} Subcategories</h2>
+                                <p className={`text-xs ${theme.textMuted} mt-0.5`}>Select a subcategory to browse products</p>
+                            </div>
+                            {selectedSubCategory && (
+                                <button
+                                    onClick={() => handleSelectSubCategory('')}
+                                    className="text-xs sm:text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                                >
+                                    View All ({categoryProducts.length})
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="flex overflow-x-auto hide-scrollbar gap-3 sm:gap-4 py-2">
+                            {categorySubcategories.map(sub => {
+                                const isSelected = selectedSubCategory === sub.name;
+                                const count = subCategoryCounts[sub.name] || 0;
+                                const shapeClass = store.categoryDisplayConfig?.shape === 'circle' ? 'rounded-full' : 'rounded-2xl';
+
+                                return (
+                                    <button
+                                        key={sub.name}
+                                        onClick={() => handleSelectSubCategory(sub.name)}
+                                        className={`flex flex-col items-center gap-2 shrink-0 group w-24 sm:w-28 md:w-32 transition-transform cursor-pointer text-left focus:outline-none`}
+                                    >
+                                        <div className={`w-full aspect-square ${shapeClass} overflow-hidden flex items-center justify-center transition-all duration-300 relative bg-white dark:bg-zinc-800 border-2 ${
+                                            isSelected
+                                                ? 'border-indigo-600 ring-2 ring-indigo-500/40 shadow-md scale-105'
+                                                : 'border-slate-200 dark:border-white/10 group-hover:border-indigo-400 group-hover:scale-105'
+                                        }`}>
+                                            {sub.image ? (
+                                                <img
+                                                    src={imgUrl(sub.image)}
+                                                    alt={sub.name}
+                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                                />
+                                            ) : (
+                                                <span className="text-xl font-bold text-zinc-400">{sub.name.substring(0, 1)}</span>
+                                            )}
+                                            {isSelected && (
+                                                <div className="absolute top-1.5 right-1.5 bg-indigo-600 text-white rounded-full p-0.5 shadow-sm">
+                                                    <Check className="w-3 h-3" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="text-center w-full">
+                                            <span className={`text-xs sm:text-sm font-semibold truncate block transition-colors ${
+                                                isSelected ? 'text-indigo-600 dark:text-indigo-400 font-bold' : `${theme.text} group-hover:text-indigo-600`
+                                            }`}>
+                                                {sub.name}
+                                            </span>
+                                            <span className="text-[10px] text-slate-400 font-normal">
+                                                {count} {count === 1 ? 'item' : 'items'}
+                                            </span>
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                    <div>
+                        <h1 className={`text-2xl sm:text-3xl font-bold ${theme.text}`}>
+                            {selectedSubCategory ? `${categoryName}: ${selectedSubCategory}` : categoryName}
+                        </h1>
+                        <p className={`text-xs sm:text-sm ${theme.textMuted} mt-1`}>
+                            Showing {filteredAndSortedProducts.length} product{filteredAndSortedProducts.length !== 1 ? 's' : ''}
+                        </p>
+                    </div>
                     <div className="flex items-center gap-2 shrink-0">
                         <Filter className="w-4 h-4 text-gray-400" />
                         <select 
                             value={sortBy} onChange={(e) => setSortBy(e.target.value)}
-                            className="bg-transparent text-sm font-medium text-gray-700 outline-none cursor-pointer py-1"
+                            className="bg-transparent text-sm font-medium text-gray-700 dark:text-gray-300 outline-none cursor-pointer py-1"
                         >
                             <option value="newest">New Arrivals</option>
                             <option value="price-asc">Price: Low to High</option>
@@ -247,6 +400,42 @@ export default function PublicWaStoreCategory({ customSlug }) {
                         </select>
                     </div>
                 </div>
+
+                {/* Subcategory Quick Filter Pills */}
+                {categorySubcategories.length > 0 && (
+                    <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-2 mb-6">
+                        <button
+                            onClick={() => handleSelectSubCategory('')}
+                            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                                !selectedSubCategory
+                                    ? 'bg-indigo-600 text-white shadow-sm'
+                                    : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-zinc-700'
+                            }`}
+                        >
+                            All ({categoryProducts.length})
+                        </button>
+                        {categorySubcategories.map(sub => {
+                            const isSelected = selectedSubCategory === sub.name;
+                            const count = subCategoryCounts[sub.name] || 0;
+                            return (
+                                <button
+                                    key={sub.name}
+                                    onClick={() => handleSelectSubCategory(sub.name)}
+                                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                                        isSelected
+                                            ? 'bg-indigo-600 text-white shadow-sm'
+                                            : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-zinc-700'
+                                    }`}
+                                >
+                                    <span>{sub.name}</span>
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-zinc-700 text-slate-500 dark:text-slate-400'}`}>
+                                        {count}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
 
                 {filteredAndSortedProducts.length > 0 ? (() => {
                     const desktopCols = store.gridColumns?.desktop || 4;

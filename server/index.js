@@ -736,6 +736,8 @@ const startServer = async () => {
         try { await sequelize.query(`CREATE TYPE "enum_WaStores_domainStatus" AS ENUM('pending', 'verified', 'failed');`); } catch(e) { /* already exists — ignore */ }
         try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN "domainStatus" "enum_WaStores_domainStatus" DEFAULT NULL;`); } catch(e) { /* already exists — ignore */ }
         try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN "domainVerifiedAt" TIMESTAMP WITH TIME ZONE DEFAULT NULL;`); } catch(e) { /* already exists — ignore */ }
+        try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN IF NOT EXISTS "subcategories" JSON DEFAULT '{}';`); } catch(e) { /* already exists — ignore */ }
+        try { await sequelize.query(`ALTER TABLE "WaProducts" ADD COLUMN IF NOT EXISTS "subCategories" JSON DEFAULT '[]';`); } catch(e) { /* already exists — ignore */ }
 
         await sequelize.sync({ alter: { drop: false } }); // Sync models — never drop constraints/columns
         console.log('Database synced.');

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
-import { Package, Plus, Trash2, Edit3, Eye, Image as ImageIcon, Wand2, Search, Upload, X, Loader2, Activity, Star, Layers, ChevronDown, ChevronRight, Check, FolderOpen, FileSpreadsheet } from 'lucide-react';
+import { Package, Plus, Trash2, Edit3, Eye, Image as ImageIcon, Wand2, Search, Upload, X, Loader2, Activity, Star, Layers, ChevronDown, ChevronRight, Check, FolderOpen, FileSpreadsheet, Download, Tag, AlertCircle } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import toast from 'react-hot-toast';
 import MediaPickerModal from '../../components/MediaPickerModal';
 import ProductImportModal from './ProductImportModal';
@@ -184,10 +185,26 @@ export default function WaProductList() {
     const [aiKeywords, setAiKeywords] = useState('');
     const [currency, setCurrency] = useState('USD');
     const [storeCategories, setStoreCategories] = useState([]);
+    const [storeSubcategories, setStoreSubcategories] = useState({});
     const [storeTaxConfig, setStoreTaxConfig] = useState(null);
     const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
     const [isVariationsOpen, setIsVariationsOpen] = useState(false);
     const [isSeoOpen, setIsSeoOpen] = useState(false);
+
+    // ── Bulk Selection state ──────────────────────────────────────────────────
+    const [selectedProductIds, setSelectedProductIds] = useState([]);
+    const [showBulkSubModal, setShowBulkSubModal] = useState(false);
+    const [bulkCategory, setBulkCategory] = useState('');
+    const [bulkSelectedSubs, setBulkSelectedSubs] = useState([]);
+    const [bulkMode, setBulkMode] = useState('replace'); // 'replace' | 'append'
+    const [bulkUpdating, setBulkUpdating] = useState(false);
+
+    // Bulk inventory status & delete states
+    const [showBulkInventoryModal, setShowBulkInventoryModal] = useState(false);
+    const [pendingBulkInventoryStatus, setPendingBulkInventoryStatus] = useState(null); // true = in stock, false = out of stock
+    const [bulkInventoryUpdating, setBulkInventoryUpdating] = useState(false);
+    const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+    const [bulkDeleting, setBulkDeleting] = useState(false);
 
     // ── Media Picker state ────────────────────────────────────────────────────
     const [pickerOpen, setPickerOpen] = useState(false);
@@ -200,7 +217,7 @@ export default function WaProductList() {
         return symbols[code] || code;
     };
 
-    const defaultForm = { name: '', description: '', regularPrice: '', salePrice: '', wholesalePrice: '', minWholesaleQty: '', imageUrls: [], category: '', inStock: true, options: [], variants: [], taxRate: '', metaTitle: '', metaDescription: '', slug: '', ogImage: '', sku: '', trackQuantity: false, stockQuantity: 0, lowStockThreshold: 5 };
+    const defaultForm = { name: '', description: '', regularPrice: '', salePrice: '', wholesalePrice: '', minWholesaleQty: '', imageUrls: [], category: '', subCategories: [], inStock: true, options: [], variants: [], taxRate: '', metaTitle: '', metaDescription: '', slug: '', ogImage: '', sku: '', trackQuantity: false, stockQuantity: 0, lowStockThreshold: 5 };
     const [form, setForm] = useState(defaultForm);
     const [generatingAiSeo, setGeneratingAiSeo] = useState(false);
     
@@ -210,7 +227,7 @@ export default function WaProductList() {
             initialTax = storeTaxConfig.rate || '';
         }
         setEditingProduct(null);
-        setForm({ ...defaultForm, taxRate: initialTax });
+        setForm({ ...defaultForm, subCategories: [], taxRate: initialTax });
         setIsAddingNewCategory(false);
         setShowModal(true);
     };
@@ -228,6 +245,7 @@ export default function WaProductList() {
             if (myStore) {
                 setCurrency(myStore.currency || 'USD');
                 setStoreCategories(myStore.categories || []);
+                setStoreSubcategories(myStore.subcategories || {});
                 setStoreTaxConfig(myStore.taxConfig || null);
             }
 
@@ -237,6 +255,107 @@ export default function WaProductList() {
             toast.error("Failed to load products");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleExportProducts = () => {
+        if (products.length === 0) {
+            toast.error("No products to export");
+            return;
+        }
+        const exportData = products.map(p => ({
+            'Name': p.name || '',
+            'Description': p.description || '',
+            'Regular Price': p.compareAtPrice ? p.compareAtPrice : p.price,
+            'Sale Price': p.compareAtPrice ? p.price : '',
+            'Category': p.category || '',
+            'Subcategories': Array.isArray(p.subCategories) ? p.subCategories.join(', ') : (p.subCategories || ''),
+            'In Stock': p.inStock ? 'Yes' : 'No',
+            'SKU': p.sku || '',
+            'Stock Quantity': p.stockQuantity ?? '',
+            'Tax Rate': p.taxRate ?? '',
+            'Wholesale Price': p.wholesalePrice ?? '',
+            'Min Wholesale Qty': p.minWholesaleQty ?? '',
+            'Image URLs': Array.isArray(p.imageUrls) ? p.imageUrls.join(', ') : '',
+            'Slug': p.slug || '',
+            'Meta Title': p.metaTitle || '',
+            'Meta Description': p.metaDescription || '',
+        }));
+        const ws = XLSX.utils.json_to_sheet(exportData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Products");
+        XLSX.writeFile(wb, `products_export_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        toast.success(`Exported ${products.length} products!`);
+    };
+
+    const handleApplyBulkSubcategories = async () => {
+        if (!bulkCategory) {
+            toast.error("Please select a category");
+            return;
+        }
+        if (bulkSelectedSubs.length === 0) {
+            toast.error("Please select at least one subcategory");
+            return;
+        }
+        if (selectedProductIds.length === 0) {
+            toast.error("No products selected");
+            return;
+        }
+
+        setBulkUpdating(true);
+        try {
+            const res = await axios.patch(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}/products/bulk-subcategory`, {
+                productIds: selectedProductIds,
+                category: bulkCategory,
+                subCategories: bulkSelectedSubs,
+                mode: bulkMode,
+            });
+            toast.success(res.data?.message || "Subcategories updated successfully");
+            setShowBulkSubModal(false);
+            setSelectedProductIds([]);
+            fetchProducts();
+        } catch (error) {
+            toast.error(error.response?.data?.error || "Failed to update subcategories");
+        } finally {
+            setBulkUpdating(false);
+        }
+    };
+
+    const handleConfirmBulkInventory = async () => {
+        if (pendingBulkInventoryStatus === null || selectedProductIds.length === 0) return;
+        setBulkInventoryUpdating(true);
+        try {
+            const res = await axios.patch(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}/products/bulk-inventory`, {
+                productIds: selectedProductIds,
+                inStock: pendingBulkInventoryStatus
+            });
+            toast.success(`Updated ${res.data?.count || selectedProductIds.length} products to ${pendingBulkInventoryStatus ? 'In Stock' : 'Out of Stock'}`);
+            setShowBulkInventoryModal(false);
+            setPendingBulkInventoryStatus(null);
+            setSelectedProductIds([]);
+            fetchProducts();
+        } catch (error) {
+            toast.error(error.response?.data?.error || "Failed to update inventory status");
+        } finally {
+            setBulkInventoryUpdating(false);
+        }
+    };
+
+    const handleConfirmBulkDelete = async () => {
+        if (selectedProductIds.length === 0) return;
+        setBulkDeleting(true);
+        try {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}/products/bulk-delete`, {
+                productIds: selectedProductIds
+            });
+            toast.success(res.data?.message || `Deleted ${selectedProductIds.length} products`);
+            setShowBulkDeleteModal(false);
+            setSelectedProductIds([]);
+            fetchProducts();
+        } catch (error) {
+            toast.error(error.response?.data?.error || "Failed to delete products");
+        } finally {
+            setBulkDeleting(false);
         }
     };
 
@@ -264,12 +383,18 @@ export default function WaProductList() {
             delete payload.salePrice;
 
             if (storeTaxConfig?.enabled) {
-                if (payload.taxRate === null) {
+                if (payload.taxRate === null || payload.taxRate === undefined || payload.taxRate === '') {
                     toast.error("Please select a Tax Slab for this product.");
                     return;
                 }
             }
 
+
+            payload.subCategories = Array.isArray(payload.subCategories) ? payload.subCategories : [];
+            if (payload.subCategories.length === 0) {
+                toast.error("Please select at least one subcategory.");
+                return;
+            }
 
             payload.imageUrls = (payload.imageUrls || []).filter(url => url && url.trim() !== '');
             if (payload.imageUrls.length === 0) {
@@ -343,6 +468,7 @@ export default function WaProductList() {
             minWholesaleQty: product.minWholesaleQty || '',
             imageUrls: product.imageUrls?.length > 0 ? product.imageUrls.filter(url => url && url.trim() !== '') : [],
             category: product.category || '',
+            subCategories: Array.isArray(product.subCategories) ? product.subCategories : [],
             inStock: product.inStock,
             options: savedOptions,
             variants: loadedVariants,
@@ -470,6 +596,13 @@ export default function WaProductList() {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                     <button
+                        onClick={handleExportProducts}
+                        className="flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-slate-300 rounded-xl font-semibold text-sm transition-colors shadow-sm"
+                        title="Export all products to Excel"
+                    >
+                        <Download className="w-4 h-4" /> Export Products
+                    </button>
+                    <button
                         onClick={() => setImportModalOpen(true)}
                         className="flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-slate-300 rounded-xl font-semibold text-sm transition-colors shadow-sm"
                     >
@@ -489,6 +622,7 @@ export default function WaProductList() {
                     <table className="w-full text-left text-sm whitespace-nowrap">
                         <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-white/5">
                             <tr>
+                                <th className="pl-6 pr-2 py-4 w-10"></th>
                                 <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Product</th>
                                 <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Price</th>
                                 <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Category</th>
@@ -499,6 +633,9 @@ export default function WaProductList() {
                         <tbody className="divide-y divide-slate-200 dark:divide-white/5">
                             {[1, 2, 3, 4, 5].map(i => (
                                 <tr key={i} className="animate-pulse">
+                                    <td className="pl-6 pr-2 py-4">
+                                        <div className="w-4 h-4 bg-slate-200 dark:bg-slate-700 rounded" />
+                                    </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-lg bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
@@ -539,6 +676,20 @@ export default function WaProductList() {
                     <table className="w-full text-left text-sm whitespace-nowrap">
                         <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-white/5">
                             <tr>
+                                <th className="pl-6 pr-2 py-4 w-10">
+                                    <input
+                                        type="checkbox"
+                                        checked={products.length > 0 && selectedProductIds.length === products.length}
+                                        onChange={(e) => {
+                                            if (e.target.checked) {
+                                                setSelectedProductIds(products.map(p => p.id));
+                                            } else {
+                                                setSelectedProductIds([]);
+                                            }
+                                        }}
+                                        className="w-4 h-4 rounded border-slate-300 dark:border-zinc-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                    />
+                                </th>
                                 <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Product</th>
                                 <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Price</th>
                                 <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Category</th>
@@ -549,6 +700,20 @@ export default function WaProductList() {
                         <tbody className="divide-y divide-slate-200 dark:divide-white/5">
                             {products.map(product => (
                                 <tr key={product.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                                    <td className="pl-6 pr-2 py-4">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedProductIds.includes(product.id)}
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    setSelectedProductIds(prev => [...prev, product.id]);
+                                                } else {
+                                                    setSelectedProductIds(prev => prev.filter(id => id !== product.id));
+                                                }
+                                            }}
+                                            className="w-4 h-4 rounded border-slate-300 dark:border-zinc-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                        />
+                                    </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
                                             {product.imageUrls?.[0] ? (
@@ -571,7 +736,18 @@ export default function WaProductList() {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className="text-slate-600 dark:text-slate-400">{product.category || '-'}</span>
+                                        <div className="flex flex-col gap-1 items-start">
+                                            <span className="font-medium text-slate-700 dark:text-slate-300">{product.category || '-'}</span>
+                                            {Array.isArray(product.subCategories) && product.subCategories.length > 0 && (
+                                                <div className="flex flex-wrap gap-1 max-w-[220px]">
+                                                    {product.subCategories.map(sub => (
+                                                        <span key={sub} className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20">
+                                                            {sub}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div>
@@ -609,6 +785,340 @@ export default function WaProductList() {
                             ))}
                         </tbody>
                     </table>
+                </div>
+            )}
+
+            {/* Floating Bulk Action Bar */}
+            {selectedProductIds.length > 0 && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-5 duration-200">
+                    <div className="bg-white/95 dark:bg-zinc-800/95 text-slate-900 dark:text-white backdrop-blur-md px-4 py-3 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-2xl border border-slate-200 dark:border-white/10 flex flex-wrap items-center gap-3 sm:gap-4 max-w-[95vw] sm:max-w-fit">
+                        {/* Selected counter */}
+                        <div className="flex items-center gap-2 pr-2 border-r border-slate-200 dark:border-white/20">
+                            <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                            <span className="text-xs sm:text-sm font-black whitespace-nowrap">{selectedProductIds.length} Selected</span>
+                        </div>
+
+                        {/* Assign Subcategories button */}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const selectedProducts = products.filter(p => selectedProductIds.includes(p.id));
+                                const cats = [...new Set(selectedProducts.map(p => p.category).filter(Boolean))];
+                                if (cats.length === 1 && storeCategories.includes(cats[0])) {
+                                    setBulkCategory(cats[0]);
+                                } else if (storeCategories.length > 0) {
+                                    setBulkCategory(storeCategories[0]);
+                                } else {
+                                    setBulkCategory('');
+                                }
+                                setBulkSelectedSubs([]);
+                                setBulkMode('replace');
+                                setShowBulkSubModal(true);
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm"
+                        >
+                            <Tag className="w-3.5 h-3.5" />
+                            <span>Assign Subcategories</span>
+                        </button>
+
+                        {/* Bulk Inventory Status */}
+                        <div className="flex items-center gap-1.5">
+                            <div className="relative inline-block">
+                                <select
+                                    onChange={(e) => {
+                                        if (e.target.value) {
+                                            setPendingBulkInventoryStatus(e.target.value === 'in_stock');
+                                            setShowBulkInventoryModal(true);
+                                        }
+                                        e.target.value = '';
+                                    }}
+                                    disabled={bulkInventoryUpdating || bulkDeleting}
+                                    defaultValue=""
+                                    className="bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/20 rounded-xl text-xs font-bold pl-3 pr-7 py-1.5 text-slate-900 dark:text-white outline-none cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors appearance-none"
+                                >
+                                    <option value="" disabled>Inventory Status...</option>
+                                    <option value="in_stock">🟢 Mark In Stock</option>
+                                    <option value="out_of_stock">🔴 Mark Out of Stock</option>
+                                </select>
+                                <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+                            </div>
+                        </div>
+
+                        {/* Bulk Delete button */}
+                        <button
+                            type="button"
+                            onClick={() => setShowBulkDeleteModal(true)}
+                            disabled={bulkDeleting || bulkInventoryUpdating}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 rounded-xl text-xs font-bold transition-colors shadow-sm"
+                        >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Delete</span>
+                        </button>
+
+                        {/* Clear Selection */}
+                        <button
+                            type="button"
+                            onClick={() => setSelectedProductIds([])}
+                            className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+                            title="Clear Selection"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Bulk Subcategory Assignment Modal */}
+            {showBulkSubModal && (
+                <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-zinc-800 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200 dark:border-white/10 animate-in fade-in zoom-in-95 duration-200">
+                        <div className="px-6 py-4 border-b border-slate-100 dark:border-zinc-700/80 flex items-center justify-between">
+                            <div>
+                                <h3 className="text-base font-bold text-slate-900 dark:text-white">Bulk Assign Subcategories</h3>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                    Applying to {selectedProductIds.length} selected product{selectedProductIds.length > 1 ? 's' : ''}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowBulkSubModal(false)}
+                                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-700 transition-colors"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            {/* Select Category */}
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                                    Select Category <span className="text-red-500">*</span>
+                                </label>
+                                <select
+                                    value={bulkCategory}
+                                    onChange={(e) => {
+                                        setBulkCategory(e.target.value);
+                                        setBulkSelectedSubs([]);
+                                    }}
+                                    className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-lg text-sm font-medium text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                >
+                                    <option value="" disabled>Choose category...</option>
+                                    {storeCategories.map(cat => (
+                                        <option key={cat} value={cat}>{cat}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Subcategories Multi-select */}
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                                    <span>Select Subcategories <span className="text-red-500">*</span></span>
+                                    <span className="text-[11px] font-normal text-slate-400 normal-case">{bulkSelectedSubs.length} selected</span>
+                                </label>
+
+                                {bulkCategory ? (
+                                    (storeSubcategories[bulkCategory] || []).length > 0 ? (
+                                        <div className="flex flex-wrap gap-1.5 p-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-xl max-h-48 overflow-y-auto">
+                                            {(storeSubcategories[bulkCategory] || []).map(sub => {
+                                                const isSelected = bulkSelectedSubs.includes(sub.name);
+                                                return (
+                                                    <button
+                                                        type="button"
+                                                        key={sub.name}
+                                                        onClick={() => {
+                                                            setBulkSelectedSubs(prev =>
+                                                                isSelected ? prev.filter(s => s !== sub.name) : [...prev, sub.name]
+                                                            );
+                                                        }}
+                                                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                                                            isSelected
+                                                                ? 'bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-400/30'
+                                                                : 'bg-white dark:bg-zinc-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-zinc-700 border border-slate-200 dark:border-zinc-700'
+                                                        }`}
+                                                    >
+                                                        {sub.image && (
+                                                            <img
+                                                                src={sub.image.startsWith('http') ? sub.image : `${import.meta.env.VITE_API_URL}${sub.image.startsWith('/') ? '' : '/'}${sub.image}`}
+                                                                alt=""
+                                                                className="w-3.5 h-3.5 rounded-full object-cover"
+                                                            />
+                                                        )}
+                                                        {isSelected && <Check className="w-3.5 h-3.5" />}
+                                                        <span>{sub.name}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 rounded-xl text-xs text-amber-700 dark:text-amber-400">
+                                            This category doesn't have any subcategories yet. Please create subcategories in Categories Manager first.
+                                        </div>
+                                    )
+                                ) : (
+                                    <p className="text-xs text-slate-400 italic">Select a category above to view available subcategories.</p>
+                                )}
+                            </div>
+
+                            {/* Assignment Mode: Replace or Append */}
+                            <div className="space-y-1.5 pt-2">
+                                <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                                    Action Mode
+                                </label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <label className={`flex items-start gap-2 p-2.5 rounded-xl border cursor-pointer transition-all ${bulkMode === 'replace' ? 'bg-indigo-50/50 dark:bg-indigo-500/10 border-indigo-500 text-indigo-900 dark:text-indigo-200' : 'border-slate-200 dark:border-zinc-700 hover:bg-slate-50 dark:hover:bg-zinc-700/50'}`}>
+                                        <input
+                                            type="radio"
+                                            name="bulkMode"
+                                            value="replace"
+                                            checked={bulkMode === 'replace'}
+                                            onChange={() => setBulkMode('replace')}
+                                            className="mt-0.5 text-indigo-600 focus:ring-indigo-500"
+                                        />
+                                        <div>
+                                            <p className="text-xs font-bold">Replace</p>
+                                            <p className="text-[11px] text-slate-500 dark:text-slate-400">Overwrite existing subcategories</p>
+                                        </div>
+                                    </label>
+                                    <label className={`flex items-start gap-2 p-2.5 rounded-xl border cursor-pointer transition-all ${bulkMode === 'append' ? 'bg-indigo-50/50 dark:bg-indigo-500/10 border-indigo-500 text-indigo-900 dark:text-indigo-200' : 'border-slate-200 dark:border-zinc-700 hover:bg-slate-50 dark:hover:bg-zinc-700/50'}`}>
+                                        <input
+                                            type="radio"
+                                            name="bulkMode"
+                                            value="append"
+                                            checked={bulkMode === 'append'}
+                                            onChange={() => setBulkMode('append')}
+                                            className="mt-0.5 text-indigo-600 focus:ring-indigo-500"
+                                        />
+                                        <div>
+                                            <p className="text-xs font-bold">Add / Append</p>
+                                            <p className="text-[11px] text-slate-500 dark:text-slate-400">Merge with existing subcategories</p>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="px-6 py-4 bg-slate-50 dark:bg-zinc-900/50 border-t border-slate-100 dark:border-zinc-700/80 flex items-center justify-end gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setShowBulkSubModal(false)}
+                                className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                disabled={bulkUpdating || !bulkCategory || bulkSelectedSubs.length === 0}
+                                onClick={handleApplyBulkSubcategories}
+                                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+                            >
+                                {bulkUpdating ? (
+                                    <>
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        <span>Updating...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Check className="w-3.5 h-3.5" />
+                                        <span>Apply to {selectedProductIds.length} Products</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Bulk Inventory Status Confirmation Modal */}
+            {showBulkInventoryModal && pendingBulkInventoryStatus !== null && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !bulkInventoryUpdating && setShowBulkInventoryModal(false)} />
+                    <div className="relative w-full max-w-sm bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-3xl p-6 shadow-2xl text-center animate-in fade-in zoom-in-95 duration-200">
+                        <div className={`w-12 h-12 rounded-full ${pendingBulkInventoryStatus ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' : 'bg-rose-100 dark:bg-rose-900/30 text-rose-600'} mx-auto flex items-center justify-center mb-4`}>
+                            <Activity className="w-6 h-6" />
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Update Inventory Status</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                            Are you sure you want to mark <strong>{selectedProductIds.length}</strong> selected product{selectedProductIds.length > 1 ? 's' : ''} as{' '}
+                            <strong className={pendingBulkInventoryStatus ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                                {pendingBulkInventoryStatus ? 'In Stock' : 'Out of Stock'}
+                            </strong>?
+                        </p>
+                        <div className="flex items-center gap-3 w-full">
+                            <button
+                                type="button"
+                                disabled={bulkInventoryUpdating}
+                                onClick={() => {
+                                    setShowBulkInventoryModal(false);
+                                    setPendingBulkInventoryStatus(null);
+                                }}
+                                className="flex-1 py-2.5 rounded-xl font-bold text-xs bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                disabled={bulkInventoryUpdating}
+                                onClick={handleConfirmBulkInventory}
+                                className={`flex-1 py-2.5 rounded-xl font-bold text-xs text-white shadow-sm transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 ${
+                                    pendingBulkInventoryStatus
+                                        ? 'bg-emerald-600 hover:bg-emerald-700'
+                                        : 'bg-rose-600 hover:bg-rose-700'
+                                }`}
+                            >
+                                {bulkInventoryUpdating ? (
+                                    <>
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        <span>Updating...</span>
+                                    </>
+                                ) : (
+                                    <span>Confirm & Update</span>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Bulk Delete Confirmation Modal */}
+            {showBulkDeleteModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !bulkDeleting && setShowBulkDeleteModal(false)} />
+                    <div className="relative w-full max-w-sm bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-3xl p-6 shadow-2xl text-center animate-in fade-in zoom-in-95 duration-200">
+                        <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-900/30 text-rose-600 mx-auto flex items-center justify-center mb-4">
+                            <Trash2 className="w-6 h-6" />
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Delete Products</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
+                            Are you sure you want to permanently delete <strong>{selectedProductIds.length}</strong> selected product{selectedProductIds.length > 1 ? 's' : ''}?
+                        </p>
+                        <p className="text-xs text-rose-500 font-medium mb-6">
+                            This action cannot be undone.
+                        </p>
+                        <div className="flex items-center gap-3 w-full">
+                            <button
+                                type="button"
+                                disabled={bulkDeleting}
+                                onClick={() => setShowBulkDeleteModal(false)}
+                                className="flex-1 py-2.5 rounded-xl font-bold text-xs bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                disabled={bulkDeleting}
+                                onClick={handleConfirmBulkDelete}
+                                className="flex-1 py-2.5 rounded-xl font-bold text-xs bg-rose-600 hover:bg-rose-700 text-white shadow-sm transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                            >
+                                {bulkDeleting ? (
+                                    <>
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        <span>Deleting...</span>
+                                    </>
+                                ) : (
+                                    <span>Delete</span>
+                                )}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -832,9 +1342,9 @@ export default function WaProductList() {
                                                                 onChange={e => {
                                                                     if (e.target.value === 'ADD_NEW') {
                                                                         setIsAddingNewCategory(true);
-                                                                        setForm({ ...form, category: '' });
+                                                                        setForm({ ...form, category: '', subCategories: [] });
                                                                     } else {
-                                                                        setForm({ ...form, category: e.target.value });
+                                                                        setForm({ ...form, category: e.target.value, subCategories: [] });
                                                                     }
                                                                 }}
                                                                 className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium shadow-sm"
@@ -857,7 +1367,7 @@ export default function WaProductList() {
                                                                 />
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => { setIsAddingNewCategory(false); setForm({ ...form, category: '' }); }}
+                                                                    onClick={() => { setIsAddingNewCategory(false); setForm({ ...form, category: '', subCategories: [] }); }}
                                                                     className="px-2 py-2 text-xs text-slate-500 hover:text-slate-700 dark:text-slate-300 font-medium"
                                                                 >
                                                                     Cancel
@@ -865,6 +1375,55 @@ export default function WaProductList() {
                                                             </div>
                                                         )}
                                                     </div>
+
+                                                    {/* Subcategories (Multi-Select Chips) */}
+                                                    {form.category && (
+                                                        <div className="space-y-1.5">
+                                                            <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                                                                <span>Subcategories</span>
+                                                                <span className="text-[11px] font-normal text-slate-400 normal-case">
+                                                                    {(form.subCategories || []).length} selected
+                                                                </span>
+                                                            </label>
+                                                            {(storeSubcategories[form.category] || []).length > 0 ? (
+                                                                <div className="flex flex-wrap gap-1.5 p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg max-h-36 overflow-y-auto">
+                                                                    {(storeSubcategories[form.category] || []).map(sub => {
+                                                                        const isSelected = (form.subCategories || []).includes(sub.name);
+                                                                        return (
+                                                                            <button
+                                                                                type="button"
+                                                                                key={sub.name}
+                                                                                onClick={() => {
+                                                                                    const current = form.subCategories || [];
+                                                                                    const next = isSelected
+                                                                                        ? current.filter(s => s !== sub.name)
+                                                                                        : [...current, sub.name];
+                                                                                    setForm({ ...form, subCategories: next });
+                                                                                }}
+                                                                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
+                                                                                    isSelected
+                                                                                        ? 'bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-400'
+                                                                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
+                                                                                }`}
+                                                                            >
+                                                                                {sub.image && (
+                                                                                    <img
+                                                                                        src={sub.image.startsWith('http') ? sub.image : `${import.meta.env.VITE_API_URL}${sub.image.startsWith('/') ? '' : '/'}${sub.image}`}
+                                                                                        alt=""
+                                                                                        className="w-3.5 h-3.5 rounded-full object-cover"
+                                                                                    />
+                                                                                )}
+                                                                                {isSelected && <Check className="w-3 h-3" />}
+                                                                                <span>{sub.name}</span>
+                                                                            </button>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            ) : (
+                                                                <p className="text-[11px] text-slate-400 italic">No subcategories created for this category yet.</p>
+                                                            )}
+                                                        </div>
+                                                    )}
 
                                                     <div className="space-y-1.5">
                                                         <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
