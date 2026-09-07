@@ -150,13 +150,19 @@ function VariantImageUploader({ onOpenPicker }) {
     );
 }
 
+// Removes leading/trailing spaces AND collapses double spaces between words
+function cleanVariantString(str) {
+    if (typeof str !== 'string') return str;
+    return str.replace(/\s+/g, ' ').trim();
+}
+
 // ─── Generates every combination of option values (Cartesian product) ─────────
 function generateCombos(options) {
     const groups = (options || []).map(o => {
         const parsedValues = Array.isArray(o.values)
-            ? o.values.filter(v => typeof v === 'string' && v.trim() !== '')
-            : (typeof o.values === 'string' ? o.values.split(',').map(v => v.trim()).filter(Boolean) : []);
-        return { ...o, name: (o.name || '').trim(), values: parsedValues };
+            ? o.values.map(v => typeof v === 'string' ? cleanVariantString(v) : v).filter(v => typeof v === 'string' && v !== '')
+            : (typeof o.values === 'string' ? o.values.split(',').map(v => cleanVariantString(v)).filter(Boolean) : []);
+        return { ...o, name: cleanVariantString(o.name || ''), values: parsedValues };
     }).filter(o => o.name && o.values.length > 0);
 
     if (groups.length === 0) return [];
@@ -403,19 +409,28 @@ export default function WaProductList() {
             }
             payload.options = payload.options.map(opt => ({
                 ...opt,
+                name: cleanVariantString(opt.name || ''),
                 values: Array.isArray(opt.values)
-                    ? opt.values
-                    : opt.values.split(',').map(v => v.trim()).filter(Boolean)
+                    ? opt.values.map(v => typeof v === 'string' ? cleanVariantString(v) : v).filter(v => typeof v === 'string' && v !== '')
+                    : opt.values.split(',').map(v => cleanVariantString(v)).filter(Boolean)
             }));
             // Only save variant rows that actually have a custom price, stock, or image set
             payload.variants = (payload.variants || [])
                 .filter(v => v.price !== '' || v.stock !== '' || v.imageUrl)
-                .map(v => ({
-                    combo: v.combo,
-                    price: v.price !== '' ? parseFloat(v.price) : null,
-                    stock: v.stock !== '' ? parseInt(v.stock) : null,
-                    imageUrl: v.imageUrl || null,
-                }));
+                .map(v => {
+                    const cleanCombo = {};
+                    if (v.combo) {
+                        for (const [key, val] of Object.entries(v.combo)) {
+                            cleanCombo[cleanVariantString(key)] = typeof val === 'string' ? cleanVariantString(val) : val;
+                        }
+                    }
+                    return {
+                        combo: cleanCombo,
+                        price: v.price !== '' ? parseFloat(v.price) : null,
+                        stock: v.stock !== '' ? parseInt(v.stock) : null,
+                        imageUrl: v.imageUrl || null,
+                    };
+                });
 
             if (editingProduct) {
                 await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/products/${editingProduct.id}`, payload);
@@ -450,7 +465,10 @@ export default function WaProductList() {
         const combos = generateCombos(savedOptions);
         const loadedVariants = combos.map(combo => {
             const existing = savedVariants.find(v =>
-                v.combo && Object.entries(combo).every(([k, val]) => v.combo[k] === val)
+                v.combo && Object.entries(combo).every(([k, val]) => {
+                    const savedK = Object.keys(v.combo).find(key => cleanVariantString(key) === k);
+                    return savedK && typeof v.combo[savedK] === 'string' && cleanVariantString(v.combo[savedK]) === cleanVariantString(val);
+                })
             );
             return {
                 combo,
@@ -500,7 +518,10 @@ export default function WaProductList() {
         }
         const newVariants = combos.map(combo => {
             const existing = (form.variants || []).find(v =>
-                v.combo && Object.entries(combo).every(([k, val]) => v.combo[k] === val)
+                v.combo && Object.entries(combo).every(([k, val]) => {
+                    const savedK = Object.keys(v.combo).find(key => cleanVariantString(key) === k);
+                    return savedK && typeof v.combo[savedK] === 'string' && cleanVariantString(v.combo[savedK]) === cleanVariantString(val);
+                })
             );
             return {
                 combo,

@@ -50,6 +50,12 @@ const WaStoreCoupon = sequelize.define('WaStoreCoupon', {
         allowNull: true,
         defaultValue: null
     },
+    // SEC-3 FIX: Track limit per individual user
+    usageLimitPerUser: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue: null
+    },
     // timesUsed: auto-incremented each time the coupon is applied to a paid/confirmed order
     timesUsed: {
         type: DataTypes.INTEGER,

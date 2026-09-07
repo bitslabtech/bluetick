@@ -297,6 +297,14 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                 customerPhone: `${countryCode}${formData.phone}`,
                 customerEmail: formData.email,
                 customerAddress: `${formData.address}, ${formData.city}, ${formData.state} - ${formData.pincode}`,
+                addressDetails: {
+                    name: formData.name,
+                    phone: `${countryCode}${formData.phone}`,
+                    address: formData.address,
+                    city: formData.city,
+                    state: formData.state,
+                    pincode: formData.pincode
+                },
                 customerNote: formData.notes,
                 items: cart.map(item => ({
                     id: item.id, name: item.name, price: getItemPrice(item), qty: item.qty, imageUrls: item.imageUrls

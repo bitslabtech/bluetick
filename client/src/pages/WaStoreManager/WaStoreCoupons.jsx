@@ -21,7 +21,8 @@ export default function WaStoreCoupons() {
         startsAt: '',
         expiresAt: '',
         // SEC-3: usage limit (null = unlimited)
-        usageLimit: ''
+        usageLimit: '',
+        usageLimitPerUser: ''
     });
 
     const fetchCoupons = async () => {
@@ -63,11 +64,12 @@ export default function WaStoreCoupons() {
                 startsAt: form.startsAt || null,
                 expiresAt: form.expiresAt || null,
                 // SEC-3: send usageLimit (null = unlimited)
-                usageLimit: form.usageLimit !== '' ? parseInt(form.usageLimit) : null
+                usageLimit: form.usageLimit !== '' ? parseInt(form.usageLimit) : null,
+                usageLimitPerUser: form.usageLimitPerUser !== '' ? parseInt(form.usageLimitPerUser) : null
             });
             toast.success('Coupon created successfully');
             setShowModal(false);
-            setForm({ code: '', discountType: 'percentage', discountValue: '', minOrderValue: '', isActive: true, startsAt: '', expiresAt: '', usageLimit: '' });
+            setForm({ code: '', discountType: 'percentage', discountValue: '', minOrderValue: '', isActive: true, startsAt: '', expiresAt: '', usageLimit: '', usageLimitPerUser: '' });
             fetchCoupons();
         } catch (error) {
             toast.error(error.response?.data?.error || 'Failed to create coupon');
@@ -287,10 +289,17 @@ export default function WaStoreCoupons() {
                                 <label className="block text-sm font-medium mb-1 text-slate-700">Min Order Value (Optional)</label>
                                 <input type="number" step="0.01" value={form.minOrderValue} onChange={e => setForm({...form, minOrderValue: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="0.00" />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1 text-slate-700">Usage Limit (Optional)</label>
-                                <input type="number" min="1" step="1" value={form.usageLimit} onChange={e => setForm({...form, usageLimit: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Unlimited" />
-                                <p className="text-xs text-slate-400 mt-1">Max number of times this code can be redeemed. Leave blank for unlimited.</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium mb-1 text-slate-700">Total Usage Limit (Optional)</label>
+                                    <input type="number" min="1" step="1" value={form.usageLimit} onChange={e => setForm({...form, usageLimit: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Unlimited" />
+                                    <p className="text-xs text-slate-400 mt-1">Max times code can be used overall.</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1 text-slate-700">Per User Limit (Optional)</label>
+                                    <input type="number" min="1" step="1" value={form.usageLimitPerUser} onChange={e => setForm({...form, usageLimitPerUser: e.target.value})} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Unlimited" />
+                                    <p className="text-xs text-slate-400 mt-1">Max times a single user can use it.</p>
+                                </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>

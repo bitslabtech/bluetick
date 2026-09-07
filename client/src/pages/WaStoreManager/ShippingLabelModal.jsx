@@ -99,6 +99,7 @@ export default function ShippingLabelModal({ order: initialOrder, orders, store,
     const [cautionText, setCautionText] = useState('none');
     const [printing, setPrinting] = useState(false);
     const [downloading, setDownloading] = useState(false);
+    const [bulkProgress, setBulkProgress] = useState(null); // null | { current, total }
     const labelRef = useRef(null);
 
     // Sync payable amount if order changes during bulk preview
@@ -144,12 +145,20 @@ export default function ShippingLabelModal({ order: initialOrder, orders, store,
 
         const imgs = el.querySelectorAll('img');
         const origSrcs = [];
-        imgs.forEach((img) => { origSrcs.push(img.src); if (logoDataUrl) img.src = logoDataUrl; });
+        imgs.forEach((img) => { 
+            origSrcs.push(img.src); 
+            if (logoDataUrl && img.src.includes(rawLogoSrc)) {
+                img.src = logoDataUrl; 
+            } else if (img.src.startsWith('http')) {
+                // Prevent CORS crash if an external image couldn't be converted
+                img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+            }
+        });
 
         let imgData;
         try {
             const { toPng } = await import('html-to-image');
-            imgData = await toPng(el, { pixelRatio: 3, backgroundColor: '#ffffff' });
+            imgData = await toPng(el, { pixelRatio: 3, backgroundColor: '#ffffff', skipFonts: true, fontEmbedCSS: '' });
         } catch (captureError) {
             console.error('[ShippingLabel] capture error:', captureError);
             throw captureError;
@@ -178,19 +187,36 @@ export default function ShippingLabelModal({ order: initialOrder, orders, store,
         const isLandscape = format === 'landscape_a5';
         const doc = new jsPDF({ orientation: isLandscape ? 'landscape' : 'portrait', unit: 'mm', format: 'a5' });
         const { toPng } = await import('html-to-image');
+        const total = targetOrders.length;
+        // Use lower pixel ratio for large batches to prevent memory exhaustion
+        const pixelRatio = total > 10 ? 2 : 3;
         
-        for (let i = 0; i < targetOrders.length; i++) {
+        for (let i = 0; i < total; i++) {
+            setBulkProgress({ current: i + 1, total });
             setPreviewIndex(i);
-            await new Promise(r => setTimeout(r, 200)); 
+
+            // Wait for React to commit the new order data to the DOM
+            // Double rAF guarantees the browser has painted before we capture
+            await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+            // Extra 80ms for any async content (images) to settle
+            await new Promise(r => setTimeout(r, 80));
             
             const el = labelRef.current;
+            if (!el) continue;
             const imgs = el.querySelectorAll('img');
             const origSrcs = [];
-            imgs.forEach((img) => { origSrcs.push(img.src); if (logoDataUrl) img.src = logoDataUrl; });
+            imgs.forEach((img) => { 
+                origSrcs.push(img.src); 
+                if (logoDataUrl && img.src.includes(rawLogoSrc)) {
+                    img.src = logoDataUrl; 
+                } else if (img.src.startsWith('http')) {
+                    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                }
+            });
             
             let imgData;
             try {
-                imgData = await toPng(el, { pixelRatio: 3, backgroundColor: '#ffffff' });
+                imgData = await toPng(el, { pixelRatio, backgroundColor: '#ffffff', skipFonts: true, fontEmbedCSS: '' });
             } finally {
                 imgs.forEach((img, j) => { img.src = origSrcs[j]; });
             }
@@ -206,8 +232,12 @@ export default function ShippingLabelModal({ order: initialOrder, orders, store,
             
             if (i > 0) doc.addPage();
             doc.addImage(imgData, 'PNG', (pdfW - imgW) / 2, (pdfH - imgH) / 2, imgW, imgH);
+
+            // Release the large base64 string from memory immediately
+            imgData = null;
         }
         setPreviewIndex(0);
+        setBulkProgress(null);
         return doc;
     };
 
@@ -281,6 +311,23 @@ export default function ShippingLabelModal({ order: initialOrder, orders, store,
                         </button>
                     </div>
                 </div>
+
+                {/* Bulk progress bar */}
+                {bulkProgress && (
+                    <div className="px-5 py-3 bg-indigo-50 dark:bg-indigo-900/30 border-b border-indigo-200 dark:border-indigo-500/30">
+                        <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300">Generating labels…</span>
+                            <span className="text-xs font-mono text-indigo-600 dark:text-indigo-400">{bulkProgress.current} / {bulkProgress.total}</span>
+                        </div>
+                        <div className="w-full bg-indigo-200 dark:bg-indigo-800 rounded-full h-2 overflow-hidden">
+                            <div
+                                className="h-2 bg-indigo-600 dark:bg-indigo-400 rounded-full transition-all duration-300"
+                                style={{ width: `${Math.round((bulkProgress.current / bulkProgress.total) * 100)}%` }}
+                            />
+                        </div>
+                        <p className="text-[10px] text-indigo-500 dark:text-indigo-400 mt-1">Please don't close this window until complete.</p>
+                    </div>
+                )}
 
                 <div className="flex-1 overflow-y-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                     

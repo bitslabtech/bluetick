@@ -372,6 +372,27 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
         // This eliminates:
         //   - Overselling race condition (two simultaneous orders passing the stock check)
         //   - Duplicate order number (COUNT-based generation is now inside a SERIALIZABLE lock)
+
+        // SEC-3 FIX: Enforce individual user coupon limits before transaction
+        if (couponCode && customerPhone) {
+            const WaStoreCoupon = require('../models/WaStoreCoupon');
+            const coupon = await WaStoreCoupon.findOne({ where: { storeId, code: String(couponCode).toUpperCase().trim() } });
+            if (coupon && coupon.usageLimitPerUser !== null && coupon.usageLimitPerUser !== undefined) {
+                const { Op } = require('sequelize');
+                const usedCount = await WaOrder.count({
+                    where: {
+                        storeId,
+                        couponCode: coupon.code,
+                        customerPhone: String(customerPhone).trim(), // Track by phone
+                        status: { [Op.notIn]: ['cancelled', 'failed'] }
+                    }
+                });
+                if (usedCount >= coupon.usageLimitPerUser) {
+                    return res.status(400).json({ error: 'You have reached your maximum usage limit for this coupon.' });
+                }
+            }
+        }
+
         const order = await sequelize.transaction({ isolationLevel: 'SERIALIZABLE' }, async (t) => {
             // Re-generate order number inside the transaction so the COUNT is consistent
             const txCount = await WaOrder.count({ where: { storeId, source: 'online' }, transaction: t });
@@ -395,11 +416,42 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
                 const StoreCustomer = require('../models/StoreCustomer');
                 const cust = await StoreCustomer.findOne({
                     where: { id: storeCustomerId, storeId },
-                    attributes: ['id'],
                     transaction: t
                 });
-                validatedCustomerId = cust ? cust.id : null;
-                if (!cust) console.warn(`[SEC-4] storeCustomerId ${storeCustomerId} does not belong to store ${storeId} — ignored`);
+                
+                if (cust) {
+                    validatedCustomerId = cust.id;
+                    
+                    // Save the address to customer profile if provided
+                    const incomingAddress = req.body.addressDetails || null;
+                    if (incomingAddress && incomingAddress.address) {
+                        const savedAddrs = Array.isArray(cust.savedAddresses) ? cust.savedAddresses : [];
+                        const exists = savedAddrs.some(a => 
+                            a.address === incomingAddress.address && 
+                            a.city === incomingAddress.city && 
+                            a.pincode === incomingAddress.pincode
+                        );
+                        
+                        if (!exists) {
+                            savedAddrs.push({
+                                label: 'Address ' + (savedAddrs.length + 1),
+                                name: incomingAddress.name || cust.name,
+                                phone: incomingAddress.phone || cust.phone,
+                                address: incomingAddress.address,
+                                city: incomingAddress.city || '',
+                                state: incomingAddress.state || '',
+                                pincode: incomingAddress.pincode || '',
+                                isDefault: savedAddrs.length === 0
+                            });
+                            // Force sequelize to detect JSON array change
+                            cust.changed('savedAddresses', true);
+                            cust.savedAddresses = savedAddrs;
+                            await cust.save({ transaction: t });
+                        }
+                    }
+                } else {
+                    console.warn(`[SEC-4] storeCustomerId ${storeCustomerId} does not belong to store ${storeId} — ignored`);
+                }
             }
 
             const newOrder = await WaOrder.create({
@@ -2658,6 +2710,7 @@ router.post('/:storeId/coupons', auth, async (req, res) => {
             expiresAt: body.expiresAt || null,
             // SEC-3: usageLimit (null = unlimited)
             usageLimit: body.usageLimit != null && body.usageLimit !== '' ? parseInt(body.usageLimit) : null,
+            usageLimitPerUser: body.usageLimitPerUser != null && body.usageLimitPerUser !== '' ? parseInt(body.usageLimitPerUser) : null,
             timesUsed: 0
         });
         res.status(201).json(coupon);
@@ -2692,7 +2745,8 @@ router.put('/:storeId/coupons/:couponId', auth, async (req, res) => {
             ...(body.startsAt !== undefined && { startsAt: body.startsAt || null }),
             ...(body.expiresAt !== undefined && { expiresAt: body.expiresAt || null }),
             // SEC-3: allow updating usageLimit (null = unlimited, integer = capped)
-            ...(body.usageLimit !== undefined && { usageLimit: body.usageLimit != null && body.usageLimit !== '' ? parseInt(body.usageLimit) : null })
+            ...(body.usageLimit !== undefined && { usageLimit: body.usageLimit != null && body.usageLimit !== '' ? parseInt(body.usageLimit) : null }),
+            ...(body.usageLimitPerUser !== undefined && { usageLimitPerUser: body.usageLimitPerUser != null && body.usageLimitPerUser !== '' ? parseInt(body.usageLimitPerUser) : null })
         });
         res.json(coupon);
     } catch (error) {
@@ -2827,7 +2881,7 @@ router.get('/:id/abandoned-cart', auth, async (req, res) => {
         const store = await WaStore.findOne({ where: { id: req.params.id, userId: req.user.id } });
         if (!store) return res.status(404).json({ error: 'Store not found' });
 
-        const config = store.abandonedCartConfig || { enabled: false, delayHours: 2, useTemplate: false, templateName: null };
+        const config = store.abandonedCartConfig || { enabled: false, delayHours: 2, useTemplate: false, templateName: null, couponCode: null };
 
         // Count stats: total abandoned (pending + no reminder), recovered (reminder sent + now paid/confirmed), pending reminder
         const [totalAbandoned, reminderSent, recovered] = await Promise.all([
@@ -2841,7 +2895,7 @@ router.get('/:id/abandoned-cart', auth, async (req, res) => {
             where: { storeId: store.id, status: 'pending', customerPhone: { [Op.not]: null } },
             order: [['createdAt', 'DESC']],
             limit: 20,
-            attributes: ['id', 'orderNumber', 'customerName', 'customerPhone', 'subtotal', 'total', 'currency', 'abandonedReminderSent', 'createdAt'],
+            attributes: ['id', 'orderNumber', 'customerName', 'customerPhone', 'customerEmail', 'customerAddress', 'items', 'subtotal', 'total', 'currency', 'abandonedReminderSent', 'createdAt'],
         });
 
         res.json({
@@ -2861,12 +2915,13 @@ router.put('/:id/abandoned-cart', auth, async (req, res) => {
         const store = await WaStore.findOne({ where: { id: req.params.id, userId: req.user.id } });
         if (!store) return res.status(404).json({ error: 'Store not found' });
 
-        const { enabled, delayHours, useTemplate, templateName } = req.body;
+        const { enabled, delayHours, useTemplate, templateName, couponCode } = req.body;
         const config = {
             enabled: !!enabled,
             delayHours: Math.max(1, Math.min(72, parseInt(delayHours) || 2)),
             useTemplate: !!useTemplate,
             templateName: templateName || null,
+            couponCode: couponCode || null,
         };
         await store.update({ abandonedCartConfig: config });
         res.json({ success: true, config });
