@@ -11,20 +11,44 @@ import {
 } from './ShippingLabelGenerator';
 
 // Fetch any URL and return it as a base64 data URL (avoids CORS during capture)
+// Tries CORS fetch first, then falls back to drawing via a crossOrigin Image element
 async function toDataUrl(url) {
+    if (!url) return null;
+    // Attempt 1: CORS fetch (works when server sends Access-Control-Allow-Origin)
     try {
         const res = await fetch(url, { mode: 'cors' });
-        if (!res.ok) return null;
-        const blob = await res.blob();
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.onerror = () => resolve(null);
-            reader.readAsDataURL(blob);
-        });
-    } catch {
-        return null;
-    }
+        if (res.ok) {
+            const blob = await res.blob();
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = () => resolve(null);
+                reader.readAsDataURL(blob);
+            });
+        }
+    } catch { /* fallthrough */ }
+
+    // Attempt 2: crossOrigin Image + canvas (works for same-origin or permissive CDNs)
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.naturalWidth || img.width;
+                canvas.height = img.naturalHeight || img.height;
+                canvas.getContext('2d').drawImage(img, 0, 0);
+                resolve(canvas.toDataURL('image/png'));
+            } catch {
+                resolve(null);
+            }
+        };
+        img.onerror = () => resolve(null);
+        // Cache bust to avoid serving a cached opaque response
+        img.src = url + (url.includes('?') ? '&' : '?') + '_cb=' + Date.now();
+        // Timeout safety
+        setTimeout(() => resolve(null), 8000);
+    });
 }
 
 // SVG Icon for Fragile (official ISO 780 cracked wine glass symbol)
@@ -133,7 +157,42 @@ export default function ShippingLabelModal({ order: initialOrder, orders, store,
         toDataUrl(rawLogoSrc).then(setLogoDataUrl);
     }, [rawLogoSrc]);
 
+    // Prefer the pre-fetched base64 data URL so the <img> is already CORS-safe
+    // when html-to-image captures the DOM. Fall back to rawLogoSrc only if the
+    // async fetch hasn't completed yet (the capture will still swap it via prepareImgsForCapture).
     const logoSrc = logoDataUrl || rawLogoSrc;
+
+    // Swap out img srcs before capture so html-to-image can render everything.
+    // Returns a restore function. Always call restore() in a finally block.
+    const prepareImgsForCapture = async (el) => {
+        const imgs = Array.from(el.querySelectorAll('img'));
+        const origSrcs = imgs.map(img => img.src);
+
+        // Resolve logo to base64 — use cached value or fetch it now
+        let resolvedLogo = logoDataUrl;
+        if (!resolvedLogo && rawLogoSrc) {
+            resolvedLogo = await toDataUrl(rawLogoSrc);
+        }
+
+        imgs.forEach((img) => {
+            // Use the data-label-logo attribute for reliable identification
+            // (comparing img.src to rawLogoSrc is unreliable because browsers resolve
+            // relative paths to fully-qualified URLs, making string comparison fail)
+            const isLogoImg = img.dataset.labelLogo === 'true';
+            if (isLogoImg) {
+                // Always replace with base64 to avoid any CORS issues during capture
+                if (resolvedLogo) {
+                    img.src = resolvedLogo;
+                }
+                // If no base64 available, leave src as-is — same-origin images work fine
+            } else if (!img.src.startsWith('data:') && img.src.startsWith('http')) {
+                // Blank out non-logo external images to prevent CORS SecurityError
+                img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+            }
+        });
+
+        return () => imgs.forEach((img, i) => { img.src = origSrcs[i]; });
+    };
 
     const capturePreviewToPdf = async () => {
         const el = labelRef.current;
@@ -143,18 +202,7 @@ export default function ShippingLabelModal({ order: initialOrder, orders, store,
         const pdfW = isLandscape ? 210 : 148;
         const pdfH = isLandscape ? 148 : 210;
 
-        const imgs = el.querySelectorAll('img');
-        const origSrcs = [];
-        imgs.forEach((img) => { 
-            origSrcs.push(img.src); 
-            if (logoDataUrl && img.src.includes(rawLogoSrc)) {
-                img.src = logoDataUrl; 
-            } else if (img.src.startsWith('http')) {
-                // Prevent CORS crash if an external image couldn't be converted
-                img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-            }
-        });
-
+        const restore = await prepareImgsForCapture(el);
         let imgData;
         try {
             const { toPng } = await import('html-to-image');
@@ -163,7 +211,7 @@ export default function ShippingLabelModal({ order: initialOrder, orders, store,
             console.error('[ShippingLabel] capture error:', captureError);
             throw captureError;
         } finally {
-            imgs.forEach((img, i) => { img.src = origSrcs[i]; });
+            restore();
         }
 
         const doc = new jsPDF({
@@ -203,22 +251,13 @@ export default function ShippingLabelModal({ order: initialOrder, orders, store,
             
             const el = labelRef.current;
             if (!el) continue;
-            const imgs = el.querySelectorAll('img');
-            const origSrcs = [];
-            imgs.forEach((img) => { 
-                origSrcs.push(img.src); 
-                if (logoDataUrl && img.src.includes(rawLogoSrc)) {
-                    img.src = logoDataUrl; 
-                } else if (img.src.startsWith('http')) {
-                    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-                }
-            });
-            
+
+            const restore = await prepareImgsForCapture(el);
             let imgData;
             try {
                 imgData = await toPng(el, { pixelRatio, backgroundColor: '#ffffff', skipFonts: true, fontEmbedCSS: '' });
             } finally {
-                imgs.forEach((img, j) => { img.src = origSrcs[j]; });
+                restore();
             }
             
             const pdfW = isLandscape ? 210 : 148;
@@ -359,7 +398,7 @@ export default function ShippingLabelModal({ order: initialOrder, orders, store,
                                 <SideCautionBanner format={format} cautionText={cautionText} side="right" />
                                 <div className="p-3 border-b-2 border-black flex justify-center">
                                     {logoSrc ? (
-                                        <img src={logoSrc} alt={store?.name} className="h-12 max-w-[200px] object-contain" />
+                                        <img data-label-logo="true" src={logoSrc} alt={store?.name} className="h-12 max-w-[200px] object-contain" />
                                     ) : (
                                         <div className="w-12 h-12 rounded bg-slate-900 text-white flex items-center justify-center font-bold text-lg tracking-wider">
                                             {(store?.name || 'WA').substring(0, 2).toUpperCase()}
