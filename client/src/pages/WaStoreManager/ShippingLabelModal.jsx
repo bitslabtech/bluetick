@@ -10,11 +10,19 @@ import {
     extractPostalCode
 } from './ShippingLabelGenerator';
 
-// Fetch any URL and return it as a base64 data URL (avoids CORS during capture)
-// Tries CORS fetch first, then falls back to drawing via a crossOrigin Image element
+// Build the /api/img proxy URL for a CDN image.
+// The server fetches it server-to-server (no CORS), caches it at Cloudflare edge,
+// and returns it from your own origin — so the browser never touches cdn.bluetick.cloud directly.
+const API_BASE = import.meta.env.VITE_API_URL || '';
+function toProxyUrl(url) {
+    if (!url || !url.startsWith('http')) return url;
+    return `${API_BASE}/api/img?url=${encodeURIComponent(url)}&w=400&q=95&f=webp`;
+}
+
+// Fetch a URL and return it as a base64 data URL (avoids CORS during html-to-image capture)
 async function toDataUrl(url) {
     if (!url) return null;
-    // Attempt 1: CORS fetch (works when server sends Access-Control-Allow-Origin)
+    // Attempt 1: Direct CORS fetch (works for same-origin or permissive CDNs)
     try {
         const res = await fetch(url, { mode: 'cors' });
         if (res.ok) {
@@ -22,20 +30,20 @@ async function toDataUrl(url) {
             return new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.onloadend = () => resolve(reader.result);
-                reader.onerror = () => resolve(null);
+                reader.onerror  = () => resolve(null);
                 reader.readAsDataURL(blob);
             });
         }
     } catch { /* fallthrough */ }
 
     // Attempt 2: crossOrigin Image + canvas (works for same-origin or permissive CDNs)
-    return new Promise((resolve) => {
+    const canvasResult = await new Promise((resolve) => {
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.onload = () => {
             try {
                 const canvas = document.createElement('canvas');
-                canvas.width = img.naturalWidth || img.width;
+                canvas.width  = img.naturalWidth  || img.width;
                 canvas.height = img.naturalHeight || img.height;
                 canvas.getContext('2d').drawImage(img, 0, 0);
                 resolve(canvas.toDataURL('image/png'));
@@ -44,11 +52,31 @@ async function toDataUrl(url) {
             }
         };
         img.onerror = () => resolve(null);
-        // Cache bust to avoid serving a cached opaque response
         img.src = url + (url.includes('?') ? '&' : '?') + '_cb=' + Date.now();
-        // Timeout safety
         setTimeout(() => resolve(null), 8000);
     });
+    if (canvasResult) return canvasResult;
+
+    // Attempt 3: Route through our /api/img server-side proxy.
+    // The server fetches the image without any browser CORS restriction.
+    // This is the guaranteed fallback for strict CDNs like cdn.bluetick.cloud.
+    try {
+        const proxyUrl = toProxyUrl(url);
+        if (proxyUrl && proxyUrl !== url) {
+            const res = await fetch(proxyUrl, { mode: 'cors' });
+            if (res.ok) {
+                const blob = await res.blob();
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.onerror  = () => resolve(null);
+                    reader.readAsDataURL(blob);
+                });
+            }
+        }
+    } catch { /* give up */ }
+
+    return null;
 }
 
 // SVG Icon for Fragile (official ISO 780 cracked wine glass symbol)
@@ -143,11 +171,20 @@ export default function ShippingLabelModal({ order: initialOrder, orders, store,
             : (storeSlug ? `bluetick.cloud/store/${storeSlug}` : 'bluetick.cloud')
     ).toUpperCase();
 
-    // Pre-fetch logo as base64 to avoid CORS issues during capture
+    // Pre-fetch logo as base64 to avoid CORS issues during capture.
+    // For cdn.bluetick.cloud logos, we route through /api/img (our server-side proxy)
+    // so the browser never touches the CDN directly — bypassing its strict CORS policy.
     const rawLogoSrc = store?.logo
-        ? (store.logo.startsWith('http') || store.logo.startsWith('data:')
-            ? store.logo
-            : `${import.meta.env.VITE_API_URL}${store.logo.startsWith('/') ? '' : '/'}${store.logo}`)
+        ? (() => {
+            const src = store.logo.startsWith('http') || store.logo.startsWith('data:')
+                ? store.logo
+                : `${import.meta.env.VITE_API_URL}${store.logo.startsWith('/') ? '' : '/'}${store.logo}`;
+            // Route CDN URLs through our server-side proxy so CORS is never an issue
+            if (src.startsWith('http') && src.includes('cdn.bluetick.cloud')) {
+                return toProxyUrl(src);
+            }
+            return src;
+        })()
         : null;
     const [logoDataUrl, setLogoDataUrl] = useState(null);
 
@@ -174,20 +211,22 @@ export default function ShippingLabelModal({ order: initialOrder, orders, store,
             resolvedLogo = await toDataUrl(rawLogoSrc);
         }
 
+        // Transparent 1×1 GIF — safe fallback when base64 isn't available
+        const BLANK = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
         imgs.forEach((img) => {
             // Use the data-label-logo attribute for reliable identification
             // (comparing img.src to rawLogoSrc is unreliable because browsers resolve
             // relative paths to fully-qualified URLs, making string comparison fail)
             const isLogoImg = img.dataset.labelLogo === 'true';
             if (isLogoImg) {
-                // Always replace with base64 to avoid any CORS issues during capture
-                if (resolvedLogo) {
-                    img.src = resolvedLogo;
-                }
-                // If no base64 available, leave src as-is — same-origin images work fine
+                // Replace with base64 if available.
+                // If CORS blocked toDataUrl returns null — use BLANK so html-to-image
+                // doesn't crash trying to process a cross-origin CDN URL.
+                img.src = resolvedLogo || BLANK;
             } else if (!img.src.startsWith('data:') && img.src.startsWith('http')) {
-                // Blank out non-logo external images to prevent CORS SecurityError
-                img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                // Blank out all other external images to prevent CORS SecurityError
+                img.src = BLANK;
             }
         });
 
@@ -206,7 +245,24 @@ export default function ShippingLabelModal({ order: initialOrder, orders, store,
         let imgData;
         try {
             const { toPng } = await import('html-to-image');
-            imgData = await toPng(el, { pixelRatio: 3, backgroundColor: '#ffffff', skipFonts: true, fontEmbedCSS: '' });
+            imgData = await toPng(el, {
+                pixelRatio: 3,
+                backgroundColor: '#ffffff',
+                skipFonts: true,
+                fontEmbedCSS: '',
+                // Never let html-to-image re-fetch external URLs — all imgs are already
+                // swapped to data: URLs by prepareImgsForCapture, so cache-busting is
+                // not needed and can reintroduce the original CORS-blocked URL.
+                cacheBust: false,
+                // Skip any img element whose src is still an external http URL
+                // (shouldn't happen after prepareImgsForCapture, but acts as a safety net)
+                filter: (node) => {
+                    if (node.tagName === 'IMG' && node.src && node.src.startsWith('http')) {
+                        return false;
+                    }
+                    return true;
+                },
+            });
         } catch (captureError) {
             console.error('[ShippingLabel] capture error:', captureError);
             throw captureError;
@@ -255,7 +311,19 @@ export default function ShippingLabelModal({ order: initialOrder, orders, store,
             const restore = await prepareImgsForCapture(el);
             let imgData;
             try {
-                imgData = await toPng(el, { pixelRatio, backgroundColor: '#ffffff', skipFonts: true, fontEmbedCSS: '' });
+                imgData = await toPng(el, {
+                    pixelRatio,
+                    backgroundColor: '#ffffff',
+                    skipFonts: true,
+                    fontEmbedCSS: '',
+                    cacheBust: false,
+                    filter: (node) => {
+                        if (node.tagName === 'IMG' && node.src && node.src.startsWith('http')) {
+                            return false;
+                        }
+                        return true;
+                    },
+                });
             } finally {
                 restore();
             }
