@@ -1,11 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { CheckCircle, Clock, ArrowRight, Home, CreditCard, Copy } from 'lucide-react';
 
 const ManualPaymentPending = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { utrNumber, planName, amount, currency } = location.state || {};
+    const { utrNumber, planName, amount, currency, requestId, shortId } = location.state || {};
+
+    // Guard: if the user navigates directly to this URL (no state from checkout), redirect to billing.
+    // This prevents bookmarking/sharing the success URL and landing on a blank/contextless page.
+    useEffect(() => {
+        if (!location.state) {
+            navigate('/billing', { replace: true });
+        }
+    }, [location.state, navigate]);
 
     const currencySymbol = (c) => ({ USD: '$', INR: '₹', EUR: '€', GBP: '£' }[c] || c || '₹');
 
@@ -18,6 +26,16 @@ const ManualPaymentPending = () => {
         { icon: '✅', title: 'Plan Gets Activated', desc: 'Once verified, your selected plan is instantly activated on your account.' },
         { icon: '📄', title: 'Invoice Delivered', desc: 'A GST invoice is automatically generated and delivered to your email.' },
     ];
+
+    // shortId is e.g. "A3X7K2M" — stored in DB, random, unambiguous, guaranteed unique.
+    // Falls back to 8-char UUID slice for old records predating the shortId column.
+    const displayId = shortId
+        ? `BT-${shortId}`
+        : requestId
+            ? `BT-${requestId.replace(/-/g, '').substring(0, 8).toUpperCase()}`
+            : null;
+    // The value copied to clipboard — full UUID if no shortId, otherwise the shortId itself
+    const copyValue = shortId || requestId;
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-emerald-50/20 dark:from-gray-950 dark:via-indigo-950/20 dark:to-gray-950 flex items-center justify-center p-4 font-display">
@@ -34,11 +52,39 @@ const ManualPaymentPending = () => {
                             </div>
                             <h1 className="text-2xl font-bold text-white mb-1">Payment Request Submitted!</h1>
                             <p className="text-emerald-100 text-sm">We have received your bank transfer details</p>
+                            {/* Request ID in the header — immediately visible, easy to screenshot */}
+                            {displayId && (
+                                <div className="mt-3 inline-flex items-center gap-2 bg-white/15 px-3 py-1.5 rounded-full">
+                                    <span className="text-xs text-emerald-100 font-medium">Request ID:</span>
+                                    <span className="text-sm font-bold text-white font-mono">{displayId}</span>
+                                    <button
+                                        onClick={() => handleCopy(copyValue)}
+                                        className="p-0.5 hover:bg-white/20 rounded transition-colors"
+                                        title="Copy request ID"
+                                    >
+                                        <Copy className="w-3 h-3 text-emerald-100" />
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                     <div className="p-6 space-y-5">
-                        {(planName || utrNumber) && (
+                        {(planName || utrNumber || displayId) && (
                             <div className="bg-slate-50 dark:bg-white/5 rounded-2xl p-4 border border-slate-100 dark:border-white/10 space-y-3">
+                                {/* Request ID row */}
+                                {displayId && (
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-slate-500 dark:text-slate-400">Request ID</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-200 dark:bg-white/10 px-2 py-0.5 rounded">
+                                                {displayId}
+                                            </span>
+                                            <button onClick={() => handleCopy(copyValue)} className="p-1 hover:bg-slate-200 dark:hover:bg-white/10 rounded transition-colors" title="Copy ID">
+                                                <Copy className="w-3.5 h-3.5 text-slate-400" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                                 {planName && (
                                     <div className="flex justify-between items-center">
                                         <span className="text-sm text-slate-500 dark:text-slate-400">Plan</span>

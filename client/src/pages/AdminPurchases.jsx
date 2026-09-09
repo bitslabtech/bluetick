@@ -23,6 +23,15 @@ const AdminPurchases = ({ isComponent = false, parentSearchTerm }) => {
     useEffect(() => {
         fetchData();
         fetchStats();
+
+        // Listen for global notification refresh events (like new manual payment requests via socket)
+        const handleNotificationRefresh = () => {
+            fetchData();
+            fetchStats();
+        };
+
+        window.addEventListener('notification_refresh', handleNotificationRefresh);
+        return () => window.removeEventListener('notification_refresh', handleNotificationRefresh);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [statusFilter]);
 
@@ -47,13 +56,28 @@ const AdminPurchases = ({ isComponent = false, parentSearchTerm }) => {
         }
     };
 
-    const filteredTransactions = transactions.filter(t =>
-        t.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.planName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.razorpayPaymentId?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Helper: BT-A3X7K2M from DB shortId (random, unambiguous, guaranteed unique).
+    // Falls back to 8-char UUID slice for old records predating the shortId column.
+    const toShortId = (t) => {
+        if (t.shortId) return `BT-${t.shortId}`;
+        return `BT-${t.id.replace(/-/g, '').substring(0, 8).toUpperCase()}`;
+    };
+
+    const filteredTransactions = transactions.filter(t => {
+        const q = searchTerm.toLowerCase().trim();
+        if (!q) return true;
+        // Strip BT- prefix so admin can search "BT-A3X7K2M" or just "A3X7K2M" or the raw UUID
+        const normalizedQuery = q.startsWith('bt-') ? q.slice(3) : q;
+        return (
+            t.user?.name?.toLowerCase().includes(q) ||
+            t.user?.email?.toLowerCase().includes(q) ||
+            t.planName?.toLowerCase().includes(q) ||
+            t.id?.toLowerCase().includes(normalizedQuery) ||
+            t.shortId?.toLowerCase().includes(normalizedQuery) ||
+            t.razorpayPaymentId?.toLowerCase().includes(q) ||
+            t.manualPaymentRef?.toLowerCase().includes(q)
+        );
+    });
 
     const currencySymbol = (c) => ({ USD: '$', INR: '₹', EUR: '€', GBP: '£' }[c] || c || '₹');
 
@@ -210,7 +234,8 @@ const AdminPurchases = ({ isComponent = false, parentSearchTerm }) => {
                                                     <div className={`p-1 rounded transition-colors ${expandedId === t.id ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' : 'bg-slate-100 text-slate-400 group-hover:text-slate-600 dark:bg-white/5 dark:group-hover:text-slate-300'}`}>
                                                         {expandedId === t.id ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                                                     </div>
-                                                    {t.id.substring(0, 8)}...
+                                                    {/* BT-000001 from requestNumber — guaranteed unique at any scale */}
+                                                    <span title={t.id} className="cursor-help">{toShortId(t)}</span>
                                                 </td>
                                                 <td className="px-4 md:px-6 py-4">
                                                     <div className="font-medium text-slate-900 dark:text-white">{t.user.name}</div>
@@ -224,12 +249,13 @@ const AdminPurchases = ({ isComponent = false, parentSearchTerm }) => {
                                                 <td className="px-4 md:px-6 py-4 font-medium text-slate-900 dark:text-white">
                                                     {t.currency === 'INR' ? '₹' : '$'}{parseFloat(t.amount).toLocaleString()}
                                                 </td>
-                                                <td className="px-4 md:px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                                                <td className="px-4 md:px-6 py-4">
                                                     {t.razorpayPaymentId ? (
                                                         <span
                                                             title={t.razorpayPaymentId}
                                                             className="font-mono text-xs bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300 px-2 py-1 rounded cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
-                                                            onClick={() => {
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
                                                                 navigator.clipboard.writeText(t.razorpayPaymentId);
                                                             }}
                                                         >
@@ -260,10 +286,10 @@ const AdminPurchases = ({ isComponent = false, parentSearchTerm }) => {
                                                         </span>
                                                     )}
                                                 </td>
-                                                <td className="px-4 md:px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                                                <td className="px-4 md:px-6 py-4">
                                                     {t.invoice ? (
                                                         <button 
-                                                            onClick={() => handleViewInvoice(t.invoice.id)}
+                                                            onClick={(e) => { e.stopPropagation(); handleViewInvoice(t.invoice.id); }}
                                                             className="px-3 py-1 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:text-indigo-400 dark:hover:bg-indigo-900/40 rounded border border-indigo-100 dark:border-indigo-900/30 text-xs font-semibold transition-colors flex items-center gap-1"
                                                         >
                                                             👁 View
@@ -390,23 +416,29 @@ const AdminPurchases = ({ isComponent = false, parentSearchTerm }) => {
                                                                                             <span className="text-amber-800 dark:text-amber-200">{new Date(t.createdAt).toLocaleString()}</span>
                                                                                         </div>
                                                                                     </div>
-                                                                                    {/* Payment Screenshot */}
-                                                                                    {t.paymentScreenshotUrl && (
+                                                                                    {/* Payment Screenshots — plural array, up to 3 */}
+                                                                                    {t.paymentScreenshotUrls && t.paymentScreenshotUrls.length > 0 && (
                                                                                         <div className="mt-3 pt-3 border-t border-amber-200/50 dark:border-amber-800/30">
-                                                                                            <p className="text-xs font-bold text-amber-700 dark:text-amber-300 mb-2">📸 Payment Proof</p>
-                                                                                            <a
-                                                                                                href={t.paymentScreenshotUrl}
-                                                                                                target="_blank"
-                                                                                                rel="noopener noreferrer"
-                                                                                                className="block"
-                                                                                            >
-                                                                                                <img
-                                                                                                    src={t.paymentScreenshotUrl}
-                                                                                                    alt="Payment screenshot"
-                                                                                                    className="w-full max-h-56 object-contain rounded-lg border border-amber-200 dark:border-amber-800/40 bg-white dark:bg-black/20 hover:opacity-90 transition-opacity cursor-zoom-in"
-                                                                                                />
-                                                                                                <p className="text-[10px] text-amber-500 dark:text-amber-400 mt-1 text-center">Click to open full size</p>
-                                                                                            </a>
+                                                                                            <p className="text-xs font-bold text-amber-700 dark:text-amber-300 mb-2">📸 Payment Proof ({t.paymentScreenshotUrls.length} screenshot{t.paymentScreenshotUrls.length > 1 ? 's' : ''})</p>
+                                                                                            <div className={`grid gap-2 ${t.paymentScreenshotUrls.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                                                                                                {t.paymentScreenshotUrls.map((url, idx) => (
+                                                                                                    <a
+                                                                                                        key={idx}
+                                                                                                        href={url}
+                                                                                                        target="_blank"
+                                                                                                        rel="noopener noreferrer"
+                                                                                                        className="block"
+                                                                                                        title="Click to open full size"
+                                                                                                    >
+                                                                                                        <img
+                                                                                                            src={url}
+                                                                                                            alt={`Payment screenshot ${idx + 1}`}
+                                                                                                            className="w-full max-h-48 object-contain rounded-lg border border-amber-200 dark:border-amber-800/40 bg-white dark:bg-black/20 hover:opacity-80 transition-opacity cursor-zoom-in"
+                                                                                                        />
+                                                                                                    </a>
+                                                                                                ))}
+                                                                                            </div>
+                                                                                            <p className="text-[10px] text-amber-500 dark:text-amber-400 mt-1 text-center">Click any screenshot to open full size</p>
                                                                                         </div>
                                                                                     )}
                                                                                 </div>

@@ -116,9 +116,14 @@ router.put('/settings', superAdmin, async (req, res) => {
             config.integrations = { ...existingIntegrations, ...safeIntegrations };
         }
         if (req.body.settings) {
-            // Preserve existing S3 secrets if client sent back masked values
+            // ── Deep-merge settings to prevent one panel overwriting another's data ──
+            // Shallow spread ({ ...existingSettings, ...safeSettings }) blows away nested
+            // objects like invoiceConfig.ccNumbers when another panel saves a different key.
+            // Deep merge recursively combines objects at every level.
             const existingSettings = config.settings || {};
             const safeSettings = { ...req.body.settings };
+
+            // Preserve masked S3 secrets
             if (safeSettings.storage?.s3) {
                 const existingS3 = existingSettings.storage?.s3 || {};
                 if (safeSettings.storage.s3.accessKeyId && isMasked(safeSettings.storage.s3.accessKeyId)) {
@@ -128,7 +133,27 @@ router.put('/settings', superAdmin, async (req, res) => {
                     safeSettings.storage.s3.secretAccessKey = existingS3.secretAccessKey || '';
                 }
             }
-            config.settings = { ...existingSettings, ...safeSettings };
+
+            // Deep merge: for each key in safeSettings, if both values are plain objects
+            // (not arrays), merge recursively; otherwise take the incoming value.
+            function deepMerge(target, source) {
+                const result = { ...target };
+                for (const key of Object.keys(source)) {
+                    const tv = target[key];
+                    const sv = source[key];
+                    if (
+                        sv !== null && typeof sv === 'object' && !Array.isArray(sv) &&
+                        tv !== null && typeof tv === 'object' && !Array.isArray(tv)
+                    ) {
+                        result[key] = deepMerge(tv, sv);
+                    } else {
+                        result[key] = sv;
+                    }
+                }
+                return result;
+            }
+
+            config.settings = deepMerge(existingSettings, safeSettings);
             config.changed('settings', true);
             const cacheManager = require('../utils/cacheManager');
             cacheManager.invalidate('public_settings');

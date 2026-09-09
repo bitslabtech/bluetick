@@ -66,9 +66,9 @@ const ErrorBell = () => {
                         key={unreadErrorCount}
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white dark:border-background-dark"
+                        className="absolute -top-1 -right-1 flex h-5 min-w-[20px] px-1 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white dark:border-background-dark"
                     >
-                        {unreadErrorCount > 9 ? "9+" : unreadErrorCount}
+                        {unreadErrorCount > 99 ? "99+" : unreadErrorCount}
                     </motion.span>
                 )}
             </motion.button>

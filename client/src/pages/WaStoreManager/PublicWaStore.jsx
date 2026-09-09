@@ -74,7 +74,47 @@ export default function PublicWaStore() {
             }
         };
         fetchStore();
+
+        // Auto-refresh product prices every 60 seconds so cart prices stay current
+        // without requiring a full page reload.
+        const refreshInterval = setInterval(async () => {
+            try {
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/public/${slug}`);
+                setProducts(res.data.products);
+            } catch {}
+        }, 60_000);
+        return () => clearInterval(refreshInterval);
     }, [slug]);
+
+    // ── Price reconciliation ─────────────────────────────────────────────────
+    // Whenever the products list updates (initial load OR periodic refresh),
+    // update cart items to use the latest price from the server.
+    // If a price changed, tag the item with `priceChangedFrom` (the old price)
+    // so the cart drawer can show a "Price updated" warning to the user.
+    useEffect(() => {
+        if (products.length === 0) return;
+        setCart(prev => prev.map(cartItem => {
+            const freshProduct = products.find(p => p.id === cartItem.id);
+            if (!freshProduct) return cartItem; // product deleted — keep as-is, user can remove
+            const freshPrice = parseFloat(freshProduct.price);
+            const cartPrice  = parseFloat(cartItem.price);
+            if (freshPrice === cartPrice) {
+                // Price unchanged — clear any stale priceChangedFrom flag
+                const { priceChangedFrom: _, ...rest } = cartItem;
+                return { ...rest, ...freshProduct, qty: cartItem.qty };
+            }
+            // Price changed — update to new price and flag the change
+            return {
+                ...cartItem,
+                ...freshProduct,
+                qty: cartItem.qty,
+                priceChangedFrom: cartPrice  // old price, shown as strikethrough in cart
+            };
+        }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [products]);
+    // ─────────────────────────────────────────────────────────────────────────
+
 
     // #21 — hiddenCategories: filter out categories the store owner has hidden
     const categories = useMemo(() => {
@@ -668,7 +708,7 @@ export default function PublicWaStore() {
                                                         <img src={imgUrl(item.imageUrls[0])} alt={item.name} className="w-full h-full object-contain" />
                                                     )}
                                                 </div>
-                                                <div className="flex-1 min-w-0 pt-1">
+                                                    <div className="flex-1 min-w-0 pt-1">
                                                     <div className="flex items-start justify-between gap-2">
                                                         <h4 className="font-semibold text-sm text-gray-900 truncate">{item.name}</h4>
                                                         {/* #2 — Remove item button */}
@@ -676,6 +716,20 @@ export default function PublicWaStore() {
                                                             <Trash2 className="w-3.5 h-3.5" />
                                                         </button>
                                                     </div>
+
+                                                    {/* ── Price Changed Warning ── */}
+                                                    {item.priceChangedFrom !== undefined && (
+                                                        <div className="mt-1 mb-1 flex flex-wrap items-center gap-1.5 px-2 py-1 bg-amber-50 border border-amber-200 rounded-lg">
+                                                            <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wide whitespace-nowrap">⚠ Price updated</span>
+                                                            <span className="text-xs text-gray-400 line-through whitespace-nowrap">
+                                                                {getCurrencySymbol(store.currency)}{parseFloat(item.priceChangedFrom).toFixed(2)}
+                                                            </span>
+                                                            <span className="text-xs font-bold text-gray-900 whitespace-nowrap">
+                                                                → {getCurrencySymbol(store.currency)}{parseFloat(item.price).toFixed(2)}
+                                                            </span>
+                                                        </div>
+                                                    )}
+
                                                     <div className="font-medium text-sm text-gray-500 mt-1 flex flex-wrap items-center gap-2">
                                                         {item.wholesalePrice && item.minWholesaleQty && item.qty >= parseInt(item.minWholesaleQty) ? (
                                                             <>

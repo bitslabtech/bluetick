@@ -91,6 +91,23 @@ const Transaction = sequelize.define('Transaction', {
         allowNull: true,
         defaultValue: [],
         comment: 'Array of URLs for the payment proof screenshots uploaded by user (up to 3)'
+    },
+    billingInterval: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: "Billing interval selected by user: 'month', 'half-year', 'year', or null for lifetime/one-time"
+    },
+    upgradeCredit: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+        defaultValue: 0,
+        comment: 'Pro-rated credit deducted from price when user upgrades from an existing active plan'
+    },
+    shortId: {
+        type: DataTypes.STRING(16),
+        allowNull: true,
+        unique: true,
+        comment: 'Short random human-readable reference ID shown to user (e.g. A3X7K2M). Non-sequential, unambiguous alphabet, DB-unique enforced.'
     }
 
 }, {

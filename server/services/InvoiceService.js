@@ -486,11 +486,16 @@ async function savePdf(buffer, invoiceNumber, userId = null) {
  * Sends a WA template message + document (PDF) to a phone number.
  * Uses the linked admin's Meta credentials.
  */
+/**
+ * Sends a WhatsApp invoice template + PDF document to a phone number.
+ * Routes through sendSystemMessage() so the message is:
+ *   a) sent via the linked admin's Meta credentials, and
+ *   b) logged to Conversation/ChatMessage → appears in the live inbox.
+ */
 async function sendInvoiceWhatsApp(toPhone, inv, ic, pdfPublicUrl) {
     try {
         const SystemConfig = require('../models/SystemConfig');
-        const Settings = require('../models/Settings');
-        const User = require('../models/User');
+        const { sendSystemMessage } = require('./systemMessenger');
 
         const config = await SystemConfig.getCachedConfig();
         const linkedAdminId = config?.settings?.linkedAdminUserId;
@@ -499,24 +504,14 @@ async function sendInvoiceWhatsApp(toPhone, inv, ic, pdfPublicUrl) {
             return { success: false, error: 'No linked account' };
         }
 
-        const adminSettings = await Settings.findOne({ where: { userId: linkedAdminId } });
-        if (!adminSettings?.metaPhoneNumberId || !adminSettings?.metaAccessToken) {
-            console.warn('[INVOICE WA] Linked account missing WA configuration.');
-            return { success: false, error: 'WA not configured' };
-        }
-
-        const token = adminSettings.metaAccessToken.replace(/[^\x20-\x7E]/g, '').trim();
-        const phoneId = adminSettings.metaPhoneNumberId.replace(/[^\x20-\x7E]/g, '').trim();
-        const apiUrl = `https://graph.facebook.com/v21.0/${phoneId}/messages`;
         const normalizedTo = String(toPhone).replace(/\D/g, '');
-
         if (!normalizedTo) return { success: false, error: 'Invalid phone number' };
 
         if (!ic.invoiceWaTemplateName) {
             return { success: false, error: 'WhatsApp template for invoices is not configured in Settings' };
         }
 
-        // Step 1: Send template message with PDF document header
+        // Build template components
         const components = [];
 
         if (pdfPublicUrl) {
@@ -541,26 +536,20 @@ async function sendInvoiceWhatsApp(toPhone, inv, ic, pdfPublicUrl) {
             ]
         });
 
-        await axios.post(apiUrl, {
-            messaging_product: 'whatsapp',
-            recipient_type: 'individual',
-            to: normalizedTo,
-            type: 'template',
-            template: {
-                name: ic.invoiceWaTemplateName,
-                language: { code: ic.invoiceWaLanguageCode || 'en' },
-                components: components
-            }
-        }, {
-            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+        // Use sendSystemMessage — this sends via Meta API AND logs to inbox DB
+        const result = await sendSystemMessage(normalizedTo, 'template', {
+            templateName: ic.invoiceWaTemplateName,
+            languageCode: ic.invoiceWaLanguageCode || 'en',
+            components
         });
 
-        return { success: true };
+        return result;
     } catch (err) {
         console.error('[INVOICE WA] Send error:', err.response?.data || err.message);
         return { success: false, error: err.response?.data?.error?.message || err.message };
     }
 }
+
 
 // ─── Build Item Description ───────────────────────────────────────────────────
 
@@ -579,11 +568,12 @@ async function buildDescription(planName, ic, txn = null) {
         return desc.replace(/{item_name}/g, itemName).replace(/{itemName}/g, itemName);
     }
 
-    desc = ic.planDescriptionTemplate || '{plan_name} Subscription';
+    desc = ic.planDescriptionTemplate || '{plan_name} Subscription ({validity})';
     desc = desc.replace(/{plan_name}/g, planName).replace(/{planName}/g, planName);
 
-    if (desc.includes('{billingCycle}') || desc.includes('{billing_cycle}')) {
+    if (desc.includes('{billingCycle}') || desc.includes('{billing_cycle}') || desc.includes('{validity}')) {
         let billingCycle = '';
+        let validity = '';
         if (txn) {
             const Plan = require('../models/Plan');
             const targetPlan = await Plan.findOne({ where: { name: planName } });
@@ -591,14 +581,21 @@ async function buildDescription(planName, ic, txn = null) {
                 const totalPaid = (parseFloat(txn.amount) || 0) + (parseFloat(txn.discountApplied) || 0);
                 if (totalPaid === parseFloat(targetPlan.yearlyPrice)) {
                     billingCycle = 'Yearly';
+                    validity = '1 Year';
                 } else if (totalPaid === parseFloat(targetPlan.halfYearlyPrice)) {
                     billingCycle = 'Half-Yearly';
+                    validity = '6 Months';
                 } else {
                     billingCycle = 'Monthly';
+                    validity = '1 Month';
                 }
             }
         }
         desc = desc.replace(/{billingCycle}/g, billingCycle).replace(/{billing_cycle}/g, billingCycle);
+        desc = desc.replace(/{validity}/g, validity);
+        
+        // Clean up any empty parentheses or trailing hyphens if replacement was empty
+        desc = desc.replace(/\(\s*\)/g, '').trim();
         desc = desc.replace(/\s+-\s*$/, '').trim();
     }
     return desc;

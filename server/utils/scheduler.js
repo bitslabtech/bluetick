@@ -485,26 +485,33 @@ function initScheduler() {
                                 continue;
                             }
 
-                            await axios.post(`https://graph.facebook.com/v21.0/${user.metaPhoneNumberId}/messages`, {
-                                messaging_product: 'whatsapp',
-                                to: phone,
+                            const { sendWhatsAppAndLog } = require('./whatsappSender');
+                            await sendWhatsAppAndLog({
+                                userId: store.userId,
+                                metaPhoneNumberId: user.metaPhoneNumberId,
+                                metaAccessToken: user.fbAccessToken,
+                                toPhone: phone,
                                 type: 'template',
-                                template: {
-                                    name: cartConfig.templateName,
-                                    language: { code: 'en' },
-                                    components: [
-                                        {
-                                            type: 'body',
-                                            parameters: [
-                                                { type: 'text', text: order.customerName || 'there' },
-                                                { type: 'text', text: store.name },
-                                                { type: 'text', text: storeUrl },
-                                            ]
-                                        }
-                                    ]
-                                }
-                            }, {
-                                headers: { 'Authorization': `Bearer ${user.fbAccessToken}`, 'Content-Type': 'application/json' }
+                                payload: {
+                                    messaging_product: 'whatsapp',
+                                    to: phone,
+                                    type: 'template',
+                                    template: {
+                                        name: cartConfig.templateName,
+                                        language: { code: 'en' },
+                                        components: [
+                                            {
+                                                type: 'body',
+                                                parameters: [
+                                                    { type: 'text', text: order.customerName || 'there' },
+                                                    { type: 'text', text: store.name },
+                                                    { type: 'text', text: storeUrl },
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                },
+                                summaryBody: `Sent abandoned cart reminder: ${cartConfig.templateName}`
                             });
 
                             order.abandonedReminderSent = true;

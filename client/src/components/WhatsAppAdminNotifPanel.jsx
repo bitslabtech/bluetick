@@ -98,9 +98,15 @@ const WhatsAppAdminNotifPanel = () => {
         setSavingNotif(true);
         try {
             const updatedEvents = { templateModeEnabled, ...notifEvents };
+
+            // Always fetch fresh config before saving to avoid overwriting other settings
+            // that may have changed since this component was mounted.
+            const freshRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/system`);
+            const freshSettings = freshRes.data?.settings || {};
+
             await axios.put(`${import.meta.env.VITE_API_URL}/api/system/settings`, {
                 settings: {
-                    ...config?.settings,
+                    ...freshSettings,
                     adminNotificationEvents: updatedEvents,
                     adminNotificationNumbers: notifNumbers
                 }

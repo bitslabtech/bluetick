@@ -480,6 +480,8 @@ const Billing = () => {
     const [metaRates, setMetaRates] = useState(null);
     const [billingInterval, setBillingInterval] = useState('yearly');
     const [loading, setLoading] = useState(true);
+    const [pendingManualRequest, setPendingManualRequest] = useState(null);
+    const [cancellingRequest, setCancellingRequest] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -502,6 +504,27 @@ const Billing = () => {
         };
         fetchData();
     }, []);
+
+    // Fetch pending manual payment request — shows awareness banner so user doesn't
+    // try to pay online while a manual request is in-flight (would be blocked by server).
+    useEffect(() => {
+        axios.get(`${API_BASE}/api/billing/pending-manual-request`)
+            .then(r => setPendingManualRequest(r.data?.pendingRequest || null))
+            .catch(() => {});
+    }, []);
+
+    const handleCancelPendingRequest = async () => {
+        if (!pendingManualRequest) return;
+        setCancellingRequest(true);
+        try {
+            await axios.delete(`${API_BASE}/api/billing/manual-payment-request/${pendingManualRequest.id}`);
+            setPendingManualRequest(null);
+        } catch (err) {
+            console.error('Failed to cancel request:', err);
+        } finally {
+            setCancellingRequest(false);
+        }
+    };
 
     const handleUpgrade = (plan, intervalCode = 'month') => {
         const planWithInterval = { ...plan, interval: intervalCode };
@@ -560,7 +583,50 @@ const Billing = () => {
                 ) : (
                     <div className="p-4 sm:p-6 md:p-10 max-w-[1400px] max-w-full mx-auto space-y-10">
 
-
+                        {/* ── Pending Manual Payment Banner ── */}
+                        {pendingManualRequest && (
+                            <div className="flex items-start gap-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-600/40 rounded-2xl shadow-sm">
+                                <div className="w-10 h-10 bg-amber-100 dark:bg-amber-800/40 rounded-full flex items-center justify-center shrink-0">
+                                    <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-bold text-amber-800 dark:text-amber-200 text-sm">
+                                        Bank Transfer Pending Review
+                                    </p>
+                                    <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                                        Your payment for <strong>{pendingManualRequest.planName}</strong> ({pendingManualRequest.billingInterval || 'monthly'}) is awaiting admin approval.
+                                        Online payment is blocked until this is resolved.
+                                    </p>
+                                    {pendingManualRequest.manualPaymentRef && (
+                                        <p className="text-[11px] font-mono text-amber-600 dark:text-amber-400 mt-1">
+                                            UTR / Ref: {pendingManualRequest.manualPaymentRef}
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                                    <button
+                                        onClick={() => navigate('/payment-pending', {
+                                            state: {
+                                                utrNumber: pendingManualRequest.manualPaymentRef,
+                                                planName: pendingManualRequest.planName,
+                                                amount: pendingManualRequest.amount,
+                                                currency: 'INR'
+                                            }
+                                        })}
+                                        className="px-3 py-1.5 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors"
+                                    >
+                                        View Status
+                                    </button>
+                                    <button
+                                        onClick={handleCancelPendingRequest}
+                                        disabled={cancellingRequest}
+                                        className="px-3 py-1.5 text-xs font-bold bg-white dark:bg-slate-800 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-600/40 rounded-lg hover:bg-amber-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-60"
+                                    >
+                                        {cancellingRequest ? 'Cancelling...' : 'Cancel Request'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Plans Grid */}
                         <div>

@@ -204,8 +204,13 @@ const InvoiceConfigPanel = () => {
     const handleSave = async () => {
         setSaving(true);
         try {
+            // Always fetch fresh config before saving to avoid overwriting other settings
+            // that may have changed since this component was mounted (shallow merge on server).
+            const freshRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/system`);
+            const freshSettings = freshRes.data?.settings || {};
+
             await onSave({
-                settings: { ...config.settings, invoiceConfig: { ...form } }
+                settings: { ...freshSettings, invoiceConfig: { ...form } }
             });
         } catch (err) {
             console.error(err);
@@ -381,7 +386,10 @@ const InvoiceConfigPanel = () => {
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50/50 hover:bg-slate-50 focus:bg-white dark:bg-black/20 dark:hover:bg-black/30 dark:focus:bg-black/40 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500/50 transition-all placeholder:text-slate-400 resize-none"
                         placeholder="Thank you for your business!" />
                 </div>
-                <Input label="Plan Description Template" value={form.planDescriptionTemplate} onChange={v => updateIc('planDescriptionTemplate', v)} placeholder="{plan_name} Subscription" />
+                <div className="md:col-span-2 group">
+                    <Input label="Plan Description Template" value={form.planDescriptionTemplate} onChange={v => updateIc('planDescriptionTemplate', v)} placeholder="{plan_name} Subscription ({validity})" />
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 pl-1">Variables: <code className="text-[10px] bg-slate-100 dark:bg-white/10 px-1 py-0.5 rounded text-indigo-500">{'{plan_name}'}</code>, <code className="text-[10px] bg-slate-100 dark:bg-white/10 px-1 py-0.5 rounded text-indigo-500">{'{validity}'}</code>, <code className="text-[10px] bg-slate-100 dark:bg-white/10 px-1 py-0.5 rounded text-indigo-500">{'{billingCycle}'}</code></p>
+                </div>
                 <Input label="Addon Description Template" value={form.addonDescriptionTemplate} onChange={v => updateIc('addonDescriptionTemplate', v)} placeholder="{addon_name} Add-on" />
                 <div className="md:col-span-2">
                     <Input label="Topup Description Template" value={form.topupDescriptionTemplate} onChange={v => updateIc('topupDescriptionTemplate', v)} placeholder="{item_name} Top-up" />

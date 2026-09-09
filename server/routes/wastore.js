@@ -694,18 +694,25 @@ async function sendWhatsAppInvoiceHelper(store, user, order, customerName, custo
 
         const mediaId = uploadRes.data.id;
 
-        await axios.post(`https://graph.facebook.com/v21.0/${user.metaPhoneNumberId}/messages`, {
-            messaging_product: 'whatsapp',
-            recipient_type: 'individual',
-            to: phone,
+        const { sendWhatsAppAndLog } = require('../utils/whatsappSender');
+        await sendWhatsAppAndLog({
+            userId: user.id,
+            metaPhoneNumberId: user.metaPhoneNumberId,
+            metaAccessToken: user.fbAccessToken,
+            toPhone: phone,
             type: 'document',
-            document: {
-                id: mediaId,
-                filename: `Invoice_${order.orderNumber}.pdf`,
-                caption: `Hi ${customerName},\n\nThank you for your purchase at ${store.name}! Attached is your invoice for Order ${order.orderNumber}.`
-            }
-        }, {
-            headers: { 'Authorization': `Bearer ${user.fbAccessToken}`, 'Content-Type': 'application/json' }
+            payload: {
+                messaging_product: 'whatsapp',
+                recipient_type: 'individual',
+                to: phone,
+                type: 'document',
+                document: {
+                    id: mediaId,
+                    filename: `Invoice_${order.orderNumber}.pdf`,
+                    caption: `Hi ${customerName},\n\nThank you for your purchase at ${store.name}! Attached is your invoice for Order ${order.orderNumber}.`
+                }
+            },
+            summaryBody: `Sent document: Invoice_${order.orderNumber}.pdf`
         });
     } catch (err) {
         console.error("Failed to generate/send invoice:", err.response?.data || err.message);
@@ -776,18 +783,25 @@ async function sendOrderNotification(triggerKey, store, user, order, extras = {}
             components.push({ type: 'body', parameters });
         }
 
-        await axios.post(`https://graph.facebook.com/v21.0/${user.metaPhoneNumberId}/messages`, {
-            messaging_product: 'whatsapp',
-            recipient_type: 'individual',
-            to: phone,
+        const { sendWhatsAppAndLog } = require('../utils/whatsappSender');
+        await sendWhatsAppAndLog({
+            userId: user.id,
+            metaPhoneNumberId: user.metaPhoneNumberId,
+            metaAccessToken: user.fbAccessToken,
+            toPhone: phone,
             type: 'template',
-            template: {
-                name: tmpl.name,
-                language: { code: tmpl.language || 'en_US' },
-                components
-            }
-        }, {
-            headers: { 'Authorization': `Bearer ${user.fbAccessToken}`, 'Content-Type': 'application/json' }
+            payload: {
+                messaging_product: 'whatsapp',
+                recipient_type: 'individual',
+                to: phone,
+                type: 'template',
+                template: {
+                    name: tmpl.name,
+                    language: { code: tmpl.language || 'en_US' },
+                    components
+                }
+            },
+            summaryBody: `Sent template: ${tmpl.name}`
         });
 
         console.log(`[OrderNotif] Sent ${triggerKey} notification to ${phone} (template: ${tmpl.name})`);
@@ -2650,14 +2664,21 @@ router.post('/:storeId/orders/:orderId/fulfill', auth, async (req, res) => {
                 + `Thank you for shopping with us!`;
 
             try {
-                await axios.post(`https://graph.facebook.com/v21.0/${user.metaPhoneNumberId}/messages`, {
-                    messaging_product: 'whatsapp',
-                    recipient_type: 'individual',
-                    to: phone,
+                const { sendWhatsAppAndLog } = require('../utils/whatsappSender');
+                await sendWhatsAppAndLog({
+                    userId: user.id,
+                    metaPhoneNumberId: user.metaPhoneNumberId,
+                    metaAccessToken: user.fbAccessToken,
+                    toPhone: phone,
                     type: 'text',
-                    text: { preview_url: true, body: messageText }
-                }, {
-                    headers: { 'Authorization': `Bearer ${user.fbAccessToken}`, 'Content-Type': 'application/json' }
+                    payload: {
+                        messaging_product: 'whatsapp',
+                        recipient_type: 'individual',
+                        to: phone,
+                        type: 'text',
+                        text: { preview_url: true, body: messageText }
+                    },
+                    summaryBody: `Sent shipping tracking details`
                 });
                 trackingWaSent = true;
             } catch (err) {

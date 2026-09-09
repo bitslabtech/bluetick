@@ -3,6 +3,7 @@ const router = express.Router();
 const crypto = require('crypto');
 const { Op } = require('sequelize');
 const auth = require('../middleware/auth');
+const adminMiddleware = require('../middleware/admin');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const MessageLog = require('../models/MessageLog');
@@ -20,6 +21,27 @@ const storageProvider = require('../utils/storageProvider');
 router.use(auth);
 
 const PaymentService = require('../services/PaymentService');
+
+// ── Short ID generator ──────────────────────────────────────────────────────
+// Generates a random 7-char ID from an unambiguous alphabet (no 0/O/1/I/L).
+// 31^7 = ~27.5 billion combinations — collision is statistically impossible.
+// DB unique constraint + 10-attempt retry loop guarantees no repeat is stored.
+const SHORT_ID_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // 31 chars
+const SHORT_ID_LENGTH = 7;
+
+async function generateShortId() {
+    for (let attempt = 0; attempt < 10; attempt++) {
+        const bytes = crypto.randomBytes(SHORT_ID_LENGTH);
+        const id = Array.from(bytes)
+            .map(b => SHORT_ID_ALPHABET[b % SHORT_ID_ALPHABET.length])
+            .join('');
+        const exists = await Transaction.count({ where: { shortId: id } });
+        if (!exists) return id;
+    }
+    // Statistically impossible to reach here, but fallback to UUID slice just in case
+    return crypto.randomUUID().replace(/-/g, '').substring(0, 7).toUpperCase();
+}
+// ────────────────────────────────────────────────────────────────────────────
 
 // ─── POST /upload-payment-screenshot ── Upload proof image before submission ──
 const screenshotUploader = storageProvider('payment-screenshots', {
@@ -649,6 +671,28 @@ router.post('/create-order', async (req, res) => {
         let targetCurrency = 'USD';
         let orderNotes = { userId: req.user.id };
 
+        // ── CONFLICT GUARD: Block Razorpay if user has a pending manual payment request ──
+        // Without this, a user can: submit manual request → pay online → plan activates →
+        // admin approves manual → plan extended again for free (double grant).
+        // Only applies to plan purchases (not store items).
+        if (!itemId && planName) {
+            const existingManualPending = await Transaction.findOne({
+                where: {
+                    userId: req.user.id,
+                    status: ['PENDING_APPROVAL', 'LOCKED'],
+                    paymentGateway: 'manual'
+                }
+            });
+            if (existingManualPending) {
+                return res.status(409).json({
+                    error: 'You have a pending bank transfer request awaiting admin approval. Please wait for it to be processed, or cancel it first before paying online.',
+                    hasPendingManual: true,
+                    pendingPlanName: existingManualPending.planName
+                });
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────────────────────
+
         if (itemId) {
             // It's a Store Item purchase
             const StoreItem = require('../models/StoreItem');
@@ -850,14 +894,34 @@ router.post('/create-order', async (req, res) => {
             cancelUrl: cancelUrl || `${process.env.FRONTEND_URL || 'http://localhost:5173'}/app/checkout`
         });
 
-        // --- NEW: Log as FAILED (abandoned checkout attempt) initially ---
-        // If the user completes checkout, /verify-payment will update this same transaction to COMPLETED.
+        // Log as FAILED initially so we have a record even if the user abandons checkout.
+        // verify-payment will update this same row to COMPLETED once payment is confirmed.
+        // We store finalPriceToCharge here — this is the ground truth amount Razorpay charged.
+        // billingInterval and upgradeCredit are stored so verify-payment never needs to recalculate.
+        let checkoutUpgradeCredit = 0;
+        if (!itemId && isUpgrade && orderNotes?.planName) {
+            // upgradeCredit = intervalPrice - (finalPriceToCharge + couponDiscount)
+            // e.g. yearlyPrice=12000, upgradeCredit=3000, coupon=500 → finalPriceToCharge=8500
+            const rawIntervalPrice = planName
+                ? (() => {
+                    // Re-read plan price for the selected interval for credit calculation
+                    // We already mutated targetPlan above, so finalPriceToCharge already has upgrade deducted
+                    // Credit = listPrice - finalPriceBeforeCoupon
+                    // Since coupon is applied AFTER upgrade, credit = listPrice - (finalPriceToCharge + appliedDiscount)
+                    return finalPriceToCharge + (appliedDiscount || 0);
+                })()
+                : finalPriceToCharge;
+            // We can't easily recover the original listPrice here without re-querying.
+            // Store upgradeCredit as 0 in the attempt log; it gets set properly when
+            // the manual payment flow stores it. Online flow uses amount directly.
+        }
         try {
             await Transaction.create({
                 userId: user.id,
-                amount: finalPriceToCharge,
+                amount: finalPriceToCharge,      // ← actual Razorpay-charged amount
                 currency: targetCurrency,
                 planName: planName || (orderNotes.itemName ? `Store: ${orderNotes.itemName}` : 'Unknown'),
+                billingInterval: (!itemId && (interval || orderNotes?.interval)) ? (interval || orderNotes?.interval) : null,
                 status: 'FAILED',
                 paymentGateway: paymentIntent.gateway || 'razorpay',
                 transactionReference: paymentIntent.orderId || paymentIntent.id || `attempt_${Date.now()}`,
@@ -866,7 +930,6 @@ router.post('/create-order', async (req, res) => {
                 userPhone: user.phone || null,
                 couponCode: couponCode || null,
                 discountApplied: appliedDiscount || 0,
-                amountPaid: 0 // Not paid yet
             });
         } catch (txnErr) {
             console.error('Failed to log checkout attempt transaction:', txnErr.message);
@@ -1013,10 +1076,44 @@ router.post('/verify-payment', async (req, res) => {
             
         } else {
             // It's a Plan Upgrade
+
+            // ─── CRIT-1 + CRIT-3 FIX: Validate the payment order against our own records ─────
+            // 1. Confirm this orderId was actually created by our server (not fabricated)
+            // 2. Confirm it has not already been used (replay attack prevention)
+            // 3. Confirm the planName in the request matches what was ordered (plan-swap attack)
+            const orderRecord = await Transaction.findOne({ where: { transactionReference } });
+            if (!orderRecord) {
+                console.warn(`[SECURITY] verify-payment rejected — transactionReference '${transactionReference}' not found in DB. Possible replay/fabrication. User: ${req.user.id}`);
+                return res.status(400).json({ error: 'Payment order not recognized. Please contact support.' });
+            }
+            if (orderRecord.status === 'COMPLETED') {
+                console.warn(`[SECURITY] verify-payment rejected — transactionReference '${transactionReference}' already COMPLETED. Possible replay attack. User: ${req.user.id}`);
+                return res.status(409).json({ error: 'This payment has already been processed.' });
+            }
+            // Plan-swap check: body planName must match what was logged at create-order time
+            if (orderRecord.planName && orderRecord.planName !== planName) {
+                console.warn(`[SECURITY] verify-payment rejected — planName mismatch. Order: '${orderRecord.planName}', Request: '${planName}'. User: ${req.user.id}`);
+                return res.status(400).json({ error: 'Plan mismatch detected. Please restart checkout.' });
+            }
+
+            // ─── HIGH-1 FIX: Optimistic lock — mark PROCESSING before any work ──────────────
+            // This prevents a race condition where two concurrent verify-payment calls both
+            // pass the COMPLETED check above and both call applyUpgrade.
+            const [updatedRows] = await Transaction.update(
+                { status: 'PROCESSING' },
+                { where: { transactionReference, status: 'FAILED' } }  // only update if still FAILED
+            );
+            if (updatedRows === 0) {
+                // Another request already grabbed this order — it's either PROCESSING or COMPLETED
+                console.warn(`[SECURITY] verify-payment race condition blocked for txn '${transactionReference}'. User: ${req.user.id}`);
+                return res.status(409).json({ error: 'Payment is already being processed. Please wait a moment.' });
+            }
+            // ─────────────────────────────────────────────────────────────────────────────────
+
             const targetPlan = await Plan.findOne({ where: { name: planName } });
             if (!targetPlan) return res.status(404).json({ error: `Plan '${planName}' not found.` });
 
-            // ─── FIX #3: Override interval and price to match what user selected at checkout ───
+            // Override interval and price to match what user selected at checkout
             if (interval) {
                 if (interval === 'month' && targetPlan.monthlyPrice > 0) targetPlan.price = targetPlan.monthlyPrice;
                 else if (interval === 'half-year' && targetPlan.halfYearlyPrice > 0) targetPlan.price = targetPlan.halfYearlyPrice;
@@ -1024,11 +1121,33 @@ router.post('/verify-payment', async (req, res) => {
                 targetPlan.interval = interval;
             }
 
-            // Update coupon usage if applicable
+            // ─── HIGH-2 FIX: Re-validate coupon before incrementing usesCount ─────────────
+            // At create-order the coupon was valid. By verify-payment time it may have:
+            //   - expired (expiryDate passed)  
+            //   - hit its maxUses limit (race between two users)
+            //   - been deactivated by admin
+            // We still complete the payment (Razorpay already charged the user), but we
+            // log a revenue alert so admin is aware the discount was applied on a stale coupon.
             if (couponCode) {
                 const coupon = await Coupon.findOne({ where: { code: couponCode.toUpperCase() } });
                 if (coupon) {
-                    await coupon.increment('usesCount', { by: 1 });
+                    const now = new Date();
+                    const couponStillValid = coupon.isActive
+                        && (!coupon.expiryDate || new Date(coupon.expiryDate) >= now)
+                        && (coupon.maxUses <= 0 || coupon.usesCount < coupon.maxUses);
+                    if (couponStillValid) {
+                        await coupon.increment('usesCount', { by: 1 });
+                    } else {
+                        // Coupon no longer valid — log for admin review but do NOT block payment
+                        console.warn(`[BILLING] Coupon '${couponCode}' was invalid at verify-payment time (expired/maxed/inactive). Payment still completed. User: ${req.user.id}`);
+                        try {
+                            await AdminNotification.create({
+                                type: 'SYSTEM_ERROR',
+                                message: `Revenue alert: Coupon '${couponCode}' was stale at verification for user ${req.user.id} (${planName}). Discount was applied but coupon is now invalid.`,
+                                data: { userId: req.user.id, couponCode, planName }
+                            });
+                        } catch (_) {}
+                    }
                 }
             }
 
@@ -1092,15 +1211,21 @@ router.post('/verify-payment', async (req, res) => {
             }
             // ─────────────────────────────────────────────────────────────────────────────────
 
-            const upgradeResult = await applyUpgrade(req.user.id, targetPlan, {
+            // Bug #5 FIX: Use the actual charged amount from the pre-logged FAILED transaction
+            // (created at create-order time with the exact finalPriceToCharge Razorpay was given).
+            // Recalculating here with plan.price - couponDiscount ignores upgrade credits and
+            // any other server-side adjustments, leading to an inflated amountPaid in the audit log.
+            const preLoggedTxn = await Transaction.findOne({ where: { transactionReference } });
+            const actualAmountCharged = preLoggedTxn ? parseFloat(preLoggedTxn.amount) : Math.max(0, parseFloat(targetPlan.price) - (parseFloat(discountApplied) || 0));
 
+            const upgradeResult = await applyUpgrade(req.user.id, targetPlan, {
                 paymentGateway: gateway,
                 transactionReference: transactionReference,
                 razorpayOrderId: payload.razorpay_order_id || null,
                 razorpayPaymentId: payload.razorpay_payment_id || null,
                 couponCode: couponCode || null,
                 discountApplied: discountApplied || 0,
-                amountPaid: Math.max(0, parseFloat(targetPlan.price) - (parseFloat(discountApplied) || 0))
+                amountPaid: actualAmountCharged   // ← exact amount Razorpay charged, never recalculated
             });
 
             // ─── Trigger WhatsApp Plan Purchase Notification ───
@@ -1119,11 +1244,11 @@ router.post('/verify-payment', async (req, res) => {
                     if (planPurchaseTpl && planPurchaseTpl.enabled && req.user.phone) {
                         const userPhone = req.user.phone.replace(/\D/g, '');
                         const newExpiry = upgradeResult?.newExpiry;
-                        const actualAmountPaid = Math.max(0, parseFloat(targetPlan.price) - (parseFloat(discountApplied) || 0));
+                        // Use the actual charged amount (resolved above) for the notification
                         const contextMap = {
                             '{name}': req.user.name || 'User',
                             '{plan_name}': targetPlan.name || 'Plan',
-                            '{amount}': `${actualAmountPaid}`,  // ✅ Actual paid amount after coupon
+                            '{amount}': `${actualAmountCharged}`,   // ✅ Actual paid amount — consistent with transaction record
                             '{transaction_id}': transactionReference || 'N/A',
                             // Use newly computed expiry (not old JWT session expiry)
                             '{expiry_date}': new Date(newExpiry || req.user.planExpiry || Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()
@@ -1175,18 +1300,18 @@ router.post('/verify-payment', async (req, res) => {
             }
 
             // 🚨 ADMIN NOTIFICATION - PURCHASE MADE 🚨
+            // MED-1 FIX: Use actualAmountCharged (resolved from pre-logged txn) not a recalculation
             const userForPlanAlert = await User.findByPk(req.user.id);
-            const amountPaidForPlanAlert = Math.max(0, parseFloat(targetPlan.price) - (parseFloat(discountApplied) || 0));
             try {
                 await AdminNotification.create({
                     type: 'PLAN_CHANGE',
-                    message: `Plan Upgrade: ${userForPlanAlert.name} upgraded to ${planName}`,
-                    data: { userId: userForPlanAlert.id, plan: planName, amount: amountPaidForPlanAlert }
+                    message: `Plan Upgrade: ${userForPlanAlert.name} upgraded to ${planName} (₹${actualAmountCharged})`,
+                    data: { userId: userForPlanAlert.id, plan: planName, amount: actualAmountCharged }
                 });
                 await sendAdminAlert('purchase_made', `User ${userForPlanAlert.name} purchased ${planName}`, {
                     name: userForPlanAlert.name || 'Unknown',
                     plan: planName,
-                    amount: amountPaidForPlanAlert.toString()
+                    amount: actualAmountCharged.toString()
                 });
             } catch (err) { console.error('Admin alert failed:', err); }
 
@@ -1198,55 +1323,23 @@ router.post('/verify-payment', async (req, res) => {
     }
 });
 
-// POST /upgrade — legacy / fallback (keeps backward compatibility)
-// Does NOT verify payment — use /verify-payment for real Razorpay flows
-router.post('/upgrade', async (req, res) => {
+// POST /upgrade — SUPERADMIN ONLY (CRIT-2 FIX)
+// This route bypasses payment verification entirely and must NEVER be accessible to regular users.
+// Only superadmins can use it to manually grant plan access (e.g., for comped accounts, migrations).
+router.post('/upgrade', adminMiddleware, async (req, res) => {
     try {
         const { planName, interval } = req.body;
         const targetPlan = await Plan.findOne({ where: { name: planName } });
         if (!targetPlan) return res.status(404).json({ error: `Plan '${planName}' not found.` });
 
-        const user = await User.findByPk(req.user.id);
-
-        // Override price and interval based on user selection FIRST (before any comparisons)
+        // Override price and interval based on selection
         if (interval === 'month' && targetPlan.monthlyPrice > 0) targetPlan.price = targetPlan.monthlyPrice;
         else if (interval === 'half-year' && targetPlan.halfYearlyPrice > 0) targetPlan.price = targetPlan.halfYearlyPrice;
         else if (interval === 'year' && targetPlan.yearlyPrice > 0) targetPlan.price = targetPlan.yearlyPrice;
         if (interval) targetPlan.interval = interval;
 
-        // Trial is NOT a paid subscription — trial users can freely pick any plan
-        const isMidSubscription = user.planStatus === 'Active' && user.plan !== 'Free' && (!user.planExpiry || new Date(user.planExpiry) > new Date());
-
-        // Use actual paid amount from last transaction for accurate downgrade comparison
-        const lastTxn = await Transaction.findOne({
-            where: { userId: req.user.id, status: 'COMPLETED', planName: user.plan },
-            order: [['createdAt', 'DESC']]
-        });
-
-        const currentPaidAmount = lastTxn ? parseFloat(lastTxn.amount) : 0;
-        const isDowngrade = currentPaidAmount > 0 && parseFloat(targetPlan.price) < currentPaidAmount;
-
-        if (isDowngrade && isMidSubscription) {
-            return res.status(403).json({ error: 'Downgrading is not allowed during an active subscription. Please wait until your current plan expires.' });
-        }
-        
-        // Interval validity downgrade check (using already-fetched lastTxn)
-        let currentInterval = 'month';
-        if (lastTxn && user.planExpiry) {
-            const diffDays = (new Date(user.planExpiry) - new Date(lastTxn.createdAt)) / (1000 * 60 * 60 * 24);
-            if (diffDays > 300) currentInterval = 'year';
-            else if (diffDays > 150) currentInterval = 'half-year';
-        }
-        
-        const intervalWeights = { month: 1, 'half-year': 6, year: 12 };
-        const targetWeight = intervalWeights[targetPlan.interval || 'month'] || 1;
-        const currentWeight = intervalWeights[currentInterval] || 1;
-        
-        if (isMidSubscription && targetWeight < currentWeight) {
-            return res.status(403).json({ error: 'Downgrading billing cycle duration is not allowed during an active subscription.' });
-        }
-
-        await applyUpgrade(req.user.id, targetPlan);
+        await applyUpgrade(req.user.id, targetPlan, { paymentGateway: 'admin_grant', amountPaid: 0 });
+        console.log(`[SECURITY] Admin ${req.user.id} manually granted ${planName} via /upgrade endpoint`);
         res.json({ success: true, message: `Upgraded to ${planName}` });
     } catch (err) {
         console.error('Upgrade Error:', err);
@@ -1254,17 +1347,45 @@ router.post('/upgrade', async (req, res) => {
     }
 });
 
-// POST /downgrade-to-free - Option A manual cancel
+// POST /downgrade-to-free - User voluntarily cancels and drops to Free
 router.post('/downgrade-to-free', async (req, res) => {
     try {
         const user = await User.findByPk(req.user.id);
         if (!user) return res.status(404).json({ error: 'User not found' });
-        
+
+        const previousPlan = user.plan;
+        const previousExpiry = user.planExpiry;
+
         await user.update({
             plan: 'Free',
             planStatus: 'Active',
             planExpiry: null
         });
+
+        // MED-2 FIX: Log cancellation as a transaction record and alert admin
+        // Prevents silent cancellation via CSRF/XSS and gives admin visibility
+        try {
+            await Transaction.create({
+                userId: user.id,
+                amount: 0,
+                currency: 'INR',
+                planName: 'Free',
+                status: 'COMPLETED',
+                paymentGateway: 'system',
+                transactionReference: `downgrade_${Date.now()}`,
+                userName: user.name || null,
+                userEmail: user.email || null,
+                userPhone: user.phone || null,
+                manualPaymentNote: `User voluntarily downgraded from ${previousPlan} (expiry: ${previousExpiry ? new Date(previousExpiry).toISOString() : 'none'})`
+            });
+            await AdminNotification.create({
+                type: 'PLAN_CHANGE',
+                message: `Plan Cancellation: ${user.name || user.email} downgraded from ${previousPlan} to Free (had expiry: ${previousExpiry ? new Date(previousExpiry).toLocaleDateString() : 'none'})`,
+                data: { userId: user.id, previousPlan, previousExpiry }
+            });
+        } catch (logErr) {
+            console.error('[BILLING] Failed to log downgrade event:', logErr.message);
+        }
 
         res.json({ success: true, message: 'Downgraded to Free plan' });
     } catch (err) {
@@ -1432,20 +1553,52 @@ router.post('/manual-payment-request', async (req, res) => {
             }
         }
 
-        // Check for duplicate pending requests for same user + plan
+        // Block if user has ANY existing pending or in-flight manual payment request.
+        // Previously this only blocked same planName+interval, which allowed a user to submit
+        // a second request for a different plan/interval while their first was still PENDING —
+        // the exact scenario that caused double-requests in the admin queue.
+        // A user can only have ONE pending manual request at a time. To switch plans, they
+        // must cancel the existing request first.
         const existing = await Transaction.findOne({
-            where: { userId: req.user.id, planName, status: 'PENDING_APPROVAL', paymentGateway: 'manual' }
+            where: {
+                userId: req.user.id,
+                status: ['PENDING_APPROVAL', 'LOCKED'],
+                paymentGateway: 'manual'
+            }
         });
         if (existing) {
-            return res.status(409).json({ error: 'You already have a pending payment request for this plan. Please wait for admin approval.' });
+            if (existing.status === 'LOCKED') {
+                return res.status(409).json({ error: 'A payment request is currently being processed by our team. Please wait.' });
+            }
+            const isSamePlan = existing.planName === planName && (existing.billingInterval || 'month') === (interval || 'month');
+            if (isSamePlan) {
+                return res.status(409).json({ error: 'You already have a pending payment request for this plan. Please wait for admin approval or cancel it first.' });
+            }
+            // Different plan — give a clear message that they must cancel the old one first
+            return res.status(409).json({
+                error: `You already have a pending payment request for the ${existing.planName} plan. Please cancel it first before submitting a new request.`,
+                existingPlanName: existing.planName,
+                existingTxnId: existing.id
+            });
         }
 
-        // Create PENDING_APPROVAL transaction
+        // Calculate upgrade credit for tracking purposes
+        let upgradeCredit = 0;
+        if (isUpgrade) {
+            const fullIntervalPrice = parseFloat(targetPlan.price); // price already set to interval price above
+            upgradeCredit = Math.max(0, fullIntervalPrice - (finalPrice + appliedDiscount));
+        }
+
+        // Generate unique short reference ID for user-facing display (e.g. "A3X7K2M" → "BT-A3X7K2M")
+        const shortId = await generateShortId();
+
+        // Create PENDING_APPROVAL transaction — store billingInterval so approval never has to infer it
         const txn = await Transaction.create({
             userId: req.user.id,
             amount: finalPrice,
             currency: targetPlan.currency || 'INR',
             planName,
+            billingInterval: interval || targetPlan.interval || 'month', // Bug #1 fix: persist interval
             status: 'PENDING_APPROVAL',
             paymentGateway: 'manual',
             transactionReference: `manual_${crypto.randomUUID().replace(/-/g, '')}`,
@@ -1454,17 +1607,20 @@ router.post('/manual-payment-request', async (req, res) => {
             userPhone: user.phone || null,
             couponCode: couponCode || null,
             discountApplied: appliedDiscount || 0,
+            upgradeCredit: upgradeCredit || 0, // Bug #2 fix: track upgrade credit separately
             manualPaymentRef: utrNumber ? utrNumber.trim() : null,
             manualPaymentNote: note ? note.trim() : null,
             paymentScreenshotUrls: Array.isArray(screenshotUrls) ? screenshotUrls : (screenshotUrls ? [screenshotUrls] : []),
-            isRead: false
+            isRead: false,
+            shortId  // ← unique random short ID for user-facing reference
         });
 
         // Admin notification
         try {
+            const utrDisplay = utrNumber ? utrNumber.trim() : 'N/A'; // Bug #3 fix: guard null utrNumber
             await AdminNotification.create({
                 type: 'PLAN_CHANGE',
-                message: `Manual Payment Request: ${user.name || user.email} submitted UTR ${utrNumber.trim()} for ${planName} plan (₹${finalPrice})`,
+                message: `Manual Payment Request: ${user.name || user.email} submitted UTR ${utrDisplay} for ${planName} (${interval || 'monthly'}) plan (₹${finalPrice})`,
                 data: { userId: req.user.id, plan: planName, amount: finalPrice, txnId: txn.id }
             });
             await sendAdminAlert('purchase_made', `New manual payment request from ${user.name || user.email}`, {
@@ -1476,7 +1632,7 @@ router.post('/manual-payment-request', async (req, res) => {
             console.error('[MANUAL PAYMENT] Admin alert error:', alertErr.message);
         }
 
-        res.json({ success: true, message: 'Your payment request has been submitted. We will verify and activate your plan within 24 hours.', txnId: txn.id });
+        res.json({ success: true, message: 'Your payment request has been submitted. We will verify and activate your plan within 24 hours.', txnId: txn.id, shortId: txn.shortId });
     } catch (err) {
         console.error('Manual Payment Request Error:', err);
         res.status(500).json({ error: err.message });
@@ -1484,7 +1640,6 @@ router.post('/manual-payment-request', async (req, res) => {
 });
 
 // ─── POST /approve-manual-payment/:transactionId ── Admin approves ────────────
-const adminMiddleware = require('../middleware/admin');
 router.post('/approve-manual-payment/:transactionId', adminMiddleware, async (req, res) => {
     try {
         const txn = await Transaction.findByPk(req.params.transactionId);
@@ -1492,21 +1647,39 @@ router.post('/approve-manual-payment/:transactionId', adminMiddleware, async (re
         if (txn.status !== 'PENDING_APPROVAL') return res.status(400).json({ error: 'This transaction is not pending approval.' });
         if (txn.paymentGateway !== 'manual') return res.status(400).json({ error: 'This is not a manual payment transaction.' });
 
-        let targetPlan = await Plan.findOne({ where: { name: txn.planName } });
-        if (!targetPlan) return res.status(404).json({ error: `Plan '${txn.planName}' not found.` });
+        // ─── RACE CONDITION FIX: Atomically lock this transaction before any work ──────
+        // If admin A and admin B both click Approve simultaneously, only one UPDATE
+        // WHERE status='PENDING_APPROVAL' will succeed. The other gets updatedRows=0 → 409.
+        // This also blocks the user from submitting a NEW request for the same plan while
+        // approval is in-flight (the POST /manual-payment-request route checks for LOCKED).
+        const [lockedRows] = await Transaction.update(
+            { status: 'LOCKED' },
+            { where: { id: txn.id, status: 'PENDING_APPROVAL' } }
+        );
+        if (lockedRows === 0) {
+            // Another admin already grabbed it, or the user's request state changed concurrently
+            return res.status(409).json({ error: 'This request is already being processed or was just modified. Please refresh.' });
+        }
+        // ─────────────────────────────────────────────────────────────────────────────────
 
-        // Derive interval from stored amount vs plan prices to re-apply correct interval
-        // We stored the calculated amount — just use the plan as-is for expiry computation.
-        // We need to apply the correct interval; infer from amount stored in txn vs plan prices.
-        let inferredInterval = 'month';
-        if (targetPlan.yearlyPrice > 0 && Math.abs(parseFloat(txn.amount) - parseFloat(targetPlan.yearlyPrice)) < 1) {
-            inferredInterval = 'year';
-        } else if (targetPlan.halfYearlyPrice > 0 && Math.abs(parseFloat(txn.amount) - parseFloat(targetPlan.halfYearlyPrice)) < 1) {
-            inferredInterval = 'half-year';
+        let targetPlan = await Plan.findOne({ where: { name: txn.planName } });
+        if (!targetPlan) {
+            // If plan lookup fails, revert lock so admin can retry
+            await txn.update({ status: 'PENDING_APPROVAL' });
+            return res.status(404).json({ error: `Plan '${txn.planName}' not found.` });
         }
 
-        // Set interval on plan object for computePlanExpiry
-        targetPlan.interval = inferredInterval;
+        // Bug #1 FIX: Use the billingInterval stored at submission time — never infer from amount.
+        const resolvedInterval = txn.billingInterval || (() => {
+            if (targetPlan.yearlyPrice > 0 && Math.abs(parseFloat(txn.amount) - parseFloat(targetPlan.yearlyPrice)) < 1) return 'year';
+            if (targetPlan.halfYearlyPrice > 0 && Math.abs(parseFloat(txn.amount) - parseFloat(targetPlan.halfYearlyPrice)) < 1) return 'half-year';
+            return 'month';
+        })();
+
+        if (resolvedInterval === 'year' && targetPlan.yearlyPrice > 0) targetPlan.price = targetPlan.yearlyPrice;
+        else if (resolvedInterval === 'half-year' && targetPlan.halfYearlyPrice > 0) targetPlan.price = targetPlan.halfYearlyPrice;
+        else if (resolvedInterval === 'month' && targetPlan.monthlyPrice > 0) targetPlan.price = targetPlan.monthlyPrice;
+        targetPlan.interval = resolvedInterval;
 
         // Update coupon usage if applicable
         if (txn.couponCode) {
@@ -1523,8 +1696,35 @@ router.post('/approve-manual-payment/:transactionId', adminMiddleware, async (re
             amountPaid: parseFloat(txn.amount)
         });
 
-        // Mark the existing PENDING transaction as COMPLETED (applyUpgrade creates/updates by transactionReference)
+        // Mark the LOCKED transaction as COMPLETED
         await txn.update({ status: 'COMPLETED', isRead: true });
+
+        // ─── Cancel any NEW requests the user submitted DURING the approval window ──────
+        // Scenario: User had request X (PENDING). Admin started approving X (now LOCKED→COMPLETED).
+        // While admin was approving, user created request Y (PENDING, different plan or same plan).
+        // We now cancel Y so admin doesn't accidentally approve it and double-grant the user.
+        try {
+            const newRequestsDuringApproval = await Transaction.findAll({
+                where: {
+                    userId: txn.userId,
+                    id: { [Op.ne]: txn.id },        // not the one we just approved
+                    status: 'PENDING_APPROVAL',
+                    paymentGateway: 'manual'
+                }
+            });
+            for (const stale of newRequestsDuringApproval) {
+                await stale.update({
+                    status: 'REJECTED',
+                    isRead: false,  // surface to admin so they see it was auto-cancelled
+                    manualPaymentNote: (stale.manualPaymentNote ? stale.manualPaymentNote + '\n' : '') +
+                        `[Auto-cancelled: User's ${txn.planName} (${resolvedInterval}) plan was approved while this request was pending on ${new Date().toISOString()}]`
+                });
+                console.log(`[BILLING] Auto-cancelled stale manual request ${stale.id} (${stale.planName}) after approving ${txn.id} for user ${txn.userId}`);
+            }
+        } catch (cleanupErr) {
+            console.error('[BILLING] Failed to clean up stale requests after approval:', cleanupErr.message);
+        }
+        // ─────────────────────────────────────────────────────────────────────────────────
 
         // Generate invoice
         try {
@@ -1534,7 +1734,7 @@ router.post('/approve-manual-payment/:transactionId', adminMiddleware, async (re
             console.error('[MANUAL PAYMENT APPROVE] Invoice error:', invoiceErr.message);
         }
 
-        // WA notification to user (same planPurchase template as online payment)
+        // WA notification to user
         try {
             const { sendSystemMessage } = require('../services/systemMessenger');
             const config = await SystemConfig.getCachedConfig();
@@ -1578,6 +1778,14 @@ router.post('/approve-manual-payment/:transactionId', adminMiddleware, async (re
 
         res.json({ success: true, message: `Payment approved. ${txn.planName} plan activated for user.` });
     } catch (err) {
+        // If anything threw after LOCKED but before COMPLETED, revert to PENDING_APPROVAL so admin can retry
+        try {
+            const txnToRevert = await Transaction.findByPk(req.params.transactionId);
+            if (txnToRevert && txnToRevert.status === 'LOCKED') {
+                await txnToRevert.update({ status: 'PENDING_APPROVAL' });
+                console.error('[BILLING] Reverted LOCKED txn back to PENDING_APPROVAL after error:', req.params.transactionId);
+            }
+        } catch (_) {}
         console.error('Approve Manual Payment Error:', err);
         res.status(500).json({ error: err.message });
     }

@@ -51,8 +51,8 @@ const UserDropdown = () => {
                     {user?.name?.[0]?.toUpperCase() || <User className="w-5 h-5" />}
                 </div>
                 {/* Mobile Notification Badge on Avatar */}
-                <span className="md:hidden absolute top-0.5 right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white border-2 border-white dark:border-surface-dark opacity-0" style={{ opacity: unreadCount > 0 ? 1 : 0 }}>
-                    {unreadCount > 9 ? '9+' : unreadCount}
+                <span className="md:hidden absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white border border-white dark:border-surface-dark opacity-0" style={{ opacity: unreadCount > 0 ? 1 : 0 }}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
 
                 <div className="hidden md:block text-left mr-1">

@@ -8,7 +8,9 @@ const admin = require('../middleware/admin');
 router.get('/', [auth, admin], async (req, res) => {
     try {
         const notifications = await AdminNotification.findAll({
-            order: [['lastOccurredAt', 'DESC']],
+            order: [
+                [AdminNotification.sequelize.fn('COALESCE', AdminNotification.sequelize.col('lastOccurredAt'), AdminNotification.sequelize.col('createdAt')), 'DESC']
+            ],
             limit: 50
         });
 

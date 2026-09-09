@@ -968,11 +968,16 @@ router.post('/:userId', (req, res, next) => {
                                                             }
                                                         };
 
-                                                        const autoReplyRes = await axios.post(
-                                                            `https://graph.facebook.com/v22.0/${settings.metaPhoneNumberId}/messages`,
-                                                            ctwaAutoReplyPayload,
-                                                            { headers: { Authorization: `Bearer ${settings.metaAccessToken}`, 'Content-Type': 'application/json' } }
-                                                        );
+                                                        const { sendWhatsAppAndLog } = require('../utils/whatsappSender');
+                                                        const autoReplyRes = await sendWhatsAppAndLog({
+                                                            userId: settings.userId,
+                                                            metaPhoneNumberId: settings.metaPhoneNumberId,
+                                                            metaAccessToken: settings.metaAccessToken,
+                                                            toPhone: contactWaId,
+                                                            type: 'template',
+                                                            payload: ctwaAutoReplyPayload,
+                                                            summaryBody: `Sent auto-reply template: ${ctwaTemplate.templateName}`
+                                                        });
 
                                                         console.log(`[WEBHOOK][CTWA] Auto-reply sent. Message ID: ${autoReplyRes.data?.messages?.[0]?.id}`);
                                                     }

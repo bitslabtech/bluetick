@@ -175,16 +175,15 @@ const SystemConfig = sequelize.define('SystemConfig', {
 
                 // Invoice Text
                 paymentTerms: 'Immediate',
-                invoiceNotes: 'Thank you for your business!',
-
                 // WhatsApp Delivery
                 invoiceWaTemplateName: '',
                 invoiceWaLanguageCode: 'en',
                 ccNumbers: [],                    // Admin CC WhatsApp numbers for invoice copies
                 sendCcOnPurchase: true,
 
-                // Product Description Templates
-                planDescriptionTemplate: '{plan_name} Subscription',
+                // Invoice Text
+                invoiceNotes: 'Thank you for your business!',
+                planDescriptionTemplate: '{plan_name} Subscription ({validity})',
                 addonDescriptionTemplate: '{addon_name} Add-on',
                 topupDescriptionTemplate: '{item_name} Top-up'
             }

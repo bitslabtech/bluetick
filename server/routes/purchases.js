@@ -77,7 +77,8 @@ router.get('/', async (req, res) => {
                 invoice: invoice ? { id: invoice.id, invoiceNumber: invoice.invoiceNumber } : null,
                 // Manual payment fields exposed for admin review
                 manualPaymentRef: tJson.manualPaymentRef || null,
-                manualPaymentNote: tJson.manualPaymentNote || null
+                manualPaymentNote: tJson.manualPaymentNote || null,
+                paymentScreenshotUrls: tJson.paymentScreenshotUrls || []  // ← fix: was missing, screenshots never sent to admin
             };
         });
 

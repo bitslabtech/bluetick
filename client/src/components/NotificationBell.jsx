@@ -161,9 +161,9 @@ const NotificationBell = () => {
                         key={unreadCount}
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white dark:border-surface-dark"
+                        className="absolute -top-1 -right-1 flex h-5 min-w-[20px] px-1 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white dark:border-surface-dark"
                     >
-                        {unreadCount > 9 ? '9+' : unreadCount}
+                        {unreadCount > 99 ? '99+' : unreadCount}
                     </motion.span>
                 )}
             </motion.button>

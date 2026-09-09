@@ -156,6 +156,27 @@ const Checkout = () => {
     };
 
     const executePayment = async () => {
+        // ── Pre-check: if user has a pending manual request, block Razorpay ──
+        // Mirrors the server-side guard at POST /create-order. Gives a clear UI message
+        // instead of a confusing toast from the payment hook's generic error handler.
+        try {
+            const checkRes = await axios.get(`${API}/api/billing/pending-manual-request`);
+            if (checkRes.data?.pendingRequest) {
+                const pr = checkRes.data.pendingRequest;
+                setPendingRequest(pr);
+                setPaymentMethod('bank'); // switch to the bank tab to show the banner
+                showToast({
+                    type: 'error',
+                    title: 'Pending Bank Transfer',
+                    message: `You have a pending bank transfer request for the ${pr.planName} plan. Cancel it first before paying online.`
+                });
+                return;
+            }
+        } catch (_) {
+            // Non-blocking — if the check fails, let the server handle it at create-order
+        }
+        // ──────────────────────────────────────────────────────────────────────
+
         const payload = {
             planName: plan.name,
             isUpgrade: upgradeData?.creditAmount > 0,
@@ -209,7 +230,7 @@ const Checkout = () => {
                 setIsEditingPendingRequest(false);
             } else {
                 const finalAmount = appliedCoupon ? appliedCoupon.finalPrice : (upgradeData ? upgradeData.finalPayableAmount : parseFloat(plan.price));
-                await axios.post(`${API}/api/billing/manual-payment-request`, {
+                const response = await axios.post(`${API}/api/billing/manual-payment-request`, {
                     planName: plan.name,
                     interval: plan.interval || 'month',
                     couponCode: appliedCoupon ? appliedCoupon.code : null,
@@ -223,13 +244,30 @@ const Checkout = () => {
                         utrNumber: utrNumber.trim(),
                         planName: plan.name,
                         amount: finalAmount,
-                        currency: plan.currency || 'INR'
+                        currency: plan.currency || 'INR',
+                        requestId: response.data?.txnId,
+                        shortId: response.data?.shortId   // ← e.g. "A3X7K2M" → shown as "BT-A3X7K2M"
                     }
                 });
             }
         } catch (err) {
-            const msg = err.response?.data?.error || 'Failed to submit payment request. Please try again.';
-            showToast({ type: 'error', title: 'Submission Failed', message: msg });
+            const errData = err.response?.data;
+            const msg = errData?.error || 'Failed to submit payment request. Please try again.';
+
+            // If the user already has a pending request for a DIFFERENT plan, fetch and show it
+            // so they can cancel it from the UI — avoids confusing "invisible" blocking state.
+            if (err.response?.status === 409 && errData?.existingPlanName) {
+                showToast({ type: 'error', title: 'Existing Request Found', message: msg });
+                try {
+                    const r = await axios.get(`${API}/api/billing/pending-manual-request`);
+                    if (r.data?.pendingRequest) {
+                        setPendingRequest(r.data.pendingRequest);
+                        setIsEditingPendingRequest(false); // show the "Request Pending" banner
+                    }
+                } catch (_) {}
+            } else {
+                showToast({ type: 'error', title: 'Submission Failed', message: msg });
+            }
         } finally {
             setSubmittingManual(false);
         }
@@ -840,8 +878,14 @@ const Checkout = () => {
                                                     <div>
                                                         <h3 className="text-xl font-black text-slate-900 dark:text-white mb-1">Request Pending</h3>
                                                         <p className="text-sm text-slate-500 dark:text-slate-400">
-                                                            You already have a manual payment request in progress.
+                                                            You have a manual payment request waiting for approval.
                                                         </p>
+                                                        {/* Show which plan this pending request is for — critical when user is on a different plan */}
+                                                        {pendingRequest.planName && (
+                                                            <p className="mt-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700/40 px-3 py-1 rounded-full inline-block">
+                                                                Plan: {pendingRequest.planName} · {pendingRequest.billingInterval || 'monthly'}
+                                                            </p>
+                                                        )}
                                                     </div>
                                                 </div>
 
@@ -861,12 +905,34 @@ const Checkout = () => {
                                                 </div>
 
                                                 <div className="space-y-3">
+                                                    {/* Edit — only makes sense if the pending request is for the same plan we're on */}
+                                                    {pendingRequest.planName === plan?.name && (
+                                                        <button
+                                                            onClick={startEditingPending}
+                                                            className="w-full py-3.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold rounded-xl hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors shadow-sm flex items-center justify-center gap-2"
+                                                        >
+                                                            <Edit className="w-4 h-4" /> Edit Submitted Details
+                                                        </button>
+                                                    )}
+
+                                                    {/* Cancel & stay on bank transfer — lets user submit a fresh manual request for current plan */}
                                                     <button
-                                                        onClick={startEditingPending}
-                                                        className="w-full py-3.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold rounded-xl hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors shadow-sm flex items-center justify-center gap-2"
+                                                        onClick={async () => {
+                                                            try {
+                                                                await axios.delete(`${API}/api/billing/manual-payment-request/${pendingRequest.id}`);
+                                                                setPendingRequest(null);
+                                                                // Stay on manual payment tab so user can submit fresh request for current plan
+                                                            } catch (err) {
+                                                                console.error('Failed to cancel request:', err);
+                                                                showToast({ type: 'error', title: 'Action Failed', message: 'Could not cancel the request.' });
+                                                            }
+                                                        }}
+                                                        className="w-full py-3.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 font-bold rounded-xl hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors border border-amber-200 dark:border-amber-700/40 flex items-center justify-center gap-2"
                                                     >
-                                                        <Edit className="w-4 h-4" /> Edit Submitted Details
+                                                        Cancel & Submit New Bank Transfer
                                                     </button>
+
+                                                    {/* Cancel & switch to online payment */}
                                                     <button
                                                         onClick={async () => {
                                                             try {

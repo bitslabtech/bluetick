@@ -1,229 +1,291 @@
-import React, { useState, useEffect } from 'react';
-import { ShieldCheck, CheckCircle2, Circle, AlertTriangle, Facebook, Check } from 'lucide-react';
+import React from 'react';
+import {
+    X, Facebook, ArrowRight, Globe, Phone, Building2,
+    ShieldCheck, FileText, Wifi, Smartphone, CheckCircle,
+    AlertCircle, Info, CreditCard, Mail, Hash, Lock
+} from 'lucide-react';
 
-const CATEGORIES = [
+// ─── Requirement sections ─────────────────────────────────────────────────────
+const SECTIONS = [
     {
-        id: 'facebook',
-        title: 'Facebook Account Checklist',
-        icon: <Facebook className="w-5 h-5 text-blue-600" />,
-        items: [
-            { id: 'fb_age', label: 'Account Maturity', desc: 'I am using a personal Facebook account that is at least 60 days old and regularly active (brand new accounts are instantly flagged).', isMandatory: true },
-            { id: 'fb_2fa', label: 'Security', desc: 'Two-Factor Authentication (2FA) is enabled on my Facebook account.', isMandatory: false },
-            { id: 'fb_network', label: 'Network Trust', desc: 'I am connected to a standard, trusted Wi-Fi network and I am NOT using a VPN.', isMandatory: true }
-        ]
+        id: 'meta_account',
+        title: 'Meta / Facebook Account',
+        subtitle: 'The personal Facebook account used to manage the Business Portfolio',
+        color: 'blue',
+        icon: Facebook,
+        requirements: [
+            {
+                icon: Hash,
+                label: 'Account Age',
+                detail: 'Your personal Facebook account must be at least 60 days old. Brand-new accounts are automatically flagged and rejected by Meta.',
+                critical: true,
+            },
+            {
+                icon: Lock,
+                label: 'Two-Factor Authentication (2FA)',
+                detail: 'Enable 2FA on your Facebook account under Settings → Security & Login before starting the signup flow.',
+                critical: true,
+            },
+            {
+                icon: Wifi,
+                label: 'No VPN / Proxy',
+                detail: "You must be on a standard trusted internet connection. Using a VPN or proxy causes Meta's fraud system to block the signup.",
+                critical: true,
+            },
+            {
+                icon: Mail,
+                label: 'Confirmed Email on Account',
+                detail: 'Your Facebook account must have a verified email address linked to it.',
+                critical: false,
+            },
+        ],
     },
     {
-        id: 'business',
-        title: 'Business Identity Checklist',
-        icon: <ShieldCheck className="w-5 h-5 text-indigo-500" />,
-        items: [
-            { id: 'biz_name', label: 'Business Name', desc: 'The business name I will provide exactly matches my official website and public presence.', isMandatory: true },
-            { id: 'biz_email', label: 'Website & Email', desc: 'I have a functional website and a business email address (e.g., admin@mybusiness.com, not @gmail.com).', isMandatory: false }
-        ]
+        id: 'meta_business',
+        title: 'Meta Business Portfolio',
+        subtitle: 'A verified Meta Business account (formerly Business Manager)',
+        color: 'indigo',
+        icon: Building2,
+        requirements: [
+            {
+                icon: Building2,
+                label: 'Business Name',
+                detail: 'The exact legal/trade name of your business. Must match your website, GST certificate, or any document you may submit for verification.',
+                critical: true,
+            },
+            {
+                icon: Globe,
+                label: 'Business Website',
+                detail: 'A live, publicly accessible website for your business (e.g., https://mybrand.com). Meta will check this URL during review.',
+                critical: true,
+            },
+            {
+                icon: Mail,
+                label: 'Business Email Address',
+                detail: 'A professional email at your own domain (e.g., admin@mybrand.com). Free email providers like Gmail or Yahoo are not accepted.',
+                critical: true,
+            },
+            {
+                icon: Globe,
+                label: 'Business Country & Category',
+                detail: 'Know your country of operation and the primary industry/category your business falls under (e.g., Retail, Healthcare, Education).',
+                critical: false,
+            },
+        ],
     },
     {
         id: 'phone',
-        title: 'Phone Number Checklist',
-        icon: <CheckCircle2 className="w-5 h-5 text-green-500" />,
-        items: [
-            { id: 'phone_app', label: 'No Active Apps', desc: 'The phone number I plan to use has been completely deleted from the standard WhatsApp or WhatsApp Business mobile apps.', isMandatory: true },
-            { id: 'phone_history', label: 'Clean History', desc: 'This phone number has never been banned or restricted by WhatsApp previously.', isMandatory: true },
-            { id: 'phone_access', label: 'Accessibility', desc: 'I can receive an SMS or Voice Call on this number right now to verify it.', isMandatory: true }
-        ]
+        title: 'WhatsApp Phone Number',
+        subtitle: 'The number that will become your WhatsApp Business API line',
+        color: 'green',
+        icon: Phone,
+        requirements: [
+            {
+                icon: Smartphone,
+                label: 'Unregistered from Consumer Apps',
+                detail: 'This number must be fully removed from WhatsApp or WhatsApp Business mobile apps. Go to the app → Settings → Account → Delete my account before proceeding.',
+                critical: true,
+            },
+            {
+                icon: Phone,
+                label: 'Reachable for OTP',
+                detail: 'You must be able to receive an SMS or Voice Call on this number right now to complete verification.',
+                critical: true,
+            },
+            {
+                icon: AlertCircle,
+                label: 'No Prior Bans',
+                detail: 'The number must not have been previously banned, restricted, or used with a suspended WhatsApp Business API account.',
+                critical: true,
+            },
+            {
+                icon: Hash,
+                label: 'Supports International Format',
+                detail: 'Ensure the number works in E.164 format (e.g., +919876543210). Landlines can be used if they support voice OTP.',
+                critical: false,
+            },
+        ],
     },
     {
         id: 'verification',
-        title: 'Business Verification (Optional for Initial Setup)',
-        icon: <AlertTriangle className="w-5 h-5 text-orange-500" />,
-        items: [
-            { id: 'ver_docs', label: 'Legal Documents', desc: 'I have official business registration documents readily available (e.g., GST Certificate, LLP docs). This is required later for higher messaging limits.', isMandatory: false },
-            { id: 'ver_match', label: 'Document Consistency', desc: 'The exact business name and physical address on my legal documents perfectly match what I will submit to Meta.', isMandatory: false }
-        ]
-    }
+        title: 'Business Verification Documents',
+        subtitle: 'Required later to unlock higher messaging limits & official badge',
+        color: 'amber',
+        icon: FileText,
+        requirements: [
+            {
+                icon: FileText,
+                label: 'Business Registration Proof',
+                detail: 'GST Certificate, Certificate of Incorporation, LLP Agreement, Shop & Establishment Act Registration, or equivalent government-issued document.',
+                critical: false,
+            },
+            {
+                icon: CheckCircle,
+                label: 'Name & Address Match',
+                detail: 'The business name and address on your documents must exactly match what you register in Meta Business Portfolio.',
+                critical: false,
+            },
+            {
+                icon: CreditCard,
+                label: 'Valid Payment Method',
+                detail: 'Adding a credit/debit card to your Meta Business account helps unlock higher tiers faster and is required for paid Meta campaigns.',
+                critical: false,
+            },
+        ],
+    },
 ];
 
+const COLOR_MAP = {
+    blue:   { bg: 'bg-blue-50',    border: 'border-blue-200',    icon: 'bg-blue-100 text-blue-600',    badge: 'bg-blue-600',    title: 'text-blue-700'    },
+    indigo: { bg: 'bg-indigo-50',  border: 'border-indigo-200',  icon: 'bg-indigo-100 text-indigo-600', badge: 'bg-indigo-600', title: 'text-indigo-700'  },
+    green:  { bg: 'bg-emerald-50', border: 'border-emerald-200', icon: 'bg-emerald-100 text-emerald-600', badge: 'bg-emerald-600', title: 'text-emerald-700' },
+    amber:  { bg: 'bg-amber-50',   border: 'border-amber-200',   icon: 'bg-amber-100 text-amber-600',   badge: 'bg-amber-500',   title: 'text-amber-700'   },
+};
+
 export default function EmbeddedSignupChecklist({ isOpen, onClose, onProceed, fbLoading }) {
-    const [checkedItems, setCheckedItems] = useState({});
-    const [isReady, setIsReady] = useState(false);
-    const [progress, setProgress] = useState(0);
-
-    // Load from local storage on mount
-    useEffect(() => {
-        if (isOpen) {
-            const stored = localStorage.getItem('wa_signup_checklist');
-            if (stored) {
-                try {
-                    const parsed = JSON.parse(stored);
-                    setCheckedItems(parsed);
-                    calculateProgress(parsed);
-                } catch (e) {
-                    console.error('Error parsing checklist state', e);
-                }
-            }
-        }
-    }, [isOpen]);
-
     if (!isOpen) return null;
 
-    const toggleItem = (itemId) => {
-        const newState = {
-            ...checkedItems,
-            [itemId]: !checkedItems[itemId]
-        };
-        setCheckedItems(newState);
-        localStorage.setItem('wa_signup_checklist', JSON.stringify(newState));
-        calculateProgress(newState);
-    };
-
-    const calculateProgress = (state) => {
-        let mandatoryTotal = 0;
-        let mandatoryChecked = 0;
-        let overallTotal = 0;
-        let overallChecked = 0;
-
-        CATEGORIES.forEach(cat => {
-            cat.items.forEach(item => {
-                overallTotal++;
-                if (state[item.id]) overallChecked++;
-
-                if (item.isMandatory) {
-                    mandatoryTotal++;
-                    if (state[item.id]) mandatoryChecked++;
-                }
-            });
-        });
-        
-        const prog = overallTotal === 0 ? 100 : Math.round((overallChecked / overallTotal) * 100);
-        setProgress(prog);
-        setIsReady(mandatoryTotal === 0 || mandatoryChecked === mandatoryTotal);
-    };
-
-    const getProgressColor = () => {
-        if (progress < 40) return 'bg-red-500';
-        if (progress < 80) return 'bg-yellow-500';
-        if (progress < 100) return 'bg-blue-500';
-        return 'bg-green-500';
-    };
-
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden relative animate-scale-in">
-                {/* Close Button */}
-                <button 
-                    onClick={onClose}
-                    className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors z-10"
-                >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm">
+            <div
+                className="bg-white w-full max-w-2xl max-h-[92vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+                style={{ animation: 'slChkScaleIn 0.2s ease both' }}
+            >
+                <style>{`
+                    @keyframes slChkScaleIn {
+                        from { opacity: 0; transform: scale(0.96) translateY(10px); }
+                        to   { opacity: 1; transform: scale(1)    translateY(0);    }
+                    }
+                `}</style>
 
-                {/* Header (Fixed) */}
-                <div className="p-6 pb-4 border-b border-gray-100 bg-gray-50/80 sticky top-0 z-0">
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Pre-flight Checklist</h3>
-                    <p className="text-sm text-gray-600 leading-relaxed max-w-lg">
-                        Meta's security systems are highly strict. To prevent your Facebook account from being instantly restricted, you MUST meet all criteria before connecting.
-                    </p>
+                {/* ── Header ─────────────────────────────────────────────── */}
+                <div className="relative px-6 pt-6 pb-5 border-b border-gray-100 bg-gradient-to-br from-[#1877F2]/5 via-white to-white shrink-0">
+                    <button
+                        onClick={onClose}
+                        className="absolute top-4 right-4 p-1.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                        aria-label="Close"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
 
-                    <div className="mt-5 bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Approval Readiness Score</span>
-                            <span className={`text-sm font-black ${progress === 100 ? 'text-green-600' : 'text-indigo-600'}`}>
-                                {progress}%
-                            </span>
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-[#1877F2]/10 border border-[#1877F2]/20 flex items-center justify-center shrink-0">
+                            <Facebook className="w-5 h-5 text-[#1877F2]" />
                         </div>
-                        <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                            <div 
-                                className={`h-full transition-all duration-500 ease-out ${getProgressColor()}`} 
-                                style={{ width: `${progress}%` }}
-                            ></div>
+                        <div>
+                            <h2 className="text-lg font-black text-gray-900 leading-tight">
+                                WhatsApp Business API — Setup Requirements
+                            </h2>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                                Have everything below ready before you click Connect
+                            </p>
                         </div>
+                    </div>
+
+                    {/* Alert banner */}
+                    <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-2.5">
+                        <Info className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                        <p className="text-xs text-amber-800 leading-relaxed">
+                            Meta's review systems are automated and strict. Missing any <strong>required</strong> item will cause an instant rejection. Review each section carefully before proceeding.
+                        </p>
                     </div>
                 </div>
 
-                {/* Scrollable Checklist */}
-                <div className="overflow-y-auto flex-1 p-2">
-                    <div className="divide-y divide-gray-100/80">
-                {CATEGORIES.map(category => (
-                    <div key={category.id} className="p-6">
-                        <div className="flex items-center gap-3 mb-4">
-                            {category.icon}
-                            <h4 className="text-md font-bold text-gray-800">{category.title}</h4>
-                        </div>
-                        <div className="space-y-4 pl-8">
-                            {category.items.map(item => (
-                                <label 
-                                    key={item.id} 
-                                    className="flex items-start gap-3 cursor-pointer group"
-                                >
-                                    <div className="mt-0.5 flex-shrink-0">
-                                        {checkedItems[item.id] ? (
-                                            <CheckCircle2 className="w-5 h-5 text-indigo-600" />
-                                        ) : (
-                                            <Circle className="w-5 h-5 text-gray-300 group-hover:text-indigo-400 transition-colors" />
-                                        )}
-                                    </div>
-                                    <div>
-                                        <div className={`text-sm font-medium flex items-center gap-2 ${checkedItems[item.id] ? 'text-gray-900' : 'text-gray-700'}`}>
-                                            {item.label}
-                                            {item.isMandatory ? (
-                                                <span className="text-[10px] uppercase font-bold tracking-wider text-red-500 bg-red-50 px-1.5 py-0.5 rounded">Required</span>
-                                            ) : (
-                                                <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200">Optional</span>
-                                            )}
-                                        </div>
-                                        <div className="text-xs text-gray-500 mt-0.5">
-                                            {item.desc}
-                                        </div>
-                                    </div>
-                                    {/* Invisible actual checkbox for accessibility */}
-                                    <input 
-                                        type="checkbox" 
-                                        className="hidden" 
-                                        checked={!!checkedItems[item.id]} 
-                                        onChange={() => toggleItem(item.id)} 
-                                    />
-                                </label>
-                            ))}
-                        </div>
-                    </div>
-                ))}
-                    </div>
-                </div>
-                {/* Footer (Fixed) */}
-                <div className="p-5 bg-gray-50 border-t border-gray-200 flex flex-col items-center justify-center shrink-0">
-                    {!isReady ? (
-                        <div className="text-center w-full">
-                            <p className="text-sm text-amber-600 font-medium mb-3">
-                                Please complete all <strong>REQUIRED</strong> items to proceed. Optional items can be done later.
-                            </p>
-                            <button disabled className="w-full sm:w-auto opacity-50 cursor-not-allowed bg-gray-300 text-gray-500 px-8 py-3 rounded-xl font-bold inline-flex items-center justify-center gap-2">
-                                <Facebook className="w-5 h-5" />
-                                Connect with Facebook
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="text-center animate-fade-in-up w-full">
-                            <p className="text-sm text-green-600 font-bold mb-3 flex items-center justify-center gap-1.5">
-                                <Check className="w-4 h-4" /> 
-                                {progress === 100 ? "Fully optimized! You may now proceed." : "Requirements met. You may proceed!"}
-                            </p>
-                            <button
-                                onClick={onProceed}
-                                disabled={fbLoading}
-                                className="w-full sm:w-auto px-8 py-3 bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2 text-md disabled:opacity-75 disabled:cursor-not-allowed transform hover:-translate-y-0.5"
+                {/* ── Scrollable Requirements ────────────────────────────── */}
+                <div className="overflow-y-auto flex-1 px-4 py-4 space-y-3">
+                    {SECTIONS.map((section) => {
+                        const c     = COLOR_MAP[section.color];
+                        const SIcon = section.icon;
+
+                        return (
+                            <div
+                                key={section.id}
+                                className={`rounded-xl border ${c.border} ${c.bg} overflow-hidden`}
                             >
-                                {fbLoading ? (
-                                    <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
-                                ) : (
-                                    <Facebook className="w-5 h-5" />
-                                )}
-                                {fbLoading ? 'Connecting...' : 'Connect with Facebook'}
-                            </button>
-                        </div>
-                    )}
+                                {/* Section header */}
+                                <div className="flex items-center gap-3 px-4 py-3 border-b border-black/[0.06]">
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${c.icon}`}>
+                                        <SIcon className="w-4 h-4" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <p className={`text-sm font-bold leading-tight ${c.title}`}>{section.title}</p>
+                                        <p className="text-[11px] text-gray-500 leading-tight mt-0.5">{section.subtitle}</p>
+                                    </div>
+                                    <span className={`shrink-0 text-[10px] font-bold text-white ${c.badge} rounded-full px-2 py-0.5`}>
+                                        {section.requirements.length} items
+                                    </span>
+                                </div>
+
+                                {/* Requirement rows */}
+                                <div className="px-4 py-3 space-y-3">
+                                    {section.requirements.map((req) => {
+                                        const RIcon = req.icon;
+                                        return (
+                                            <div key={req.label} className="flex items-start gap-3">
+                                                <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 mt-0.5 ${c.icon}`}>
+                                                    <RIcon className="w-3 h-3" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="text-sm font-semibold text-gray-800">
+                                                            {req.label}
+                                                        </span>
+                                                        {req.critical ? (
+                                                            <span className="text-[9px] font-black uppercase tracking-wider text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded">
+                                                                Required
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 bg-white border border-gray-200 px-1.5 py-0.5 rounded">
+                                                                Optional
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-[12px] text-gray-500 mt-0.5 leading-relaxed">
+                                                        {req.detail}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    })}
+                    <div className="h-1" />
+                </div>
+
+                {/* ── Footer / CTA ───────────────────────────────────────── */}
+                <div className="shrink-0 px-5 py-4 border-t border-gray-100 bg-gray-50 flex flex-col sm:flex-row items-center gap-3">
+                    <div className="flex items-start gap-2 flex-1 min-w-0">
+                        <ShieldCheck className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                        <p className="text-xs text-gray-500 leading-relaxed">
+                            Bluetick connects via Meta's official Embedded Signup. We never store your Facebook credentials.
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+                        <button
+                            onClick={onClose}
+                            className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={onProceed}
+                            disabled={fbLoading}
+                            className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-[#1877F2] hover:bg-[#166FE5] active:bg-[#1465D8] text-white text-sm font-bold shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                            {fbLoading ? (
+                                <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                            ) : (
+                                <Facebook className="w-4 h-4" />
+                            )}
+                            <span>{fbLoading ? 'Connecting…' : 'I\'m Ready — Connect'}</span>
+                            {!fbLoading && <ArrowRight className="w-3.5 h-3.5" />}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     );
 }
+
