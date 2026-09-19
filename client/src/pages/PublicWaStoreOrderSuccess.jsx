@@ -229,12 +229,53 @@ export default function PublicWaStoreOrderSuccess({ customSlug }) {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
-                <Loader2 className="w-12 h-12 text-indigo-600 animate-spin mb-4" />
-                <p className="text-gray-500 font-medium">Loading store...</p>
+            <div className="flex flex-col min-h-screen bg-[#F9F6F3]">
+                {/* Skeleton Header */}
+                <div className="w-full h-16 bg-white border-b border-gray-100 flex items-center px-6 gap-4 sticky top-0 z-40">
+                    <div className="h-5 w-28 rounded-md bg-gray-200 animate-pulse" />
+                    <div className="flex-1" />
+                    <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse" />
+                </div>
+                <div className="flex-1 flex items-start justify-center px-4 py-12">
+                    <div className="w-full max-w-lg bg-white rounded-2xl shadow-sm p-6 sm:p-8 flex flex-col gap-5">
+                        {/* Success icon */}
+                        <div className="flex flex-col items-center gap-3 mb-2">
+                            <div className="w-16 h-16 rounded-full bg-gray-200 animate-pulse" />
+                            <div className="h-6 w-48 bg-gray-200 rounded-lg animate-pulse" />
+                            <div className="h-4 w-64 bg-gray-200 rounded animate-pulse" />
+                        </div>
+                        {/* Order number */}
+                        <div className="h-10 w-full bg-gray-100 rounded-xl animate-pulse" />
+                        {/* Items */}
+                        <div className="flex flex-col gap-3 mt-2">
+                            {[...Array(3)].map((_, i) => (
+                                <div key={i} className="flex gap-3 items-center" style={{animationDelay:`${i*0.1}s`}}>
+                                    <div className="w-14 h-14 bg-gray-200 rounded-xl animate-pulse shrink-0" />
+                                    <div className="flex-1 flex flex-col gap-1.5">
+                                        <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse" />
+                                        <div className="h-3 w-16 bg-gray-200 rounded animate-pulse" />
+                                    </div>
+                                    <div className="h-4 w-14 bg-gray-200 rounded animate-pulse shrink-0" />
+                                </div>
+                            ))}
+                        </div>
+                        {/* Total */}
+                        <div className="border-t border-gray-100 pt-4 flex flex-col gap-2">
+                            {[...Array(3)].map((_, i) => (
+                                <div key={i} className="flex justify-between">
+                                    <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
+                                    <div className="h-4 w-16 bg-gray-200 rounded animate-pulse" />
+                                </div>
+                            ))}
+                        </div>
+                        {/* CTA button */}
+                        <div className="h-12 w-full bg-gray-200 rounded-xl animate-pulse mt-2" />
+                    </div>
+                </div>
             </div>
         );
     }
+
 
     if (!store) {
         return (

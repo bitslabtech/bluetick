@@ -28,11 +28,61 @@ function StoreCustomerHeaderBridge({ children }) {
     return children;
 }
 
+/** Floating gold sparkle effect for jewelry theme */
+function JewelrySparkles() {
+    useEffect(() => {
+        const styleId = 'jewelry-sparkle-style';
+        if (document.getElementById(styleId)) return;
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
+            @keyframes jewelGlint {
+                0%, 100% { opacity: 0.07; transform: scale(0.7) rotate(0deg); }
+                50% { opacity: 0.55; transform: scale(1.15) rotate(22deg); }
+            }
+            @keyframes jewelDrift {
+                0%, 100% { opacity: 0.05; transform: scale(0.6) rotate(-10deg) translateY(0px); }
+                50% { opacity: 0.45; transform: scale(1.1) rotate(12deg) translateY(-4px); }
+            }
+            .jewelry-sparkle-dot { animation: jewelGlint ease-in-out infinite; position: fixed; pointer-events: none; z-index: 1; }
+            .jewelry-sparkle-dot.drift { animation-name: jewelDrift; }
+        `;
+        document.head.appendChild(style);
+        return () => { document.getElementById('jewelry-sparkle-style')?.remove(); };
+    }, []);
+
+    const sparkles = [
+        { style: { top: '7%',  left: '3.5%',  animationDuration: '4.2s', animationDelay: '0s'   }, size: 14, drift: false },
+        { style: { top: '19%', right: '3%',   animationDuration: '5.5s', animationDelay: '1.3s' }, size: 9,  drift: true  },
+        { style: { top: '52%', left: '2%',    animationDuration: '3.9s', animationDelay: '2.1s' }, size: 11, drift: false },
+        { style: { top: '68%', right: '4.5%', animationDuration: '4.8s', animationDelay: '0.6s' }, size: 7,  drift: true  },
+        { style: { top: '86%', left: '8%',    animationDuration: '5.2s', animationDelay: '1.9s' }, size: 10, drift: false },
+        { style: { top: '37%', right: '2.5%', animationDuration: '3.6s', animationDelay: '3.1s' }, size: 6,  drift: true  },
+        { style: { top: '13%', right: '16%',  animationDuration: '6.1s', animationDelay: '0.9s' }, size: 5,  drift: false },
+        { style: { top: '91%', right: '11%',  animationDuration: '4.6s', animationDelay: '2.6s' }, size: 9,  drift: true  },
+    ];
+
+    return (
+        <>
+            {sparkles.map((s, i) => (
+                <div key={i} className={`jewelry-sparkle-dot${s.drift ? ' drift' : ''}`} style={s.style}>
+                    <svg width={s.size} height={s.size} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 0L13.8 10.2L24 12L13.8 13.8L12 24L10.2 13.8L0 12L10.2 10.2L12 0Z" fill="#B76E79"/>
+                    </svg>
+                </div>
+            ))}
+        </>
+    );
+}
+
 function PageInnerWithAuth({ store, theme, slug, products, categories, cartCount, setIsCartOpen, isContactPage, children }) {
     const { customer, authConfig } = useStoreCustomer();
     const authEnabled = authConfig?.enabled || store?.customerAuthConfig?.enabled || false;
+    const isDarkTheme = theme?.pageBg?.includes('900') || theme?.pageBg?.includes('950') || theme?.pageBg?.includes('black') || theme?.pageBg?.includes('zinc');
+
     return (
-        <div className={`flex flex-col min-h-screen overflow-x-hidden w-full ${theme.pageBg} font-sans ${theme.text} selection:bg-black selection:text-white`} style={{ fontFamily: theme.fontFamily }}>
+        <div className={`flex flex-col min-h-screen overflow-x-hidden w-full ${theme.pageBg} font-sans ${theme.text} selection:bg-black selection:text-white ${isDarkTheme ? 'dark' : ''}`} style={{ fontFamily: theme.fontFamily, ...(theme.bgPatternStyle || {}) }}>
+            {theme.sparkleEffect && <JewelrySparkles />}
             <WaStoreHeader
                 store={store}
                 theme={theme}
@@ -47,7 +97,7 @@ function PageInnerWithAuth({ store, theme, slug, products, categories, cartCount
             <main className={`flex-1 w-full mx-auto px-4 ${isContactPage ? 'max-w-5xl py-8 md:py-12' : 'max-w-4xl py-10 md:py-16'}`}>
                 {children}
             </main>
-            <WaStoreFooter store={store} />
+            <WaStoreFooter store={store} theme={theme} />
         </div>
     );
 }
@@ -165,11 +215,31 @@ export default function PublicWaStorePage({ customSlug, customPageType }) {
 
     if (loading) {
         return (
-            <div className={`flex items-center justify-center min-h-screen ${theme.pageBg}`}>
-                <Loader2 className={`w-8 h-8 animate-spin ${theme.text}`} />
+            <div className="flex flex-col min-h-screen bg-[#F9F6F3]">
+                {/* Skeleton Header */}
+                <div className="w-full h-16 bg-white border-b border-gray-100 flex items-center px-6 gap-4 sticky top-0 z-40">
+                    <div className="h-5 w-28 rounded-md bg-gray-200 animate-pulse" />
+                    <div className="flex-1" />
+                    <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse" />
+                </div>
+                <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 py-10 md:py-16">
+                    {/* Page title */}
+                    <div className="h-9 w-56 bg-gray-200 rounded-lg animate-pulse mb-8 pb-6 border-b border-gray-100" />
+                    {/* Content lines */}
+                    <div className="flex flex-col gap-3">
+                        {[100, 95, 88, 75, 100, 92, 80, 60, 100, 96, 83].map((w, i) => (
+                            <div key={i} className="h-3.5 bg-gray-200 rounded animate-pulse" style={{width:`${w}%`, animationDelay:`${i*0.04}s`}} />
+                        ))}
+                        <div className="mt-4" />
+                        {[100, 90, 85, 70, 95, 78].map((w, i) => (
+                            <div key={i+11} className="h-3.5 bg-gray-200 rounded animate-pulse" style={{width:`${w}%`, animationDelay:`${(i+11)*0.04}s`}} />
+                        ))}
+                    </div>
+                </div>
             </div>
         );
     }
+
 
     if (store === false || !store) {
         return <StoreNotFound />;

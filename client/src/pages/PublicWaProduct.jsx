@@ -17,8 +17,10 @@ import { StoreCustomerProvider, useStoreCustomer } from '../context/StoreCustome
 function ProductPageInner({ store, theme, slug, allProducts, categories, cartCount, setIsCartOpen, children }) {
     const { customer, authConfig } = useStoreCustomer();
     const authEnabled = authConfig?.enabled || store?.customerAuthConfig?.enabled || false;
+    const isDarkTheme = theme?.pageBg?.includes('900') || theme?.pageBg?.includes('950') || theme?.pageBg?.includes('black') || theme?.pageBg?.includes('zinc');
+
     return (
-        <>
+        <div className={`flex flex-col min-h-screen overflow-x-hidden w-full ${theme.pageBg} font-sans ${theme.text} selection:bg-black selection:text-white ${isDarkTheme ? 'dark' : ''}`} style={{ fontFamily: theme.fontFamily }}>
             <WaStoreHeader
                 store={store}
                 theme={theme}
@@ -31,7 +33,7 @@ function ProductPageInner({ store, theme, slug, allProducts, categories, cartCou
                 storeCustomer={customer}
             />
             {children}
-        </>
+        </div>
     );
 }
 
@@ -97,6 +99,7 @@ export default function PublicWaProduct({ customSlug }) {
     const touchEndX = React.useRef(null);
     const crossSellRef = React.useRef(null);
     const [crossSellDotIdx, setCrossSellDotIdx] = React.useState(0);
+    const [isDescExpanded, setIsDescExpanded] = React.useState(false);
 
     const toggleAccordion = (sec) => {
         setOpenAccordions(prev => ({ ...prev, [sec]: !prev[sec] }));
@@ -328,8 +331,53 @@ export default function PublicWaProduct({ customSlug }) {
     }, [store, product, allProducts]);
 
     if (loading) return (
-        <div className="h-screen flex items-center justify-center bg-white">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black" />
+        <div className="flex flex-col min-h-screen bg-[#F9F6F3]">
+            {/* Skeleton Header */}
+            <div className="w-full h-16 bg-white border-b border-gray-100 flex items-center px-6 gap-4 sticky top-0 z-40">
+                <div className="h-5 w-28 rounded-md bg-gray-200 animate-pulse" />
+                <div className="flex-1" />
+                <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse" />
+            </div>
+            {/* Breadcrumb */}
+            <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-12 pt-6 flex gap-2 items-center">
+                <div className="h-3 w-16 bg-gray-200 rounded animate-pulse" />
+                <div className="h-3 w-3 bg-gray-200 rounded animate-pulse" />
+                <div className="h-3 w-24 bg-gray-200 rounded animate-pulse" />
+                <div className="h-3 w-3 bg-gray-200 rounded animate-pulse" />
+                <div className="h-3 w-32 bg-gray-200 rounded animate-pulse" />
+            </div>
+            {/* Product layout: image left, details right */}
+            <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-12 py-8 flex flex-col md:flex-row gap-8 md:gap-12">
+                {/* Image column */}
+                <div className="w-full md:w-1/2 flex flex-col gap-3">
+                    <div className="w-full aspect-square bg-gray-200 rounded-2xl animate-pulse" />
+                    <div className="flex gap-2">
+                        {[...Array(4)].map((_, i) => (
+                            <div key={i} className="w-16 h-16 bg-gray-200 rounded-xl animate-pulse" style={{animationDelay:`${i*0.08}s`}} />
+                        ))}
+                    </div>
+                </div>
+                {/* Details column */}
+                <div className="w-full md:w-1/2 flex flex-col gap-4 pt-2">
+                    <div className="h-3 w-20 bg-gray-200 rounded animate-pulse" />
+                    <div className="h-8 w-3/4 bg-gray-200 rounded-lg animate-pulse" />
+                    <div className="h-8 w-2/4 bg-gray-200 rounded-lg animate-pulse" />
+                    <div className="h-6 w-28 bg-gray-200 rounded animate-pulse mt-2" />
+                    <div className="flex flex-col gap-2 mt-3">
+                        <div className="h-3 w-16 bg-gray-200 rounded animate-pulse" />
+                        <div className="flex gap-2">
+                            {[...Array(4)].map((_,i)=><div key={i} className="h-9 w-16 bg-gray-200 rounded-lg animate-pulse" />)}
+                        </div>
+                    </div>
+                    <div className="h-12 w-full bg-gray-200 rounded-xl animate-pulse mt-4" />
+                    <div className="h-12 w-full bg-gray-200 rounded-xl animate-pulse" />
+                    <div className="mt-4 flex flex-col gap-2">
+                        <div className="h-3 w-full bg-gray-200 rounded animate-pulse" />
+                        <div className="h-3 w-5/6 bg-gray-200 rounded animate-pulse" />
+                        <div className="h-3 w-4/6 bg-gray-200 rounded animate-pulse" />
+                    </div>
+                </div>
+            </div>
         </div>
     );
     
@@ -690,8 +738,8 @@ export default function PublicWaProduct({ customSlug }) {
                                                         onClick={() => setSelectedVariants(prev => ({ ...prev, [option.name]: val }))}
                                                         className={`px-4.5 py-2 text-xs font-semibold uppercase tracking-wider transition-all duration-200 border ${
                                                             isActive
-                                                                ? 'bg-black text-white border-black shadow-sm scale-[1.02]'
-                                                                : 'bg-white text-black border-gray-200 hover:border-black hover:scale-[1.01]'
+                                                                ? (theme.id === 'amber' ? 'bg-[#382215] text-[#FAF7F2] border-[#382215] shadow-sm scale-[1.02]' : 'bg-black text-white border-black shadow-sm scale-[1.02] dark:bg-white dark:text-black dark:border-white')
+                                                                : (theme.id === 'amber' ? 'bg-[#FAF7F2] text-[#382215] border-[#EAE2D5] hover:border-[#A86F3D] hover:scale-[1.01]' : 'bg-white text-black border-gray-200 hover:border-black hover:scale-[1.01] dark:bg-slate-900 dark:text-white dark:border-slate-800 dark:hover:border-white')
                                                         } rounded-xl`}
                                                     >
                                                         {val}
@@ -732,7 +780,7 @@ export default function PublicWaProduct({ customSlug }) {
                                     className={`w-full max-w-[280px] py-3.5 text-xs font-bold uppercase tracking-widest transition-all duration-200 flex items-center justify-center gap-2 rounded-xl border ${
                                         preventAdd 
                                             ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                                            : 'bg-white text-black border-black hover:bg-black hover:text-white shadow-sm'
+                                            : (theme.id === 'amber' ? 'bg-[#382215] text-[#FAF7F2] border-[#382215] hover:bg-[#25160D] shadow-sm' : 'bg-white text-black border-black hover:bg-black hover:text-white shadow-sm')
                                     }`}
                                 >
                                     <ShoppingBag className="w-4 h-4 stroke-[2]" /> 
@@ -744,7 +792,7 @@ export default function PublicWaProduct({ customSlug }) {
                                     className={`w-full max-w-[280px] py-3.5 text-white text-xs font-bold uppercase tracking-widest rounded-xl transition-all shadow-md flex items-center justify-center gap-2 group ${
                                         preventAdd 
                                             ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none' 
-                                            : 'bg-[#25D366] hover:bg-[#128C7E] hover:shadow-lg shadow-green-500/10'
+                                            : (theme.id === 'amber' ? 'bg-[#A86F3D] hover:bg-[#8C532B] hover:shadow-lg shadow-[#A86F3D]/20' : 'bg-[#25D366] hover:bg-[#128C7E] hover:shadow-lg shadow-green-500/10')
                                     }`}
                                 >
                                     <svg className="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
@@ -764,9 +812,28 @@ export default function PublicWaProduct({ customSlug }) {
                 <div className="w-full mt-10 md:mt-16 pt-8 md:pt-12 border-t border-gray-100">
                     <div className="w-full max-w-5xl">
                         <h2 className={`text-sm md:text-base font-bold uppercase tracking-widest ${theme.text} mb-6`}>Product Description</h2>
-                        <div className={`text-sm md:text-base leading-relaxed ${theme.textMuted} whitespace-pre-line`} style={{overflowWrap:'break-word', wordBreak:'break-word'}}>
-                            {product.description || product.name}
-                        </div>
+                        {(() => {
+                            const descText = product.description || product.name || '';
+                            const shouldClamp = descText.length > 250 || descText.split('\n').length > 6;
+                            return (
+                                <div>
+                                    <div 
+                                        className={`text-sm md:text-base leading-relaxed ${theme.textMuted} whitespace-pre-line ${!isDescExpanded && shouldClamp ? 'line-clamp-6' : ''}`} 
+                                        style={{overflowWrap:'break-word', wordBreak:'break-word'}}
+                                    >
+                                        {descText}
+                                    </div>
+                                    {shouldClamp && (
+                                        <button 
+                                            onClick={() => setIsDescExpanded(!isDescExpanded)} 
+                                            className={`mt-3 font-semibold text-sm ${theme.text} hover:opacity-70 transition-opacity`}
+                                        >
+                                            {isDescExpanded ? 'Show Less' : 'Read More'}
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        })()}
                     </div>
                 </div>
 
@@ -836,8 +903,8 @@ export default function PublicWaProduct({ customSlug }) {
                                         <span className="text-xs font-bold uppercase tracking-widest text-gray-500 group-hover/cs:text-black transition-colors">View All</span>
                                     </div>
                                     {/* Spacer rows to match product card height */}
-                                    <p className={`text-sm font-medium ${theme.text} leading-snug mb-1 opacity-60`}>Browse more</p>
-                                    <p className={`text-sm font-bold ${theme.text} opacity-0`}>—</p>
+                                    <p className={`text-sm font-medium ${theme.text} leading-snug mb-1 opacity-0 select-none`}>—</p>
+                                    <p className={`text-sm font-bold ${theme.text} opacity-0 select-none`}>—</p>
                                 </div>
                             </div>
 
@@ -898,10 +965,10 @@ export default function PublicWaProduct({ customSlug }) {
                             animate={{ x: 0 }}
                             exit={{ x: '100%' }}
                             transition={{ type: 'tween', duration: 0.3, ease: 'easeOut' }}
-                            className={`w-full max-w-md ${theme.pageBg} h-full relative z-10 flex flex-col shadow-2xl`}
+                            className={`w-full max-w-md ${theme?.mobileNavBg || theme?.pageBg} h-full relative z-10 flex flex-col shadow-2xl`}
                         >
                             
-                            <div className={`px-6 py-5 border-b border-black/5 dark:border-white/10 flex items-center justify-between ${theme.pageBg}`}>
+                            <div className={`px-6 py-5 border-b border-black/5 dark:border-white/10 flex items-center justify-between ${theme?.mobileNavBg || theme?.pageBg}`}>
                                 <h2 className={`text-lg font-semibold flex items-center gap-2 ${theme.text}`}>
                                     <ShoppingBag className="w-5 h-5" /> Your Cart
                                 </h2>
@@ -1093,29 +1160,29 @@ export default function PublicWaProduct({ customSlug }) {
                     </motion.div>
                 )}
             </AnimatePresence>
-            <WaStoreFooter store={store} />
+            <WaStoreFooter store={store} theme={theme} />
             {/* Sticky Mobile Add To Cart / Checkout Bar */}
             <div 
-                className="md:hidden fixed left-0 w-full bg-white/95 backdrop-blur-md dark:bg-black/95 border-t border-gray-200 dark:border-white/10 px-2 py-3 z-30 flex items-center gap-1.5 sm:gap-2 shadow-[0_-8px_20px_rgba(0,0,0,0.08)] overflow-x-auto hide-scrollbar"
+                className={`md:hidden fixed left-0 w-full ${theme.id === 'amber' ? 'bg-[#FAF7F2]/95 border-[#EAE2D5]' : 'bg-white/95 dark:bg-slate-900/95 border-gray-200 dark:border-slate-700'} backdrop-blur-md border-t px-2 py-3 z-30 flex items-center gap-1.5 sm:gap-2 shadow-[0_-8px_20px_rgba(0,0,0,0.08)] overflow-x-auto hide-scrollbar`}
                 style={{ bottom: 'calc(env(safe-area-inset-bottom) + 55px)' }}
             >
                 {/* Price Display */}
                 <div className="flex flex-col justify-center shrink-0 mr-auto pl-1">
                     <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider leading-none mb-1">Total</span>
-                    <span className="text-base sm:text-lg font-extrabold text-black dark:text-white leading-none whitespace-nowrap">
+                    <span className={`text-base sm:text-lg font-extrabold ${theme.id === 'amber' ? 'text-[#2C1810]' : 'text-black dark:text-white'} leading-none whitespace-nowrap`}>
                         {getCurrencySymbol(store.currency)}{(getDisplayPrice(currentVariantPrice, product) * qty).toFixed(2)}
                     </span>
                 </div>
 
                 {/* Quantity Selector */}
-                <div className="flex items-center bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-0.5 shrink-0 h-[38px] sm:h-[42px]">
+                <div className={`flex items-center ${theme.id === 'amber' ? 'bg-[#F5EFEB] border-[#EAE2D5]' : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10'} border rounded-xl p-0.5 shrink-0 h-[38px] sm:h-[42px]`}>
                     <button 
                         onClick={() => setQty(Math.max(1, qty - 1))} 
                         className="w-7 sm:w-8 h-full flex items-center justify-center hover:bg-white dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 rounded-lg transition-all"
                     >
                         <Minus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                     </button>
-                    <span className="w-4 sm:w-6 text-center font-bold text-[11px] sm:text-xs text-black dark:text-white">{qty}</span>
+                    <span className={`w-4 sm:w-6 text-center font-bold text-[11px] sm:text-xs ${theme.id === 'amber' ? 'text-[#2C1810]' : 'text-black dark:text-white'}`}>{qty}</span>
                     <button 
                         onClick={() => setQty(qty + 1)} 
                         className="w-7 sm:w-8 h-full flex items-center justify-center hover:bg-white dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 rounded-lg transition-all"
@@ -1131,7 +1198,7 @@ export default function PublicWaProduct({ customSlug }) {
                     className={`h-[38px] sm:h-[42px] px-3 sm:px-4 text-[10px] font-bold uppercase tracking-widest rounded-xl flex items-center justify-center shrink-0 ${
                         preventAdd 
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'bg-black text-white hover:bg-neutral-800 shadow-md'
+                            : (theme.id === 'amber' ? 'bg-[#382215] text-[#FAF7F2] hover:bg-[#25160D] shadow-sm' : 'bg-black text-white hover:bg-neutral-800 shadow-md')
                     }`}
                 >
                     <span className="truncate whitespace-nowrap">{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
@@ -1144,7 +1211,7 @@ export default function PublicWaProduct({ customSlug }) {
                     className={`h-[38px] sm:h-[42px] px-3 sm:px-4 text-[10px] font-bold uppercase tracking-widest rounded-xl flex items-center justify-center gap-1.5 shrink-0 ${
                         preventAdd 
                             ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none' 
-                            : 'bg-[#25D366] text-white hover:bg-[#128C7E] hover:shadow-lg shadow-green-500/10'
+                            : (theme.id === 'amber' ? 'bg-[#A86F3D] text-white hover:bg-[#8C532B] shadow-[#A86F3D]/20' : 'bg-[#25D366] text-white hover:bg-[#128C7E] hover:shadow-lg shadow-green-500/10')
                     }`}
                 >
                     <span className="truncate">Buy Now</span>

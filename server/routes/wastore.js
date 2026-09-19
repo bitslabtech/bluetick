@@ -9,6 +9,7 @@ const Plan = require('../models/Plan');
 const AiTokenLog = require('../models/AiTokenLog');
 const SystemConfig = require('../models/SystemConfig');
 const Settings = require('../models/Settings');
+const SystemNotification = require('../models/SystemNotification');
 const auth = require('../middleware/auth');
 const axios = require('axios');
 const storageProvider = require('../utils/storageProvider');
@@ -235,6 +236,16 @@ router.get('/public/:slug', async (req, res) => {
 
         const { count, rows: products } = await WaProduct.findAndCountAll(queryOptions);
 
+        // Fetch trending products explicitly for the Trending Now slider
+        const trendingOptions = {
+            where: showOutOfStock
+                ? { storeId: store.id, isTrending: true }
+                : { storeId: store.id, isTrending: true, inStock: true },
+            order: [['updatedAt', 'DESC']],
+            limit: store.trendingLimit || 8
+        };
+        const trendingProducts = await WaProduct.findAll(trendingOptions);
+
         const responseData = store.toJSON();
         delete responseData.User; // Hide user obj
         // SEC-1: Strip server-only / payment-secret fields from the public storefront response.
@@ -253,7 +264,14 @@ router.get('/public/:slug', async (req, res) => {
             return obj;
         });
 
-        res.json({ store: responseData, products: safeProducts, totalProducts: count });
+        const safeTrendingProducts = (trendingProducts || []).map(p => {
+            const obj = p.toJSON ? p.toJSON() : { ...p };
+            delete obj.wholesalePrice;
+            delete obj.costPrice;
+            return obj;
+        });
+
+        res.json({ store: responseData, products: safeProducts, trendingProducts: safeTrendingProducts, totalProducts: count });
     } catch (error) {
         console.error("Fetch Public Store error:", error);
         res.status(500).json({ error: 'Server error fetching store' });
@@ -512,7 +530,10 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
             await order.update({ status: 'paid', paymentStatus: 'paid' });
             fireCAPICheckout(store, order).catch(() => {});
             User.findByPk(store.userId).then(storeUser => {
-                if (storeUser) sendOrderNotification('order_placed', store, storeUser, order).catch(() => {});
+                if (storeUser) {
+                    sendOrderNotification('order_placed', store, storeUser, order).catch(() => {});
+                    dispatchInAppNotifications(store, storeUser, order, validatedCustomerId).catch(() => {});
+                }
             }).catch(() => {});
             return res.json({ order, orderNumber });
         }
@@ -614,7 +635,10 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
         // ── #16 — Fire order_placed notification for ALL checkout modes ────────
         // (gateway mode previously only fired after payment verification, now fired immediately)
         User.findByPk(store.userId).then(storeUser => {
-            if (storeUser) sendOrderNotification('order_placed', store, storeUser, order).catch(() => {});
+            if (storeUser) {
+                sendOrderNotification('order_placed', store, storeUser, order).catch(() => {});
+                dispatchInAppNotifications(store, storeUser, order, validatedCustomerId).catch(() => {});
+            }
         }).catch(() => {});
 
         res.json({ order, orderNumber });
@@ -719,13 +743,71 @@ async function sendWhatsAppInvoiceHelper(store, user, order, customerName, custo
     }
 }
 
-// ── Order Notification Helper ─────────────────────────────────────────────────
-// Fires the configured approved template notification for a given trigger key.
-// Variable mapping (positional): the template is expected to use {{1}}, {{2}}, etc.
-// The order of values injected matches the TRIGGERS definition in WaStoreNotifications.jsx:
-//   order_placed/payment_received: name, orderNum, storeName, total
-//   order_confirmed/processing/delivered/cancelled: name, orderNum, storeName
-//   order_shipped: name, orderNum, storeName, trackingProvider, trackingUrl
+// ── Order Notification Helper ──────────────────
+async function dispatchInAppNotifications(store, storeUser, order, validatedCustomerId) {
+    try {
+        const SystemNotification = require('../models/SystemNotification');
+        const { Op } = require('sequelize');
+
+        console.log(`[InAppNotif] Creating order notification for user ${storeUser.email}, order ${order.orderNumber}`);
+
+        // 1. New Order Notification
+        // Note: SystemNotification type ENUM is: 'Info', 'Success', 'Warning', 'Error'
+        await SystemNotification.create({
+            title: 'New Order Received',
+            message: `New order #${order.orderNumber} received from ${order.customerName} for ${order.currency || ''}${Number(order.total).toFixed(2)}!`,
+            type: 'Info',
+            recipient: storeUser.email,
+            target: `User: ${storeUser.name} (${storeUser.email})`,
+            buttonName: 'View Order',
+            buttonUrl: `/online-store/${store.slug}/orders?search=${order.orderNumber}`,
+            status: 'Sent'
+        });
+
+        console.log(`[InAppNotif] Order notification saved for ${storeUser.email}`);
+
+        // 2. New Customer Check
+        let isNewCustomer = false;
+        if (validatedCustomerId) {
+            const previousOrders = await WaOrder.count({
+                where: { storeCustomerId: validatedCustomerId, id: { [Op.ne]: order.id } }
+            });
+            isNewCustomer = previousOrders === 0;
+        } else if (order.customerPhone) {
+            const previousOrders = await WaOrder.count({
+                where: { storeId: store.id, customerPhone: order.customerPhone, id: { [Op.ne]: order.id } }
+            });
+            isNewCustomer = previousOrders === 0;
+        }
+
+        if (isNewCustomer) {
+            await SystemNotification.create({
+                title: 'New Customer Alert',
+                message: `You have a new customer! ${order.customerName} just placed their first order.`,
+                type: 'Info',
+                recipient: storeUser.email,
+                target: `User: ${storeUser.name} (${storeUser.email})`,
+                buttonName: 'View Customers',
+                buttonUrl: `/online-store/${store.slug}/customers`,
+                status: 'Sent'
+            });
+            console.log(`[InAppNotif] New customer notification saved for ${storeUser.email}`);
+        }
+
+        // 3. Socket real-time update — safely wrapped so a throw from getIo() doesn't abort the DB saves
+        try {
+            const { getIo } = require('../socket');
+            const io = getIo();
+            io.to(storeUser.id).emit('notification_update');
+            console.log(`[InAppNotif] Socket event emitted to user room: ${storeUser.id}`);
+        } catch (socketErr) {
+            console.warn('[InAppNotif] Socket emit failed (non-fatal):', socketErr.message);
+        }
+    } catch (notifErr) {
+        console.error('[InAppNotif] Error creating notifications:', notifErr);
+    }
+}
+
 async function sendOrderNotification(triggerKey, store, user, order, extras = {}) {
     try {
         const notifConfig = store.notificationTemplates?.[triggerKey];
@@ -2919,10 +3001,24 @@ router.get('/:id/abandoned-cart', auth, async (req, res) => {
             attributes: ['id', 'orderNumber', 'customerName', 'customerPhone', 'customerEmail', 'customerAddress', 'items', 'subtotal', 'total', 'currency', 'abandonedReminderSent', 'createdAt'],
         });
 
+        const abnPrefix = store.invoiceConfig?.prefixAbandoned || 'ABN-';
+        const formattedAbandoned = recentAbandoned.map(order => {
+            const data = order.toJSON ? order.toJSON() : { ...order };
+            const abnNumber = data.orderNumber
+                ? data.orderNumber.replace(/^(ORD|POS|ABN)-/i, abnPrefix)
+                : `${abnPrefix}${data.id.slice(0, 4)}`;
+            return {
+                ...data,
+                orderNumber: abnNumber,
+                abnNumber,
+                originalOrderNumber: data.orderNumber
+            };
+        });
+
         res.json({
             config,
             stats: { totalAbandoned, reminderSent, recovered },
-            recentAbandoned,
+            recentAbandoned: formattedAbandoned,
         });
     } catch (err) {
         console.error('Abandoned cart stats error:', err);

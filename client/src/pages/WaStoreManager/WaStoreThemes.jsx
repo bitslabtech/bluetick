@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
-import { LayoutTemplate, CheckCircle2, ShoppingBag, Watch, Utensils, Monitor, Sparkles, Gem, Leaf, Dumbbell, Briefcase } from 'lucide-react';
+import { LayoutTemplate, CheckCircle2, ShoppingBag, Watch, Utensils, Monitor, Sparkles, Gem, Leaf, Dumbbell, Briefcase, Award } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { THEMES } from '../../utils/wastoreThemes';
 
@@ -15,12 +15,12 @@ export default function WaStoreThemes() {
             case 'vogue': return <ShoppingBag className={className} />;
             case 'cyber': return <Monitor className={className} />;
             case 'glow': return <Sparkles className={className} />;
-            case 'luxe': return <Gem className={className} />;
+            case 'jewelry': return <Gem className={className} />;
             case 'crave': return <Utensils className={className} />;
-            case 'nordic': return <LayoutTemplate className={className} />;
             case 'fresh': return <Leaf className={className} />;
             case 'pulse': return <Dumbbell className={className} />;
             case 'professional': return <Briefcase className={className} />;
+            case 'amber': return <Award className={className} />;
             default: return <ShoppingBag className={className} />;
         }
     };
@@ -54,31 +54,22 @@ export default function WaStoreThemes() {
             accent: 'bg-rose-400'
         },
         { 
-            id: 'luxe', name: 'Luxe', industry: 'Jewelry', 
-            description: 'High-contrast black & gold luxury styling.', 
-            gradient: 'from-neutral-800 to-neutral-900',
-            previewBg: 'bg-zinc-950',
-            heroColor: 'bg-yellow-900/20',
-            textColor: 'text-yellow-500',
-            accent: 'bg-yellow-600'
+            id: 'jewelry', name: 'Jewelry', industry: 'Jewelry', 
+            description: 'Soft pearl blush canvas, rose gold accents, and clean modern typography.', 
+            gradient: 'from-[#F7EEEE] to-[#EEDCDC]',
+            previewBg: 'bg-[#FCF9F9]',
+            heroColor: 'bg-[#EAD8DB]',
+            textColor: 'text-[#A85D6A]',
+            accent: 'bg-[#B76E79]'
         },
         { 
             id: 'crave', name: 'Crave', industry: 'Food', 
-            description: 'Appetizing colors and rounded bento layouts.', 
-            gradient: 'from-orange-400 to-red-500',
-            previewBg: 'bg-orange-50',
-            heroColor: 'bg-orange-200',
-            textColor: 'text-orange-900',
-            accent: 'bg-red-500'
-        },
-        { 
-            id: 'nordic', name: 'Nordic', industry: 'Furniture', 
-            description: 'Earthy tones, clean lines, and minimal aesthetics.', 
-            gradient: 'from-[#D1C4B0] to-[#bdae97]',
-            previewBg: 'bg-[#F9F6F0]',
-            heroColor: 'bg-[#E5D9C5]',
-            textColor: 'text-[#4A4A4A]',
-            accent: 'bg-[#8C8273]'
+            description: 'Fresh forest and mint palette with rounded bento layouts.', 
+            gradient: 'from-emerald-500 to-teal-600',
+            previewBg: 'bg-[#F6FBF7]',
+            heroColor: 'bg-emerald-100',
+            textColor: 'text-emerald-950',
+            accent: 'bg-emerald-600'
         },
         { 
             id: 'fresh', name: 'Fresh', industry: 'Grocery', 
@@ -106,6 +97,15 @@ export default function WaStoreThemes() {
             heroColor: 'bg-blue-100',
             textColor: 'text-slate-800',
             accent: 'bg-blue-600'
+        },
+        { 
+            id: 'amber', name: 'Amber', industry: 'Dry Fruits & Gourmet', 
+            description: 'Toasted sand & muted oat header and footer with dark espresso typography for gourmet dry fruits, nuts, and wholesome gifts.', 
+            gradient: 'from-[#DFD5C3] to-[#CDC1AE]',
+            previewBg: 'bg-[#FAF7F2]',
+            heroColor: 'bg-[#DFD5C3]',
+            textColor: 'text-[#261A14]',
+            accent: 'bg-[#261A14]'
         }
     ];
 

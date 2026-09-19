@@ -180,7 +180,8 @@ export default function StoreRegisterPage({ store, products = [] }) {
                             </div>
                         )}
 
-                        <AnimatePresence mode="wait">
+                        <div className="grid items-start">
+                        <AnimatePresence>
                             {!hasEmailMethod && tab === 'email' ? (
                                 <motion.div 
                                     key="disabled"
@@ -188,7 +189,7 @@ export default function StoreRegisterPage({ store, products = [] }) {
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
                                     transition={{ duration: 0.12, ease: 'easeInOut' }}
-                                    className="text-center py-4"
+                                    className="col-start-1 row-start-1 text-center py-4 w-full"
                                 >
                                     <p className="text-sm font-medium text-slate-600">Email registration is not enabled for this store.</p>
                                     <button onClick={() => setTab('otp')} className="mt-4 font-bold text-xs hover:underline" style={{ color: themeColor }}>
@@ -203,7 +204,7 @@ export default function StoreRegisterPage({ store, products = [] }) {
                                     exit={{ opacity: 0 }}
                                     transition={{ duration: 0.12, ease: 'easeInOut' }}
                                     onSubmit={handleSubmit} 
-                                    className="space-y-4"
+                                    className="col-start-1 row-start-1 space-y-4 w-full"
                                 >
                                     {/* Name */}
                                 <div>
@@ -385,7 +386,7 @@ export default function StoreRegisterPage({ store, products = [] }) {
                                     exit={{ opacity: 0 }}
                                     transition={{ duration: 0.12, ease: 'easeInOut' }}
                                     onSubmit={handleVerifyOtp} 
-                                    className="space-y-4"
+                                    className="col-start-1 row-start-1 space-y-4 w-full"
                                 >
                                     {/* Phone */}
                                 <div>
@@ -495,6 +496,7 @@ export default function StoreRegisterPage({ store, products = [] }) {
                                 </motion.form>
                             )}
                         </AnimatePresence>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -47,7 +47,7 @@ export default function VcardList() {
     };
 
     const copyLink = (slug) => {
-        const url = `${window.location.origin}/vcard/${slug}`;
+        const url = `${window.location.origin}/vecards/${slug}`;
         navigator.clipboard.writeText(url);
         showToast('Link copied to clipboard!', 'success');
     };
@@ -199,7 +199,7 @@ export default function VcardList() {
 
                             {/* Action Footer */}
                             <div className="p-3 border-t border-slate-100 dark:border-white/10 bg-slate-50/50 dark:bg-slate-800/20 flex items-center justify-around gap-1">
-                                <a href={`/vcard/${vcard.slug}`} target="_blank" rel="noreferrer" title="View Public Card" className="flex items-center justify-center p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors">
+                                <a href={`/vecards/${vcard.slug}`} target="_blank" rel="noreferrer" title="View Public Card" className="flex items-center justify-center p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors">
                                     <ExternalLink className="w-4 h-4" />
                                 </a>
                                 <button onClick={() => copyLink(vcard.slug)} title="Copy URL" className="flex items-center justify-center p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors">

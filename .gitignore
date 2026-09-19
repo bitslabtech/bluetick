@@ -105,3 +105,6 @@ client/*.txt
 design/
 docs/
 scripts/
+
+# Dynamically generated sitemap
+client/public/sitemap.xml

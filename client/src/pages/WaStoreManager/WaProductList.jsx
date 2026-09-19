@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
-import { Package, Plus, Trash2, Edit3, Eye, Image as ImageIcon, Wand2, Search, Upload, X, Loader2, Activity, Star, Layers, ChevronDown, ChevronRight, Check, FolderOpen, FileSpreadsheet, Download, Tag, AlertCircle } from 'lucide-react';
+import { Package, Plus, Trash2, Edit3, Eye, Image as ImageIcon, Wand2, Search, Upload, X, Loader2, Activity, Star, Layers, ChevronDown, ChevronRight, Check, FolderOpen, FileSpreadsheet, Download, Tag, AlertCircle, Flame } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import toast from 'react-hot-toast';
 import MediaPickerModal from '../../components/MediaPickerModal';
@@ -457,6 +457,20 @@ export default function WaProductList() {
         }
     };
 
+    const toggleTrending = async (product) => {
+        try {
+            const updated = !product.isTrending;
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/products/${product.id}`, {
+                ...product,
+                isTrending: updated
+            });
+            setProducts(products.map(p => p.id === product.id ? { ...p, isTrending: updated } : p));
+            toast.success(updated ? "Marked as trending" : "Removed from trending");
+        } catch (error) {
+            toast.error("Failed to update trending status");
+        }
+    };
+
     const openEdit = (product) => {
         setEditingProduct(product);
         // Reconstruct variant pricing table from saved options + saved variant overrides
@@ -785,6 +799,17 @@ export default function WaProductList() {
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end gap-2">
+                                            <button
+                                                onClick={() => toggleTrending(product)}
+                                                className={`flex justify-center items-center p-2 rounded transition-colors ${
+                                                    product.isTrending
+                                                        ? 'text-orange-500 bg-orange-50 dark:bg-orange-500/10'
+                                                        : 'bg-transparent text-slate-400 hover:text-orange-500 dark:hover:text-orange-400'
+                                                }`}
+                                                title={product.isTrending ? "Remove from Trending" : "Mark as Trending"}
+                                            >
+                                                <Flame className={`w-4 h-4 ${product.isTrending ? 'fill-orange-500' : ''}`} />
+                                            </button>
                                             <a
                                                 href={`/store/${store?.slug}/product/${slugifyProduct(product)}`}
                                                 target="_blank"

@@ -17,8 +17,10 @@ import { StoreCustomerProvider, useStoreCustomer } from '../context/StoreCustome
 function CategoryPageInner({ store, theme, slug, products, categories, cartCount, setIsCartOpen, children }) {
     const { customer, authConfig } = useStoreCustomer();
     const authEnabled = authConfig?.enabled || store?.customerAuthConfig?.enabled || false;
+    const isDarkTheme = theme?.pageBg?.includes('900') || theme?.pageBg?.includes('950') || theme?.pageBg?.includes('black') || theme?.pageBg?.includes('zinc');
+
     return (
-        <>
+        <div className={`flex flex-col min-h-screen overflow-x-hidden w-full ${theme.pageBg} font-sans ${theme.text} selection:bg-black selection:text-white ${isDarkTheme ? 'dark' : ''}`} style={{ fontFamily: theme.fontFamily }}>
             <WaStoreHeader
                 store={store}
                 theme={theme}
@@ -31,7 +33,7 @@ function CategoryPageInner({ store, theme, slug, products, categories, cartCount
                 storeCustomer={customer}
             />
             {children}
-        </>
+        </div>
     );
 }
 
@@ -269,7 +271,48 @@ export default function PublicWaStoreCategory({ customSlug }) {
         setIsCartOpen(false);
     };
 
-    if (loading) return <div className="h-screen flex items-center justify-center bg-gray-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-black" /></div>;
+    if (loading) return (
+        <div className="flex flex-col min-h-screen bg-[#F9F6F3]">
+            {/* Skeleton Header */}
+            <div className="w-full h-16 bg-white border-b border-gray-100 flex items-center px-6 gap-4 sticky top-0 z-40">
+                <div className="h-5 w-28 rounded-md bg-gray-200 animate-pulse" />
+                <div className="flex-1" />
+                <div className="h-5 w-32 rounded-full bg-gray-200 animate-pulse hidden md:block" />
+                <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse" />
+            </div>
+            <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+                {/* Breadcrumb skeleton */}
+                <div className="flex gap-2 items-center mb-6">
+                    <div className="h-3 w-16 bg-gray-200 rounded animate-pulse" />
+                    <div className="h-3 w-3 bg-gray-200 rounded animate-pulse" />
+                    <div className="h-3 w-24 bg-gray-200 rounded animate-pulse" />
+                </div>
+                {/* Category title */}
+                <div className="h-8 w-48 bg-gray-200 rounded-lg animate-pulse mb-8" />
+                {/* Sub-category pills */}
+                <div className="flex gap-2 mb-8 overflow-hidden">
+                    {[72, 88, 64, 96, 80].map((w, i) => (
+                        <div key={i} className="h-8 rounded-full bg-gray-200 animate-pulse shrink-0" style={{width: w}} />
+                    ))}
+                </div>
+                {/* Product grid */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                    {[...Array(8)].map((_, i) => (
+                        <div key={i} className="flex flex-col bg-white rounded-xl overflow-hidden shadow-sm">
+                            <div className="w-full aspect-[4/5] bg-gray-200 animate-pulse" style={{animationDelay:`${i*0.07}s`}} />
+                            <div className="p-3 flex flex-col gap-2">
+                                <div className="h-3 w-16 bg-gray-200 rounded animate-pulse" />
+                                <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
+                                <div className="h-5 w-20 bg-gray-200 rounded animate-pulse" />
+                                <div className="h-9 w-full bg-gray-200 rounded-lg animate-pulse" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+
     if (!store) return <StoreNotFound slug={slug} />;
 
     return (
@@ -314,7 +357,7 @@ export default function PublicWaStoreCategory({ customSlug }) {
 
                 {/* ─── SUBCATEGORIES SHOWCASE ─── */}
                 {categorySubcategories.length > 0 && (
-                    <div className="mb-8 w-full bg-slate-50/70 dark:bg-zinc-800/40 border border-slate-200/60 dark:border-white/5 rounded-2xl p-4 sm:p-6">
+                    <div className={`mb-8 w-full ${theme.id === 'amber' ? 'bg-[#F5EFEB] border-[#EAE2D5]' : 'bg-slate-50/70 dark:bg-zinc-800/40 border-slate-200/60 dark:border-white/5'} border rounded-2xl p-4 sm:p-6`}>
                         <div className="flex items-center justify-between mb-4">
                             <div>
                                 <h2 className={`text-base sm:text-lg font-bold ${theme.text}`}>Explore {categoryName} Subcategories</h2>
@@ -344,8 +387,8 @@ export default function PublicWaStoreCategory({ customSlug }) {
                                     >
                                         <div className={`w-full aspect-square ${shapeClass} overflow-hidden flex items-center justify-center transition-all duration-300 relative bg-white dark:bg-zinc-800 border-2 ${
                                             isSelected
-                                                ? 'border-indigo-600 ring-2 ring-indigo-500/40 shadow-md scale-105'
-                                                : 'border-slate-200 dark:border-white/10 group-hover:border-indigo-400 group-hover:scale-105'
+                                                ? (theme.id === 'amber' ? 'border-[#382215] ring-2 ring-[#A86F3D]/40 shadow-md scale-105' : 'border-indigo-600 ring-2 ring-indigo-500/40 shadow-md scale-105')
+                                                : (theme.id === 'amber' ? 'border-[#EAE2D5] group-hover:border-[#A86F3D] group-hover:scale-105' : 'border-slate-200 dark:border-white/10 group-hover:border-indigo-400 group-hover:scale-105')
                                         }`}>
                                             {sub.image ? (
                                                 <img
@@ -379,7 +422,7 @@ export default function PublicWaStoreCategory({ customSlug }) {
                     </div>
                 )}
 
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                <div className="flex flex-row items-center justify-between gap-2 sm:gap-4 mb-4">
                     <div>
                         <h1 className={`text-2xl sm:text-3xl font-bold ${theme.text}`}>
                             {selectedSubCategory ? `${categoryName}: ${selectedSubCategory}` : categoryName}
@@ -484,20 +527,15 @@ export default function PublicWaStoreCategory({ customSlug }) {
                                         <div className={`p-3 md:p-4 flex flex-col flex-1 ${theme.cardBodyStyle}`}>
                                             <div className="flex-1">
                                                 <p className={`text-[9px] md:text-[11px] font-medium tracking-wider uppercase mb-1 md:mb-1.5 leading-none ${theme.textMuted}`}>{product.category}</p>
-                                                <h3 className={`font-semibold text-[13px] md:text-[15px] leading-tight mb-1.5 md:mb-2 ${theme.text} line-clamp-2 capitalize`}>{product.name}</h3>
+                                                <h3 className={`font-bold text-base md:text-[17px] leading-tight mb-1.5 md:mb-2 ${theme.text} line-clamp-2 capitalize`}>{product.name}</h3>
                                             </div>
                                             <div className="mt-auto">
                                                 <div className="flex items-end gap-1.5 md:gap-2 mb-2 md:mb-3">
                                                     <span className={`font-bold text-base md:text-lg ${theme.text}`}>
-                                                        {getCurrencySymbol(store.currency)}{parseFloat(product.price).toFixed(2)}
-                                                        {store?.taxConfig?.enabled && (
-                                                            <span className="text-[10px] font-normal opacity-70 ml-1">
-                                                                {store.taxConfig.taxInclusive ? '(incl. tax)' : '(excl. tax)'}
-                                                            </span>
-                                                        )}
+                                                        {getCurrencySymbol(store.currency)}{(() => { const n = parseFloat(product.price); return n % 1 === 0 ? n.toLocaleString() : n.toFixed(2); })()}
                                                     </span>
                                                     {product.compareAtPrice && parseFloat(product.compareAtPrice) > parseFloat(product.price) && (
-                                                        <span className={`text-xs md:text-sm line-through ${theme.textMuted} mb-0 md:mb-0.5`}>{getCurrencySymbol(store.currency)}{parseFloat(product.compareAtPrice).toFixed(2)}</span>
+                                                        <span className={`text-xs md:text-sm line-through ${theme.textMuted} mb-0 md:mb-0.5`}>{getCurrencySymbol(store.currency)}{(() => { const n = parseFloat(product.compareAtPrice); return n % 1 === 0 ? n.toLocaleString() : n.toFixed(2); })()}</span>
                                                     )}
                                                 </div>
                                                 {showLowStock && (
@@ -645,7 +683,7 @@ export default function PublicWaStoreCategory({ customSlug }) {
                     onCheckoutSuccess={handleCheckoutSuccess} 
                 />
             )}
-            <WaStoreFooter store={store} />
+            <WaStoreFooter store={store} theme={theme} />
             </CategoryPageInner>
         </div>
         </StoreCustomerProvider>

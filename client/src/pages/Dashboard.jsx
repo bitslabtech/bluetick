@@ -18,6 +18,58 @@ import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns'; // We need date-fns, if not available I will use native logic or check package.json
 import EmbeddedSignupChecklist from '../components/EmbeddedSignupChecklist';
+import StoreAnalytics from './StoreAnalytics';
+
+const WhatsAppEmptyState = ({ onConnect, loading }) => (
+    <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-8 sm:p-12 shadow-sm text-center max-w-3xl mx-auto my-6 animate-in fade-in zoom-in-95 duration-500">
+        <div className="w-16 h-16 rounded-2xl bg-[#1877F2]/10 text-[#1877F2] flex items-center justify-center mx-auto mb-5 shadow-lg shadow-blue-500/20">
+            <MessageCircle className="w-8 h-8" />
+        </div>
+        <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-2">
+            Connect WhatsApp Business API
+        </h3>
+        <p className="text-slate-500 dark:text-text-secondary text-sm max-w-lg mx-auto mb-8 leading-relaxed">
+            Send automated campaigns, recover abandoned carts, and manage customer support directly on WhatsApp. Connect your account in minutes.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 text-left">
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-100 dark:border-white/5">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-[#1877F2] flex items-center justify-center mb-2 font-bold text-xs">
+                    1
+                </div>
+                <p className="text-xs font-bold text-slate-900 dark:text-white">Connect Meta</p>
+                <p className="text-[11px] text-slate-500 dark:text-text-secondary mt-0.5">Log in with Facebook to link your business portfolio</p>
+            </div>
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-100 dark:border-white/5">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-[#1877F2] flex items-center justify-center mb-2 font-bold text-xs">
+                    2
+                </div>
+                <p className="text-xs font-bold text-slate-900 dark:text-white">Verify Business</p>
+                <p className="text-[11px] text-slate-500 dark:text-text-secondary mt-0.5">Confirm your business details with Meta</p>
+            </div>
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-background-dark border border-slate-100 dark:border-white/5">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-[#1877F2] flex items-center justify-center mb-2 font-bold text-xs">
+                    3
+                </div>
+                <p className="text-xs font-bold text-slate-900 dark:text-white">Add Number</p>
+                <p className="text-[11px] text-slate-500 dark:text-text-secondary mt-0.5">Register a valid phone number for WhatsApp</p>
+            </div>
+        </div>
+
+        <button
+            onClick={onConnect}
+            disabled={loading}
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#1877F2] hover:bg-[#166FE5] active:bg-[#1465D8] text-white font-bold rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all text-sm disabled:opacity-75 disabled:cursor-not-allowed"
+        >
+            {loading ? (
+                <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
+            ) : (
+                <MessageSquare className="w-4 h-4" />
+            )}
+            {loading ? 'Connecting...' : 'Connect WhatsApp Business'}
+        </button>
+    </div>
+);
 
 const Dashboard = () => {
     const { user, isImpersonating, fetchUser } = useAuth();
@@ -63,6 +115,7 @@ const Dashboard = () => {
     const [customStart, setCustomStart] = useState(new Date(new Date().setDate(new Date().getDate() - 7)));
     const [customEnd, setCustomEnd] = useState(new Date());
     const [refreshingStatus, setRefreshingStatus] = useState(false);
+    const [activeTab, setActiveTab] = useState('whatsapp');
 
     // ── Quality Insights Modal state ──────────────────────────────────────────
     const [showQualityModal, setShowQualityModal] = useState(false);
@@ -484,75 +537,84 @@ const Dashboard = () => {
         <div className="flex flex-col h-full bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display transition-colors duration-300">
             <TopHeader
                 title={`Welcome back, ${user?.name?.split(' ')[0]}`}
-                subtitle="Here is your messaging performance overview."
+                subtitle={activeTab === 'whatsapp' ? "Here is your messaging performance overview." : "Here is your online storefront performance and sales metrics."}
             />
 
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 scroll-smooth">
-                <div className="w-full flex flex-col gap-8">
-
-                    {/* Top Action Row: Banner & New Campaign */}
-                    <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 w-full">
-                        {/* Quick WhatsApp Connect Banner (If not configured) */}
-                        {!stats.isWhatsappConfigured && (
-                            <div className="shrink-0 w-full md:w-auto">
-                                <section className="bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl border border-indigo-100 dark:border-indigo-500/30 shadow-sm overflow-hidden flex flex-col md:flex-row items-center justify-between">
-                                    <div className="flex-1 px-5 py-3">
-                                        <h2 className="text-sm font-bold text-indigo-900 dark:text-indigo-100 flex items-center gap-2 mb-0.5">
-                                            <MessageCircle className="w-4 h-4" /> Connect WhatsApp Business
-                                        </h2>
-                                        <p className="text-indigo-700/80 dark:text-indigo-200/80 text-xs">
-                                            Quickly connect your number to start messaging.
-                                        </p>
-                                    </div>
-                                    <div className="px-5 py-3 md:py-0 md:pl-0 border-t md:border-t-0 border-indigo-100 dark:border-indigo-500/30 w-full md:w-auto flex flex-col md:flex-row items-center justify-end gap-3">
-                                        {fbLoading && (
-                                            <button
-                                                onClick={() => setFbLoading(false)}
-                                                className="text-xs font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 underline underline-offset-2 transition-colors"
-                                            >
-                                                Cancel Setup
-                                            </button>
-                                        )}
-                                        <button
-                                            onClick={() => setShowChecklistModal(true)}
-                                            disabled={fbLoading}
-                                            className="w-full md:w-auto shrink-0 px-4 py-2 bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold rounded-xl shadow-md shadow-blue-500/20 transition-all flex justify-center items-center gap-2 text-sm disabled:opacity-75 disabled:cursor-not-allowed"
-                                        >
-                                            {fbLoading ? (
-                                                <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
-                                            ) : (
-                                                <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                                                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                                                </svg>
-                                            )}
-                                            {fbLoading ? 'Connecting...' : 'Connect WhatsApp'}
-                                        </button>
-                                    </div>
-                                </section>
-                            </div>
-                        )}
-
-                        {/* Action Buttons */}
-                        <div className="shrink-0 w-full xl:w-auto flex items-center justify-end gap-3 ml-auto">
-                            <button
-                                onClick={() => navigate('/store')}
-                                className="flex items-center justify-center gap-2 h-11 px-4 md:px-6 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-emerald-500/20 w-full sm:w-auto"
-                            >
-                                <Wallet className="w-5 h-5" /> Top-up Store
-                            </button>
-                            <button
-                                onClick={() => navigate('/campaigns')}
-                                className="flex items-center justify-center gap-2 h-11 px-4 md:px-6 bg-primary hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-colors shadow-lg shadow-blue-500/20 w-full sm:w-auto"
-                            >
-                                <Plus className="w-5 h-5" /> New Campaign
-                            </button>
-                        </div>
+                
+                {/* Top Action Row: Tabs, Banner & New Campaign */}
+                <div className="flex flex-col xl:flex-row justify-between items-center gap-4 w-full mb-6">
+                    {/* Left Area (Empty for centering) */}
+                    <div className="flex-1 flex justify-start w-full xl:w-auto">
                     </div>
 
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-6 gap-4">
-                        {/* Stat 1: Messages Sent / Plan Limit */}
+                    {/* Tabs UI (Centered) */}
+                    <div className="shrink-0 flex items-center justify-center gap-2 p-1 bg-slate-100 dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-white/10 w-fit">
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('whatsapp')}
+                            className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-lg transition-all ${
+                                activeTab === 'whatsapp'
+                                    ? 'bg-white dark:bg-primary text-primary dark:text-white shadow-sm'
+                                    : 'text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white'
+                            }`}
+                        >
+                            <MessageSquare className="w-4 h-4" />
+                            <span>WhatsApp</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('store')}
+                            className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-lg transition-all ${
+                                activeTab === 'store'
+                                    ? 'bg-white dark:bg-emerald-600 text-emerald-600 dark:text-white shadow-sm'
+                                    : 'text-slate-500 dark:text-text-secondary hover:text-slate-900 dark:hover:text-white'
+                            }`}
+                        >
+                            <ShoppingBag className="w-4 h-4" />
+                            <span>Online Store</span>
+                        </button>
+                    </div>
+
+                    {/* Right Area (Action Buttons) */}
+                    <div className="flex-1 flex justify-end w-full xl:w-auto">
+                        {activeTab === 'whatsapp' && stats.isWhatsappConfigured && (
+                            <div className="shrink-0 w-full xl:w-auto flex items-center justify-end gap-3">
+                                <button
+                                    onClick={() => navigate('/store')}
+                                    className="flex items-center justify-center gap-2 h-11 px-4 md:px-6 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-emerald-500/20 w-full sm:w-auto"
+                                >
+                                    <Wallet className="w-5 h-5" /> Top-up Store
+                                </button>
+                                <button
+                                    onClick={() => navigate('/campaigns')}
+                                    className="flex items-center justify-center gap-2 h-11 px-4 md:px-6 bg-primary hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-colors shadow-lg shadow-blue-500/20 w-full sm:w-auto"
+                                >
+                                    <Plus className="w-5 h-5" /> New Campaign
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {activeTab === 'store' && <StoreAnalytics />}
+
+                <div className="w-full flex flex-col gap-8" style={{ display: activeTab === 'whatsapp' ? 'flex' : 'none' }}>
+                    {loading && !!user?.metaPhoneNumberId ? (
+                        <div className="flex justify-center items-center py-20 min-h-[400px]">
+                            <div className="w-10 h-10 rounded-full border-4 border-slate-200 dark:border-white/10 border-t-primary animate-spin"></div>
+                        </div>
+                    ) : (!loading && !stats.isWhatsappConfigured) || (loading && !user?.metaPhoneNumberId) ? (
+                        <WhatsAppEmptyState 
+                            onConnect={() => setShowChecklistModal(true)} 
+                            loading={fbLoading} 
+                        />
+                    ) : (
+                        <>
+                            {/* Stats Grid */}
+                            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-6 gap-4">
+                                {/* Stat 1: Messages Sent / Plan Limit */}
                         <div className="bg-white dark:bg-surface-dark rounded-xl p-5 border border-slate-200 dark:border-[#2f455a] shadow-sm transition-colors duration-300">
                             <div className="flex items-start justify-between mb-4">
                                 <div className="p-2 rounded-lg bg-slate-100 dark:bg-background-dark text-primary">
@@ -1082,6 +1144,8 @@ const Dashboard = () => {
                             </button>
                         </div>
                     </div>
+                        </>
+                    )}
                 </div>
             </div>
             <EmbeddedSignupChecklist

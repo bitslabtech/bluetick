@@ -149,7 +149,8 @@ export default function StoreLoginPage({ store, products = [] }) {
                         )}
 
                         {/* ── Email + Password Form ── */}
-                        <AnimatePresence mode="wait">
+                        <div className="grid items-start">
+                        <AnimatePresence>
                             {tab === 'email' && (
                                 <motion.form 
                                     key="email"
@@ -158,7 +159,7 @@ export default function StoreLoginPage({ store, products = [] }) {
                                     exit={{ opacity: 0 }}
                                     transition={{ duration: 0.12, ease: 'easeInOut' }}
                                     onSubmit={handleEmailLogin} 
-                                    className="space-y-4"
+                                    className="col-start-1 row-start-1 space-y-4 w-full"
                                 >
                                     <div>
                                     <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -241,7 +242,7 @@ export default function StoreLoginPage({ store, products = [] }) {
                                     exit={{ opacity: 0 }}
                                     transition={{ duration: 0.12, ease: 'easeInOut' }}
                                     onSubmit={handleVerifyOtp} 
-                                    className="space-y-4"
+                                    className="col-start-1 row-start-1 space-y-4 w-full"
                                 >
                                     {/* Phone */}
                                 <div>
@@ -345,6 +346,7 @@ export default function StoreLoginPage({ store, products = [] }) {
                             </motion.form>
                         )}
                         </AnimatePresence>
+                        </div>
 
                         {/* Register link */}
                         {hasEmail && (

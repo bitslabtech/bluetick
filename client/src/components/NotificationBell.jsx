@@ -240,15 +240,20 @@ const NotificationBell = () => {
                                                         )}
                                                         {!isAdmin && notif.buttonName && notif.buttonUrl && (
                                                             <div className="mt-2">
-                                                                <a
-                                                                    href={notif.buttonUrl}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    onClick={(e) => e.stopPropagation()}
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setIsNotificationsOpen(false);
+                                                                        if (notif.buttonUrl.startsWith('http')) {
+                                                                            window.open(notif.buttonUrl, '_blank', 'noopener,noreferrer');
+                                                                        } else {
+                                                                            navigate(notif.buttonUrl);
+                                                                        }
+                                                                    }}
                                                                     className="inline-block px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/20 dark:hover:bg-indigo-500/30 text-indigo-700 dark:text-indigo-300 rounded-md text-[10px] font-bold transition-colors border border-indigo-200 dark:border-indigo-500/30"
                                                                 >
                                                                     {notif.buttonName}
-                                                                </a>
+                                                                </button>
                                                             </div>
                                                         )}
                                                         <p className="text-[10px] text-slate-400 mt-1.5 flex items-center gap-1">

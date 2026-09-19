@@ -4,6 +4,7 @@ const Vcard = require('../models/Vcard');
 const User = require('../models/User');
 const Plan = require('../models/Plan');
 const VcardEnquiry = require('../models/VcardEnquiry');
+const VcardViewLog = require('../models/VcardViewLog');
 const auth = require('../middleware/auth');
 const multer = require('multer');
 const path = require('path');
@@ -90,8 +91,9 @@ router.get('/public/:slug', async (req, res) => {
              return res.status(403).json({ error: 'This vCard is currently unavailable due to plan restrictions.' });
         }
 
-        // Increment Views
+        // Increment total Views counter + log individual view for time-series analytics
         await vcard.increment('views');
+        VcardViewLog.create({ vcardId: vcard.id, userId: vcard.userId, viewedAt: new Date() }).catch(() => {});
 
         // Note: For public view we might want to sanitize but Sequelize output should be safe if no secrets are in it.
         // Also need to mask the password if it's set
@@ -260,6 +262,63 @@ router.get('/', async (req, res) => {
         res.json(vcards);
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch vCards' });
+    }
+});
+
+// ==========================================
+// ANALYTICS ROUTES
+// ==========================================
+
+// GET /api/vcards/data/analytics?days=7|30|90
+// Returns per-day VIEW counts for the requested period.
+// Period = yesterday going back `days` days (today is excluded).
+router.get('/data/analytics', async (req, res) => {
+    try {
+        const { Op } = require('sequelize');
+        const days = Math.min(parseInt(req.query.days) || 7, 90);
+
+        // Build date range: start of (today - days) → end of yesterday
+        const now = new Date();
+        const endOfYesterday = new Date(now);
+        endOfYesterday.setHours(0, 0, 0, -1); // 23:59:59.999 yesterday
+
+        const startDate = new Date(endOfYesterday);
+        startDate.setDate(startDate.getDate() - (days - 1));
+        startDate.setHours(0, 0, 0, 0); // start of the oldest day
+
+        // Fetch view logs in date range for this user's cards
+        const viewLogs = await VcardViewLog.findAll({
+            where: {
+                userId: req.user.id,
+                viewedAt: { [Op.between]: [startDate, endOfYesterday] }
+            },
+            attributes: ['viewedAt']
+        });
+
+        // Build a map of date -> count
+        const countMap = {};
+        viewLogs.forEach(log => {
+            const d = new Date(log.viewedAt);
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            countMap[key] = (countMap[key] || 0) + 1;
+        });
+
+        // Generate full date series (all days, zero-filled)
+        const series = [];
+        for (let i = days - 1; i >= 0; i--) {
+            const d = new Date(endOfYesterday);
+            d.setDate(d.getDate() - i);
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            const label = days <= 7
+                ? d.toLocaleDateString('en-US', { weekday: 'short' })   // Mon, Tue...
+                : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); // Jan 5
+            series.push({ date: key, label, views: countMap[key] || 0 });
+        }
+
+        res.json({ series, totalDays: days });
+    } catch (error) {
+        console.error('Analytics error:', error);
+        res.status(500).json({ error: 'Failed to fetch analytics' });
     }
 });
 

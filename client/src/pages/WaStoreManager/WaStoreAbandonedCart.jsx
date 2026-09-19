@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useNavigate } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
 import {
@@ -35,8 +35,15 @@ function timeAgo(dateStr) {
     return `${m}m ago`;
 }
 
+function getAbnSerial(num) {
+    if (!num) return 'ABN-0001';
+    if (/^ABN-/i.test(num)) return num;
+    return num.replace(/^(ORD|POS)-/i, 'ABN-');
+}
+
 export default function WaStoreAbandonedCart() {
     const { storeId } = useOutletContext();
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [data, setData] = useState(null);
@@ -111,7 +118,12 @@ export default function WaStoreAbandonedCart() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200">
                     <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/10">
-                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Cart Details #{selectedCart.orderNumber}</h2>
+                            <div className="flex items-center gap-2">
+                                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Cart Details</h2>
+                                <span className="font-mono font-bold text-sm px-2 py-0.5 rounded bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-300 dark:border-orange-500/30">
+                                    #{getAbnSerial(selectedCart.orderNumber)}
+                                </span>
+                            </div>
                             <button onClick={() => setSelectedCart(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-500 rounded-full transition-colors"><X className="w-5 h-5"/></button>
                         </div>
                         <div className="p-6 overflow-y-auto space-y-6">
@@ -128,8 +140,9 @@ export default function WaStoreAbandonedCart() {
                                 <div className="bg-slate-50 dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/10">
                                     <h3 className="font-bold text-slate-800 dark:text-white mb-3 flex items-center gap-2"><ShoppingCart className="w-4 h-4 text-indigo-500"/> Cart Summary</h3>
                                     <div className="space-y-1.5">
+                                        <p className="text-sm text-slate-600 dark:text-slate-300"><strong className="text-slate-800 dark:text-white">Cart ID:</strong> <span className="font-mono font-bold text-orange-600 dark:text-orange-400">#{getAbnSerial(selectedCart.orderNumber)}</span></p>
                                         <p className="text-sm text-slate-600 dark:text-slate-300"><strong className="text-slate-800 dark:text-white">Total:</strong> {selectedCart.currency} {selectedCart.total}</p>
-                                        <p className="text-sm text-slate-600 dark:text-slate-300"><strong className="text-slate-800 dark:text-white">Status:</strong> {selectedCart.abandonedReminderSent ? <span className="text-green-600">Reminder Sent</span> : <span className="text-amber-500">Pending</span>}</p>
+                                        <p className="text-sm text-slate-600 dark:text-slate-300"><strong className="text-slate-800 dark:text-white">Status:</strong> {selectedCart.abandonedReminderSent ? <span className="text-green-600 font-semibold">Reminder Sent</span> : <span className="text-amber-500 font-semibold">Pending</span>}</p>
                                         <p className="text-sm text-slate-600 dark:text-slate-300"><strong className="text-slate-800 dark:text-white">Created:</strong> {new Date(selectedCart.createdAt).toLocaleString()}</p>
                                     </div>
                                 </div>
@@ -163,8 +176,16 @@ export default function WaStoreAbandonedCart() {
                         </div>
                         <div className="p-4 border-t border-slate-100 dark:border-white/10 flex justify-end gap-3 bg-slate-50 dark:bg-white/5">
                             <button onClick={() => {
-                                const msg = encodeURIComponent(`Hi ${selectedCart.customerName || 'there'},\n\nWe noticed you left some items in your cart at our store. Would you like to complete your purchase?\n\nLet us know if you have any questions!`);
-                                window.open(`https://wa.me/${selectedCart.customerPhone?.replace(/\D/g, '')}?text=${msg}`, '_blank');
+                                const msg = `Hi ${selectedCart.customerName || 'there'},\n\nWe noticed you left some items in your cart at our store. Would you like to complete your purchase?\n\nLet us know if you have any questions!`;
+                                navigate('/whatsapp', {
+                                    state: {
+                                        startChatWith: {
+                                            phone: selectedCart.customerPhone,
+                                            name: selectedCart.customerName || 'Customer',
+                                            prefilledMessage: msg
+                                        }
+                                    }
+                                });
                             }} className="flex items-center gap-2 px-4 py-2 bg-[#25D366] hover:bg-[#128C7E] text-white rounded-xl font-semibold text-sm transition-colors shadow-sm">
                                 <MessageCircle className="w-4 h-4"/> Message on WhatsApp
                             </button>

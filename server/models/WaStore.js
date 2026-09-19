@@ -46,6 +46,44 @@ const WaStore = sequelize.define('WaStore', {
         defaultValue: [],
         comment: 'Array of { imageUrl, title, subtitle, ctaText } for the hero slider'
     },
+    shoppableVideos: {
+        type: DataTypes.JSON,
+        defaultValue: [],
+        comment: 'Array of { id, title, videoUrl, thumbnail, views, productId } for the vertical shoppable video slider'
+    },
+    shoppableVideosAutoSlide: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: 'Toggle auto-sliding for the shoppable videos slider on storefront'
+    },
+    showTrendingNow: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+        comment: 'Toggle to show or hide the Trending Now section on the storefront'
+    },
+    homepageSections: {
+        type: DataTypes.JSON,
+        defaultValue: [
+            { id: 'topbar',      visible: true },
+            { id: 'hero',        visible: true },
+            { id: 'categories',  visible: true },
+            { id: 'collections', visible: true },
+            { id: 'videos',      visible: true },
+            { id: 'trending',    visible: true },
+            { id: 'products',    visible: true },
+        ],
+        comment: 'Ordered array of homepage section visibility config for the Visual Store Editor'
+    },
+    featuredCategories: {
+        type: DataTypes.JSON,
+        defaultValue: [],
+        comment: 'Ordered array of category names to pin in the homepage Category Bar. Empty = show all.'
+    },
+    homepageCollections: {
+        type: DataTypes.JSON,
+        defaultValue: [],
+        comment: 'Ordered array of category names to show as Collection rows on the homepage (each shows 8 products + View All card)'
+    },
     whatsappNumber: {
         type: DataTypes.STRING,
         allowNull: false,
@@ -234,6 +272,7 @@ const WaStore = sequelize.define('WaStore', {
         defaultValue: {
             prefixOnline: 'ORD-',
             prefixPos: 'POS-',
+            prefixAbandoned: 'ABN-',
             onlineStartingNumber: 1001,
             posStartingNumber: 1001
         },

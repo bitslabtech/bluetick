@@ -140,14 +140,25 @@ router.get('/', async (req, res) => {
             };
             const mimes = mimePatterns[mediaType] || [];
 
+            const legacyOr = [];
+            if (mimes.length > 0) legacyOr.push({ mimeType: { [Op.in]: mimes } });
+            
+            if (mediaType === 'image') {
+                legacyOr.push({ url: { [Op.iLike]: '%.jpg%' } }, { url: { [Op.iLike]: '%.jpeg%' } }, { url: { [Op.iLike]: '%.png%' } }, { url: { [Op.iLike]: '%.webp%' } }, { url: { [Op.iLike]: '%.gif%' } });
+            } else if (mediaType === 'video') {
+                legacyOr.push({ url: { [Op.iLike]: '%.mp4%' } }, { url: { [Op.iLike]: '%.webm%' } }, { url: { [Op.iLike]: '%.3gp%' } }, { url: { [Op.iLike]: '%.mov%' } });
+            } else if (mediaType === 'document') {
+                legacyOr.push({ url: { [Op.iLike]: '%.pdf%' } }, { url: { [Op.iLike]: '%.csv%' } }, { url: { [Op.iLike]: '%.txt%' } });
+            }
+
             // Match rows where mediaType is explicitly set correctly OR where mediaType
-            // is null/misclassified-as-other but mimeType indicates the correct category.
+            // is null/misclassified-as-other but mimeType or url indicates the correct category.
             // Legacy rows before the mediaType feature have defaultValue 'other' set by Sequelize.
             where[Op.or] = [
                 { mediaType },
                 {
                     mediaType: { [Op.or]: [null, 'other'] },
-                    ...(mimes.length > 0 ? { mimeType: { [Op.in]: mimes } } : {})
+                    [Op.or]: legacyOr.length > 0 ? legacyOr : [{ id: null }] // id: null acts as a false condition if legacyOr is empty
                 }
             ];
             // Remove the simple mediaType filter if it was set (replaced by Op.or above)

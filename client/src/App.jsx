@@ -100,6 +100,8 @@ const WaStoreAnalytics = React.lazy(() => import('./pages/WaStoreManager/WaStore
 const WaStoreNotifications = React.lazy(() => import('./pages/WaStoreManager/WaStoreNotifications'));
 const WaStoreCustomers = React.lazy(() => import('./pages/WaStoreManager/WaStoreCustomers'));
 const WaStoreAbandonedCart = React.lazy(() => import('./pages/WaStoreManager/WaStoreAbandonedCart'));
+const WaStoreShoppableVideos = React.lazy(() => import('./pages/WaStoreManager/WaStoreShoppableVideos'));
+const WaStoreVisualEditor = React.lazy(() => import('./pages/WaStoreManager/WaStoreVisualEditor'));
 
 const PublicWaStore = React.lazy(() => import('./pages/PublicWaStore'));
 const PublicWaStoreCategories = React.lazy(() => import('./pages/PublicWaStoreCategories'));
@@ -398,6 +400,186 @@ function CustomDomainRouter({ children }) {
     return children;
 }
 
+// Sync visual editor iframes routes
+function EditorSync() {
+    const location = useLocation();
+    const navigate = useNavigate();
+    
+    const [isEditor] = useState(() => {
+        if (window.self === window.top) return false;
+        return new URLSearchParams(window.location.search).get('editor') === 'true';
+    });
+
+    useEffect(() => {
+        if (!isEditor) return;
+
+        window.__VSE_IFRAME_ID = window.__VSE_IFRAME_ID || Math.random().toString(36).substr(2, 9);
+        window.parent.postMessage({
+            type: 'VSE_ROUTE_CHANGE',
+            pathname: location.pathname,
+            search: location.search,
+            senderId: window.__VSE_IFRAME_ID
+        }, window.location.origin);
+    }, [location.pathname, location.search, isEditor]);
+
+    useEffect(() => {
+        if (!isEditor) return;
+        
+        let isSyncingScroll = false;
+        let syncTimeout = null;
+
+        const SECTION_DOM_IDS = {
+            hero:        'section-hero',
+            categories:  'section-categories',
+            collections: 'section-collections',
+            videos:      'section-videos',
+            trending:    'section-trending',
+            products:    'all-products-grid',
+            topbar:      'store-topbar',
+            footer:      'store-footer',
+        };
+        
+        const handleMessage = (event) => {
+            if (event.origin !== window.location.origin) return;
+            if (event.data?.type === 'VSE_SYNC_ROUTE') {
+                if (event.data.senderId === window.__VSE_IFRAME_ID) return;
+                if (location.pathname !== event.data.pathname || location.search !== event.data.search) {
+                    navigate(event.data.pathname + (event.data.search || ''), { replace: true });
+                }
+            }
+            if (event.data?.type === 'VSE_SYNC_SCROLL') {
+                if (event.data.senderId === window.__VSE_IFRAME_ID) return;
+                isSyncingScroll = true;
+                
+                let targetTop = 0;
+                let foundSection = false;
+                const maxScrollable = document.documentElement.scrollHeight - window.innerHeight;
+                
+                if (event.data.currentId && event.data.nextId) {
+                    const { currentId, nextId, fraction } = event.data;
+                    
+                    let y1 = 0;
+                    if (currentId === 'bottom') y1 = maxScrollable;
+                    else if (currentId !== 'top') {
+                        const el = document.getElementById(currentId);
+                        if (el) y1 = window.scrollY + el.getBoundingClientRect().top;
+                    }
+                    
+                    let y2 = maxScrollable;
+                    if (nextId === 'top') y2 = 0;
+                    else if (nextId !== 'bottom') {
+                        const el = document.getElementById(nextId);
+                        if (el) y2 = window.scrollY + el.getBoundingClientRect().top;
+                    }
+                    
+                    targetTop = y1 + (y2 - y1) * fraction;
+                    foundSection = true;
+                }
+                if (!foundSection && event.data.scrollPercent !== undefined) {
+                    targetTop = maxScrollable > 0 ? event.data.scrollPercent * maxScrollable : 0;
+                }
+                
+                // Clamp targetTop to valid bounds
+                targetTop = Math.max(0, Math.min(targetTop, maxScrollable));
+
+                window.scrollTo({ top: targetTop, behavior: 'instant' });
+
+                // Fallback: If an inner wrapper is the actual scroll container, scroll it too
+                const innerWrapper = document.getElementById('root')?.firstElementChild;
+                if (innerWrapper && innerWrapper.scrollHeight > innerWrapper.clientHeight) {
+                    const innerScrollable = innerWrapper.scrollHeight - innerWrapper.clientHeight;
+                    let innerTarget = foundSection ? targetTop : (event.data.scrollPercent || 0) * innerScrollable;
+                    innerTarget = Math.max(0, Math.min(innerTarget, innerScrollable));
+                    innerWrapper.scrollTo({ top: innerTarget, behavior: 'instant' });
+                }
+
+                clearTimeout(syncTimeout);
+                syncTimeout = setTimeout(() => { isSyncingScroll = false; }, 50);
+            }
+        };
+
+        const handleScroll = (e) => {
+            if (isSyncingScroll) return;
+            
+            // Get scroll position from whichever element is scrolling
+            const target = e.target === document ? document.documentElement : e.target;
+            
+            // Only sync if the scroll came from the main window or the root layout wrapper
+            const isMainScroll = target === document.documentElement || target === document.body || target.id === 'root' || target === document.getElementById('root')?.firstElementChild;
+            if (!isMainScroll) return;
+
+            const scrollTop = target.scrollTop || window.scrollY || 0;
+            const scrollHeight = target.scrollHeight || document.documentElement.scrollHeight;
+            const clientHeight = target.clientHeight || window.innerHeight;
+            
+            const scrollable = scrollHeight - clientHeight;
+            if (scrollable <= 0) return; // Prevent horizontal slider scrolls from resetting to top
+            
+            const positions = [];
+            positions.push({ id: 'top', y: 0 });
+            
+            const elements = Object.values(SECTION_DOM_IDS)
+                .map(id => document.getElementById(id))
+                .filter(el => el);
+            
+            for (const el of elements) {
+                positions.push({ id: el.id, y: window.scrollY + el.getBoundingClientRect().top });
+            }
+            
+            positions.push({ id: 'bottom', y: scrollable });
+            
+            // Sort ascending by Y coordinate
+            positions.sort((a, b) => a.y - b.y);
+            
+            let currentId = 'top';
+            let nextId = 'bottom';
+            let fraction = 0;
+            
+            for (let i = 0; i < positions.length - 1; i++) {
+                const p1 = positions[i];
+                let p2 = null;
+                for (let j = i + 1; j < positions.length; j++) {
+                    if (positions[j].y > p1.y) {
+                        p2 = positions[j];
+                        break;
+                    }
+                }
+                
+                if (!p2) break;
+                
+                if (scrollTop >= p1.y && scrollTop <= p2.y) {
+                    currentId = p1.id;
+                    nextId = p2.id;
+                    fraction = (scrollTop - p1.y) / (p2.y - p1.y);
+                    break;
+                }
+            }
+
+            const scrollPercent = scrollTop / scrollable;
+            
+            window.parent.postMessage({ 
+                type: 'VSE_SCROLL', 
+                scrollPercent, 
+                currentId,
+                nextId,
+                fraction,
+                senderId: window.__VSE_IFRAME_ID 
+            }, window.location.origin);
+        };
+
+        window.addEventListener('message', handleMessage);
+        window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
+        
+        return () => {
+            window.removeEventListener('message', handleMessage);
+            window.removeEventListener('scroll', handleScroll, { capture: true });
+            clearTimeout(syncTimeout);
+        };
+    }, [location.pathname, location.search, navigate, isEditor]);
+
+    return null;
+}
+
 function App() {
     return (
         <ThemeProvider>
@@ -407,6 +589,7 @@ function App() {
                         <SocketProvider>
                             <NotificationProvider>
                             <Router>
+                                <EditorSync />
                                 <ReferralCapture />
                                 <Toaster position="top-right" />
                                 <PaymentRedirectHandler />
@@ -419,7 +602,7 @@ function App() {
                                         <Route path="/blog" element={<BlogList />} />
                                         <Route path="/blog/:slug" element={<BlogPost />} />
                                         <Route path="/f/:id" element={<PublicForm />} /> {/* NEW: Public form viewer */}
-                                        <Route path="/vcard/:slug" element={<PublicVcard />} /> {/* NEW: Public Digital Business Card */}
+                                        <Route path="/vecards/:slug" element={<PublicVcard />} /> {/* NEW: Public Digital Business Card */}
                                         <Route path="/nfc/setup/:shortCode" element={<NfcSetup />} /> {/* NEW: NFC Setup */}
                                         <Route path="/store/:slug" element={<PublicWaStore />} /> {/* Public WhatsApp Store */}
                                         <Route path="/store/:slug/verify" element={<PublicWaStoreVerify />} />
@@ -493,6 +676,7 @@ function App() {
 
                                                     <Route path="seo" element={<WaStoreSEO />} />
                                                     <Route path="themes" element={<WaStoreThemes />} />
+                                                    <Route path="shoppable-videos" element={<WaStoreShoppableVideos />} />
                                                     <Route path="navigation" element={<WaStoreNavigation />} />
                                                     <Route path="mobile-navigation" element={<WaStoreMobileNavigation />} />
                                                     <Route path="topbar" element={<WaStoreTopBar />} />
@@ -547,6 +731,8 @@ function App() {
                                                  <Route path="/ai-token-history" element={<AiTokenHistory />} />
                                                  <Route path="/media-gallery" element={<MediaGallery />} />
                                              </Route>
+                                             {/* Visual Editor — full-screen, outside Layout so no sidebars appear */}
+                                             <Route path="/online-store/:slug/visual-editor" element={<WaStoreVisualEditor />} />
                                         </Route>
                                         <Route path="*" element={<NotFound404 />} />
                                     </Routes>

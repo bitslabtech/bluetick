@@ -42,6 +42,7 @@ require('./models/ContactMessage'); // Stores incoming messages from public Cont
 require('./models/ApiUsageLog');    // Logs every external /api/v1/* gateway call
 require('./models/Vcard');          // Digital Business Card SaaS Module
 require('./models/VcardEnquiry');   // vCard Leads/Enquiries
+require('./models/VcardViewLog');   // vCard per-visit view logs (time-series analytics)
 require('./models/WaStore');        // WhatsApp Store SaaS Module
 require('./models/WaProduct');      // WhatsApp Store Products
 require('./models/WaOrder');        // WhatsApp Store Orders
@@ -738,6 +739,8 @@ const startServer = async () => {
         try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN "domainVerifiedAt" TIMESTAMP WITH TIME ZONE DEFAULT NULL;`); } catch(e) { /* already exists — ignore */ }
         try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN IF NOT EXISTS "subcategories" JSON DEFAULT '{}';`); } catch(e) { /* already exists — ignore */ }
         try { await sequelize.query(`ALTER TABLE "WaProducts" ADD COLUMN IF NOT EXISTS "subCategories" JSON DEFAULT '[]';`); } catch(e) { /* already exists — ignore */ }
+        try { await sequelize.query(`ALTER TABLE "WaProducts" ADD COLUMN IF NOT EXISTS "isTrending" BOOLEAN DEFAULT false;`); } catch(e) { /* already exists — ignore */ }
+        try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN IF NOT EXISTS "shoppableVideosAutoSlide" BOOLEAN DEFAULT false;`); } catch(e) { /* already exists — ignore */ }
 
         await sequelize.sync({ alter: { drop: false } }); // Sync models — never drop constraints/columns
         console.log('Database synced.');

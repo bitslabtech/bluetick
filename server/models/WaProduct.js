@@ -56,6 +56,11 @@ const WaProduct = sequelize.define('WaProduct', {
         type: DataTypes.BOOLEAN,
         defaultValue: true
     },
+    isTrending: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: 'Flag to manually pin this product to the Trending Now section'
+    },
     sku: {
         type: DataTypes.STRING,
         allowNull: true,

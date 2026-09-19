@@ -8,6 +8,28 @@ import { getThemeComponent } from '../VcardThemes';
 import MediaGallery from '../MediaGallery';
 import MediaPickerModal from '../../components/MediaPickerModal';
 
+const COUNTRY_CODES = [
+    { code: '+1', label: 'US/CA (+1)' },
+    { code: '+44', label: 'UK (+44)' },
+    { code: '+91', label: 'IN (+91)' },
+    { code: '+61', label: 'AU (+61)' },
+    { code: '+971', label: 'UAE (+971)' },
+    { code: '+65', label: 'SG (+65)' },
+    { code: '+49', label: 'DE (+49)' },
+    { code: '+33', label: 'FR (+33)' },
+    { code: '+81', label: 'JP (+81)' },
+    { code: '+86', label: 'CN (+86)' },
+    { code: '+55', label: 'BR (+55)' },
+    { code: '+52', label: 'MX (+52)' },
+    { code: '+27', label: 'ZA (+27)' },
+    { code: '+92', label: 'PK (+92)' },
+    { code: '+880', label: 'BD (+880)' },
+    { code: '+94', label: 'LK (+94)' },
+    { code: '+977', label: 'NP (+977)' },
+].sort((a, b) => a.label.localeCompare(b.label));
+
+const MATCHING_COUNTRY_CODES = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
+
 export default function VcardBuilder() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -24,7 +46,50 @@ export default function VcardBuilder() {
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [whatsappFieldError, setWhatsappFieldError] = useState(false);
+    const [phoneError, setPhoneError] = useState('');
+    const [altPhoneError, setAltPhoneError] = useState('');
     const [activeTab, setActiveTab] = useState('basic'); // basic, theme, socials, services, seo
+
+    // Auto-scroll preview based on active tab
+    const scrollToPreviewElement = (elementId) => {
+        // Clear previous highlights
+        document.querySelectorAll('.vcard-active-element').forEach(node => node.classList.remove('vcard-active-element'));
+        
+        if (elementId === 'top') {
+            const previewContainer = document.getElementById('vcard-live-preview');
+            if (previewContainer) previewContainer.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+        
+        const el = document.getElementById(elementId);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.classList.add('vcard-active-element');
+        }
+    };
+
+    useEffect(() => {
+        const tabToSectionId = {
+            socials: 'vcard-section-social',
+            services: 'vcard-section-services',
+            gallery: 'vcard-section-gallery',
+            testimonials: 'vcard-section-testimonials',
+            hours: 'vcard-section-hours',
+            enquiry: 'vcard-section-enquiry',
+            booking: 'vcard-section-booking',
+            instagram: 'vcard-section-instagram',
+            contact: 'vcard-section-contact',
+        };
+
+        const sectionId = tabToSectionId[activeTab];
+        if (sectionId) {
+            scrollToPreviewElement(sectionId);
+        } else if (['basic', 'theme', 'hero'].includes(activeTab)) {
+            const previewContainer = document.getElementById('vcard-live-preview');
+            if (previewContainer) previewContainer.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }, [activeTab]);
+
 
     // ── Media Picker state ────────────────────────────────────────────────────
     const [pickerOpen, setPickerOpen] = useState(false);
@@ -96,12 +161,59 @@ export default function VcardBuilder() {
     const handleChange = (e) => {
         const { name, value } = e.target;
         if (name === 'whatsappNumber') setWhatsappFieldError(false);
+        if (name === 'phone') setPhoneError('');
+        if (name === 'alternatePhone') setAltPhoneError('');
         setVcard(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handlePhoneBlur = (e) => {
+        const value = e.target.value.replace(/[\s\-()]/g, '');
+        if (value.length > 0 && value.length < 10) {
+            setPhoneError('Please enter 10 digit phone number');
+        }
+    };
+
+    const handleAltPhoneBlur = (e) => {
+        const value = e.target.value.replace(/[\s\-()]/g, '');
+        if (value.length > 0 && value.length < 10) {
+            setAltPhoneError('Please enter 10 digit phone number');
+        }
+    };
+
+    const validatePhone = (phone, exactTenDigits = false) => {
+        if (!phone) return true; // allow empty for optional fields
+        const stripped = phone.replace(/[\s\-()]/g, '');
+        if (exactTenDigits) {
+            return /^[0-9]{10}$/.test(stripped);
+        }
+        return /^\+?[0-9]{7,15}$/.test(stripped);
     };
 
     const handleSave = async () => {
         if (!vcard.slug || !vcard.name) {
             showToast('Slug and Name are required', 'error');
+            return;
+        }
+        if (!vcard.phone) {
+            showToast('Phone number is required', 'error');
+            setActiveTab('basic');
+            return;
+        }
+        if (!vcard.location) {
+            showToast('Location / Address is required', 'error');
+            setActiveTab('basic');
+            return;
+        }
+        
+        if (!validatePhone(vcard.phone, true) || (vcard.alternatePhone && !validatePhone(vcard.alternatePhone, true))) {
+            showToast('Phone and Alternate Phone must be exactly 10 digits', 'error');
+            setActiveTab('basic');
+            return;
+        }
+
+        if (!validatePhone(vcard.whatsappNumber)) {
+            showToast('Please enter a valid WhatsApp number format', 'error');
+            setActiveTab('basic');
             return;
         }
 
@@ -168,6 +280,31 @@ export default function VcardBuilder() {
 
     return (
         <div className="flex h-[calc(100vh-6rem)] bg-slate-50 dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 shadow-sm animate-in fade-in">
+            <style>{`
+                @keyframes active-highlight-pulse {
+                    0% { outline: 2px solid rgba(97, 218, 251, 0.15); outline-offset: 4px; box-shadow: 0 0 0 0 rgba(97, 218, 251, 0.45); }
+                    70% { outline: 2px solid rgba(97, 218, 251, 0); outline-offset: 8px; box-shadow: 0 0 0 12px rgba(97, 218, 251, 0); }
+                    100% { outline: 2px solid rgba(97, 218, 251, 0.15); outline-offset: 4px; box-shadow: 0 0 0 0 rgba(97, 218, 251, 0); }
+                }
+                .vcard-active-element {
+                    animation: active-highlight-pulse 1.5s infinite !important;
+                    transition: all 0.3s ease;
+                    border-radius: inherit;
+                    position: relative;
+                    z-index: 10;
+                    will-change: box-shadow, outline;
+                    -webkit-backface-visibility: hidden;
+                    backface-visibility: hidden;
+                    transform-style: flat;
+                }
+                .vcard-active-element img {
+                    image-rendering: auto;
+                    -webkit-backface-visibility: hidden;
+                    backface-visibility: hidden;
+                    transform: translateZ(0);
+                    filter: none !important;
+                }
+            `}</style>
             {/* Left Side: Configuration Panel */}
             <div className="w-full lg:w-[72%] xl:w-[76%] flex flex-col border-r border-slate-200 dark:border-white/10 bg-white dark:bg-surface-dark h-full">
                 {/* Header */}
@@ -180,9 +317,10 @@ export default function VcardBuilder() {
                             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
                                 {id ? 'Edit veCard' : 'Create New veCard'}
                             </h2>
-                            <p className="text-xs text-slate-500 font-mono">
-                                domain.com/vcard/{vcard.slug || 'slug'}
-                            </p>
+                            <a href={`${window.location.origin}/vecards/${vcard.slug || 'slug'}`} target="_blank" rel="noopener noreferrer" className="text-xs text-teal-600 dark:text-teal-400 font-mono hover:underline flex items-center gap-1 mt-0.5">
+                                {window.location.host}/vecards/{vcard.slug || 'slug'}
+                                <LinkIcon className="w-3 h-3" />
+                            </a>
                         </div>
                     </div>
                     <button
@@ -233,83 +371,78 @@ export default function VcardBuilder() {
                     <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
                         {/* --- BASIC TAB --- */}
                         {activeTab === 'basic' && (
-                            <div className="space-y-6 animate-in slide-in-from-right-4">
+                            <div className="space-y-6 animate-in slide-in-from-right-4" onFocusCapture={(e) => {
+                                const n = e.target.name || '';
+                                if (['name', 'title', 'company', 'bio', 'slug'].includes(n)) scrollToPreviewElement('top');
+                                else if (['phone', 'alternatePhone', 'email', 'location'].includes(n)) scrollToPreviewElement('vcard-section-contact');
+                            }}>
 
-                                {/* ── Profile / Logo Upload ── */}
-                                <div className="flex items-center gap-5 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-white/10">
-                                    {/* Avatar preview */}
-                                    <div className="relative flex-shrink-0">
-                                        <div className="w-24 h-24 rounded-2xl border-2 border-dashed border-slate-300 dark:border-white/20 overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center shadow-sm">
-                                            {vcard.profileImage
-                                                ? <img src={vcard.profileImage} className="w-full h-full object-contain p-1" alt="Profile" />
-                                                : <div className="flex flex-col items-center gap-1">
-                                                    <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-2xl font-black text-indigo-500">
-                                                        {vcard.name ? vcard.name.charAt(0).toUpperCase() : '?'}
-                                                    </div>
-                                                </div>
-                                            }
-                                        </div>
-                                        {vcard.profileImage && (
-                                            <button
-                                                onClick={() => setVcard(p => ({ ...p, profileImage: '' }))}
-                                                className="absolute -top-2 -right-2 w-6 h-6 bg-rose-500 text-white rounded-full text-xs font-bold flex items-center justify-center shadow hover:bg-rose-600 transition-colors"
-                                                title="Remove image"
-                                            >✕</button>
-                                        )}
-                                    </div>
-
-                                    {/* Upload controls */}
-                                    <div className="flex-1 space-y-2.5">
+                                {/* ── Basic Info & Logo ── */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Left Column: Text Inputs */}
+                                    <div className="space-y-4">
                                         <div>
-                                            <p className="text-sm font-bold text-slate-800 dark:text-white">Profile / Logo Image</p>
-                                            <p className="text-xs text-slate-400 mt-0.5">Appears as your avatar on the veCard. Upload a photo or logo.</p>
+                                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Full Name *</label>
+                                            <input type="text" name="name" value={vcard.name} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 dark:text-white" required placeholder="John Doe" />
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => openPicker({ allowedTypes: 'image', multiple: false, title: 'Select Profile / Logo Image', onSelect: (url) => setVcard(p => ({ ...p, profileImage: url })) })}
-                                            className="flex items-center justify-center gap-2 cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl px-4 py-2.5 transition-colors w-full shadow-md shadow-indigo-500/20"
-                                        >
-                                            <ImageIcon className="w-4 h-4" />
-                                            Choose / Upload Photo
-                                        </button>
-                                        <input
-                                            type="url"
-                                            name="profileImage"
-                                            value={vcard.profileImage}
-                                            onChange={handleChange}
-                                            className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg text-xs text-slate-500 dark:text-slate-400 font-mono"
-                                            placeholder="or paste image URL here..."
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Full Name *</label>
-                                        <input type="text" name="name" value={vcard.name} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 dark:text-white" required placeholder="John Doe" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">URL Slug *</label>
-                                        <div className="flex">
-                                            <span className="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-slate-800 text-slate-500 text-sm font-mono truncate max-w-[120px] max-w-full">/vcard/</span>
-                                            <input type="text" name="slug" value={vcard.slug} onChange={handleChange} className="flex-1 w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-r-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 dark:text-white font-mono" required placeholder="john-doe" />
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">URL Slug *</label>
+                                            <div className="flex">
+                                                <span className="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-slate-800 text-slate-500 text-sm font-mono truncate max-w-[120px] max-w-full">/vecards/</span>
+                                                <input type="text" name="slug" value={vcard.slug} onChange={handleChange} className="flex-1 w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-r-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 dark:text-white font-mono" required placeholder="john-doe" />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Designation (optional)</label>
+                                            <input type="text" name="designation" value={vcard.designation} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white" placeholder="Software Engineer" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Company Name (optional)</label>
+                                            <input type="text" name="company" value={vcard.company} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white" placeholder="Tech Corp" />
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* Right Column: Profile / Logo Upload */}
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Designation</label>
-                                        <input type="text" name="designation" value={vcard.designation} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white" placeholder="Software Engineer" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Company</label>
-                                        <input type="text" name="company" value={vcard.company} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white" placeholder="Tech Corp" />
+                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Profile / Logo Image</label>
+                                        <div className="flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-white/10 h-[calc(100%-28px)] min-h-[250px]">
+                                            {/* Avatar preview */}
+                                            <div className="relative flex-shrink-0 mb-4">
+                                                <div className="w-32 h-32 rounded-2xl border-2 border-dashed border-slate-300 dark:border-white/20 overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center shadow-sm">
+                                                    {vcard.profileImage
+                                                        ? <img src={vcard.profileImage} className="w-full h-full object-contain p-1" alt="Profile" />
+                                                        : <div className="flex flex-col items-center gap-1">
+                                                            <div className="w-16 h-16 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-3xl font-black text-indigo-500">
+                                                                {vcard.name ? vcard.name.charAt(0).toUpperCase() : '?'}
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                </div>
+                                                {vcard.profileImage && (
+                                                    <button
+                                                        onClick={() => setVcard(p => ({ ...p, profileImage: '' }))}
+                                                        className="absolute -top-2 -right-2 w-8 h-8 bg-rose-500 text-white rounded-full text-sm font-bold flex items-center justify-center shadow hover:bg-rose-600 transition-colors"
+                                                        title="Remove image"
+                                                    >✕</button>
+                                                )}
+                                            </div>
+
+                                            <p className="text-xs text-slate-400 mb-5 text-center">Appears as your avatar on the veCard.<br />Upload a photo or logo.</p>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => openPicker({ allowedTypes: 'image', multiple: false, title: 'Select Profile / Logo Image', onSelect: (url) => setVcard(p => ({ ...p, profileImage: url })) })}
+                                                className="flex items-center justify-center gap-2 cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl px-5 py-2.5 transition-colors shadow-md shadow-indigo-500/20"
+                                            >
+                                                <ImageIcon className="w-4 h-4" />
+                                                Choose / Upload Photo
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Bio / About</label>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Bio / About (optional)</label>
                                     <textarea name="bio" value={vcard.bio} onChange={handleChange} rows="3" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white resize-none" placeholder="A short bio about yourself..." />
                                 </div>
 
@@ -318,12 +451,14 @@ export default function VcardBuilder() {
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Phone</label>
-                                        <input type="text" name="phone" value={vcard.phone} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white" placeholder="+1234567890" />
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Phone *</label>
+                                        <input type="text" name="phone" value={vcard.phone} onChange={handleChange} onBlur={handlePhoneBlur} className={`w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border ${phoneError ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-white/10'} rounded-xl focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white`} required placeholder="1234567890" maxLength={10} />
+                                        {phoneError && <p className="text-xs text-rose-500 mt-1">{phoneError}</p>}
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Alternate Phone</label>
-                                        <input type="text" name="alternatePhone" value={vcard.alternatePhone || ''} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white" placeholder="+0987654321" />
+                                        <input type="text" name="alternatePhone" value={vcard.alternatePhone || ''} onChange={handleChange} onBlur={handleAltPhoneBlur} className={`w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border ${altPhoneError ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-white/10'} rounded-xl focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white`} placeholder="0987654321" maxLength={10} />
+                                        {altPhoneError && <p className="text-xs text-rose-500 mt-1">{altPhoneError}</p>}
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email</label>
@@ -331,48 +466,117 @@ export default function VcardBuilder() {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">WhatsApp Number</label>
-                                        <input id="whatsapp-number-input" type="text" name="whatsappNumber" value={vcard.whatsappNumber || ''} onChange={handleChange} className={`w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border ${whatsappFieldError ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-white/10'} rounded-xl focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white`} placeholder="1234567890" />
+                                        <div className="flex">
+                                            {(() => {
+                                                const currentWaNumber = vcard.whatsappNumber || '';
+                                                const matchedCode = MATCHING_COUNTRY_CODES.find(c => currentWaNumber.startsWith(c.code))?.code || '+91';
+                                                const localWaNumber = currentWaNumber.startsWith(matchedCode) ? currentWaNumber.slice(matchedCode.length) : currentWaNumber;
+
+                                                const handleWaCodeChange = (e) => {
+                                                    const newCode = e.target.value;
+                                                    setVcard(prev => ({ ...prev, whatsappNumber: newCode + localWaNumber }));
+                                                };
+
+                                                const handleWaLocalChange = (e) => {
+                                                    const newLocal = e.target.value;
+                                                    setVcard(prev => ({ ...prev, whatsappNumber: matchedCode + newLocal }));
+                                                    setWhatsappFieldError(false);
+                                                };
+
+                                                return (
+                                                    <>
+                                                        <select 
+                                                            value={matchedCode} 
+                                                            onChange={handleWaCodeChange}
+                                                            className={`px-3 py-2.5 bg-slate-100 dark:bg-slate-800 border ${whatsappFieldError ? 'border-rose-500 border-r-0' : 'border-slate-200 dark:border-white/10 border-r-0'} rounded-l-xl focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white text-sm outline-none font-medium cursor-pointer`}
+                                                        >
+                                                            {COUNTRY_CODES.map(c => (
+                                                                <option key={c.code} value={c.code}>{c.label}</option>
+                                                            ))}
+                                                        </select>
+                                                        <input 
+                                                            id="whatsapp-number-input" 
+                                                            type="text" 
+                                                            value={localWaNumber} 
+                                                            onChange={handleWaLocalChange} 
+                                                            className={`flex-1 min-w-0 px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border ${whatsappFieldError ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200 dark:border-white/10'} rounded-r-xl focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white outline-none`} 
+                                                            placeholder="1234567890" 
+                                                        />
+                                                    </>
+                                                )
+                                            })()}
+                                        </div>
                                         {whatsappFieldError && <p className="text-xs text-rose-500 mt-1">Required to enable WhatsApp Chat</p>}
                                     </div>
                                     <div className="col-span-2">
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Location / Address</label>
-                                        <input type="text" name="location" value={vcard.location} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white" placeholder="City, Country" />
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Location / Address *</label>
+                                        <input type="text" name="location" value={vcard.location} onChange={handleChange} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white" required placeholder="City, Country" />
                                     </div>
                                 </div>
 
                                 <hr className="border-slate-100 dark:border-white/5" />
 
-                                <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-white/10">
-                                    <div className="flex-1 pr-4">
-                                        <p className="text-sm font-bold text-slate-800 dark:text-white">Show "Save Contact" Button</p>
-                                        <p className="text-xs text-slate-500">Displays a floating button at the bottom of your veCard</p>
-                                    </div>
-                                    <button onClick={() => setVcard(p => ({ ...p, showSaveContact: p.showSaveContact !== false ? false : true }))} className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${vcard.showSaveContact !== false ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}>
-                                        <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${vcard.showSaveContact !== false ? 'translate-x-5' : 'translate-x-0'}`} />
-                                    </button>
-                                </div>
-
-                                <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-white/10 mt-4">
-                                    <div className="flex-1 pr-4">
-                                        <p className="text-sm font-bold text-slate-800 dark:text-white">Show "Chat on WhatsApp" Button</p>
-                                        <p className="text-xs text-slate-500">Displays a floating button next to Save Contact</p>
-                                    </div>
-                                    <button onClick={() => {
-                                        if (vcard.showWhatsappChat !== false) {
-                                            setVcard(p => ({ ...p, showWhatsappChat: false }));
-                                        } else {
-                                            if (!vcard.whatsappNumber || vcard.whatsappNumber.trim() === '') {
-                                                setWhatsappFieldError(true);
-                                                showToast('Please enter a WhatsApp number first', 'error');
-                                                const field = document.getElementById('whatsapp-number-input');
-                                                if (field) field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-white/10">
+                                        <div className="flex-1 pr-4">
+                                            <p className="text-sm font-bold text-slate-800 dark:text-white">Show "Chat on WhatsApp" Button</p>
+                                            <p className="text-xs text-slate-500">Displays a floating button next to Save Contact</p>
+                                        </div>
+                                        <button onClick={() => {
+                                            if (vcard.showWhatsappChat !== false) {
+                                                setVcard(p => ({ ...p, showWhatsappChat: false }));
                                             } else {
-                                                setVcard(p => ({ ...p, showWhatsappChat: true }));
+                                                if (!vcard.whatsappNumber || vcard.whatsappNumber.trim() === '') {
+                                                    setWhatsappFieldError(true);
+                                                    showToast('Please enter a WhatsApp number first', 'error');
+                                                    const field = document.getElementById('whatsapp-number-input');
+                                                    if (field) field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                } else {
+                                                    setVcard(p => ({ ...p, showWhatsappChat: true }));
+                                                }
                                             }
-                                        }
-                                    }} className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${vcard.showWhatsappChat !== false ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}>
-                                        <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${vcard.showWhatsappChat !== false ? 'translate-x-5' : 'translate-x-0'}`} />
-                                    </button>
+                                        }} className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${vcard.showWhatsappChat !== false ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}>
+                                            <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${vcard.showWhatsappChat !== false ? 'translate-x-5' : 'translate-x-0'}`} />
+                                        </button>
+                                    </div>
+
+                                    <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-white/10">
+                                        <div className="flex-1 pr-4">
+                                            <p className="text-sm font-bold text-slate-800 dark:text-white">Show "Save Contact" Button</p>
+                                            <p className="text-xs text-slate-500">Displays a floating button at the bottom of your veCard</p>
+                                        </div>
+                                        <button onClick={() => setVcard(p => ({ ...p, showSaveContact: p.showSaveContact !== false ? false : true }))} className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${vcard.showSaveContact !== false ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}>
+                                            <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${vcard.showSaveContact !== false ? 'translate-x-5' : 'translate-x-0'}`} />
+                                        </button>
+                                    </div>
+
+                                    {/* Button Label & Prefill Message — shown when Chat on WhatsApp is enabled */}
+                                    {vcard.showWhatsappChat !== false && (
+                                        <div className="space-y-3 pl-1">
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Button Text</label>
+                                                <input
+                                                    type="text"
+                                                    value={vcard.whatsappChatLabel || ''}
+                                                    onChange={e => setVcard(p => ({ ...p, whatsappChatLabel: e.target.value }))}
+                                                    placeholder="Chat on WhatsApp"
+                                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white text-sm"
+                                                />
+                                                <p className="text-xs text-slate-400 mt-1">Leave empty to use the default label</p>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Pre-filled Message</label>
+                                                <textarea
+                                                    rows={3}
+                                                    value={vcard.whatsappPrefillMessage || ''}
+                                                    onChange={e => setVcard(p => ({ ...p, whatsappPrefillMessage: e.target.value }))}
+                                                    placeholder="Hi! I found your veCard and would like to connect..."
+                                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white text-sm resize-none"
+                                                />
+                                                <p className="text-xs text-slate-400 mt-1">This message will be pre-filled when the visitor opens WhatsApp</p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -383,32 +587,57 @@ export default function VcardBuilder() {
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Choose a Profession Theme</label>
                                     <p className="text-xs text-slate-500 mb-3">Pick the theme that matches your profession — each has its own unique background graphics and style.</p>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                         {[
-                                            { id: 'corporate-executive', label: 'Corporate / Executive', sub: 'Lawyers, Consultants, Finance', bg: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)', accent: '#c9a84c', emoji: '🏛️' },
-                                            { id: 'creative-portfolio', label: 'Creative Portfolio', sub: 'Designers, Artists, Photographers', bg: 'linear-gradient(135deg, #0f0a1e 0%, #2d1b69 100%)', accent: '#a855f7', emoji: '🎨' },
-                                            { id: 'tech-startup', label: 'Tech & Startup', sub: 'Developers, Engineers, IT', bg: 'linear-gradient(135deg, #020617 0%, #0c1a2e 100%)', accent: '#06b6d4', emoji: '💻' },
-                                            { id: 'health-wellness', label: 'Health & Wellness', sub: 'Doctors, Therapists, Coaches', bg: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', accent: '#10b981', emoji: '🌿' },
-                                            { id: 'local-business', label: 'Cafe & Salon', sub: 'Cafes, Salons, Spas', bg: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)', accent: '#f97316', emoji: '☕' },
-                                            { id: 'beauty-salon', label: 'Business & Trade', sub: 'Trading, Agencies, Retail', bg: 'linear-gradient(135deg, #faf7f2 0%, #f5ede6 100%)', accent: '#c8a27c', emoji: '🏢' },
+                                            { id: 'corporate-executive', label: 'Corporate / Executive', accent: '#c9a84c' },
+                                            { id: 'creative-portfolio', label: 'Creative Portfolio', accent: '#a855f7' },
+                                            { id: 'tech-startup', label: 'Tech & Startup', accent: '#06b6d4' },
+                                            { id: 'health-wellness', label: 'Health & Wellness', accent: '#10b981' },
+                                            { id: 'local-business', label: 'Cafe & Salon', accent: '#f97316' },
+                                            { id: 'beauty-salon', label: 'Business & Trade', accent: '#c8a27c' },
                                         ].map(t => (
                                             <div
                                                 key={t.id}
                                                 onClick={() => setVcard(prev => ({ ...prev, themeId: t.id, primaryColor: prev.primaryColor || t.accent }))}
-                                                className={`relative rounded-xl border-2 cursor-pointer transition-all overflow-hidden ${vcard.themeId === t.id ? 'border-indigo-500 shadow-lg shadow-indigo-500/20' : 'border-slate-200 dark:border-white/10 hover:border-indigo-300'} cursor-pointer`}
+                                                className={`group flex flex-col rounded-2xl border-2 cursor-pointer transition-all overflow-hidden bg-white dark:bg-slate-900 ${vcard.themeId === t.id ? 'border-indigo-500 shadow-xl shadow-indigo-500/20 ring-4 ring-indigo-500/10' : 'border-slate-200 dark:border-white/10 hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:shadow-lg'}`}
                                             >
-                                                {/* Mini preview bg */}
-                                                <div style={{ background: t.bg, height: 72, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                    <span style={{ fontSize: '1.5rem', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.4))' }}>{t.emoji}</span>
-                                                    {/* Accent glow dot */}
-                                                    <div style={{ position: 'absolute', bottom: 8, right: 8, width: 10, height: 10, borderRadius: '50%', background: t.accent, boxShadow: `0 0 8px ${t.accent}` }} />
-                                                    {vcard.themeId === t.id && (
-                                                        <div style={{ position: 'absolute', top: 6, left: 6, background: '#6366f1', borderRadius: 99, padding: '2px 8px', fontSize: '0.6rem', fontWeight: 800, color: 'white', letterSpacing: '0.05em' }}>✓ ACTIVE</div>
-                                                    )}
+                                                {/* Theme Name Header */}
+                                                <div className="p-3 text-center border-b border-slate-100 dark:border-white/5">
+                                                    <p className="text-sm font-bold text-black dark:text-white">{t.label}</p>
                                                 </div>
-                                                <div className="p-2.5 bg-white dark:bg-slate-900">
-                                                    <p className="text-xs font-bold text-slate-800 dark:text-white leading-tight">{t.label}</p>
-                                                    <p className="text-[10px] text-slate-400 mt-0.5 leading-tight">{t.sub}</p>
+
+                                                {/* Mini preview */}
+                                                <div className="relative w-full h-[340px] bg-slate-50 dark:bg-black/20 overflow-hidden pointer-events-none select-none">
+                                                    
+                                                    <div 
+                                                        className="absolute top-4 left-1/2 origin-top"
+                                                        style={{
+                                                            width: 430,
+                                                            height: 880,
+                                                            transform: 'translateX(-50%) scale(0.35)',
+                                                        }}
+                                                    >
+                                                        {(() => {
+                                                            const ThemeComponent = getThemeComponent(t.id);
+                                                            const mockVcard = { ...vcard, themeId: t.id, primaryColor: t.accent };
+                                                            return (
+                                                                <>
+                                                                    {/* Screen Content */}
+                                                                    <div className="relative w-full h-full bg-white dark:bg-slate-900 rounded-[3rem] overflow-hidden hide-scrollbar">
+                                                                        <ThemeComponent vcard={mockVcard} onShare={() => {}} />
+                                                                    </div>
+                                                                    {/* Phone Frame Overlay (Always on top) */}
+                                                                    <div className="absolute inset-0 pointer-events-none rounded-[3rem] border-[16px] border-slate-800 shadow-[inset_0_0_10px_rgba(0,0,0,0.1),_0_20px_25px_-5px_rgba(0,0,0,0.1)] z-[9999]" />
+                                                                </>
+                                                            );
+                                                        })()}
+                                                    </div>
+
+                                                    {vcard.themeId === t.id && (
+                                                        <div className="absolute top-3 right-3 bg-indigo-600 rounded-full px-2.5 py-1 text-[10px] font-bold text-white tracking-widest shadow-lg border border-white/20 z-10 animate-in zoom-in">
+                                                            ACTIVE
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}
@@ -443,7 +672,7 @@ export default function VcardBuilder() {
 
                         {/* --- SOCIALS TAB --- */}
                         {activeTab === 'socials' && (
-                            <div className="space-y-5 animate-in slide-in-from-right-4">
+                            <div className="space-y-5 animate-in slide-in-from-right-4" onFocusCapture={() => scrollToPreviewElement('vcard-section-social')}>
                                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gradient-to-r from-indigo-50 to-white dark:from-indigo-950/20 dark:to-slate-900 p-5 rounded-2xl border border-indigo-100 dark:border-indigo-500/20 gap-4">
                                     <div>
                                         <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -510,7 +739,7 @@ export default function VcardBuilder() {
 
                         {/* --- SERVICES TAB --- */}
                         {activeTab === 'services' && (
-                            <div className="space-y-5 animate-in slide-in-from-right-4">
+                            <div className="space-y-5 animate-in slide-in-from-right-4" onFocusCapture={() => scrollToPreviewElement('vcard-section-services')}>
                                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gradient-to-r from-teal-50 to-white dark:from-teal-950/20 dark:to-slate-900 p-5 rounded-2xl border border-teal-100 dark:border-teal-500/20 gap-4">
                                     <div>
                                         <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -519,9 +748,6 @@ export default function VcardBuilder() {
                                         </h3>
                                         <p className="text-xs text-slate-500 mt-1">Showcase your professional services and offerings.</p>
                                     </div>
-                                    <button onClick={addService} className="text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 shadow-sm shadow-teal-200 dark:shadow-none px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all active:scale-95 w-full sm:w-auto justify-center">
-                                        <Plus className="w-4 h-4" /> Add Service
-                                    </button>
                                 </div>
 
                                 <div className="flex items-center justify-between bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 p-4 rounded-2xl shadow-sm hover:border-teal-300 dark:hover:border-teal-500/50 transition-colors">
@@ -544,7 +770,7 @@ export default function VcardBuilder() {
                                                 <div className="px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded-lg text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                                                     Service {idx + 1}
                                                 </div>
-                                                <button onClick={() => removeService(idx)} className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors">
+                                                <button onClick={() => removeService(idx)} className="p-1.5 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-500/20 rounded-lg transition-colors">
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </div>
@@ -609,13 +835,18 @@ export default function VcardBuilder() {
                                             </button>
                                         </div>
                                     )}
+                                    {vcard.services.length > 0 && (
+                                        <button onClick={addService} className="w-full py-3 mt-2 border-2 border-dashed border-teal-200 dark:border-teal-500/30 rounded-xl text-sm font-bold text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-500/10 transition-colors flex items-center justify-center gap-2">
+                                            <Plus className="w-4 h-4" /> Add Another Service
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         )}
 
                         {/* --- HERO MEDIA TAB --- */}
                         {activeTab === 'hero' && (
-                            <div className="space-y-6 animate-in slide-in-from-right-4">
+                            <div className="space-y-6 animate-in slide-in-from-right-4" onFocusCapture={() => scrollToPreviewElement('top')}>
                                 <div>
                                     <h3 className="font-bold text-slate-900 dark:text-white text-lg">Hero Media Setup</h3>
                                     <p className="text-xs text-slate-500 mt-1">Make a stunning first impression by adding a background image or an auto-playing video to the top of your veCard.</p>
@@ -686,19 +917,6 @@ export default function VcardBuilder() {
                                                             </button>
                                                         )}
                                                     </div>
-                                                    
-                                                    {!currentUrl && (
-                                                        <div className="mt-auto">
-                                                            <div className="flex items-center gap-1.5 mt-2">
-                                                                <LinkIcon className="w-3 h-3 text-slate-400 flex-shrink-0" />
-                                                                <input type="url" value={currentUrl} onChange={e => {
-                                                                    const newUrls = [...urls];
-                                                                    newUrls[idx] = e.target.value;
-                                                                    setVcard(p => ({ ...p, heroMedia: { ...p.heroMedia, urls: newUrls, url: newUrls[0] || '' } }));
-                                                                }} className="w-full px-2 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-md text-[10px] text-slate-500 focus:ring-1 focus:ring-indigo-500" placeholder="https://..." />
-                                                            </div>
-                                                        </div>
-                                                    )}
                                                 </div>
                                             );
                                         })}
@@ -772,47 +990,65 @@ export default function VcardBuilder() {
                                                         <span className="text-xs text-slate-400 mt-1">Keep it short! Max size: 50MB</span>
                                                     </button>
                                                 </div>
-                                                
-                                                <div className="relative">
-                                                    <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                                                        <div className="w-full border-t border-slate-200 dark:border-white/10" />
-                                                    </div>
-                                                    <div className="relative flex justify-center">
-                                                        <span className="bg-slate-50 dark:bg-slate-800 px-3 text-xs text-slate-400 font-medium uppercase tracking-wider">or paste link</span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex items-center gap-2">
-                                                    <LinkIcon className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                                                    <input type="url" value={vcard.heroMedia?.url || ''} onChange={e => setVcard(p => ({ ...p, heroMedia: { ...p.heroMedia, url: e.target.value } }))} className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white text-sm" placeholder="https://example.com/video.mp4" />
-                                                </div>
                                             </div>
                                         )}
                                     </div>
                                 )}
 
-                                {/* --- OVERLAY SETTING --- */}
-                                <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-white/10 mt-6">
-                                    <div className="flex-1 pr-4">
-                                        <p className="text-sm font-bold text-slate-800 dark:text-white">Dark Gradient Overlay</p>
-                                        <p className="text-xs text-slate-500 mt-0.5">Applies a dark gradient over your media to make white text and profile pictures pop perfectly.</p>
-                                    </div>
-                                    <button onClick={() => setVcard(p => ({ ...p, heroMedia: { ...p.heroMedia, overlay: p.heroMedia?.overlay !== false ? false : true } }))} 
-                                        className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${vcard.heroMedia?.overlay !== false ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}>
-                                        <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${vcard.heroMedia?.overlay !== false ? 'translate-x-5' : 'translate-x-0'}`} />
-                                    </button>
-                                </div>
+                                {/* --- EFFECTS SETTINGS --- */}
+                                <div className="mt-6">
+                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">Hero Effects</label>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        
+                                        {/* Overlay */}
+                                        <div className="flex items-start justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-white/10">
+                                            <div className="flex-1 pr-4">
+                                                <p className="text-sm font-bold text-slate-800 dark:text-white">Dark Overlay</p>
+                                                <p className="text-xs text-slate-500 mt-0.5">Applies a dark gradient over media for better text readability.</p>
+                                            </div>
+                                            <button onClick={() => setVcard(p => ({ ...p, heroMedia: { ...p.heroMedia, overlay: p.heroMedia?.overlay !== false ? false : true } }))} 
+                                                className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${vcard.heroMedia?.overlay !== false ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}>
+                                                <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${vcard.heroMedia?.overlay !== false ? 'translate-x-5' : 'translate-x-0'}`} />
+                                            </button>
+                                        </div>
 
-                                {/* --- FLOATING SPARKLES SETTING --- */}
-                                <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-white/10 mt-3">
-                                    <div className="flex-1 pr-4">
-                                        <p className="text-sm font-bold text-slate-800 dark:text-white">Floating Ambient Sparkles</p>
-                                        <p className="text-xs text-slate-500 mt-0.5">Adds subtle animated sparkles floating over your hero banner.</p>
+                                        {/* Sparkles */}
+                                        <div className="flex items-start justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-white/10">
+                                            <div className="flex-1 pr-4">
+                                                <p className="text-sm font-bold text-slate-800 dark:text-white">Ambient Sparkles</p>
+                                                <p className="text-xs text-slate-500 mt-0.5">Adds subtle animated sparkles floating over your banner.</p>
+                                            </div>
+                                            <button onClick={() => setVcard(p => ({ ...p, heroMedia: { ...p.heroMedia, floatingSparkles: p.heroMedia?.floatingSparkles === true ? false : true, snowfall: false, starlight: false } }))} 
+                                                className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${vcard.heroMedia?.floatingSparkles === true ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}>
+                                                <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${vcard.heroMedia?.floatingSparkles === true ? 'translate-x-5' : 'translate-x-0'}`} />
+                                            </button>
+                                        </div>
+
+                                        {/* Snowfall */}
+                                        <div className="flex items-start justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-white/10">
+                                            <div className="flex-1 pr-4">
+                                                <p className="text-sm font-bold text-slate-800 dark:text-white">Snowfall</p>
+                                                <p className="text-xs text-slate-500 mt-0.5">Gentle falling snow effect for a winter or calm vibe.</p>
+                                            </div>
+                                            <button onClick={() => setVcard(p => ({ ...p, heroMedia: { ...p.heroMedia, snowfall: p.heroMedia?.snowfall === true ? false : true, floatingSparkles: false, starlight: false } }))} 
+                                                className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${vcard.heroMedia?.snowfall === true ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}>
+                                                <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${vcard.heroMedia?.snowfall === true ? 'translate-x-5' : 'translate-x-0'}`} />
+                                            </button>
+                                        </div>
+
+                                        {/* Twinkling Stars */}
+                                        <div className="flex items-start justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-white/10">
+                                            <div className="flex-1 pr-4">
+                                                <p className="text-sm font-bold text-slate-800 dark:text-white">Twinkling Stars</p>
+                                                <p className="text-xs text-slate-500 mt-0.5">Stationary stars that gently twinkle in and out for a magical feel.</p>
+                                            </div>
+                                            <button onClick={() => setVcard(p => ({ ...p, heroMedia: { ...p.heroMedia, starlight: p.heroMedia?.starlight === true ? false : true, floatingSparkles: false, snowfall: false } }))} 
+                                                className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${vcard.heroMedia?.starlight === true ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}>
+                                                <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${vcard.heroMedia?.starlight === true ? 'translate-x-5' : 'translate-x-0'}`} />
+                                            </button>
+                                        </div>
+
                                     </div>
-                                    <button onClick={() => setVcard(p => ({ ...p, heroMedia: { ...p.heroMedia, floatingSparkles: p.heroMedia?.floatingSparkles === true ? false : true } }))} 
-                                        className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${vcard.heroMedia?.floatingSparkles === true ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}>
-                                        <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${vcard.heroMedia?.floatingSparkles === true ? 'translate-x-5' : 'translate-x-0'}`} />
-                                    </button>
                                 </div>
                             </div>
                         )}
@@ -821,7 +1057,7 @@ export default function VcardBuilder() {
 
                         {/* --- GALLERY TAB --- */}
                         {activeTab === 'gallery' && (
-                            <div className="space-y-4 animate-in slide-in-from-right-4">
+                            <div className="space-y-4 animate-in slide-in-from-right-4" onFocusCapture={() => scrollToPreviewElement('vcard-section-gallery')}>
                                 <div className="flex justify-between items-center mb-2">
                                     <div>
                                         <h3 className="font-bold text-slate-900 dark:text-white">Photo Gallery</h3>
@@ -867,7 +1103,11 @@ export default function VcardBuilder() {
 
                                             {img.url ? (
                                                 <>
-                                                    <img src={img.url} className="w-full h-full object-cover" alt="" onError={e => e.target.style.display = 'none'} />
+                                                    {img.url.match(/\.(mp4|webm|ogg|mov)$/i) ? (
+                                                        <video src={img.url} className="w-full h-full object-cover" autoPlay loop muted playsInline />
+                                                    ) : (
+                                                        <img src={img.url} className="w-full h-full object-cover" alt="" onError={e => e.target.style.display = 'none'} />
+                                                    )}
                                                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-8 pb-2 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                                         <input type="text" value={img.caption} onChange={e => { const g = [...vcard.gallery]; g[idx].caption = e.target.value; setVcard(p => ({ ...p, gallery: g })); }} placeholder="Caption..." className="w-full bg-transparent border-none p-0 text-xs text-white placeholder-white/60 focus:ring-0 text-center font-medium" />
                                                     </div>
@@ -876,9 +1116,9 @@ export default function VcardBuilder() {
                                                 <button
                                                     type="button"
                                                     onClick={() => openPicker({
-                                                        allowedTypes: 'image',
+                                                        allowedTypes: 'image,video',
                                                         multiple: false,
-                                                        title: `Select Gallery Image ${idx + 1}`,
+                                                        title: `Select Gallery Media ${idx + 1}`,
                                                         onSelect: (url) => {
                                                             const g = [...vcard.gallery];
                                                             g[idx].url = url;
@@ -890,7 +1130,7 @@ export default function VcardBuilder() {
                                                     <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                                                         <ImageIcon className="w-4 h-4" />
                                                     </div>
-                                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Add Image</span>
+                                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Add Media</span>
                                                 </button>
                                             )}
                                         </div>
@@ -908,7 +1148,7 @@ export default function VcardBuilder() {
 
                         {/* --- TESTIMONIALS TAB --- */}
                         {activeTab === 'testimonials' && (
-                            <div className="space-y-4 animate-in slide-in-from-right-4">
+                            <div className="space-y-4 animate-in slide-in-from-right-4" onFocusCapture={() => scrollToPreviewElement('vcard-section-testimonials')}>
 
                                 {/* Header */}
                                 <div className="flex justify-between items-center">
@@ -1058,7 +1298,7 @@ export default function VcardBuilder() {
                                 showToast('Monday\'s hours applied to Tue – Fri ✓', 'success');
                             };
                             return (
-                                <div className="space-y-4 animate-in slide-in-from-right-4">
+                                <div className="space-y-4 animate-in slide-in-from-right-4" onFocusCapture={() => scrollToPreviewElement('vcard-section-hours')}>
                                     <div>
                                         <h3 className="font-bold text-slate-900 dark:text-white">Business Hours</h3>
                                         <p className="text-xs text-slate-500">Set your open and close times for each day.</p>
@@ -1105,7 +1345,7 @@ export default function VcardBuilder() {
 
                         {/* --- ENQUIRY FORM TAB --- */}
                         {activeTab === 'enquiry' && (
-                            <div className="space-y-5 animate-in slide-in-from-right-4">
+                            <div className="space-y-5 animate-in slide-in-from-right-4" onFocusCapture={() => scrollToPreviewElement('vcard-section-enquiry')}>
                                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gradient-to-r from-violet-50 to-white dark:from-violet-950/20 dark:to-slate-900 p-5 rounded-2xl border border-violet-100 dark:border-violet-500/20 gap-4">
                                     <div>
                                         <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -1179,7 +1419,7 @@ export default function VcardBuilder() {
 
                         {/* --- BOOKING TAB --- */}
                         {activeTab === 'booking' && (
-                            <div className="space-y-5 animate-in slide-in-from-right-4">
+                            <div className="space-y-5 animate-in slide-in-from-right-4" onFocusCapture={() => scrollToPreviewElement('vcard-section-booking')}>
                                 <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-white/10">
                                     <div className="flex-1 pr-4">
                                         <p className="text-sm font-bold text-slate-800 dark:text-white">Enable Booking Section</p>
@@ -1338,60 +1578,57 @@ export default function VcardBuilder() {
                 </div>{/* end body flex */}
             </div>
             {/* Right Side: Live Mobile Preview */}
-            <div className="hidden lg:flex lg:w-[28%] xl:w-[24%] bg-slate-100 dark:bg-black/40 items-start justify-center p-4 pt-6 relative isolate overflow-hidden">
+            <div className="hidden lg:flex lg:w-[28%] xl:w-[30%] bg-slate-100 dark:bg-black/40 items-center justify-center p-4 relative isolate overflow-hidden">
                 {/* Decorative blobs */}
                 <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-indigo-500/20 rounded-full blur-[80px] -z-10" />
                 <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 w-32 h-32 bg-purple-500/10 rounded-full blur-[60px] -z-10" />
 
-                {/* Preview label */}
-                <div className="absolute top-3 left-0 right-0 flex justify-center z-20">
-                    <div className="flex items-center gap-1.5 px-3 py-1 bg-black/60 backdrop-blur-sm rounded-full border border-white/10">
+                {/* Live Preview Label */}
+                <div className="absolute top-8 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center gap-2 z-10">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-black/60 dark:bg-white/5 backdrop-blur-sm rounded-full border border-black/10 dark:border-white/10">
                         <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                        <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Live Preview</span>
+                        <span className="text-[10px] font-bold text-white dark:text-slate-300 uppercase tracking-widest">Live Preview</span>
                     </div>
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                        </svg>
+                        Scroll to explore
+                    </span>
                 </div>
 
                 {/* Phone frame wrapper */}
-                <div className="relative flex-shrink-0" style={{ marginTop: 28 }}>
+                <div className="relative flex-shrink-0">
                     {/* Phone shell */}
-                    <div className="relative w-[220px] max-w-full bg-slate-900 rounded-[2.5rem] shadow-2xl border-[3px] border-slate-700 overflow-hidden" style={{ height: 460 }}>
+                    <div className="relative w-[280px] max-w-full bg-slate-900 rounded-[2.5rem] shadow-2xl border-[3px] border-slate-700 overflow-hidden" style={{ height: 580 }}>
                         {/* Top notch */}
                         <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: '40%', height: 16, background: '#0f172a', borderBottomLeftRadius: 12, borderBottomRightRadius: 12, zIndex: 30 }} />
                         {/* Side buttons (decorative) */}
-                        <div style={{ position: 'absolute', top: 70, right: -6, width: 4, height: 32, background: '#334155', borderRadius: 2 }} />
-                        <div style={{ position: 'absolute', top: 50, left: -6, width: 4, height: 22, background: '#334155', borderRadius: 2 }} />
-                        <div style={{ position: 'absolute', top: 80, left: -6, width: 4, height: 22, background: '#334155', borderRadius: 2 }} />
+                        <div style={{ position: 'absolute', top: 85, right: -6, width: 4, height: 40, background: '#334155', borderRadius: 2 }} />
+                        <div style={{ position: 'absolute', top: 60, left: -6, width: 4, height: 28, background: '#334155', borderRadius: 2 }} />
+                        <div style={{ position: 'absolute', top: 100, left: -6, width: 4, height: 28, background: '#334155', borderRadius: 2 }} />
 
                         {/* Screen — actual theme render, scaled down */}
                         <div
-                            className="hide-scrollbar"
                             style={{
                                 position: 'absolute',
                                 top: 0, left: 0,
                                 width: 430,
-                                height: '100vh',
+                                height: 580 * (430 / 280),
                                 transformOrigin: 'top left',
-                                transform: `scale(${220 / 430})`,
-                                overflowY: 'auto',
-                                overflowX: 'hidden',
-                                pointerEvents: 'none',
-                                userSelect: 'none',
-                                WebkitUserSelect: 'none',
+                                transform: `scale(${280 / 430})`,
                             }}
                         >
-                            {(() => {
-                                const ThemeComponent = getThemeComponent(vcard.themeId);
-                                return <ThemeComponent vcard={vcard} onShare={() => { }} />;
-                            })()}
+                            <div id="vcard-live-preview" className="hide-scrollbar" style={{ width: '100%', height: '100%', overflowY: 'auto', overflowX: 'hidden', userSelect: 'none', WebkitUserSelect: 'none' }}>
+                                {(() => {
+                                    const ThemeComponent = getThemeComponent(vcard.themeId);
+                                    return <ThemeComponent vcard={vcard} onShare={() => { }} />;
+                                })()}
+                            </div>
                         </div>
                     </div>
 
-                    {/* Current theme badge */}
-                    <div className="mt-3 flex justify-center">
-                        <div className="px-3 py-1.5 bg-white/10 dark:bg-white/5 backdrop-blur-sm rounded-full border border-white/10 text-center">
-                            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{vcard.themeId?.replace(/-/g, ' ') || 'Select a Theme'}</p>
-                        </div>
-                    </div>
+
                 </div>
             </div>
             {/* ── Media Picker Modal ─────────────────────────────────────────────── */}

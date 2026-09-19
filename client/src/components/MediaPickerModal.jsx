@@ -204,11 +204,15 @@ export default function MediaPickerModal({
 
     const visibleTabs = allowedTypes === "all" ? TABS : TABS.filter(t => t.id === "all" || t.id === allowedTypes);
 
-    // Determine if a file is compatible with the current mimeConstraints
+    // Determine if a file is compatible with the current mimeConstraints or allowedTypes
     const isFileCompatible = useCallback((file) => {
-        if (!mimeConstraints || mimeConstraints.length === 0) return true;
-        return mimeConstraints.includes(file.mimeType);
-    }, [mimeConstraints]);
+        if (mimeConstraints && mimeConstraints.length > 0) return mimeConstraints.includes(file.mimeType);
+        if (allowedTypes !== "all") {
+            const typeConf = ALLOWED_TYPES[allowedTypes] || ALLOWED_TYPES.all;
+            return typeConf.mime.includes(file.mimeType);
+        }
+        return true;
+    }, [mimeConstraints, allowedTypes]);
 
     // Human-readable label for the constraint hint
     const constraintLabel = mimeConstraints

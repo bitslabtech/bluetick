@@ -7,14 +7,14 @@ import { usePayment } from '../hooks/usePayment';
 export default function NfcStoreModal({ isOpen, onClose }) {
     const { showToast } = useUI();
     const [step, setStep] = useState(1);
-    
+
     // Form state
     const [productType, setProductType] = useState('metal_card');
     const [quantity, setQuantity] = useState(1);
     const [shippingAddress, setShippingAddress] = useState('');
     const [contactNumber, setContactNumber] = useState('');
     const { initiatePayment, isProcessing: submitting } = usePayment();
-    
+
     // Dynamic catalog
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -45,7 +45,7 @@ export default function NfcStoreModal({ isOpen, onClose }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         const payload = {
             productType: selectedProduct.name,
             quantity,
@@ -74,7 +74,7 @@ export default function NfcStoreModal({ isOpen, onClose }) {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white dark:bg-surface-dark w-full max-w-3xl rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col max-h-[90vh]">
-                
+
                 {/* Header */}
                 <div className="relative p-6 sm:p-4 md:p-8 bg-gradient-to-br from-indigo-900 to-slate-900 text-white shrink-0">
                     <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors">
@@ -96,7 +96,7 @@ export default function NfcStoreModal({ isOpen, onClose }) {
                     {step === 1 && (
                         <div className="space-y-6">
                             <h3 className="font-bold text-lg text-slate-900 dark:text-white">Select a Product</h3>
-                            
+
                             {loading ? (
                                 <div className="flex justify-center py-12">
                                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
@@ -104,13 +104,13 @@ export default function NfcStoreModal({ isOpen, onClose }) {
                             ) : products.length === 0 ? (
                                 <div className="text-center py-12 bg-slate-50 dark:bg-white/5 rounded-2xl border border-dashed border-slate-200 dark:border-white/10">
                                     <PackageOpen className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                                    <h4 className="text-slate-500 font-medium">Store is currently empty. Check back later!</h4>
+                                    <h4 className="text-slate-500 font-medium">Products coming soon.</h4>
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     {products.map(p => (
-                                        <div 
-                                            key={p.id} 
+                                        <div
+                                            key={p.id}
                                             onClick={() => setProductType(p.id)}
                                             className={`cursor-pointer rounded-2xl border-2 overflow-hidden transition-all flex flex-col ${productType === p.id ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 shadow-md shadow-indigo-500/20 transform -translate-y-1' : 'border-slate-200 dark:border-white/10 hover:border-indigo-300 dark:hover:border-indigo-500/30 bg-white dark:bg-slate-800'} cursor-pointer`}
                                         >
@@ -130,7 +130,7 @@ export default function NfcStoreModal({ isOpen, onClose }) {
                                     ))}
                                 </div>
                             )}
-                            
+
                             <div className="flex justify-end pt-4">
                                 <button disabled={products.length === 0} onClick={() => setStep(2)} className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-4 md:px-8 py-3 rounded-xl font-bold shadow-lg shadow-indigo-500/30 transition-all">
                                     Continue to Shipping

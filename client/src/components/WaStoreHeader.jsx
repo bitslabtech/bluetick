@@ -58,6 +58,8 @@ export default function WaStoreHeader({
     const [expandedMobileSections, setExpandedMobileSections] = useState({ categories: true, policies: false, contact: false });
      // 'privacy', 'terms', 'return'
 
+    const isDarkTheme = theme?.pageBg?.includes('900') || theme?.pageBg?.includes('950') || theme?.pageBg?.includes('black') || theme?.pageBg?.includes('zinc');
+
     if (!store) return null;
 
     const headerDisplayMode = store.themeCustomizations?.headerDisplayMode || 'logo';
@@ -78,7 +80,7 @@ export default function WaStoreHeader({
 
         if (results.length === 0) {
             return (
-                <div className="p-6 text-center text-gray-500">
+                <div className="p-6 text-center text-gray-500 dark:text-gray-400">
                     No products found for "{searchQuery}"
                 </div>
             );
@@ -94,9 +96,9 @@ export default function WaStoreHeader({
                                 setSearchQuery('');
                                 navigate(getStoreRoute(slug, `/product/${slugifyProduct(product)}`));
                             }}
-                            className="w-full flex items-center gap-4 p-3 sm:p-4 bg-white hover:bg-gray-50 transition-colors border-b border-gray-100 text-left"
+                            className="w-full flex items-center gap-4 p-3 sm:p-4 bg-white dark:bg-slate-900 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors border-b border-gray-100 dark:border-white/10 text-left"
                         >
-                            <div className="w-14 h-14 shrink-0 flex items-center justify-center">
+                            <div className="w-14 h-14 shrink-0 flex items-center justify-center bg-gray-50 dark:bg-white rounded-lg p-1">
                                 {product.imageUrls && product.imageUrls[0] ? (
                                     <img src={imgUrl(product.imageUrls[0])} alt={product.name} className="w-full h-full object-contain mix-blend-multiply" />
                                 ) : (
@@ -104,23 +106,23 @@ export default function WaStoreHeader({
                                 )}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <h4 className="font-semibold text-[15px] text-gray-900 truncate mb-0.5">{product.name}</h4>
+                                <h4 className="font-semibold text-[15px] text-gray-900 dark:text-white truncate mb-0.5">{product.name}</h4>
                                 <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider truncate">{product.category || 'Uncategorized'}</p>
                             </div>
-                            <div className="font-bold text-[15px] text-gray-900 shrink-0 bg-gray-50 px-2.5 py-1.5 rounded-lg border border-gray-100">
+                            <div className="font-bold text-[15px] text-gray-900 dark:text-white shrink-0 bg-gray-50 dark:bg-slate-800 px-2.5 py-1.5 rounded-lg border border-gray-100 dark:border-white/10">
                                 {getCurrencySymbol(store.currency)}{parseFloat(product.price).toFixed(2)}
                             </div>
                         </button>
                     </li>
                 ))}
-                <li className="bg-gray-50 p-3 text-center border-t border-gray-100">
+                <li className="bg-gray-50 dark:bg-slate-900 p-3 text-center border-t border-gray-100 dark:border-white/10">
                     <button 
                         onClick={() => {
                             setIsSearchOpen(false);
                             navigate(getStoreRoute(slug));
                             setTimeout(() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' }), 100);
                         }}
-                        className="text-[13px] font-bold text-gray-900 sm:text-blue-600 bg-gray-100 sm:bg-transparent px-4 py-3 sm:py-2 rounded-xl sm:rounded-none w-full sm:w-auto hover:bg-gray-200 transition-colors"
+                        className="text-[13px] font-bold text-gray-900 dark:text-white sm:text-blue-600 sm:dark:text-blue-400 bg-gray-100 dark:bg-slate-800 sm:bg-transparent px-4 py-3 sm:py-2 rounded-xl sm:rounded-none w-full sm:w-auto hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors"
                     >
                         View all search results
                     </button>
@@ -411,6 +413,110 @@ export default function WaStoreHeader({
                             </button>
                         </div>
                     </div>)
+                ) : theme.id === 'amber' ? (
+                    /* ── AMBER: Premium Gourmet Header ── Toasted Sand #DFD5C3 Header with Espresso Accents ── */
+                    (<div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-20 sm:h-24 flex items-center justify-between relative gap-2 sm:gap-4">
+                        {/* LEFT: Mobile Menu Button (hidden on desktop) */}
+                        <div className="flex items-center shrink-0 w-1/3 md:w-auto md:hidden">
+                            <button 
+                                aria-label="Open menu"
+                                onClick={() => setIsMobileMenuOpen(true)}
+                                className="p-2 -ml-2 rounded-xl text-[#261A14] hover:bg-[#CDC1AE]/40 transition-colors mr-2"
+                            >
+                                <Menu className="w-6 h-6" />
+                            </button>
+                        </div>
+                        {/* MIDDLE/LEFT: Logo (Centered on mobile, Left on desktop) */}
+                        <div className="flex items-center justify-center md:justify-start shrink-0 w-1/3 md:w-auto">
+                            <div className={`flex items-center ${headerDisplayMode === 'both' ? 'gap-3' : ''} cursor-pointer group`} onClick={() => navigate(getStoreRoute(slug))}>
+                                {showLogo && (
+                                    <img
+                                        src={cdnImg(imgUrl(store.logo), { width: 268 })}
+                                        srcSet={`${cdnImg(imgUrl(store.logo), { width: 180 })} 180w, ${cdnImg(imgUrl(store.logo), { width: 268 })} 268w`}
+                                        sizes="(max-width: 640px) 180px, 268px"
+                                        alt={store.name}
+                                        className="w-auto h-10 sm:h-12 md:h-14 object-contain rounded-lg"
+                                        onError={e => e.target.style.display = 'none'}
+                                    />
+                                )}
+                                {showName && (
+                                    <span className="font-bold text-xl sm:text-2xl md:text-3xl text-[#261A14] tracking-tight leading-none group-hover:text-[#5A453A] transition-colors">
+                                        {store.name}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* CENTER: Desktop Search Bar (Amber Theme Only) */}
+                        <div className="hidden md:flex flex-1 justify-center max-w-md lg:max-w-xl mx-4 lg:mx-8">
+                            <div className="relative w-full">
+                                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7A6456]" />
+                                <input 
+                                    type="text" 
+                                    placeholder="Search dry fruits & gifts..." 
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full bg-[#ECE3D5] hover:bg-[#E5DBD0] focus:bg-white focus:border-[#261A14] border border-[#CDC1AE] text-[#261A14] py-2.5 pl-10 pr-8 rounded-full outline-none transition-colors text-xs font-medium placeholder-[#7A6456] shadow-inner"
+                                />
+                                {searchQuery && (
+                                    <button 
+                                        aria-label="Clear search"
+                                        onClick={() => setSearchQuery('')}
+                                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#7A6456] hover:text-[#261A14] p-1"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+                                {searchQuery.trim().length > 0 && (
+                                    <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-[#CDC1AE] overflow-hidden z-50 max-h-[60vh] overflow-y-auto text-[#261A14]">
+                                        {renderSearchResults()}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* RIGHT: Mobile Search Toggle & Account & Cart */}
+                        <div className="flex items-center justify-end gap-2 sm:gap-3 shrink-0 w-1/3 md:w-auto">
+                            {/* Mobile Search Icon */}
+                            <button 
+                                aria-label="Toggle search"
+                                onClick={() => setIsSearchOpen(!isSearchOpen)}
+                                className="md:hidden p-2 rounded-full text-[#261A14] hover:bg-[#CDC1AE]/40 transition-colors flex items-center justify-center"
+                            >
+                                <Search className="w-5 h-5 stroke-[1.5]" />
+                            </button>
+
+                            {/* Account button (if customer auth enabled) */}
+                            {authEnabled && (
+                                <button
+                                    aria-label="My Account"
+                                    onClick={() => navigate(getStoreRoute(slug, `/account${storeCustomer ? '' : '/login'}`))}
+                                    className="relative hidden md:flex items-center justify-center p-2.5 text-[#261A14] hover:bg-[#CDC1AE]/40 rounded-full transition-colors group"
+                                >
+                                    <User className="w-5 h-5 stroke-[1.5] group-hover:scale-105 transition-transform" />
+                                    {storeCustomer && (
+                                        <span className="absolute top-1 right-1 w-2 h-2 bg-[#261A14] rounded-full border border-white" />
+                                    )}
+                                </button>
+                            )}
+
+                            {/* Cart Button */}
+                            <button 
+                                aria-label="View cart"
+                                title="View cart"
+                                onClick={() => setIsCartOpen(true)}
+                                className="relative p-2.5 bg-[#ECE3D5] hover:bg-[#E0D4C5] text-[#261A14] border border-[#CDC1AE] rounded-full transition-colors flex items-center justify-center shadow-sm active:scale-95 mr-2 sm:mr-0"
+                            >
+                                <span className="sr-only">View cart</span>
+                                <ShoppingCart aria-hidden="true" className="w-5 h-5 stroke-[1.5]" />
+                                {cartCount > 0 && (
+                                    <span className="absolute -top-1 -right-1 bg-[#261A14] text-[#DFD5C3] text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-sm">
+                                        {cartCount}
+                                    </span>
+                                )}
+                            </button>
+                        </div>
+                    </div>)
                 ) : (
                     /* ── DEFAULT layout for all other themes ── */
                     (<div className={theme.headerWrapper || "max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between relative"}>
@@ -419,7 +525,7 @@ export default function WaStoreHeader({
                             <button 
                                 aria-label="Open menu"
                                 onClick={() => setIsMobileMenuOpen(true)}
-                                className={`p-2 -ml-2 rounded-lg ${theme.textMuted} hover:${theme.text} transition-colors`}
+                                className={`p-2 -ml-2 rounded-xl ${theme.menuButton || `${theme.textMuted} hover:${theme.text}`} transition-colors`}
                             >
                                 <Menu className="w-6 h-6" />
                             </button>
@@ -448,7 +554,7 @@ export default function WaStoreHeader({
                             <button 
                                 aria-label="Toggle search"
                                 onClick={() => setIsSearchOpen(!isSearchOpen)}
-                                className={`md:hidden p-2 rounded-full transition-colors ${theme.textMuted} hover:${theme.text} flex items-center justify-center`}
+                                className={`md:hidden p-2 rounded-full transition-colors ${theme.textMuted} hover:${theme.text} hover:bg-black/5 flex items-center justify-center`}
                             >
                                 <Search className="w-6 h-6 stroke-[1.5]" />
                             </button>
@@ -490,7 +596,7 @@ export default function WaStoreHeader({
                                 <span className="sr-only">View cart</span>
                                 <ShoppingCart aria-hidden="true" className="w-6 h-6 stroke-[1.5]" />
                                 {cartCount > 0 && (
-                                    <span className={`absolute -top-1 -right-1 ${theme.cartBadge} text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white shadow-sm`}>
+                                    <span className={`absolute -top-1 -right-1 ${theme.cartBadge} text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 ${theme?.id === 'jewelry' ? 'border-[#EAD8DB]' : 'border-white'} shadow-sm`}>
                                         {cartCount}
                                     </span>
                                 )}
@@ -579,7 +685,7 @@ export default function WaStoreHeader({
 
                 {/* ─── MEGA MENU ─── */}
                 {store.megaMenu && store.megaMenu.length > 0 && theme.id !== 'glow' && (
-                    <div className="w-full border-t border-gray-200/50 hidden md:block">
+                    <div className={`w-full border-t hidden md:block ${theme.id === 'amber' ? 'border-[#CDC1AE] bg-[#DFD5C3]' : 'border-gray-200/50'}`}>
                         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
                             <ul className="flex items-center justify-center space-x-10 h-12">
                                 {store.megaMenu.map((menuItem) => (
@@ -600,17 +706,17 @@ export default function WaStoreHeader({
                                                     navigate(target);
                                                 }
                                             }}
-                                            className="flex items-center h-full text-sm font-semibold tracking-wide hover:opacity-70 transition-opacity uppercase"
+                                            className={`flex items-center h-full text-sm font-semibold tracking-wide uppercase transition-colors ${theme.id === 'amber' ? 'text-[#261A14] hover:text-[#5A453A]' : 'hover:opacity-70'}`}
                                         >
                                             {menuItem.title}
                                             {menuItem.children && menuItem.children.length > 0 && (
-                                                <ChevronDown className="w-3.5 h-3.5 ml-1.5 opacity-50 transition-transform group-hover:rotate-180" />
+                                                <ChevronDown className={`w-3.5 h-3.5 ml-1.5 transition-transform group-hover:rotate-180 ${theme.id === 'amber' ? 'text-[#5A453A]' : 'opacity-50'}`} />
                                             )}
                                         </a>
                                         
                                         {/* Dropdown */}
                                         {menuItem.children && menuItem.children.length > 0 && (
-                                            <div className="absolute top-[100%] left-1/2 -translate-x-1/2 w-56 bg-white border border-gray-100 shadow-2xl rounded-xl py-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top translate-y-2 group-hover:translate-y-0 z-50">
+                                            <div className={`absolute top-[100%] left-1/2 -translate-x-1/2 w-56 shadow-2xl rounded-xl py-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top translate-y-2 group-hover:translate-y-0 z-50 ${theme.id === 'amber' ? 'bg-[#FAF7F2] border border-[#CDC1AE]' : 'bg-white border border-gray-100'}`}>
                                                 <ul className="flex flex-col">
                                                     {menuItem.children.map(child => (
                                                         <li key={child.id}>
@@ -630,7 +736,7 @@ export default function WaStoreHeader({
                                                                         navigate(target);
                                                                     }
                                                                 }}
-                                                                className="block px-5 py-2.5 text-[13px] font-medium text-gray-700 hover:text-black hover:bg-gray-50 transition-colors"
+                                                                className={`block px-5 py-2.5 text-[13px] font-medium transition-colors ${theme.id === 'amber' ? 'text-[#4A3528] hover:text-[#261A14] hover:bg-[#ECE3D5]' : 'text-gray-700 hover:text-black hover:bg-gray-50'}`}
                                                             >
                                                                 {child.title}
                                                             </a>
@@ -645,11 +751,96 @@ export default function WaStoreHeader({
                         </div>
                     </div>
                 )}
+                {/* ─── DESKTOP SEARCH DROPDOWN (Inside Header) ─── */}
+                {isSearchOpen && (
+                    <div
+                        className={`hidden sm:flex absolute left-0 right-0 top-full w-full bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-white/10 shadow-sm z-40 overflow-visible flex-col ${isDarkTheme ? 'dark' : ''}`}
+                        style={{ animation: 'fadeSlideDown 0.2s ease forwards' }}
+                    >
+                        {/* Desktop Search Input */}
+                        <div className="max-w-[1440px] mx-auto px-4 py-4 sm:px-6 lg:px-8 relative w-full">
+                            <div className="relative">
+                                <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <input 
+                                    type="text" 
+                                    placeholder="Search for products..." 
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    autoFocus
+                                    className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-black dark:text-white py-3 pl-12 pr-4 rounded-xl outline-none focus:border-black dark:focus:border-white transition-colors"
+                                />
+                                <button 
+                                    aria-label="Close search"
+                                    onClick={() => { setIsSearchOpen(false); setSearchQuery(''); }}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black dark:hover:text-white p-1"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                            
+                            {/* DESKTOP LIVE SEARCH RESULTS */}
+                            {searchQuery.trim().length > 0 && (
+                                <div className="absolute left-4 right-4 sm:left-6 sm:right-6 lg:left-8 lg:right-8 top-full mt-2 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden z-50 max-h-[60vh] overflow-y-auto">
+                                    {renderSearchResults()}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
             </header>
+
+            {/* ─── MOBILE SEARCH FULLSCREEN MODAL (Outside Header) ─── */}
+            {isSearchOpen && (
+                <div
+                    className={`sm:hidden fixed inset-0 w-full bg-white dark:bg-slate-950 z-[100] overflow-hidden flex flex-col ${isDarkTheme ? 'dark' : ''}`}
+                    style={{ animation: 'fadeSlideDown 0.2s ease forwards' }}
+                >
+                    {/* Mobile Header for Full Screen Modal */}
+                    <div className="flex items-center px-4 h-16 border-b border-gray-100 dark:border-white/10 shrink-0 bg-white dark:bg-slate-900 shadow-sm z-10">
+                        <button 
+                            onClick={() => { setIsSearchOpen(false); setSearchQuery(''); }}
+                            className="mr-3 p-2 -ml-2 text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                        >
+                            <ArrowLeft className="w-6 h-6" />
+                        </button>
+                        <input 
+                            type="text" 
+                            placeholder="Search products..." 
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            autoFocus
+                            className="w-full text-lg outline-none bg-transparent placeholder-gray-400 dark:placeholder-gray-500 text-black dark:text-white font-medium"
+                        />
+                        {searchQuery && (
+                            <button onClick={() => setSearchQuery('')} className="p-2 -mr-2 text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white">
+                                <X className="w-5 h-5" />
+                            </button>
+                        )}
+                    </div>
+
+                    {/* MOBILE LIVE SEARCH RESULTS */}
+                    <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-slate-950 text-black dark:text-white">
+                        {searchQuery.trim().length > 0 ? (
+                            <div className="bg-white dark:bg-slate-900">
+                                {renderSearchResults()}
+                            </div>
+                        ) : (
+                            <div className="px-4 py-16 text-center text-gray-400 dark:text-gray-500 flex flex-col items-center justify-center h-full pb-[30vh]">
+                                <div className="bg-gray-100 dark:bg-white/5 p-4 rounded-full mb-4">
+                                    <Search className="w-8 h-8 text-gray-300 dark:text-gray-600" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300 mb-1">Looking for something?</h3>
+                                <p className="text-sm font-medium text-gray-400 dark:text-gray-500">Start typing to search across the store</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* ─── MOBILE NAVIGATION DRAWER ─── */}
             {/* CSS transitions replace framer-motion */}
             {isMobileMenuOpen && (
-                <div className="fixed inset-0 z-[60] flex md:hidden">
+                <div className={`fixed inset-0 z-[60] flex md:hidden ${isDarkTheme ? 'dark' : ''}`}>
                     {/* Backdrop — CSS fade */}
                     <div
                         className="absolute inset-0 bg-black/40 backdrop-blur-sm cursor-pointer"
@@ -658,10 +849,10 @@ export default function WaStoreHeader({
                     />
                     {/* Slide-in panel from left — CSS */}
                     <div
-                        className={`w-[85%] max-w-sm h-full relative z-10 flex flex-col shadow-2xl ${theme.pageBg}`}
+                        className={`w-[85%] max-w-sm h-full relative z-10 flex flex-col shadow-2xl ${theme?.mobileNavBg || theme?.pageBg}`}
                         style={{ animation: 'slideInLeft 0.3s ease forwards' }}
                     >
-                            <div className={`px-4 pt-6 pb-3 border-b border-gray-100 dark:border-white/10 flex items-center relative ${theme.header}`}>
+                            <div className={`px-4 pt-6 pb-3 border-b ${theme?.id === 'jewelry' ? 'border-[#B76E79]/25' : 'border-gray-100 dark:border-white/10'} flex items-center relative ${theme.header}`}>
                                 <div className="flex-1"></div>
                                 <div className="flex flex-col items-center text-center shrink-0">
                                     {showLogo && (
@@ -672,7 +863,7 @@ export default function WaStoreHeader({
                                     )}
                                 </div>
                                 <div className="flex-1 flex justify-end">
-                                    <button aria-label="Close menu" onClick={() => setIsMobileMenuOpen(false)} className={`p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${theme.textMuted}`}>
+                                    <button aria-label="Close menu" onClick={() => setIsMobileMenuOpen(false)} className={`p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${theme?.id === 'jewelry' ? 'text-[#261C1D]' : theme.textMuted}`}>
                                         <X className="w-6 h-6" />
                                     </button>
                                 </div>
@@ -708,28 +899,17 @@ export default function WaStoreHeader({
                                         )}
                                     </div>
                                 )}
-                                {/* Home Button */}
-                                <button 
-                                    onClick={() => { 
-                                        navigate(getStoreRoute(slug));
-                                        setIsMobileMenuOpen(false); 
-                                    }}
-                                    className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${theme.categoryTab} font-semibold`}
-                                >
-                                    <Home className="w-5 h-5" />
-                                    <span>Home</span>
-                                </button>
 
                                 {/* Custom Navigation (Mega Menu) */}
                                 {store.megaMenu && store.megaMenu.length > 0 && (
                                     <div className="space-y-4">
                                         {store.megaMenu.map(menuItem => (
-                                            <div key={menuItem.id} className="border border-gray-100 dark:border-white/10 rounded-2xl overflow-hidden">
+                                            <div key={menuItem.id} className={`border ${theme?.id === 'jewelry' ? 'border-[#B76E79]/25' : 'border-gray-100 dark:border-white/10'} rounded-2xl overflow-hidden`}>
                                                 {menuItem.children && menuItem.children.length > 0 ? (
                                                     <>
                                                         <button 
                                                             onClick={() => setExpandedMobileSections(p => ({ ...p, [`nav_${menuItem.id}`]: !p[`nav_${menuItem.id}`] }))}
-                                                            className={`w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-white/[0.02] ${theme.text} font-bold`}
+                                                            className={`w-full flex items-center justify-between p-4 ${theme?.id === 'jewelry' ? 'bg-[#E2CED1] text-[#261C1D]' : `bg-gray-50 dark:bg-white/[0.02] ${theme.text}`} font-bold`}
                                                         >
                                                             <div className="flex items-center gap-3">
                                                                 <FileText className="w-5 h-5 opacity-70" />
@@ -737,8 +917,8 @@ export default function WaStoreHeader({
                                                             </div>
                                                             {expandedMobileSections[`nav_${menuItem.id}`] ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                                                         </button>
-                                                        <div className={`transition-all overflow-hidden ${expandedMobileSections[`nav_${menuItem.id}`] ? 'max-h-[1000px] border-t border-gray-100 dark:border-white/10' : 'max-h-0'}`}>
-                                                            <div className="p-2 space-y-1 bg-white dark:bg-black/20">
+                                                        <div className={`transition-all overflow-hidden ${expandedMobileSections[`nav_${menuItem.id}`] ? `max-h-[1000px] border-t ${theme?.id === 'jewelry' ? 'border-[#B76E79]/25' : 'border-gray-100 dark:border-white/10'}` : 'max-h-0'}`}>
+                                                            <div className={`p-2 space-y-1 ${theme?.id === 'jewelry' ? 'bg-[#EAD8DB]' : 'bg-white dark:bg-black/20'}`}>
                                                                 {menuItem.children.map(child => (
                                                                     <button
                                                                         key={child.id}
@@ -755,7 +935,7 @@ export default function WaStoreHeader({
                                                                                 window.location.href = child.link;
                                                                             }
                                                                         }}
-                                                                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left font-medium transition-all ${theme.categoryTab}`}
+                                                                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left font-medium transition-all ${theme?.id === 'jewelry' ? 'text-[#261C1D] hover:bg-[#E2CED1]' : theme.categoryTab}`}
                                                                     >
                                                                         {child.title}
                                                                     </button>
@@ -778,7 +958,7 @@ export default function WaStoreHeader({
                                                                 window.location.href = menuItem.link;
                                                             }
                                                         }}
-                                                        className={`w-full flex items-center gap-3 p-4 bg-gray-50 dark:bg-white/[0.02] ${theme.text} font-bold`}
+                                                        className={`w-full flex items-center gap-3 p-4 ${theme?.id === 'jewelry' ? 'bg-[#E2CED1] text-[#261C1D]' : `bg-gray-50 dark:bg-white/[0.02] ${theme.text}`} font-bold`}
                                                     >
                                                         <FileText className="w-5 h-5 opacity-70" />
                                                         <span>{menuItem.title}</span>
@@ -791,10 +971,10 @@ export default function WaStoreHeader({
 
                                 {/* Product Categories Accordion */}
                                 {categories.length > 0 && (
-                                    <div className="border border-gray-100 dark:border-white/10 rounded-2xl overflow-hidden">
+                                    <div className={`border ${theme?.id === 'jewelry' ? 'border-[#B76E79]/25' : 'border-gray-100 dark:border-white/10'} rounded-2xl overflow-hidden`}>
                                         <button 
                                             onClick={() => setExpandedMobileSections(p => ({ ...p, categories: !p.categories }))}
-                                            className={`w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-white/[0.02] ${theme.text} font-bold`}
+                                            className={`w-full flex items-center justify-between p-4 ${theme?.id === 'jewelry' ? 'bg-[#E2CED1] text-[#261C1D]' : `bg-gray-50 dark:bg-white/[0.02] ${theme.text}`} font-bold`}
                                         >
                                             <div className="flex items-center gap-3">
                                                 <Tag className="w-5 h-5" />
@@ -803,8 +983,8 @@ export default function WaStoreHeader({
                                             {expandedMobileSections.categories ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                                         </button>
                                         
-                                        <div className={`transition-all overflow-hidden ${expandedMobileSections.categories ? 'max-h-[1000px] border-t border-gray-100 dark:border-white/10' : 'max-h-0'}`}>
-                                            <div className="p-2 space-y-1 bg-white dark:bg-black/20">
+                                        <div className={`transition-all overflow-hidden ${expandedMobileSections.categories ? `max-h-[1000px] border-t ${theme?.id === 'jewelry' ? 'border-[#B76E79]/25' : 'border-gray-100 dark:border-white/10'}` : 'max-h-0'}`}>
+                                            <div className={`p-2 space-y-1 ${theme?.id === 'jewelry' ? 'bg-[#EAD8DB]' : 'bg-white dark:bg-black/20'}`}>
                                                 {categories.map(cat => (
                                                     <button
                                                         key={cat}
@@ -812,7 +992,7 @@ export default function WaStoreHeader({
                                                             setIsMobileMenuOpen(false);
                                                             navigate(getStoreRoute(slug, `/category/${encodeURIComponent(cat)}`));
                                                         }}
-                                                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left font-medium transition-all ${theme.categoryTab}`}
+                                                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left font-medium transition-all ${theme?.id === 'jewelry' ? 'text-[#261C1D] hover:bg-[#E2CED1]' : theme.categoryTab}`}
                                                     >
                                                         {cat}
                                                     </button>
@@ -822,51 +1002,14 @@ export default function WaStoreHeader({
                                     </div>
                                 )}
 
-                                {/* Contact Us Accordion */}
-                                {(store.phone || store.whatsappNumber || store.email) && (
-                                    <div className="border border-gray-100 dark:border-white/10 rounded-2xl overflow-hidden">
-                                        <button 
-                                            onClick={() => setExpandedMobileSections(p => ({ ...p, contact: !p.contact }))}
-                                            className={`w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-white/[0.02] ${theme.text} font-bold`}
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <Phone className="w-5 h-5" />
-                                                <span>Contact Us</span>
-                                            </div>
-                                            {expandedMobileSections.contact ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                                        </button>
-                                        
-                                        <div className={`transition-all overflow-hidden ${expandedMobileSections.contact ? 'max-h-96 border-t border-gray-100 dark:border-white/10' : 'max-h-0'}`}>
-                                            <div className="p-2 space-y-1 bg-white dark:bg-black/20">
-                                                {store.whatsappNumber && (
-                                                    <a href={`https://wa.me/${store.whatsappNumber.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>
-                                                        <MessageCircle className="w-4 h-4" />
-                                                        WhatsApp
-                                                    </a>
-                                                )}
-                                                {store.phone && (
-                                                    <a href={`tel:${store.phone.replace(/\D/g, '')}`} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>
-                                                        <Phone className="w-4 h-4" />
-                                                        Call Us
-                                                    </a>
-                                                )}
-                                                {store.email && (
-                                                    <a href={`mailto:${store.email}`} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>
-                                                        <Mail className="w-4 h-4" />
-                                                        Email Us
-                                                    </a>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
+
 
                                 {/* Pages & Policies Accordion */}
                                 {(getHasContactInfo(store) || hasContent(store.aboutUs) || hasContent(store.privacyPolicy) || hasContent(store.termsConditions) || hasContent(store.returnPolicy) || hasContent(store.shippingPolicy)) && (
-                                    <div className="border border-gray-100 dark:border-white/10 rounded-2xl overflow-hidden">
+                                    <div className={`border ${theme?.id === 'jewelry' ? 'border-[#B76E79]/25' : 'border-gray-100 dark:border-white/10'} rounded-2xl overflow-hidden`}>
                                         <button 
                                             onClick={() => setExpandedMobileSections(p => ({ ...p, policies: !p.policies }))}
-                                            className={`w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-white/[0.02] ${theme.text} font-bold`}
+                                            className={`w-full flex items-center justify-between p-4 ${theme?.id === 'jewelry' ? 'bg-[#E2CED1] text-[#261C1D]' : `bg-gray-50 dark:bg-white/[0.02] ${theme.text}`} font-bold`}
                                         >
                                             <div className="flex items-center gap-3">
                                                 <FileText className="w-5 h-5" />
@@ -875,25 +1018,25 @@ export default function WaStoreHeader({
                                             {expandedMobileSections.policies ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                                         </button>
                                         
-                                        <div className={`transition-all overflow-hidden ${expandedMobileSections.policies ? 'max-h-96 border-t border-gray-100 dark:border-white/10' : 'max-h-0'}`}>
-                                            <div className="p-2 space-y-1 bg-white dark:bg-black/20">
+                                        <div className={`transition-all overflow-hidden ${expandedMobileSections.policies ? `max-h-96 border-t ${theme?.id === 'jewelry' ? 'border-[#B76E79]/25' : 'border-gray-100 dark:border-white/10'}` : 'max-h-0'}`}>
+                                            <div className={`p-2 space-y-1 ${theme?.id === 'jewelry' ? 'bg-[#EAD8DB]' : 'bg-white dark:bg-black/20'}`}>
                                                 {hasContent(store.aboutUs) && (
-                                                    <Link onClick={() => setIsMobileMenuOpen(false)} to={getStoreRoute(store.slug, '/pages/about-us')} className={`block w-full text-left px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>About Us</Link>
+                                                    <Link onClick={() => setIsMobileMenuOpen(false)} to={getStoreRoute(store.slug, '/pages/about-us')} className={`block w-full text-left px-4 py-3 rounded-xl font-medium ${theme?.id === 'jewelry' ? 'text-[#261C1D] hover:bg-[#E2CED1]' : theme.categoryTab}`}>About Us</Link>
                                                 )}
                                                 {getHasContactInfo(store) && (
-                                                    <Link onClick={() => setIsMobileMenuOpen(false)} to={getStoreRoute(store.slug, '/pages/contact-us')} className={`block w-full text-left px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>Contact Us</Link>
+                                                    <Link onClick={() => setIsMobileMenuOpen(false)} to={getStoreRoute(store.slug, '/pages/contact-us')} className={`block w-full text-left px-4 py-3 rounded-xl font-medium ${theme?.id === 'jewelry' ? 'text-[#261C1D] hover:bg-[#E2CED1]' : theme.categoryTab}`}>Contact Us</Link>
                                                 )}
                                                 {hasContent(store.shippingPolicy) && (
-                                                    <Link onClick={() => setIsMobileMenuOpen(false)} to={getStoreRoute(store.slug, '/pages/shipping-policy')} className={`block w-full text-left px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>Shipping Policy</Link>
+                                                    <Link onClick={() => setIsMobileMenuOpen(false)} to={getStoreRoute(store.slug, '/pages/shipping-policy')} className={`block w-full text-left px-4 py-3 rounded-xl font-medium ${theme?.id === 'jewelry' ? 'text-[#261C1D] hover:bg-[#E2CED1]' : theme.categoryTab}`}>Shipping Policy</Link>
                                                 )}
                                                 {hasContent(store.privacyPolicy) && (
-                                                    <Link onClick={() => setIsMobileMenuOpen(false)} to={getStoreRoute(store.slug, '/pages/privacy-policy')} className={`block w-full text-left px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>Privacy Policy</Link>
+                                                    <Link onClick={() => setIsMobileMenuOpen(false)} to={getStoreRoute(store.slug, '/pages/privacy-policy')} className={`block w-full text-left px-4 py-3 rounded-xl font-medium ${theme?.id === 'jewelry' ? 'text-[#261C1D] hover:bg-[#E2CED1]' : theme.categoryTab}`}>Privacy Policy</Link>
                                                 )}
                                                 {hasContent(store.termsConditions) && (
-                                                    <Link onClick={() => setIsMobileMenuOpen(false)} to={getStoreRoute(store.slug, '/pages/terms-and-conditions')} className={`block w-full text-left px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>Terms & Conditions</Link>
+                                                    <Link onClick={() => setIsMobileMenuOpen(false)} to={getStoreRoute(store.slug, '/pages/terms-and-conditions')} className={`block w-full text-left px-4 py-3 rounded-xl font-medium ${theme?.id === 'jewelry' ? 'text-[#261C1D] hover:bg-[#E2CED1]' : theme.categoryTab}`}>Terms & Conditions</Link>
                                                 )}
                                                 {hasContent(store.returnPolicy) && (
-                                                    <Link onClick={() => setIsMobileMenuOpen(false)} to={getStoreRoute(store.slug, '/pages/return-policy')} className={`block w-full text-left px-4 py-3 rounded-xl font-medium ${theme.categoryTab}`}>Return Policy</Link>
+                                                    <Link onClick={() => setIsMobileMenuOpen(false)} to={getStoreRoute(store.slug, '/pages/return-policy')} className={`block w-full text-left px-4 py-3 rounded-xl font-medium ${theme?.id === 'jewelry' ? 'text-[#261C1D] hover:bg-[#E2CED1]' : theme.categoryTab}`}>Return Policy</Link>
                                                 )}
                                             </div>
                                         </div>

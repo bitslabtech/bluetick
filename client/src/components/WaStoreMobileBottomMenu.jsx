@@ -76,7 +76,7 @@ export default function WaStoreMobileBottomMenu({ store, theme, cartCount, setIs
                 <div className="relative">
                     <Icons.ShoppingCart className="w-5 h-5" />
                     {cartCount > 0 && (
-                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                        <span className={`absolute -top-2 -right-2 ${theme?.cartBadge || 'bg-red-500 text-white'} text-[10px] font-bold px-1.5 py-0.5 rounded-full`}>
                             {cartCount}
                         </span>
                     )}
@@ -98,14 +98,14 @@ export default function WaStoreMobileBottomMenu({ store, theme, cartCount, setIs
 
     return (
         <nav 
-            className={`md:hidden fixed bottom-0 left-0 right-0 z-40 ${theme?.mobileNavBg || theme?.pageBg || 'bg-white'} border-t border-black/5 dark:border-white/10 flex items-center justify-around shadow-[0_-4px_20px_rgba(0,0,0,0.05)]`}
+            className={`md:hidden fixed bottom-0 left-0 right-0 z-40 ${theme?.mobileNavBg || theme?.pageBg || 'bg-white'} border-t ${theme?.id === 'jewelry' ? 'border-[#B76E79]/30' : 'border-black/5 dark:border-white/10'} flex items-center justify-around shadow-[0_-4px_20px_rgba(0,0,0,0.05)]`}
             style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
             {enabledItems.map((item) => (
                 <button
                     key={item.id}
                     onClick={() => handleAction(item)}
-                    className={`flex flex-col items-center justify-center py-2.5 px-2 w-full transition-colors ${theme?.textMuted || 'text-gray-500'} hover:opacity-70`}
+                    className={`flex flex-col items-center justify-center py-2.5 px-2 w-full transition-colors ${theme?.id === 'jewelry' ? 'text-[#261C1D] hover:text-[#B76E79]' : (theme?.textMuted || 'text-gray-500')} hover:opacity-70`}
                 >
                     {renderIcon(item)}
                     <span className="text-[10px] font-semibold mt-1">{getLabel(item)}</span>

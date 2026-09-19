@@ -604,6 +604,28 @@ export default function WaStoreBasicDetails() {
                         </div>
                     </SectionCard>
 
+                    {/* ── Storefront Visibility ─────────────────────────────────────── */}
+                    <SectionCard title="Storefront Visibility" description="Control which sections appear on your storefront homepage">
+                        <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-xl">
+                            <div>
+                                <h4 className="font-semibold text-slate-900 dark:text-white text-sm">Trending Now Section</h4>
+                                <p className="text-xs text-slate-500 mt-1">Show a carousel of your latest products below the hero slider.</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => set('showTrendingNow', store.showTrendingNow === false ? true : false)}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none shrink-0 ${
+                                    store.showTrendingNow !== false ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-white/10'
+                                }`}
+                                title={store.showTrendingNow !== false ? 'Click to disable Trending Now' : 'Click to enable Trending Now'}
+                            >
+                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                                    store.showTrendingNow !== false ? 'translate-x-6' : 'translate-x-1'
+                                }`} />
+                            </button>
+                        </div>
+                    </SectionCard>
+
                     {/* ── Footer Settings ─────────────────────────────────────── */}
                     <SectionCard title="Footer Settings" description="Customize your store's footer">
                         <InputField label="Custom Footer Text" type="text"

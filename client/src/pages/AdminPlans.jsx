@@ -882,7 +882,21 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-        setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+        setFormData(prev => {
+            const next = { ...prev, [name]: type === 'checkbox' ? checked : value };
+            
+            // Auto-toggle Online Store access based on Usage Limit
+            if (name === 'waStoreLimit') {
+                const limit = parseInt(value, 10);
+                if (limit > 0 || limit === -1) {
+                    next.allowWaStore = true;
+                } else if (limit === 0) {
+                    next.allowWaStore = false;
+                }
+            }
+            
+            return next;
+        });
     };
 
     const handleFeatureChange = (idx, value) => {

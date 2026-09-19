@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { Package, LayoutTemplate, Settings, ArrowLeft, ExternalLink, Phone, Globe, Info, ShoppingBag, Tag, FileText, Search, BarChart2, X, Camera, Loader2, ArrowRight, Bell, ClipboardList, Image, Megaphone, Users, ShoppingCart, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
+import { Package, LayoutTemplate, Settings, ArrowLeft, ExternalLink, Phone, Globe, Info, ShoppingBag, Tag, FileText, Search, BarChart2, X, Camera, Loader2, ArrowRight, Bell, ClipboardList, Image, Megaphone, Users, ShoppingCart, ChevronDown, ChevronUp, AlertCircle, Video, Wand2 } from 'lucide-react';
 
 import toast from 'react-hot-toast';
 
@@ -61,6 +61,7 @@ export default function WaStoreLayout() {
             items: [
                 { path: `/online-store/${slug}/themes`, icon: <LayoutTemplate className="w-5 h-5" />, label: 'Themes' },
                 { path: `/online-store/${slug}/navigation`, icon: <LayoutTemplate className="w-5 h-5" />, label: 'Navigation' },
+                { path: `/online-store/${slug}/shoppable-videos`, icon: <Video className="w-5 h-5" />, label: 'Shoppable Videos' },
                 { path: `/online-store/${slug}/mobile-navigation`, icon: <LayoutTemplate className="w-5 h-5" />, label: 'Mobile Navigation' },
                 { path: `/online-store/${slug}/topbar`, icon: <Megaphone className="w-5 h-5" />, label: 'Top Bar' }
             ]
@@ -349,14 +350,22 @@ export default function WaStoreLayout() {
                                         </span>
                                     </div>
                                 </div>
-                                <a
-                                    href={storeUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="inline-flex items-center justify-center w-full sm:w-auto gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors text-sm shadow-sm"
-                                >
-                                    <ExternalLink className="w-4 h-4" /> View Live Store
-                                </a>
+                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                                        <button
+                                            onClick={() => navigate(`/online-store/${slug}/visual-editor`)}
+                                            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl font-semibold transition-all text-sm shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-95"
+                                        >
+                                            <Wand2 className="w-4 h-4" /> Visual Editor
+                                        </button>
+                                        <a
+                                            href={storeUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="inline-flex items-center justify-center w-full sm:w-auto gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors text-sm shadow-sm"
+                                        >
+                                            <ExternalLink className="w-4 h-4" /> View Live Store
+                                        </a>
+                                    </div>
                             </div>
                         </div>
                     </div>

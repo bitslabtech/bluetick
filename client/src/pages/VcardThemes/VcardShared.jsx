@@ -3,14 +3,103 @@ import React, { useState, useEffect } from 'react';
 import { Download, Share2, MessageCircle, Mail, Phone, Globe, MapPin, ExternalLink, Clock, Star, ChevronDown, ChevronUp } from 'lucide-react';
 
 // ─── Hero Slider ─────────────────────────────────────────────────────────────
+const SPARKLES_DATA = Array.from({ length: 15 }).map(() => ({
+    x: Math.random() * 100,
+    y: Math.random() * 100,
+    size: 1 + Math.random() * 2,
+    dur: 3 + Math.random() * 4,
+    delay: Math.random() * -5,
+    drift: 20 + Math.random() * 30
+}));
+
+const SparklesOverlay = () => (
+    <div style={{ position: 'absolute', inset: 0, zIndex: 15, pointerEvents: 'none', overflow: 'hidden' }}>
+        <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0 }}>
+            {SPARKLES_DATA.map((s, i) => (
+                <circle key={i} cx={`${s.x}%`} cy={`${s.y}%`} r={s.size} fill="white">
+                    <animate attributeName="opacity" values="0;0.6;0" dur={`${s.dur}s`} begin={`${s.delay}s`} repeatCount="indefinite" />
+                    <animateTransform attributeName="transform" type="translate" values={`0,0; 0,-${s.drift}`} dur={`${s.dur}s`} begin={`${s.delay}s`} repeatCount="indefinite" />
+                </circle>
+            ))}
+        </svg>
+    </div>
+);
+
+const SNOWFALL_DATA = Array.from({ length: 25 }).map(() => ({
+    x: Math.random() * 100,
+    size: 1 + Math.random() * 3,
+    dur: 4 + Math.random() * 6,
+    delay: Math.random() * -10,
+    drift: -20 + Math.random() * 40
+}));
+
+const SnowfallOverlay = () => (
+    <div style={{ position: 'absolute', inset: 0, zIndex: 15, pointerEvents: 'none', overflow: 'hidden' }}>
+        <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0 }}>
+            {SNOWFALL_DATA.map((s, i) => (
+                <circle key={i} cx={`${s.x}%`} cy="-10%" r={s.size} fill="white" opacity="0.7">
+                    <animateTransform attributeName="transform" type="translate" values={`0,0; ${s.drift},1200`} dur={`${s.dur}s`} begin={`${s.delay}s`} repeatCount="indefinite" />
+                </circle>
+            ))}
+        </svg>
+    </div>
+);
+
+const STARLIGHT_DATA = Array.from({ length: 50 }).map(() => ({
+    x: Math.random() * 100,
+    y: Math.random() * 100,
+    size: 0.5 + Math.random() * 1.5,
+    dur: 2 + Math.random() * 5,
+    delay: Math.random() * -10,
+    isStar: Math.random() > 0.6 // 40% chance for 4-sided star
+}));
+
+const StarlightOverlay = () => (
+    <div style={{ position: 'absolute', inset: 0, zIndex: 15, pointerEvents: 'none', overflow: 'hidden' }}>
+        <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0 }}>
+            {STARLIGHT_DATA.map((s, i) => {
+                if (s.isStar) {
+                    const scale = s.size * 1.5; // Slightly larger for stars to be visible
+                    return (
+                        <svg key={i} x={`${s.x}%`} y={`${s.y}%`} overflow="visible" opacity="0">
+                            <path d={`M0 -${3 * scale} Q0 0 ${3 * scale} 0 Q0 0 0 ${3 * scale} Q0 0 -${3 * scale} 0 Q0 0 0 -${3 * scale} Z`} fill="white" />
+                            <animate attributeName="opacity" values="0;0.9;0" dur={`${s.dur}s`} begin={`${s.delay}s`} repeatCount="indefinite" />
+                        </svg>
+                    );
+                }
+                return (
+                    <circle key={i} cx={`${s.x}%`} cy={`${s.y}%`} r={s.size} fill="white" opacity="0">
+                        <animate attributeName="opacity" values="0;0.7;0" dur={`${s.dur}s`} begin={`${s.delay}s`} repeatCount="indefinite" />
+                    </circle>
+                );
+            })}
+        </svg>
+    </div>
+);
+
 export function HeroSlider({ heroMedia, coverImage, style = {}, alt = "Cover" }) {
-    const urls = heroMedia?.urls?.length > 0 ? heroMedia.urls : (heroMedia?.url ? [heroMedia.url] : (coverImage ? [coverImage] : []));
+    const isVideo = heroMedia?.type === 'video';
+    const videoUrl = isVideo ? heroMedia?.url : null;
+    const urls = heroMedia?.urls?.length > 0 ? heroMedia.urls : (heroMedia?.url && !isVideo ? [heroMedia.url] : (coverImage && !isVideo ? [coverImage] : []));
     
+    const hasOverlay = heroMedia?.overlay !== false;
+    const hasSparkles = heroMedia?.floatingSparkles === true;
+    const hasSnowfall = heroMedia?.snowfall === true;
+    const hasStarlight = heroMedia?.starlight === true;
+
+    const overlayNode = hasOverlay ? (
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.5) 100%)', zIndex: 10, pointerEvents: 'none' }} />
+    ) : null;
+
+    const sparklesNode = hasSparkles ? <SparklesOverlay /> : null;
+    const snowfallNode = hasSnowfall ? <SnowfallOverlay /> : null;
+    const starlightNode = hasStarlight ? <StarlightOverlay /> : null;
+
     const [currentIndex, setCurrentIndex] = useState(0);
     const [prevIndex, setPrevIndex] = useState(-1);
 
     useEffect(() => {
-        if (urls.length <= 1) return;
+        if (isVideo || urls.length <= 1) return;
         const timer = setInterval(() => {
             setCurrentIndex((curr) => {
                 setPrevIndex(curr);
@@ -18,31 +107,75 @@ export function HeroSlider({ heroMedia, coverImage, style = {}, alt = "Cover" })
             });
         }, 4000);
         return () => clearInterval(timer);
-    }, [urls.length]);
+    }, [urls.length, isVideo]);
 
-    // Force a slide change to preview the new animation immediately when the user changes the effect
     const effect = heroMedia?.effect || 'kenburns';
     useEffect(() => {
-        if (urls.length > 1) {
+        if (!isVideo && urls.length > 1) {
             setCurrentIndex((curr) => {
                 setPrevIndex(curr);
                 return (curr + 1) % urls.length;
             });
         }
-    }, [effect]);
+    }, [effect, isVideo]);
+
+    if (isVideo) {
+        const isYoutube = heroMedia?.videoType === 'youtube';
+        const ytId = heroMedia?.youtubeId;
+
+        if (isYoutube && ytId) {
+            return (
+                <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'hidden', zIndex: 0, ...style }}>
+                    <iframe
+                        src={`https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${ytId}&playsinline=1&modestbranding=1&rel=0`}
+                        style={{ position: 'absolute', width: '300%', height: '100%', left: '-100%', top: 0, zIndex: 1, pointerEvents: 'none', border: 'none' }}
+                        allow="autoplay; encrypted-media"
+                    />
+                    {overlayNode}
+                    {sparklesNode}
+                    {snowfallNode}
+                    {starlightNode}
+                </div>
+            );
+        } else if (!isYoutube && videoUrl) {
+            return (
+                <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'hidden', zIndex: 0, ...style }}>
+                    <video 
+                        src={videoUrl}
+                        autoPlay 
+                        loop 
+                        muted 
+                        playsInline 
+                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 1 }}
+                    />
+                    {overlayNode}
+                    {sparklesNode}
+                    {snowfallNode}
+                    {starlightNode}
+                </div>
+            );
+        }
+    }
 
     if (!urls.length) return null;
 
     if (urls.length === 1) {
-        return <img src={urls[0]} style={{ width: '100%', height: '100%', objectFit: 'cover', ...style }} alt={alt} />;
+        return (
+            <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'hidden', zIndex: 0, ...style }}>
+                <img src={urls[0]} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 1 }} alt={alt} />
+                {overlayNode}
+                {sparklesNode}
+                {snowfallNode}
+                {starlightNode}
+            </div>
+        );
     }
 
     return (
-        <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'hidden', zIndex: 0 }}>
+        <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'hidden', zIndex: 0, ...style }}>
             {urls.map((url, idx) => {
                 const isCurrent = currentIndex === idx;
                 const isPrev = prevIndex === idx;
-                const effect = heroMedia?.effect || 'kenburns';
                 
                 if (effect === 'splitReveal') {
                     const baseHalfStyle = {
@@ -50,96 +183,29 @@ export function HeroSlider({ heroMedia, coverImage, style = {}, alt = "Cover" })
                         zIndex: isPrev ? 2 : (isCurrent ? 1 : 0),
                         opacity: (isCurrent || isPrev) ? 1 : 0,
                     };
-
                     return (
                         <React.Fragment key={idx}>
-                            {/* Left Half */}
-                            <img
-                                src={url}
-                                alt={`${alt} ${idx + 1} Left`}
-                                style={{
-                                    ...baseHalfStyle,
-                                    clipPath: 'inset(0 50% 0 0)',
-                                    transform: isCurrent ? 'scale(1.1) translateX(0)' : (isPrev ? 'scale(1.1) translateX(-50%)' : 'scale(1) translateX(0)'),
-                                    transition: isCurrent ? 'transform 4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.5s ease' : (isPrev ? 'transform 1.5s cubic-bezier(0.76, 0, 0.24, 1), opacity 1.5s ease-in' : 'none'),
-                                    ...style
-                                }}
-                            />
-                            {/* Right Half */}
-                            <img
-                                src={url}
-                                alt={`${alt} ${idx + 1} Right`}
-                                style={{
-                                    ...baseHalfStyle,
-                                    clipPath: 'inset(0 0 0 50%)',
-                                    transform: isCurrent ? 'scale(1.1) translateX(0)' : (isPrev ? 'scale(1.1) translateX(50%)' : 'scale(1) translateX(0)'),
-                                    transition: isCurrent ? 'transform 4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.5s ease' : (isPrev ? 'transform 1.5s cubic-bezier(0.76, 0, 0.24, 1), opacity 1.5s ease-in' : 'none'),
-                                    ...style
-                                }}
-                            />
+                            <img src={url} alt={`${alt} ${idx + 1} Left`} style={{ ...baseHalfStyle, clipPath: 'inset(0 50% 0 0)', transform: isCurrent ? 'scale(1.1) translateX(0)' : (isPrev ? 'scale(1.1) translateX(-50%)' : 'scale(1) translateX(0)'), transition: isCurrent ? 'transform 4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.5s ease' : (isPrev ? 'transform 1.5s cubic-bezier(0.76, 0, 0.24, 1), opacity 1.5s ease-in' : 'none') }} />
+                            <img src={url} alt={`${alt} ${idx + 1} Right`} style={{ ...baseHalfStyle, clipPath: 'inset(0 0 0 50%)', transform: isCurrent ? 'scale(1.1) translateX(0)' : (isPrev ? 'scale(1.1) translateX(50%)' : 'scale(1) translateX(0)'), transition: isCurrent ? 'transform 4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.5s ease' : (isPrev ? 'transform 1.5s cubic-bezier(0.76, 0, 0.24, 1), opacity 1.5s ease-in' : 'none') }} />
                         </React.Fragment>
                     );
                 }
                 
                 let animStyle = {};
                 switch (effect) {
-                    case 'fade':
-                        animStyle = {
-                            opacity: isCurrent ? 1 : 0,
-                            transform: 'none',
-                            transition: 'opacity 1s ease-in-out',
-                        };
-                        break;
-                    case 'slideRight':
-                        animStyle = {
-                            opacity: isCurrent ? 1 : 0,
-                            transform: isCurrent ? 'scale(1.08) translateX(0)' : 'scale(1.08) translateX(3%)',
-                            transition: 'opacity 1.5s ease-in-out, transform 4s ease-out',
-                        };
-                        break;
-                    case 'zoomOut':
-                        animStyle = {
-                            opacity: isCurrent ? 1 : 0,
-                            transform: isCurrent ? 'scale(1)' : 'scale(1.25)',
-                            transition: 'opacity 1.5s ease-in-out, transform 4s cubic-bezier(0.25, 1, 0.5, 1)',
-                        };
-                        break;
-                    case 'blurFade':
-                        animStyle = {
-                            opacity: isCurrent ? 1 : 0,
-                            filter: isCurrent ? 'blur(0px)' : 'blur(12px)',
-                            transform: isCurrent ? 'scale(1)' : 'scale(1.05)',
-                            transition: 'opacity 1.2s ease-in-out, filter 1.2s ease-in-out, transform 4s linear',
-                        };
-                        break;
+                    case 'fade': animStyle = { opacity: isCurrent ? 1 : 0, transform: 'none', transition: 'opacity 1s ease-in-out' }; break;
+                    case 'slideRight': animStyle = { opacity: isCurrent ? 1 : 0, transform: isCurrent ? 'scale(1.08) translateX(0)' : 'scale(1.08) translateX(3%)', transition: 'opacity 1.5s ease-in-out, transform 4s ease-out' }; break;
+                    case 'zoomOut': animStyle = { opacity: isCurrent ? 1 : 0, transform: isCurrent ? 'scale(1)' : 'scale(1.25)', transition: 'opacity 1.5s ease-in-out, transform 4s cubic-bezier(0.25, 1, 0.5, 1)' }; break;
+                    case 'blurFade': animStyle = { opacity: isCurrent ? 1 : 0, filter: isCurrent ? 'blur(0px)' : 'blur(12px)', transform: isCurrent ? 'scale(1)' : 'scale(1.05)', transition: 'opacity 1.2s ease-in-out, filter 1.2s ease-in-out, transform 4s linear' }; break;
                     case 'kenburns':
-                    default:
-                        animStyle = {
-                            opacity: isCurrent ? 1 : 0,
-                            transform: isCurrent ? 'scale(1)' : 'scale(1.1)',
-                            transition: 'opacity 1.5s ease-in-out, transform 4s linear',
-                        };
-                        break;
+                    default: animStyle = { opacity: isCurrent ? 1 : 0, transform: isCurrent ? 'scale(1)' : 'scale(1.1)', transition: 'opacity 1.5s ease-in-out, transform 4s linear' }; break;
                 }
-
-                return (
-                    <img
-                        key={idx}
-                        src={url}
-                        alt={`${alt} ${idx + 1}`}
-                        style={{
-                            position: 'absolute',
-                            inset: 0,
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                            zIndex: isCurrent ? 1 : 0,
-                            ...animStyle,
-                            ...style
-                        }}
-                    />
-                );
+                return <img key={idx} src={url} alt={`${alt} ${idx + 1}`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: isCurrent ? 1 : 0, ...animStyle }} />;
             })}
+            {overlayNode}
+            {sparklesNode}
+            {snowfallNode}
+            {starlightNode}
         </div>
     );
 }
@@ -175,7 +241,7 @@ export function SaveContactBtn({ vcard, style, children }) {
         }}>
             {showWa && (
                 <a
-                    href={`https://wa.me/${vcard.whatsappNumber?.replace(/[^0-9]/g, '')}`}
+                    href={`https://wa.me/${vcard.whatsappNumber?.replace(/[^0-9]/g, '')}${vcard.whatsappPrefillMessage ? `?text=${encodeURIComponent(vcard.whatsappPrefillMessage)}` : ''}`}
                     target="_blank"
                     rel="noreferrer"
                     style={{
@@ -188,7 +254,7 @@ export function SaveContactBtn({ vcard, style, children }) {
                     onMouseOver={e => { e.currentTarget.style.transform = 'scale(1.03)'; e.currentTarget.style.filter = 'brightness(1.1)'; }}
                     onMouseOut={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.filter = 'none'; }}
                 >
-                    Chat on WhatsApp
+                    {vcard.whatsappChatLabel || 'Chat on WhatsApp'}
                 </a>
             )}
             {showSave && (
@@ -285,7 +351,7 @@ export function SocialLinksRow({ links, itemStyle, containerStyle, iconColor, us
         pinterest: '#E60023', whatsapp: '#25D366', telegram: '#2CA5E0', website: '#4f46e5',
     };
     return (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, ...containerStyle }}>
+        <div id="vcard-section-social" style={{ display: 'flex', flexWrap: 'wrap', gap: 14, ...containerStyle }}>
             {links.map((link, i) => {
                 const p = link.platform?.toLowerCase();
                 const baseColor = platformColors[p] || '#888';
@@ -300,7 +366,7 @@ export function SocialLinksRow({ links, itemStyle, containerStyle, iconColor, us
                 else bg = `linear-gradient(135deg, ${baseColor}ea, ${baseColor})`;
 
                 return (
-                    <a key={i} href={link.url} target="_blank" rel="noreferrer"
+                    <a id={`vcard-social-${i}`} key={i} href={link.url} target="_blank" rel="noreferrer"
                         title={link.platform}
                         style={{ 
                             width: 46, height: 46, 
@@ -338,6 +404,7 @@ export function SocialLinksRow({ links, itemStyle, containerStyle, iconColor, us
 // ─── Gallery Grid ──────────────────────────────────────────────────────────
 export function GalleryGrid({ images, borderRadius = 12, gap = 8, style = 'grid', autoplay = false, slidesPerView = 1, primaryColor = '#4f46e5' }) {
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [selectedMediaIndex, setSelectedMediaIndex] = useState(null);
 
     // Reset index if slidesPerView changes and it's out of bounds
     useEffect(() => {
@@ -361,77 +428,127 @@ export function GalleryGrid({ images, borderRadius = 12, gap = 8, style = 'grid'
         return () => clearInterval(interval);
     }, [style, autoplay, images?.length, slidesPerView]);
 
+    useEffect(() => {
+        if (selectedMediaIndex !== null) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => { document.body.style.overflow = ''; };
+    }, [selectedMediaIndex]);
+
     if (!images?.length) return null;
+
+    const renderModal = () => {
+        if (selectedMediaIndex === null) return null;
+        const img = images[selectedMediaIndex];
+        return (
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.95)', zIndex: 999999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }} onClick={() => setSelectedMediaIndex(null)}>
+                <button onClick={() => setSelectedMediaIndex(null)} style={{ position: 'absolute', top: 20, right: 20, background: 'none', border: 'none', color: 'white', fontSize: '2.5rem', cursor: 'pointer', padding: 10, zIndex: 1000000, lineHeight: 1 }}>&times;</button>
+                {images.length > 1 && (
+                    <>
+                        <button onClick={(e) => { e.stopPropagation(); setSelectedMediaIndex(prev => prev > 0 ? prev - 1 : images.length - 1); }} style={{ position: 'absolute', left: 20, top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', fontSize: '2rem', cursor: 'pointer', padding: '10px 15px', borderRadius: '50%', zIndex: 1000000 }}>&#10094;</button>
+                        <button onClick={(e) => { e.stopPropagation(); setSelectedMediaIndex(prev => prev < images.length - 1 ? prev + 1 : 0); }} style={{ position: 'absolute', right: 20, top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', fontSize: '2rem', cursor: 'pointer', padding: '10px 15px', borderRadius: '50%', zIndex: 1000000 }}>&#10095;</button>
+                    </>
+                )}
+                <div style={{ width: '100%', maxWidth: '1000px', height: '80vh', padding: '20px', boxSizing: 'border-box', display: 'flex', justifyContent: 'center', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+                    {img.url?.match(/\.(mp4|webm|ogg|mov)$/i) ? (
+                        <video src={img.url} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} controls autoPlay playsInline />
+                    ) : (
+                        <img src={img.url} alt={img.caption || ''} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                    )}
+                </div>
+                {img.caption && <div style={{ color: 'white', marginTop: 15, fontSize: '1.2rem', textAlign: 'center', padding: '0 40px', maxWidth: '800px' }}>{img.caption}</div>}
+            </div>
+        );
+    };
 
     if (style === 'slides') {
         const itemWidth = `calc(${100 / slidesPerView}% - ${(gap * (slidesPerView - 1)) / slidesPerView}px)`;
         const maxIndex = Math.max(0, images.length - slidesPerView);
         
         return (
-            <div style={{ width: '100%', overflow: 'hidden' }}>
-                <div 
-                    style={{ 
-                        display: 'flex', 
-                        gap: gap, 
-                        transition: 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)',
-                        transform: `translateX(calc(-${currentIndex * (100 / slidesPerView)}% - ${currentIndex * (gap / slidesPerView)}px))`
-                    }}
-                >
-                    {images.map((img, i) => (
-                        <div key={i} style={{ flex: '0 0 auto', width: itemWidth }}>
-                            <a href={img.url} target="_blank" rel="noreferrer"
-                                style={{ borderRadius, overflow: 'hidden', display: 'block', aspectRatio: '1', position: 'relative' }}
-                            >
-                                <img src={img.url} alt={img.caption || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                {img.caption && (
-                                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '10px 14px', background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)', color: '#fff', fontSize: '0.85rem', fontWeight: 600 }}>
-                                        {img.caption}
-                                    </div>
-                                )}
-                            </a>
-                        </div>
-                    ))}
-                </div>
-                {maxIndex > 0 && (
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 16 }}>
-                        {Array.from({ length: maxIndex + 1 }).map((_, idx) => (
-                            <div
-                                key={idx}
-                                onClick={() => setCurrentIndex(idx)}
-                                style={{
-                                    width: currentIndex === idx ? 20 : 8,
-                                    height: 8,
-                                    borderRadius: 4,
-                                    background: currentIndex === idx ? primaryColor : 'rgba(150,150,150,0.3)',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.3s ease'
-                                }}
-                                className="cursor-pointer" />
+            <>
+                <div id="vcard-section-gallery" style={{ width: '100%', overflow: 'hidden' }}>
+                    <div 
+                        style={{ 
+                            display: 'flex', 
+                            gap: gap, 
+                            transition: 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)',
+                            transform: `translateX(calc(-${currentIndex * (100 / slidesPerView)}% - ${currentIndex * (gap / slidesPerView)}px))`
+                        }}
+                    >
+                        {images.map((img, i) => (
+                            <div id={`vcard-gallery-${i}`} key={i} style={{ flex: '0 0 auto', width: itemWidth }}>
+                                <div onClick={(e) => { e.preventDefault(); setSelectedMediaIndex(i); }}
+                                    style={{ borderRadius, overflow: 'hidden', display: 'block', aspectRatio: '1', position: 'relative', cursor: 'pointer' }}
+                                >
+                                    {img.url?.match(/\.(mp4|webm|ogg|mov)$/i) ? (
+                                        <video src={img.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} autoPlay loop muted playsInline />
+                                    ) : (
+                                        <img src={img.url} alt={img.caption || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    )}
+                                    {img.caption && (
+                                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '10px 14px', background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)', color: '#fff', fontSize: '0.85rem', fontWeight: 600 }}>
+                                            {img.caption}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         ))}
                     </div>
-                )}
-            </div>
+                    {maxIndex > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 16 }}>
+                            {Array.from({ length: maxIndex + 1 }).map((_, idx) => (
+                                <div
+                                    key={idx}
+                                    onClick={() => setCurrentIndex(idx)}
+                                    style={{
+                                        width: currentIndex === idx ? 20 : 8,
+                                        height: 8,
+                                        borderRadius: 4,
+                                        background: currentIndex === idx ? primaryColor : 'rgba(150,150,150,0.3)',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s ease'
+                                    }}
+                                    className="cursor-pointer" />
+                            ))}
+                        </div>
+                    )}
+                </div>
+                {renderModal()}
+            </>
         );
     }
 
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap }}>
-            {images.map((img, i) => (
-                <a key={i} href={img.url} target="_blank" rel="noreferrer"
-                    style={{ borderRadius, overflow: 'hidden', display: 'block', aspectRatio: '1', position: 'relative' }}
-                >
-                    <img src={img.url} alt={img.caption || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s' }}
-                        onMouseOver={e => { e.target.style.transform = 'scale(1.08)'; }}
-                        onMouseOut={e => { e.target.style.transform = 'scale(1)'; }}
-                    />
-                    {img.caption && (
-                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '6px 10px', background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 100%)', color: '#fff', fontSize: '0.7rem', fontWeight: 600 }}>
-                            {img.caption}
-                        </div>
-                    )}
-                </a>
-            ))}
-        </div>
+        <>
+            <div id="vcard-section-gallery" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap }}>
+                {images.map((img, i) => (
+                    <div id={`vcard-gallery-${i}`} key={i} onClick={(e) => { e.preventDefault(); setSelectedMediaIndex(i); }}
+                        style={{ borderRadius, overflow: 'hidden', display: 'block', aspectRatio: '1', position: 'relative', cursor: 'pointer' }}
+                    >
+                        {img.url?.match(/\.(mp4|webm|ogg|mov)$/i) ? (
+                            <video src={img.url} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s' }} autoPlay loop muted playsInline
+                                onMouseOver={e => { e.target.style.transform = 'scale(1.08)'; }}
+                                onMouseOut={e => { e.target.style.transform = 'scale(1)'; }}
+                            />
+                        ) : (
+                            <img src={img.url} alt={img.caption || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s' }}
+                                onMouseOver={e => { e.target.style.transform = 'scale(1.08)'; }}
+                                onMouseOut={e => { e.target.style.transform = 'scale(1)'; }}
+                            />
+                        )}
+                        {img.caption && (
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '6px 10px', background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 100%)', color: '#fff', fontSize: '0.7rem', fontWeight: 600 }}>
+                                {img.caption}
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+            {renderModal()}
+        </>
     );
 }
 
@@ -460,7 +577,7 @@ export function TestimonialCard({ testimonials, cardStyle, quoteColor = '#888', 
     const itemWidth = `calc(${100 / perView}% - ${(gap * (perView - 1)) / perView}px)`;
 
     return (
-        <div style={{ width: '100%' }}>
+        <div id="vcard-section-testimonials" style={{ width: '100%' }}>
             <div style={{ overflow: 'hidden' }}>
                 <div
                     style={{
@@ -471,7 +588,7 @@ export function TestimonialCard({ testimonials, cardStyle, quoteColor = '#888', 
                     }}
                 >
                     {testimonials.map((t, i) => (
-                        <div key={i} style={{ flex: '0 0 auto', width: itemWidth }}>
+                        <div id={`vcard-testimonial-${i}`} key={i} style={{ flex: '0 0 auto', width: itemWidth }}>
                             <div style={{ borderRadius: 16, padding: '20px', height: '100%', boxSizing: 'border-box', ...cardStyle }}>
                                 <div style={{ display: 'flex', gap: 2, marginBottom: 10 }}>
                                     {[1, 2, 3, 4, 5].map(s => (
@@ -590,7 +707,7 @@ export function BusinessHoursTable({ hours, accentColor, rowBg, borderColor, tex
     };
 
     return (
-        <div>
+        <div id="vcard-section-hours">
             {/* Today status badge */}
             <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -658,17 +775,29 @@ export function EnquiryForm({ vcard, accentColor, inputStyle, btnStyle, labelCol
     const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' });
     const [sent, setSent] = useState(false);
     const [sending, setSending] = useState(false);
+    const [error, setError] = useState('');
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setError('');
         setSending(true);
         try {
-            await fetch(`${import.meta.env.VITE_API_URL}/api/vcards/public/${vcard.slug}/enquiry`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...form, recipientEmail: vcard.enquiryForm?.recipientEmail })
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/vcards/public/${vcard.slug}/enquiry`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...form, type: 'enquiry', recipientEmail: vcard.enquiryForm?.recipientEmail })
             });
-            setSent(true);
-        } catch { setSent(true); } finally { setSending(false); }
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                setError(data.error || 'Failed to send. Please try again.');
+            } else {
+                setSent(true);
+            }
+        } catch (err) {
+            setError('Network error. Please check your connection and try again.');
+        } finally {
+            setSending(false);
+        }
     };
 
     if (sent) return (
@@ -680,17 +809,24 @@ export function EnquiryForm({ vcard, accentColor, inputStyle, btnStyle, labelCol
     );
 
     return (
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {[{ n: 'name', p: 'Your Name', t: 'text' }, { n: 'email', p: 'Email Address', t: 'email' }, { n: 'phone', p: 'Phone (Optional)', t: 'tel' }].map(f => (
+        <form id="vcard-section-enquiry" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[{ n: 'name', p: 'Your Name', t: 'text' }, { n: 'email', p: 'Email (Optional)', t: 'text' }, { n: 'phone', p: 'Phone Number', t: 'tel' }].map(f => (
                 <input key={f.n} type={f.t} placeholder={f.p} value={form[f.n]}
-                    onChange={e => setForm(p => ({ ...p, [f.n]: e.target.value }))}
-                    required={f.n !== 'phone'}
+                    onChange={e => {
+                        let val = e.target.value;
+                        if (f.n === 'phone') val = val.replace(/\D/g, '').slice(0, 10);
+                        setForm(p => ({ ...p, [f.n]: val }));
+                    }}
+                    required={f.n !== 'email'}
+                    pattern={f.n === 'phone' ? ".{10,10}" : undefined}
+                    title={f.n === 'phone' ? "Phone number must be exactly 10 digits" : undefined}
                     style={{ ...inputStyle }}
                 />
             ))}
             <textarea placeholder="Your Message" value={form.message} onChange={e => setForm(p => ({ ...p, message: e.target.value }))}
                 required rows={3} style={{ ...inputStyle, resize: 'none' }}
             />
+            {error && <p style={{ color: '#ef4444', fontSize: '0.8rem', fontWeight: 600, margin: '2px 0' }}>{error}</p>}
             <button type="submit" disabled={sending} style={{ ...btnStyle }}>
                 {sending ? 'Sending...' : (vcard.enquiryForm?.submitLabel || 'Send Message')}
             </button>
@@ -703,17 +839,29 @@ export function BookingForm({ vcard, accentColor, inputStyle, btnStyle }) {
     const [form, setForm] = useState({ name: '', email: '', phone: '', message: '', appointmentDate: '' });
     const [sent, setSent] = useState(false);
     const [sending, setSending] = useState(false);
+    const [error, setError] = useState('');
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setError('');
         setSending(true);
         try {
-            await fetch(`${import.meta.env.VITE_API_URL}/api/vcards/public/${vcard.slug}/enquiry`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/vcards/public/${vcard.slug}/enquiry`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...form, type: 'booking' })
             });
-            setSent(true);
-        } catch { setSent(true); } finally { setSending(false); }
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                setError(data.error || 'Failed to submit booking. Please try again.');
+            } else {
+                setSent(true);
+            }
+        } catch (err) {
+            setError('Network error. Please check your connection and try again.');
+        } finally {
+            setSending(false);
+        }
     };
 
     if (sent) return (
@@ -725,7 +873,7 @@ export function BookingForm({ vcard, accentColor, inputStyle, btnStyle }) {
     );
 
     return (
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <form id="vcard-section-booking" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <input
                 type="datetime-local"
                 value={form.appointmentDate}
@@ -734,15 +882,23 @@ export function BookingForm({ vcard, accentColor, inputStyle, btnStyle }) {
                 required
                 style={inputStyle}
                 className="cursor-pointer" />
-            {[{ n: 'name', p: 'Your Name', t: 'text' }, { n: 'email', p: 'Email Address', t: 'email' }, { n: 'phone', p: 'Phone Number', t: 'tel' }].map(f => (
+            {[{ n: 'name', p: 'Your Name', t: 'text' }, { n: 'email', p: 'Email (Optional)', t: 'text' }, { n: 'phone', p: 'Phone Number', t: 'tel' }].map(f => (
                 <input key={f.n} type={f.t} placeholder={f.p} value={form[f.n]}
-                    onChange={e => setForm(p => ({ ...p, [f.n]: e.target.value }))}
-                    required={f.n !== 'phone'} style={inputStyle}
+                    onChange={e => {
+                        let val = e.target.value;
+                        if (f.n === 'phone') val = val.replace(/\D/g, '').slice(0, 10);
+                        setForm(p => ({ ...p, [f.n]: val }));
+                    }}
+                    required={f.n !== 'email'}
+                    pattern={f.n === 'phone' ? ".{10,10}" : undefined}
+                    title={f.n === 'phone' ? "Phone number must be exactly 10 digits" : undefined}
+                    style={inputStyle}
                 />
             ))}
             <textarea placeholder="Additional Notes (Optional)" value={form.message}
                 onChange={e => setForm(p => ({ ...p, message: e.target.value }))} rows={2} style={{ ...inputStyle, resize: 'none' }}
             />
+            {error && <p style={{ color: '#ef4444', fontSize: '0.8rem', fontWeight: 600, margin: '2px 0' }}>{error}</p>}
             <button type="submit" disabled={sending} style={btnStyle}>
                 {sending ? 'Sending...' : (vcard.booking?.buttonLabel || 'Request Appointment')}
             </button>
@@ -789,7 +945,7 @@ export function InstagramSection({ posts, borderColor, displayStyle = 'grid', sl
         const maxIdx = Math.max(0, validPosts.length - slidesPerView);
         const itemWidth = `calc(${100 / slidesPerView}% - ${(gap * (slidesPerView - 1)) / slidesPerView}px)`;
         return (
-            <div style={{ width: '100%' }}>
+            <div id="vcard-section-instagram" style={{ width: '100%' }}>
                 <div style={{ overflow: 'hidden', borderRadius: 16 }}>
                     <div style={{
                         display: 'flex',
@@ -845,7 +1001,7 @@ export function InstagramSection({ posts, borderColor, displayStyle = 'grid', sl
     const shown = validPosts.slice(0, visibleCount);
     const hasMore = visibleCount < validPosts.length;
     return (
-        <div>
+        <div id="vcard-section-instagram">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 {shown.map((post, i) => (
                     <div key={i} style={{ borderRadius: 14, overflow: 'hidden', border: `1px solid ${borderColor}`, position: 'relative', height: 350 }}>
@@ -893,7 +1049,7 @@ export function ContactButtons({ buttons, accentColor, btnRadius }) {
     if (!buttons?.length) return null;
     const colors = { whatsapp: '#25D366', call: accentColor, email: '#ef4444', sms: '#8b5cf6', maps: '#f59e0b' };
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div id="vcard-section-contact-buttons" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {buttons.map((btn, i) => {
                 const href = btn.type === 'whatsapp' ? `https://wa.me/${btn.value?.replace(/[^0-9]/g, '')}`
                     : btn.type === 'call' ? `tel:${btn.value}`
@@ -925,7 +1081,7 @@ export function ContactInfoCards({ vcard, accentColor, bgColor, cardBgColor, tex
     if (infos.length === 0) return null;
 
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: infos.length > 1 ? '1fr 1fr' : '1fr', gap: 12 }}>
+        <div id="vcard-section-contact" style={{ display: 'grid', gridTemplateColumns: infos.length > 1 ? '1fr 1fr' : '1fr', gap: 12 }}>
             {infos.map((info, i) => {
                 const El = info.href ? 'a' : 'div';
                 return (
@@ -973,7 +1129,7 @@ export function ServiceCarousel({ services, autoplay, primaryColor, renderCard }
     const gap = 16;
 
     return (
-        <div style={{ width: '100%', overflow: 'hidden' }}>
+        <div id="vcard-section-services" style={{ width: '100%', overflow: 'hidden' }}>
             <div 
                 style={{ 
                     display: 'flex', 
@@ -984,6 +1140,7 @@ export function ServiceCarousel({ services, autoplay, primaryColor, renderCard }
             >
                 {services.map((s, i) => (
                     <div 
+                        id={`vcard-service-${i}`}
                         key={i} 
                         style={{ 
                             flex: '0 0 auto', 

@@ -12,6 +12,8 @@ export default function VcardLayout() {
     const [bannerImage, setBannerImage] = useState(null);
     const [isVerticalImage, setIsVerticalImage] = useState(false);
     const [isStoreOpen, setIsStoreOpen] = useState(false);
+    const [unreadEnquiries, setUnreadEnquiries] = useState(0);
+    const [unreadBookings, setUnreadBookings] = useState(0);
     const { showToast } = useUI();
 
     useEffect(() => {
@@ -52,6 +54,15 @@ export default function VcardLayout() {
             })
             .catch(() => setShowBanner(false));
 
+        // Fetch enquiries and bookings to show unread badges
+        axios.get(`${import.meta.env.VITE_API_URL}/api/vcards/data/enquiries`)
+            .then(res => {
+                const data = res.data || [];
+                setUnreadEnquiries(data.filter(e => e.type === 'enquiry' && e.status === 'new').length);
+                setUnreadBookings(data.filter(e => e.type === 'booking' && e.status === 'new').length);
+            })
+            .catch(() => {});
+
         // Listen for "open-nfc-store" event from sub-pages
         const handler = () => setIsStoreOpen(true);
         window.addEventListener('open-nfc-store', handler);
@@ -61,8 +72,8 @@ export default function VcardLayout() {
     const navItems = [
         { path: '/vcards', icon: <LayoutDashboard className="w-5 h-5" />, label: 'Dashboard', exact: true },
         { path: '/vcards/list', icon: <Contact className="w-5 h-5" />, label: 'veCards', exact: false },
-        { path: '/vcards/enquiries', icon: <ClipboardList className="w-5 h-5" />, label: 'Enquiries', exact: false },
-        { path: '/vcards/bookings', icon: <CalendarCheck className="w-5 h-5" />, label: 'Bookings', exact: false },
+        { path: '/vcards/enquiries', icon: <ClipboardList className="w-5 h-5" />, label: 'Enquiries', exact: false, badge: unreadEnquiries },
+        { path: '/vcards/bookings', icon: <CalendarCheck className="w-5 h-5" />, label: 'Bookings', exact: false, badge: unreadBookings },
         { path: '/vcards/settings', icon: <Settings className="w-5 h-5" />, label: 'Settings', exact: false },
     ];
 
@@ -88,7 +99,7 @@ export default function VcardLayout() {
                             <NavLink
                                 key={item.path}
                                 to={item.path}
-                                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all shrink-0 snap-start ${
+                                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all shrink-0 snap-start relative ${
                                     isActive
                                         ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 shadow-sm border border-indigo-100 dark:border-indigo-500/20'
                                         : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-white/5 border border-transparent'
@@ -96,6 +107,11 @@ export default function VcardLayout() {
                             >
                                 {item.icon}
                                 {item.label}
+                                {item.badge > 0 && (
+                                    <span className="ml-1 bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                                        {item.badge > 99 ? '99+' : item.badge}
+                                    </span>
+                                )}
                             </NavLink>
                         );
                     })}
@@ -123,13 +139,20 @@ export default function VcardLayout() {
                                     <NavLink
                                         key={item.path}
                                         to={item.path}
-                                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive
+                                        className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive
                                                 ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400'
                                                 : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white'
                                             }`}
                                     >
-                                        {item.icon}
-                                        {item.label}
+                                        <div className="flex items-center gap-3">
+                                            {item.icon}
+                                            {item.label}
+                                        </div>
+                                        {item.badge > 0 && (
+                                            <span className="bg-rose-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                                                {item.badge > 99 ? '99+' : item.badge}
+                                            </span>
+                                        )}
                                     </NavLink>
                                 );
                             })}

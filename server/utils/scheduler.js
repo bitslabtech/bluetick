@@ -516,7 +516,9 @@ function initScheduler() {
 
                             order.abandonedReminderSent = true;
                             await order.save();
-                            console.log(`[ABANDONED CART] Sent template to ${phone} for order ${order.orderNumber}`);
+                            const abnPrefix = store.invoiceConfig?.prefixAbandoned || 'ABN-';
+                            const abnNumber = order.orderNumber ? order.orderNumber.replace(/^(ORD|POS|ABN)-/i, abnPrefix) : order.orderNumber;
+                            console.log(`[ABANDONED CART] Sent template to ${phone} for cart ${abnNumber}`);
                         } catch (err) {
                             console.error(`[ABANDONED CART] Failed for ${phone}:`, err.response?.data || err.message);
                         }

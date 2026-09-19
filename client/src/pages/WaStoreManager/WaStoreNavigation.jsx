@@ -319,6 +319,25 @@ export default function WaStoreNavigation() {
                                 </div>
                             </div>
                         </div>
+                    ) : theme.id === 'amber' ? (
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 sm:h-24 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <MenuIcon className="md:hidden w-6 h-6 text-[#261A14]" />
+                                {store.logo ? (
+                                    <img src={imgUrl(store.logo)} alt={store.name} className="h-10 sm:h-12 object-contain" />
+                                ) : (
+                                    <span className="font-bold text-xl sm:text-2xl text-[#261A14] tracking-tight">{store.name}</span>
+                                )}
+                            </div>
+                            <div className="hidden md:flex flex-1 max-w-sm mx-8 relative">
+                                <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-[#7A6456]" />
+                                <div className="w-full bg-[#ECE3D5] border border-[#CDC1AE] text-[#261A14] placeholder-[#7A6456] rounded-full py-2.5 pl-11 pr-4 text-sm flex items-center">Search dry fruits & nuts...</div>
+                            </div>
+                            <div className="relative p-2.5 bg-[#ECE3D5] text-[#261A14] border border-[#CDC1AE] rounded-full flex items-center justify-center">
+                                <ShoppingCart className="w-5 h-5 stroke-[1.5]" />
+                                <span className="absolute -top-1 -right-1 flex items-center justify-center bg-[#261A14] text-[#DFD5C3] text-[10px] font-bold w-4 h-4 rounded-full">2</span>
+                            </div>
+                        </div>
                     ) : (
                         <div className={theme.headerWrapper || "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between"}>
                             <div className={`flex items-center gap-3 ${theme.logoWrapper || ''}`}>

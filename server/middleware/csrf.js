@@ -39,6 +39,7 @@ function csrfProtection(req, res, next) {
         '/api/payment/webhook',
         '/api/v1',
         '/api/auth',
+        '/api/vcards/public',
         // ── Public storefront endpoints ─────────────────────────────────────────
         // These are called from customer custom domains (e.g. www.amardryfruits.in)
         // where the browser cannot read the api.bluetick.cloud CSRF cookie.
