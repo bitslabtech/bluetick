@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 const axios = require('axios');
-const { Sequelize } = require('sequelize');
+const { Sequelize, Op } = require('sequelize');
+const { normalizePhone, phoneVariants } = require('../utils/normalizePhone');
 const { getIo } = require('../socket');
 const Conversation = require('../models/Conversation');
 const ChatMessage = require('../models/ChatMessage');
@@ -477,12 +478,18 @@ router.post('/:userId', (req, res, next) => {
                             // 131026 = Message undeliverable - recipient is not a WhatsApp user
                             if (errCode === 131026) {
                                 try {
+                                    // Use phoneVariants() so this works whether the contact was
+                                    // saved with or without country code prefix.
+                                    // e.g. Meta sends "919876543210"; contact stored as "9876543210"
+                                    const variants = phoneVariants(statusUpdate.recipient_id);
                                     const updatedCount = await Contact.update(
                                         { status: 'Not on WhatsApp' },
-                                        { where: { phone: statusUpdate.recipient_id, userId: userId } }
+                                        { where: { phone: { [Op.in]: variants }, userId: userId } }
                                     );
                                     if (updatedCount[0] > 0) {
-                                        console.log(`[WEBHOOK] Contact ${statusUpdate.recipient_id} marked as "Not on WhatsApp" due to Meta error 131026`);
+                                        console.log(`[WEBHOOK] Contact(s) for ${statusUpdate.recipient_id} marked as "Not on WhatsApp" (variants tried: ${variants.join(', ')})`);
+                                    } else {
+                                        console.warn(`[WEBHOOK] 131026 received but no contact found for ${statusUpdate.recipient_id} (variants: ${variants.join(', ')})`);
                                     }
                                 } catch (err) {
                                     console.error('[WEBHOOK ERROR] Failed to mark contact as Not on WhatsApp:', err.message);
@@ -784,7 +791,10 @@ router.post('/:userId', (req, res, next) => {
 
                             if (optOutEnabled && (isOptOut || isOptIn || isCustomOptOut)) {
                                 try {
-                                    let contactToUpdate = await Contact.findOne({ where: { phone: contactWaId, userId } });
+                                    // Use phoneVariants so we find the contact regardless of
+                                    // whether it was stored with or without a country code prefix.
+                                    const optOutPhoneVars = phoneVariants(contactWaId);
+                                    let contactToUpdate = await Contact.findOne({ where: { phone: { [Op.in]: optOutPhoneVars }, userId } });
                                     const effectiveIsOptOut = isOptOut || isCustomOptOut;
                                     const newStatus = effectiveIsOptOut ? 'Opted Out' : 'Active';
 
@@ -914,7 +924,11 @@ router.post('/:userId', (req, res, next) => {
 
                                     if (conversation.botStatus !== 'paused') {
                                         // 1. Ensure we have the Contact
-                                        let contact = await Contact.findOne({ where: { phone: contactWaId, userId } });
+                                        // Use phoneVariants so inbound messages from a contact
+                                        // stored without country code don't create a duplicate record.
+                                        // e.g. stored "9876543210", Meta sends "919876543210" -> same person.
+                                        const inboundPhoneVars = phoneVariants(contactWaId);
+                                        let contact = await Contact.findOne({ where: { phone: { [Op.in]: inboundPhoneVars }, userId } });
                                         if (!contact) {
                                             // New contact messaging us — they're definitively on WhatsApp → 'Active'
                                             contact = await Contact.create({

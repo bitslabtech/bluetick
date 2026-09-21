@@ -2,14 +2,12 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ShoppingBag, HelpCircle, Store, ArrowRight } from 'lucide-react';
-import PublicLayout from './landing/PublicLayout';
 
 export default function StoreNotFound({ slug }) {
     const navigate = useNavigate();
 
     return (
-        <PublicLayout title="Store Not Found" fullWidth={true}>
-            <div className="w-full flex flex-col items-center justify-center p-6 bg-white transition-colors duration-300 relative overflow-hidden select-none pt-6 md:pt-32 pb-16 md:pb-24">
+        <div className="w-full min-h-screen flex flex-col items-center justify-center p-6 bg-white transition-colors duration-300 relative overflow-hidden select-none pt-6 md:pt-32 pb-16 md:pb-24">
 
             {/* Ambient Background Glow Blobs */}
             <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500/10 rounded-full filter blur-[120px] pointer-events-none" />
@@ -178,6 +176,5 @@ export default function StoreNotFound({ slug }) {
 
             </div>
         </div>
-    </PublicLayout>
     );
 }

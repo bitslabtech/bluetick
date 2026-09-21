@@ -10,6 +10,7 @@ const { applyPrivacyMask } = require('../utils/privacy');
 const SystemConfig = require('../models/SystemConfig');
 const Group = require('../models/Group');
 const crypto = require('crypto');
+const { normalizePhone, phoneVariants } = require('../utils/normalizePhone');
 
 // Short-lived in-memory store for Google contacts pending relay to frontend
 // Token → { contacts, expiresAt }
@@ -458,11 +459,38 @@ router.post('/import', async (req, res) => {
             await Group.bulkCreate(groupRecords, { ignoreDuplicates: true });
         }
 
+        // Build a set of ALL existing phone variants for this user so we can
+        // detect duplicates across format differences (with/without country code).
+        // This runs once per import, not per contact, so it's efficient.
+        const existingContactPhones = await Contact.findAll({
+            where: { userId: req.user.id },
+            attributes: ['phone'],
+            raw: true
+        });
+        const existingVariantSet = new Set(
+            existingContactPhones.flatMap(c => phoneVariants(c.phone))
+        );
+
         for (let i = 0; i < contactsWithUser.length; i += CHUNK_SIZE) {
             const chunk = contactsWithUser.slice(i, i + CHUNK_SIZE);
-            const created = await Contact.bulkCreate(chunk, {
+
+            // Filter out contacts whose phone (or any variant) already exists in DB.
+            // This prevents duplicates when the same number is stored in different formats.
+            const dedupedChunk = chunk.filter(c => {
+                const vars = phoneVariants(c.phone);
+                return !vars.some(v => existingVariantSet.has(v));
+            });
+
+            if (dedupedChunk.length === 0) continue;
+
+            const created = await Contact.bulkCreate(dedupedChunk, {
                 ignoreDuplicates: true,
                 validate: true
+            });
+            // Add newly created phones to the set so later chunks in this same
+            // import batch also see them as duplicates.
+            created.forEach(c => {
+                if (c.phone) phoneVariants(c.phone).forEach(v => existingVariantSet.add(v));
             });
             totalCreated += created.length;
         }
@@ -508,15 +536,38 @@ router.post('/', async (req, res) => {
 
         const cleanPhone = String(phone).replace(/\D/g, '');
 
-        // 3. Check phone overlap for THIS user only
-        const existing = await Contact.findOne({
-            where: {
-                phone: cleanPhone,
-                userId: req.user.id
-            }
+        // 3. Bidirectional duplicate check — works regardless of whether the stored contact
+        //    has the country code or not, and regardless of which format is being added.
+        //
+        //    Strategy: fetch all phones for this user, compute variants of each stored phone,
+        //    then check if the new number (or any of its variants) overlaps.
+        //
+        //    Example — stored "919003169699", adding "9003169699":
+        //      storedVariants("919003169699") includes "9003169699" → MATCH → blocked ✅
+        //    Example — stored "9003169699", adding "919003169699":
+        //      newVariants("919003169699") includes "9003169699" → stored phone found → blocked ✅
+        const newVariants = phoneVariants(cleanPhone);
+
+        // First try the fast path: does any stored phone directly match a variant of the new number?
+        const directMatch = await Contact.findOne({
+            where: { phone: { [Op.in]: newVariants }, userId: req.user.id }
         });
 
-        if (existing) {
+        if (directMatch) {
+            return res.status(400).json({ error: 'Contact with this phone number already exists in your list.' });
+        }
+
+        // Reverse path: does the new number appear as a variant of any stored phone?
+        // (Catches case: stored "919003169699", adding "9003169699")
+        const allStoredPhones = await Contact.findAll({
+            where: { userId: req.user.id },
+            attributes: ['phone'],
+            raw: true
+        });
+        const storedVariantSet = new Set(allStoredPhones.flatMap(c => phoneVariants(c.phone)));
+        const reverseMatch = newVariants.some(v => storedVariantSet.has(v));
+
+        if (reverseMatch) {
             return res.status(400).json({ error: 'Contact with this phone number already exists in your list.' });
         }
 
