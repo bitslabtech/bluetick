@@ -671,6 +671,127 @@ router.post('/actions/:action', superAdmin, async (req, res) => {
                     return res.status(400).json({ msg: 'Failed to connect to R2: ' + r2Err.message });
                 }
 
+            case 'generate-admin-templates-batch': {
+                const { events } = req.body;
+                if (!events || !Array.isArray(events) || events.length === 0) {
+                    return res.status(400).json({ error: 'Missing events array' });
+                }
+
+                const config = await SystemConfig.getConfig();
+                
+                // --- Pre-flight validation to save AI tokens ---
+                const linkedAdminId = config?.settings?.linkedAdminUserId;
+                if (!linkedAdminId) {
+                    return res.status(400).json({ error: 'No linked CRM account configured. Please configure your WhatsApp Settings first.' });
+                }
+
+                const SettingsM = require('../models/Settings');
+                const linkedSettings = await SettingsM.findOne({ where: { userId: linkedAdminId } });
+                if (!linkedSettings || !linkedSettings.metaAccessToken || !linkedSettings.metaBusinessAccountId) {
+                    return res.status(400).json({ error: 'The linked CRM account does not have valid Meta WhatsApp credentials. Please connect your Meta account first to avoid wasting AI tokens.' });
+                }
+                // ------------------------------------------------
+                
+                const { runAi } = require('../utils/aiRunner');
+
+                // Build a structured prompt to ask for a JSON array of templates
+                let eventListStr = '';
+                events.forEach((evt, index) => {
+                    const varCount = evt.vars.length;
+                    const varList = varCount > 0
+                        ? evt.vars.map((v, i) => `{{${i + 1}}} = ${evt.varDesc[i]}`).join(', ')
+                        : 'None';
+                    const expectedVarNums = varCount > 0
+                        ? evt.vars.map((_, i) => `{{${i + 1}}}`).join(', ')
+                        : 'zero variables';
+
+                    eventListStr += `\n[Event ID: ${evt.key}]\n` +
+                                    `Description: ${evt.desc}\n` +
+                                    `Variables (${varCount} total): ${varList}\n` +
+                                    `Required format: Must use EXACTLY these variables: ${expectedVarNums}\n`;
+                });
+
+                const prompt = 
+                    `You are writing WhatsApp Business API message template bodies for a SaaS platform called Bluetick.\n` +
+                    `Bluetick is a WhatsApp marketing, CRM, and store automation tool used by businesses.\n` +
+                    `You need to generate templates for ${events.length} different admin notification events.\n\n` +
+                    `Here is the list of events and their required variables:\n` +
+                    `${eventListStr}\n\n` +
+                    `HARD CONSTRAINTS for EVERY template:\n` +
+                    `1. Use EXACTLY the variable placeholders requested (e.g. {{1}}, {{2}}). Do not add extras, do not skip any.\n` +
+                    `2. Output ONLY the raw message body text for each event. No markdown, no buttons, no explanations.\n` +
+                    `3. Start each template with one relevant emoji.\n` +
+                    `4. Write in a professional, concise tone. Max 200 characters per template.\n\n` +
+                    `OUTPUT FORMAT:\n` +
+                    `You MUST return your response as a valid JSON array of objects. Do NOT wrap it in markdown code blocks like \`\`\`json. Return ONLY the raw JSON array. Example format:\n` +
+                    `[\n` +
+                    `  { "eventKey": "order_new", "body": "🛍️ New order received from {{1}} for {{2}}!" },\n` +
+                    `  { "eventKey": "user_signup", "body": "👤 New user signup: {{1}} has joined." }\n` +
+                    `]\n\n` +
+                    `Generate the JSON array for all ${events.length} events now:`;
+
+                let aiText = '';
+                let parsedTemplates = [];
+                let attempts = 0;
+                const maxAttempts = 3;
+
+                while (attempts < maxAttempts) {
+                    attempts++;
+                    try {
+                        const result = await runAi(config, null, prompt, { temperature: 0.2, maxOutputTokens: 2000 });
+                        aiText = result.text.trim();
+                        
+                        // Clean up potential markdown formatting if AI still added it
+                        if (aiText.startsWith('```json')) aiText = aiText.substring(7);
+                        if (aiText.startsWith('```')) aiText = aiText.substring(3);
+                        if (aiText.endsWith('```')) aiText = aiText.substring(0, aiText.length - 3);
+                        aiText = aiText.trim();
+
+                        parsedTemplates = JSON.parse(aiText);
+
+                        if (!Array.isArray(parsedTemplates)) {
+                            throw new Error("AI did not return an array.");
+                        }
+
+                        // Validate that all requested events are present and have the correct variable counts
+                        let allValid = true;
+                        for (const evt of events) {
+                            const generated = parsedTemplates.find(t => t.eventKey === evt.key);
+                            if (!generated || !generated.body) {
+                                console.warn(`[BatchTemplate] Missing template for ${evt.key}`);
+                                allValid = false;
+                                break;
+                            }
+                            
+                            const foundVars = new Set((generated.body.match(/\{\{\d+\}\}/g) || []));
+                            if (foundVars.size !== evt.vars.length) {
+                                console.warn(`[BatchTemplate] Variable mismatch for ${evt.key}. Expected ${evt.vars.length}, got ${foundVars.size}`);
+                                allValid = false;
+                                break;
+                            }
+                        }
+
+                        if (allValid) {
+                            break; // Success!
+                        } else {
+                            console.warn(`[BatchTemplate] Attempt ${attempts}/${maxAttempts}: Validation failed. Retrying...`);
+                        }
+
+                    } catch (parseErr) {
+                        console.warn(`[BatchTemplate] Attempt ${attempts}/${maxAttempts}: JSON parsing failed or AI returned invalid format. Retrying...`, parseErr.message);
+                    }
+
+                    if (attempts === maxAttempts) {
+                        return res.status(422).json({
+                            error: `AI could not generate a valid batch of templates after ${maxAttempts} attempts. Please try again or create them manually.`
+                        });
+                    }
+                }
+
+                console.log(`[BatchTemplate] OK — generated ${parsedTemplates.length} templates in ${attempts} attempts`);
+                return res.json({ success: true, templates: parsedTemplates });
+            }
+
             case 'generate-admin-template-text': {
                 const { eventDescription, variables, variableDesc } = req.body;
                 if (!eventDescription || !variables) {

@@ -160,51 +160,46 @@ const WhatsAppAdminNotifPanel = () => {
         setAutoCreating(true);
         setIsReviewModalOpen(true);
         setGeneratedTemplates([]);
+        setGenerationProgress({ current: 0, total: missingEvents.length, text: `Generating ${missingEvents.length} templates (this may take up to 30 seconds)...` });
         
-        const generated = [];
-        let failed = 0;
-
-        for (let i = 0; i < missingEvents.length; i++) {
-            const evt = missingEvents[i];
-            setGenerationProgress({ current: i + 1, total: missingEvents.length, text: `Generating: ${evt.label}...` });
+        try {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/system/actions/generate-admin-templates-batch`, {
+                events: missingEvents
+            });
             
-            try {
-                const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/system/actions/generate-admin-template-text`, {
-                    eventDescription: evt.desc,
-                    variables: evt.vars,
-                    variableDesc: evt.varDesc
-                });
-                
-                generated.push({
-                    eventKey: evt.key,
-                    name: evt.templateName,
-                    desc: evt.desc,
-                    variables: evt.vars,
-                    body: res.data.text
-                });
-            } catch (err) {
-                console.error(`Failed to generate ${evt.templateName}:`, err);
-                failed++;
+            const rawGenerated = res.data.templates || [];
+            
+            // Map the returned batch back to the local format
+            const generated = rawGenerated.map(t => {
+                const evt = missingEvents.find(e => e.key === t.eventKey);
+                return {
+                    eventKey: t.eventKey,
+                    name: evt?.templateName || t.eventKey,
+                    desc: evt?.desc || '',
+                    variables: evt?.vars || [],
+                    body: t.body
+                };
+            }).filter(t => t.desc); // only keep valid ones
+            
+            if (generated.length > 0) {
+                setGeneratedTemplates(generated);
+            } else {
+                setIsReviewModalOpen(false);
+                showToast({ type: 'error', title: 'Generation Failed', message: 'AI returned an empty list of templates.' });
             }
             
-            // Add a 6-second delay between AI generations to respect Gemini/OpenAI rate limits (e.g., 15 RPM for Gemini free tier)
-            if (i < missingEvents.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 6000));
+            // Alert if the AI missed some
+            if (generated.length > 0 && generated.length < missingEvents.length) {
+                const diff = missingEvents.length - generated.length;
+                showToast({ type: 'warning', title: 'Partial Generation', message: `AI generated ${generated.length} out of ${missingEvents.length}. ${diff} failed.` });
             }
-        }
-
-        setAutoCreating(false);
-        
-        if (generated.length > 0) {
-            setGeneratedTemplates(generated);
-        } else {
+            
+        } catch (err) {
+            console.error(`Failed to generate batch templates:`, err);
             setIsReviewModalOpen(false);
-        }
-        
-        if (failed > 0) {
-            showToast({ type: 'warning', title: 'Partial Generation', message: `${failed} templates failed to generate due to rate limits.` });
-        } else if (generated.length === 0) {
-            showToast({ type: 'error', title: 'Generation Failed', message: 'Failed to generate any templates.' });
+            showToast({ type: 'error', title: 'Generation Failed', message: err.response?.data?.error || 'Failed to communicate with AI model.' });
+        } finally {
+            setAutoCreating(false);
         }
     };
 
