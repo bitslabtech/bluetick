@@ -19,7 +19,7 @@ const ADMIN_EVENTS = [
     { key: 'payout_request',         label: 'Payout Request',         desc: 'Tech partner requests a payout',              vars: ['name', 'amount'],             varDesc: ['Partner full name', 'Payout amount requested'],                      templateName: 'admin_alert_payout_request' },
     { key: 'ai_tokens_depleted',     label: 'AI Tokens Depleted',     desc: "A user's AI token balance hits zero",         vars: ['name'],                       varDesc: ['User full name'],                                                    templateName: 'admin_alert_ai_depleted' },
     { key: 'addon_installed',        label: 'Add-on Installed',       desc: 'A user installs a paid add-on',               vars: ['name', 'addonName'],          varDesc: ['User full name', 'Add-on name installed'],                           templateName: 'admin_alert_addon_installed' },
-    { key: 'store_new_order_alert',  label: 'Store New Order (Fallback)', desc: 'Sent to store owner if their WhatsApp API is missing', vars: ['store', 'customer', 'order', 'total'], varDesc: ['Store Name', 'Customer Name', 'Order Number', 'Order Total'], templateName: 'store_new_order_alert' },
+    { key: 'store_new_order_alert',  label: 'Store New Order (Fallback)', desc: 'Sent to store owner if their WhatsApp API is missing', vars: ['store', 'customer', 'order', 'total'], varDesc: ['Store Name', 'Customer Name', 'Order Number', 'Order Total'], templateName: 'store_owner_new_order_alert' },
 ];
 
 const Toggle = ({ enabled, onChange, danger }) => (

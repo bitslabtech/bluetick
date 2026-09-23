@@ -168,7 +168,7 @@ router.post('/system-sync', async (req, res) => {
         // 2. RECOVERY: Import templates that exist on Meta but are missing from local DB
         // These are templates that were submitted to Meta but the DB write failed (race condition / crash)
         // We only recover templates whose names match our known admin template naming pattern
-        const KNOWN_ADMIN_PREFIXES = ['admin_alert_', 'store_new_order_alert'];
+        const KNOWN_ADMIN_PREFIXES = ['admin_alert_', 'store_owner_new_order_alert'];
         for (const mt of metaTemplates) {
             const isAdminTemplate = KNOWN_ADMIN_PREFIXES.some(prefix => mt.name === prefix || mt.name.startsWith(prefix));
             if (!isAdminTemplate) continue; // Skip user templates — only recover system ones

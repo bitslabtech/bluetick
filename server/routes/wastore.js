@@ -968,7 +968,7 @@ async function sendOwnerOrderAlert(store, user, order) {
         }];
 
         await sendSystemMessage(phone, 'template', {
-            templateName: 'store_new_order_alert',
+            templateName: 'store_owner_new_order_alert',
             languageCode: 'en',
             components
         });
