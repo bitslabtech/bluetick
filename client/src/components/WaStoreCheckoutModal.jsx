@@ -743,13 +743,13 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                             <><Loader2 className="w-6 h-6 animate-spin" /> Processing...</>
                         ) : (
                             <>
-                                {store.checkoutMode === 'gateway' ? 'Pay & Place Order' : 'Confirm & Send to WhatsApp'} 
+                                {store.checkoutMode === 'gateway' ? 'Pay & Place Order' : 'Place Order'} 
                                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                             </>
                         )}
                     </button>
                     <p className="text-center text-xs text-gray-400 mt-3 flex items-center justify-center gap-1">
-                        {store.checkoutMode === 'gateway' ? 'You will be redirected to secure payment gateway.' : 'Your order details will be sent directly to the seller via WhatsApp.'}
+                        {store.checkoutMode === 'gateway' ? 'You will be redirected to secure payment gateway.' : 'Your order will be placed and confirmed by the seller.'}
                     </p>
                     </div>
                     </>

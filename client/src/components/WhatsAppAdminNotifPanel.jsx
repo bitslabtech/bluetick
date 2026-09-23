@@ -281,6 +281,13 @@ const WhatsAppAdminNotifPanel = () => {
         return tpl.status?.toUpperCase() || 'PENDING';
     };
 
+    const getTemplateCategory = (templateName) => {
+        if (!templateName) return null;
+        const tpl = systemTemplates.find(t => t.name === templateName);
+        if (!tpl) return null;
+        return tpl.category || 'UTILITY';
+    };
+
     const statusBadge = (status) => {
         if (!status || status === 'missing') return (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-white/10 text-slate-400">
@@ -449,6 +456,7 @@ const WhatsAppAdminNotifPanel = () => {
                             const isEnabled = eventCfg.enabled !== false; // default true
                             const tplName = eventCfg.templateName || evt.templateName;
                             const tplStatus = getTemplateStatus(tplName);
+                            const tplCategory = getTemplateCategory(tplName);
 
                             return (
                                 <div
@@ -460,9 +468,16 @@ const WhatsAppAdminNotifPanel = () => {
                                         <div className="text-[10px] text-slate-400 mt-0.5">{evt.desc}</div>
                                     </div>
                                     <div className="col-span-3 hidden md:block">
-                                        <span className="font-mono text-[10px] text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-500/20">
-                                            {tplName}
-                                        </span>
+                                        <div className="flex flex-col items-start gap-1">
+                                            <span className="font-mono text-[10px] text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-500/20">
+                                                {tplName}
+                                            </span>
+                                            {tplCategory && tplStatus !== 'missing' && (
+                                                <span className={`text-[9px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded ${tplCategory === 'MARKETING' ? 'bg-orange-100 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400' : 'text-slate-400 bg-slate-100 dark:bg-white/5'}`}>
+                                                    {tplCategory}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="col-span-2 hidden md:block">
                                         <div className="flex flex-wrap gap-1">

@@ -24,6 +24,7 @@ export default function StoreRegisterPage({ store, products = [] }) {
     const [otpPhone, setOtpPhone] = useState('');
     const [otpDialCode, setOtpDialCode] = useState('+91');
     const [otpPhoneError, setOtpPhoneError] = useState('');
+    const [otpName, setOtpName] = useState('');
     const [otp, setOtp] = useState('');
     const [otpSent, setOtpSent] = useState(false);
     const [otpCooldown, setOtpCooldown] = useState(0);
@@ -110,7 +111,7 @@ export default function StoreRegisterPage({ store, products = [] }) {
         setSubmitting(true);
         const cleanPhone = otpPhone.replace(/[\s\-\(\)]/g, '');
         try {
-            await verifyOtp(`${otpDialCode}${cleanPhone}`, otp);
+            await verifyOtp(`${otpDialCode}${cleanPhone}`, otp, otpName.trim() || undefined);
             toast.success('Account created & logged in!');
             navigate(getStoreRoute(slug, `/account`));
         } catch (err) {
@@ -388,6 +389,23 @@ export default function StoreRegisterPage({ store, products = [] }) {
                                     onSubmit={handleVerifyOtp} 
                                     className="col-start-1 row-start-1 space-y-4 w-full"
                                 >
+                                    {/* Name field — for new WA OTP registrations */}
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-700 mb-1">Your Name</label>
+                                    <div className="relative">
+                                        <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                                        <input
+                                            type="text"
+                                            value={otpName}
+                                            onChange={e => setOtpName(e.target.value)}
+                                            placeholder="Enter your full name"
+                                            disabled={otpSent}
+                                            className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 disabled:bg-slate-50 disabled:opacity-70"
+                                            style={{ '--tw-ring-color': themeColor }}
+                                        />
+                                    </div>
+                                </div>
+
                                     {/* Phone */}
                                 <div>
                                     <label className="block text-xs font-semibold text-slate-700 mb-1">WhatsApp Number</label>

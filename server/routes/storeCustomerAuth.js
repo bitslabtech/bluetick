@@ -402,11 +402,20 @@ router.post('/verify-otp', async (req, res) => {
         });
 
         if (!created) {
-            // Update isVerified just in case
+            let needsSave = false;
+            // Mark as verified if not already
             if (!customer.isVerified) {
                 customer.isVerified = true;
-                await customer.save();
+                needsSave = true;
             }
+            // If user provided a real name AND the stored name is still the auto-generated
+            // fallback (e.g. "Customer 0716"), update it with the real name they typed
+            const isFallbackName = customer.name && /^Customer \d{4}$/.test(customer.name);
+            if (name && name.trim() && isFallbackName) {
+                customer.name = name.trim();
+                needsSave = true;
+            }
+            if (needsSave) await customer.save();
         }
 
         const token = signToken(customer);
