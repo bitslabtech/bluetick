@@ -138,7 +138,13 @@ router.post('/system-sync', async (req, res) => {
             order: [['createdAt', 'DESC']]
         });
 
+        // Build a set of local template names for fast lookup
+        const localNameSet = new Set(localTemplates.map(t => t.name));
+
         let syncedCount = 0;
+        let recoveredCount = 0;
+
+        // 1. Update status/id for existing local templates
         for (const tpl of localTemplates) {
             const key = `${tpl.name}__${tpl.language || 'en'}`;
             const meta = metaMap[key];
@@ -159,7 +165,34 @@ router.post('/system-sync', async (req, res) => {
             }
         }
 
-        console.log(`[SystemSync] Synced ${syncedCount} system template status(es) from Meta.`);
+        // 2. RECOVERY: Import templates that exist on Meta but are missing from local DB
+        // These are templates that were submitted to Meta but the DB write failed (race condition / crash)
+        // We only recover templates whose names match our known admin template naming pattern
+        const KNOWN_ADMIN_PREFIXES = ['admin_alert_', 'store_new_order_alert'];
+        for (const mt of metaTemplates) {
+            const isAdminTemplate = KNOWN_ADMIN_PREFIXES.some(prefix => mt.name === prefix || mt.name.startsWith(prefix));
+            if (!isAdminTemplate) continue; // Skip user templates — only recover system ones
+            if (localNameSet.has(mt.name)) continue; // Already in DB — skip
+
+            // This is a system template on Meta but not in our DB — recover it
+            try {
+                await Template.create({
+                    userId: linkedUserId,
+                    name: mt.name,
+                    content: '',   // We don't have the body locally, but it exists on Meta
+                    category: 'UTILITY',
+                    language: mt.language || 'en',
+                    status: mt.status,
+                    metaTemplateId: mt.id
+                });
+                recoveredCount++;
+                console.log(`[SystemSync] Recovered orphaned template from Meta: ${mt.name} (${mt.status})`);
+            } catch (recErr) {
+                console.warn(`[SystemSync] Could not recover ${mt.name}:`, recErr.message);
+            }
+        }
+
+        console.log(`[SystemSync] Synced ${syncedCount} status(es), recovered ${recoveredCount} orphaned template(s) from Meta.`);
 
         // Return the fresh list after sync
         const freshTemplates = await Template.findAll({
@@ -167,7 +200,7 @@ router.post('/system-sync', async (req, res) => {
             order: [['createdAt', 'DESC']]
         });
 
-        res.json({ synced: syncedCount, templates: freshTemplates });
+        res.json({ synced: syncedCount, recovered: recoveredCount, templates: freshTemplates });
 
     } catch (err) {
         console.error('[SystemSync] Error:', err.message);

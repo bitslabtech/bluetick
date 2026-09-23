@@ -211,44 +211,43 @@ const WhatsAppAdminNotifPanel = () => {
 
     const handleConfirmAndSubmit = async () => {
         setSubmitting(true);
-        let successCount = 0;
-        let failCount = 0;
+        setSubmitProgress({ current: 0, total: generatedTemplates.length });
 
-        for (let i = 0; i < generatedTemplates.length; i++) {
-            const tpl = generatedTemplates[i];
-            setSubmitProgress({ current: i + 1, total: generatedTemplates.length });
-            
-            try {
-                await axios.post(`${import.meta.env.VITE_API_URL}/api/system/actions/submit-admin-template`, {
-                    eventKey: tpl.eventKey,
-                    name: tpl.name,
-                    body: tpl.body,
-                    variables: tpl.variables
-                });
-                successCount++;
-            } catch (err) {
-                console.error(`Failed to submit ${tpl.name}:`, err);
-                failCount++;
-            }
+        try {
+            // Single request — backend handles 3s throttle between each Meta API call
+            // so this will take ~(N-1)*3 seconds for N templates (expected, not a hang)
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/system/actions/submit-admin-templates-batch`, {
+                templates: generatedTemplates
+            });
 
-            // Small delay to prevent hitting Meta's WhatsApp Cloud API rate limits for template creation
-            if (i < generatedTemplates.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
+            const { successCount = 0, failCount = 0, results = [] } = res.data;
+
+            setSubmitProgress({ current: generatedTemplates.length, total: generatedTemplates.length });
+
+            const failedNames = results.filter(r => !r.success).map(r => r.name || r.eventKey).join(', ');
+
+            showToast({
+                type: successCount > 0 ? (failCount > 0 ? 'warning' : 'success') : 'error',
+                title: 'Templates Submitted',
+                message: failCount > 0
+                    ? `${successCount} submitted, ${failCount} rejected by Meta: ${failedNames}`
+                    : `${successCount} templates successfully submitted to Meta.`
+            });
+
+        } catch (err) {
+            console.error('Batch submit failed:', err);
+            showToast({
+                type: 'error',
+                title: 'Submission Failed',
+                message: err.response?.data?.error || 'Failed to submit templates to Meta.'
+            });
+        } finally {
+            setSubmitting(false);
+            setIsReviewModalOpen(false);
+            setGeneratedTemplates([]);
+            await fetchSystemTemplates();
+            await fetchData();
         }
-
-        setSubmitting(false);
-        setIsReviewModalOpen(false);
-        setGeneratedTemplates([]);
-        
-        showToast({
-            type: successCount > 0 ? 'success' : 'error',
-            title: 'Templates Submitted',
-            message: `${successCount} templates submitted successfully, ${failCount} failed.`
-        });
-        
-        await fetchSystemTemplates();
-        await fetchData();
     };
 
     const addPhoneNumber = () => {

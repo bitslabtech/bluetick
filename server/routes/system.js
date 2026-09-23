@@ -999,6 +999,141 @@ router.post('/actions/:action', superAdmin, async (req, res) => {
                 return res.json({ success: true, message: 'Template deleted successfully' });
             }
 
+            case 'submit-admin-templates-batch': {
+                const { templates: batchTemplates } = req.body;
+                if (!batchTemplates || !Array.isArray(batchTemplates) || batchTemplates.length === 0) {
+                    return res.status(400).json({ error: 'Missing templates array' });
+                }
+
+                const config = await SystemConfig.getConfig();
+                const linkedAdminId = config?.settings?.linkedAdminUserId;
+                if (!linkedAdminId) {
+                    return res.status(400).json({ error: 'No linked CRM account configured.' });
+                }
+
+                const SettingsM = require('../models/Settings');
+                const Template = require('../models/Template');
+                const linkedSettings = await SettingsM.findOne({ where: { userId: linkedAdminId } });
+                if (!linkedSettings || !linkedSettings.metaPhoneNumberId || !linkedSettings.metaAccessToken) {
+                    return res.status(400).json({ error: 'Linked CRM account does not have WhatsApp credentials configured.' });
+                }
+
+                const token = linkedSettings.metaAccessToken.replace(/[^\x20-\x7E]/g, '').trim();
+                const wabaId = linkedSettings.metaBusinessAccountId;
+
+                const results = [];
+
+                for (let i = 0; i < batchTemplates.length; i++) {
+                    const tpl = batchTemplates[i];
+                    const { eventKey, name, body, variables } = tpl;
+
+                    if (!eventKey || !name || !body) {
+                        results.push({ eventKey, name, success: false, error: 'Missing required fields' });
+                        continue;
+                    }
+
+                    let metaTemplateId = null;
+
+                    if (wabaId) {
+                        const exampleParams = (variables || []).map((v, idx) => `Example_${idx + 1}`);
+                        try {
+                            const axiosLib = require('axios');
+                            const metaRes = await axiosLib.post(
+                                `https://graph.facebook.com/v21.0/${wabaId}/message_templates`,
+                                {
+                                    name: name,
+                                    language: 'en',
+                                    category: 'UTILITY',
+                                    components: [
+                                        {
+                                            type: 'BODY',
+                                            text: body,
+                                            example: (variables || []).length > 0 ? { body_text: [exampleParams] } : undefined
+                                        }
+                                    ]
+                                },
+                                {
+                                    headers: {
+                                        'Authorization': `Bearer ${token}`,
+                                        'Content-Type': 'application/json'
+                                    }
+                                }
+                            );
+                            if (metaRes.data?.id) {
+                                metaTemplateId = metaRes.data.id;
+                            } else {
+                                results.push({ eventKey, name, success: false, error: 'Meta did not return a template ID.' });
+                                continue;
+                            }
+                        } catch (metaErr) {
+                            const errMsg = metaErr.response?.data?.error?.message || metaErr.message;
+                            const errCode = metaErr.response?.data?.error?.code;
+                            console.warn(`[BatchSubmit] Meta rejected ${name} (${errCode}): ${errMsg}`);
+                            results.push({ eventKey, name, success: false, error: `Meta: ${errMsg}`, code: errCode });
+                            // Throttle: even on error, wait before next request
+                            if (i < batchTemplates.length - 1) {
+                                await new Promise(r => setTimeout(r, 3000));
+                            }
+                            continue;
+                        }
+                    }
+
+                    // Save to local DB
+                    try {
+                        // Check if template already exists (avoid duplicate DB rows)
+                        const existing = await Template.findOne({ where: { userId: linkedAdminId, name: name } });
+                        if (existing) {
+                            existing.content = body;
+                            existing.status = 'PENDING';
+                            existing.metaTemplateId = metaTemplateId;
+                            await existing.save();
+                        } else {
+                            await Template.create({
+                                userId: linkedAdminId,
+                                name: name,
+                                content: body,
+                                category: 'UTILITY',
+                                language: 'en',
+                                status: 'PENDING',
+                                metaTemplateId: metaTemplateId
+                            });
+                        }
+                    } catch (dbErr) {
+                        console.error(`[BatchSubmit] DB error for ${name}:`, dbErr.message);
+                    }
+
+                    // Update config: mark this event's template name
+                    const updatedEvents = { ...(config.settings?.adminNotificationEvents || {}) };
+                    updatedEvents[eventKey] = {
+                        ...(updatedEvents[eventKey] || {}),
+                        templateName: name,
+                        enabled: updatedEvents[eventKey]?.enabled ?? true
+                    };
+                    config.settings = { ...config.settings, adminNotificationEvents: updatedEvents };
+                    config.changed('settings', true);
+                    await config.save();
+
+                    results.push({ eventKey, name, success: true, metaTemplateId });
+                    console.log(`[BatchSubmit] OK (${i + 1}/${batchTemplates.length}): ${name} → ${metaTemplateId}`);
+
+                    // CRITICAL: 3-second throttle between Meta submissions to avoid rate limiting
+                    if (i < batchTemplates.length - 1) {
+                        await new Promise(r => setTimeout(r, 3000));
+                    }
+                }
+
+                const successCount = results.filter(r => r.success).length;
+                const failCount = results.filter(r => !r.success).length;
+                console.log(`[BatchSubmit] Done: ${successCount} succeeded, ${failCount} failed.`);
+
+                return res.json({
+                    success: successCount > 0,
+                    results,
+                    successCount,
+                    failCount
+                });
+            }
+
             default:
                 return res.status(400).json({ msg: 'Invalid action' });
         }
