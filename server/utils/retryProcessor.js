@@ -365,7 +365,7 @@ async function processRetries() {
                                 retryCount: currentRetryCount + 1,
                                 retryAfter,
                                 errorCode: 131049,
-                                error: `Frequency cap still active (131049). Retry ${currentRetryCount + 1}/${MAX_RETRIES} scheduled in ${delayHours}h.`
+                                error: `Retry attempt ${currentRetryCount + 1}/${MAX_RETRIES} scheduled in ${delayHours}h. (131049)`
                             });
                             console.log(`[RETRY] 131049 still active for log ${log.id}. Scheduled retry ${currentRetryCount + 1}/${MAX_RETRIES} in ${delayHours}h at ${retryAfter.toISOString()}`);
                         } else {
@@ -374,7 +374,7 @@ async function processRetries() {
                                 status: 'FAILED',
                                 retryAfter: null,
                                 errorCode: 131049,
-                                error: `Frequency cap (131049). All ${MAX_RETRIES} retries exhausted.`
+                                error: `Your contact's daily limit reached. All ${MAX_RETRIES} retries failed. (131049)`
                             });
                             console.log(`[RETRY] All ${MAX_RETRIES} retries exhausted for log ${log.id}. Permanently FAILED.`);
                         }
@@ -394,20 +394,20 @@ async function processRetries() {
                             status: 'FAILED',
                             retryAfter: null,
                             errorCode: 131026,
-                            error: 'Number is not on WhatsApp'
+                            error: 'Number not registered on WhatsApp. (131026)'
                         });
 
                     } else {
                         // Any other error — don't retry, permanently fail
                         const friendlyErrors = {
-                            131009: 'Invalid WhatsApp number',
-                            131021: 'Recipient opted out of messages',
-                            131051: 'Message type not supported',
-                            131008: 'Required parameter missing',
-                            131047: 'Message failed — recipient not reachable',
-                            131031: 'Business account restricted by Meta',
-                            130472: 'Recipient is in a Meta A/B test — not sent',
-                            132012: 'Template parameter mismatch — check template variables'
+                            131009: 'WhatsApp rejected this number — may be invalid. (131009)',
+                            131021: 'WhatsApp: contact has opted out of business messages. (131021)',
+                            131051: 'WhatsApp: message type not supported for this contact. (131051)',
+                            131008: 'WhatsApp rejected — missing required template field. (131008)',
+                            131047: 'WhatsApp: contact temporarily unreachable. (131047)',
+                            131031: 'Meta restricted your business account — check Business Manager. (131031)',
+                            130472: 'WhatsApp excluded this contact via Meta A/B test. (130472)',
+                            132012: 'WhatsApp rejected — template variable count mismatch. (132012)'
                         };
                         await log.update({
                             status: 'FAILED',

@@ -52,6 +52,12 @@ export default function SectionVideos({ draft, updateDraft, storeId }) {
     const [loadingProducts, setLoadingProducts] = useState(true);
     const [showMediaPicker, setShowMediaPicker] = useState(false);
     const [expandedIdx, setExpandedIdx] = useState(null); // which video card is expanded
+    const [productSearch, setProductSearch] = useState('');
+
+    const handleSetExpandedIdx = (idx) => {
+        setExpandedIdx(idx);
+        setProductSearch('');
+    };
 
     const videos = Array.isArray(draft.shoppableVideos) ? draft.shoppableVideos : [];
 
@@ -78,7 +84,7 @@ export default function SectionVideos({ draft, updateDraft, storeId }) {
         };
         const updated = [...videos, newVideo];
         setVideos(updated);
-        setExpandedIdx(updated.length - 1);
+        handleSetExpandedIdx(updated.length - 1);
     };
 
     const updateVideo = (idx, field, value) => {
@@ -90,8 +96,8 @@ export default function SectionVideos({ draft, updateDraft, storeId }) {
     const removeVideo = (idx) => {
         const updated = videos.filter((_, i) => i !== idx);
         setVideos(updated);
-        if (expandedIdx === idx) setExpandedIdx(null);
-        else if (expandedIdx > idx) setExpandedIdx(expandedIdx - 1);
+        if (expandedIdx === idx) handleSetExpandedIdx(null);
+        else if (expandedIdx > idx) handleSetExpandedIdx(expandedIdx - 1);
     };
 
     const moveVideo = (idx, dir) => {
@@ -100,7 +106,7 @@ export default function SectionVideos({ draft, updateDraft, storeId }) {
         if (target < 0 || target >= updated.length) return;
         [updated[idx], updated[target]] = [updated[target], updated[idx]];
         setVideos(updated);
-        setExpandedIdx(target);
+        handleSetExpandedIdx(target);
     };
 
     return (
@@ -138,9 +144,7 @@ export default function SectionVideos({ draft, updateDraft, storeId }) {
                 <div className="py-10 flex flex-col items-center justify-center border-2 border-dashed border-gray-200 dark:border-white/10 rounded-2xl bg-gray-50/50 dark:bg-white/5">
                     <Video className="w-8 h-8 text-gray-300 dark:text-slate-600 mb-2" />
                     <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 mb-1">No shoppable videos yet</p>
-                    <p className="text-[10px] text-gray-300 dark:text-slate-600 text-center leading-relaxed px-4">
-                        Add vertical videos to create a TikTok-style slider on your store.
-                    </p>
+
                     <button
                         onClick={addVideo}
                         className="mt-4 flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-[11px] font-bold rounded-xl transition-all"
@@ -154,6 +158,7 @@ export default function SectionVideos({ draft, updateDraft, storeId }) {
             <div className="space-y-2">
                 {videos.map((video, idx) => {
                     const isOpen = expandedIdx === idx;
+                    const filteredProducts = isOpen ? products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())) : [];
                     return (
                         <div key={video.id || idx}
                             className={`rounded-xl border transition-all overflow-hidden ${isOpen
@@ -164,7 +169,7 @@ export default function SectionVideos({ draft, updateDraft, storeId }) {
                             {/* Card header */}
                             <div
                                 className="flex items-center gap-2 px-3 py-2 cursor-pointer select-none"
-                                onClick={() => setExpandedIdx(isOpen ? null : idx)}
+                                onClick={() => handleSetExpandedIdx(isOpen ? null : idx)}
                             >
                                 {/* Thumbnail preview */}
                                 <div className="w-8 h-11 rounded-lg overflow-hidden bg-gray-200 dark:bg-slate-700 shrink-0 flex items-center justify-center">
@@ -248,7 +253,7 @@ export default function SectionVideos({ draft, updateDraft, storeId }) {
                                     </div>
 
                                     {/* Linked product */}
-                                    <div className="space-y-1">
+                                    <div className="space-y-2">
                                         <label className="text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
                                             <LinkIcon className="w-3 h-3" /> Linked Product
                                         </label>
@@ -257,16 +262,25 @@ export default function SectionVideos({ draft, updateDraft, storeId }) {
                                                 <Loader2 className="w-3 h-3 animate-spin" /> Loading products…
                                             </div>
                                         ) : (
-                                            <select
-                                                value={video.productId || ''}
-                                                onChange={(e) => updateVideo(idx, 'productId', e.target.value)}
-                                                className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-violet-500 outline-none"
-                                            >
-                                                <option value="">-- Select a product --</option>
-                                                {products.map(p => (
-                                                    <option key={p.id} value={p.id}>{p.name}</option>
-                                                ))}
-                                            </select>
+                                            <div className="flex flex-col border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-violet-500 transition-all">
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="Search products..." 
+                                                    value={productSearch}
+                                                    onChange={(e) => setProductSearch(e.target.value)}
+                                                    className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-slate-900/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 outline-none border-b border-gray-200 dark:border-white/10"
+                                                />
+                                                <select
+                                                    value={video.productId || ''}
+                                                    onChange={(e) => updateVideo(idx, 'productId', e.target.value)}
+                                                    className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-white outline-none cursor-pointer"
+                                                >
+                                                    <option value="">-- Select a product --</option>
+                                                    {filteredProducts.map(p => (
+                                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
@@ -276,12 +290,7 @@ export default function SectionVideos({ draft, updateDraft, storeId }) {
                 })}
             </div>
 
-            {/* Hint */}
-            {videos.length > 0 && (
-                <p className="text-[10px] text-gray-300 dark:text-slate-600 leading-relaxed text-center">
-                    Changes update the preview instantly. Click Save to make them live.
-                </p>
-            )}
+
 
             {/* Media Picker Modal */}
             {typeof showMediaPicker === 'object' && showMediaPicker !== null && (

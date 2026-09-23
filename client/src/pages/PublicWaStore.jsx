@@ -802,7 +802,7 @@ export default function PublicWaStore({ customSlug }) {
                                 >
                                     -
                                 </button>
-                                <span className="font-bold text-xs text-gray-900 select-none">{qtyInCart}</span>
+                                <span className="font-bold text-xs text-gray-900 dark:text-zinc-100 select-none">{qtyInCart}</span>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); updateQty(product.id, 1); }}
                                     className="w-7 h-7 flex items-center justify-center hover:bg-white active:scale-95 rounded-full transition-all font-bold text-base text-gray-800 select-none"
@@ -849,27 +849,27 @@ export default function PublicWaStore({ customSlug }) {
     if (loading) return (
         <div className="flex flex-col min-h-screen bg-[#F9F6F3]">
             {/* Skeleton Header */}
-            <div className="w-full h-16 bg-white border-b border-gray-100 flex items-center px-6 gap-4">
-                <div className="h-5 w-28 rounded-md bg-gray-200 animate-pulse" />
+            <div className="w-full h-16 bg-white dark:bg-zinc-900 border-b border-gray-100 dark:border-zinc-800 flex items-center px-6 gap-4">
+                <div className="h-5 w-28 rounded-md bg-gray-200 dark:bg-zinc-800 animate-pulse" />
                 <div className="flex-1" />
-                <div className="h-5 w-32 rounded-full bg-gray-200 animate-pulse hidden md:block" />
-                <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse" />
+                <div className="h-5 w-32 rounded-full bg-gray-200 dark:bg-zinc-800 animate-pulse hidden md:block" />
+                <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-zinc-800 animate-pulse" />
             </div>
             {/* Hero Banner Skeleton */}
-            <div className="w-full aspect-[4/3] sm:aspect-[16/9] lg:aspect-[2.5/1] bg-gray-200 animate-pulse relative overflow-hidden">
+            <div className="w-full aspect-[4/3] sm:aspect-[16/9] lg:aspect-[2.5/1] bg-gray-200 dark:bg-zinc-800 animate-pulse relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-[shimmer_1.6s_infinite]" style={{backgroundSize:'200% 100%', animation:'shimmer 1.6s ease-in-out infinite'}} />
             </div>
             {/* Category Pills Skeleton */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 flex gap-3 overflow-hidden">
                 {[80,64,96,72,56].map((w, i) => (
-                    <div key={i} className="h-8 rounded-full bg-gray-200 animate-pulse shrink-0" style={{width: w}} />
+                    <div key={i} className="h-8 rounded-full bg-gray-200 dark:bg-zinc-800 animate-pulse shrink-0" style={{width: w}} />
                 ))}
             </div>
             {/* Product Grid Skeleton */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 w-full">
                 {[...Array(8)].map((_, i) => (
-                    <div key={i} className="flex flex-col bg-white rounded-xl overflow-hidden shadow-sm">
-                        <div className="w-full aspect-[4/5] bg-gray-200 animate-pulse" style={{animationDelay: `${i * 0.07}s`}} />
+                    <div key={i} className="flex flex-col bg-white dark:bg-zinc-900 rounded-xl overflow-hidden shadow-sm">
+                        <div className="w-full aspect-[4/5] bg-gray-200 dark:bg-zinc-800 animate-pulse" style={{animationDelay: `${i * 0.07}s`}} />
                         <div className="p-3 flex flex-col gap-2">
                             <div className="h-3 w-16 bg-gray-200 rounded animate-pulse" />
                             <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
@@ -1240,11 +1240,11 @@ export default function PublicWaStore({ customSlug }) {
                                                 aria-label="Sort products"
                                                 className={`bg-transparent text-[13px] font-semibold ${theme.text} outline-none cursor-pointer border-none focus:ring-0 appearance-none pr-5 z-10`}
                                             >
-                                                <option value="newest" className="text-gray-900 font-medium">New Arrivals</option>
-                                                <option value="oldest" className="text-gray-900 font-medium">Oldest First</option>
-                                                <option value="price_asc" className="text-gray-900 font-medium">Price: Low to High</option>
-                                                <option value="price_desc" className="text-gray-900 font-medium">Price: High to Low</option>
-                                                <option value="name_asc" className="text-gray-900 font-medium">Name A → Z</option>
+                                                <option value="newest" className="text-gray-900 dark:text-zinc-100 font-medium">New Arrivals</option>
+                                                <option value="oldest" className="text-gray-900 dark:text-zinc-100 font-medium">Oldest First</option>
+                                                <option value="price_asc" className="text-gray-900 dark:text-zinc-100 font-medium">Price: Low to High</option>
+                                                <option value="price_desc" className="text-gray-900 dark:text-zinc-100 font-medium">Price: High to Low</option>
+                                                <option value="name_asc" className="text-gray-900 dark:text-zinc-100 font-medium">Name A → Z</option>
                                             </select>
                                             <ChevronDown className={`w-4 h-4 ${theme.textMuted} absolute right-3 pointer-events-none`} />
                                         </div>
@@ -1324,7 +1324,7 @@ export default function PublicWaStore({ customSlug }) {
             {/* ─── CART DRAWER ─── */}
             {/* CSS transitions replace framer-motion — removes vendor-motion from public store critical path */}
             {isCartOpen && (
-                <div className="fixed inset-0 z-50 flex justify-end">
+                <div className="fixed inset-0 z-[90] flex justify-end">
                     {/* Backdrop — CSS fade */}
                     <div
                         className="absolute inset-0 bg-black/40 backdrop-blur-sm cursor-pointer"
@@ -1347,16 +1347,16 @@ export default function PublicWaStore({ customSlug }) {
 
                             <div className="flex-1 overflow-y-auto p-4 md:p-6">
                                 {cart.length === 0 ? (
-                                    <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-4">
+                                    <div className="h-full flex flex-col items-center justify-center text-gray-400 dark:text-zinc-500 space-y-4">
                                         <ShoppingBag className="w-16 h-16 opacity-20" />
                                         <p className="font-medium">Your cart is empty</p>
-                                        <button onClick={() => setIsCartOpen(false)} className="px-4 md:px-6 py-2 bg-gray-100 text-gray-900 text-sm font-medium rounded-full mt-4 hover:bg-gray-200 transition-colors">Start Shopping</button>
+                                        <button onClick={() => setIsCartOpen(false)} className="px-4 md:px-6 py-2 bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 dark:text-zinc-100 text-sm font-medium rounded-full mt-4 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors">Start Shopping</button>
                                     </div>
                                 ) : (
                                     <div className="space-y-6">
                                         {cart.map(item => (
                                             <div key={item.cartItemId || item.id} className="flex gap-4 items-start">
-                                                <div className="w-20 h-20 bg-gray-50 rounded-xl overflow-hidden border border-gray-100 shrink-0 flex items-center justify-center">
+                                                <div className="w-20 h-20 bg-gray-50 dark:bg-zinc-800/50 rounded-xl overflow-hidden border border-gray-100 dark:border-zinc-800 shrink-0 flex items-center justify-center">
                                                     {(() => {
                                                         let rawUrl = null;
                                                         if (Array.isArray(item.imageUrls) && item.imageUrls.length > 0) rawUrl = item.imageUrls[0];
@@ -1366,7 +1366,7 @@ export default function PublicWaStore({ customSlug }) {
                                                         }
                                                         else if (item.imageUrl) rawUrl = item.imageUrl;
 
-                                                        if (!rawUrl) return <ShoppingBag className="w-6 h-6 text-gray-300" />;
+                                                        if (!rawUrl) return <ShoppingBag className="w-6 h-6 text-gray-300 dark:text-zinc-600" />;
                                                         const cleanUrl = imgUrl(encodeURI(rawUrl.replace(/\\/g, '/')));
                                                         return (
                                                             <img 
@@ -1377,7 +1377,7 @@ export default function PublicWaStore({ customSlug }) {
                                                             />
                                                         );
                                                     })()}
-                                                    <ShoppingBag className="w-6 h-6 text-gray-300 hidden" />
+                                                    <ShoppingBag className="w-6 h-6 text-gray-300 dark:text-zinc-600 hidden" />
                                                 </div>
                                                 <div className="flex-1 min-w-0 pt-1">
                                                     <h4 className={`font-semibold text-sm ${theme.text} truncate`}>{item.name}</h4>
@@ -1389,10 +1389,10 @@ export default function PublicWaStore({ customSlug }) {
                                                     <div className={`font-medium text-sm ${theme.textMuted} mt-1`}>{getCurrencySymbol(store.currency)}{getDisplayPrice(getItemPrice(item), item).toFixed(2)}</div>
 
                                                     <div className="flex items-center justify-between gap-3 mt-3">
-                                                        <div className="flex items-center bg-gray-100 rounded-lg p-1">
-                                                            <button onClick={() => updateQty(item.cartItemId || item.id, -1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors text-gray-600"><Minus className="w-3 h-3" /></button>
-                                                            <span className="w-8 text-center text-xs font-semibold text-gray-900">{item.qty}</span>
-                                                            <button onClick={() => updateQty(item.cartItemId || item.id, 1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors text-gray-600"><Plus className="w-3 h-3" /></button>
+                                                        <div className="flex items-center bg-gray-100 dark:bg-zinc-800 rounded-lg p-1">
+                                                            <button onClick={() => updateQty(item.cartItemId || item.id, -1)} className="w-6 h-6 flex items-center justify-center hover:bg-white dark:hover:bg-zinc-700 rounded-md transition-colors text-gray-600 dark:text-zinc-300"><Minus className="w-3 h-3" /></button>
+                                                            <span className="w-8 text-center text-xs font-semibold text-gray-900 dark:text-zinc-100">{item.qty}</span>
+                                                            <button onClick={() => updateQty(item.cartItemId || item.id, 1)} className="w-6 h-6 flex items-center justify-center hover:bg-white dark:hover:bg-zinc-700 rounded-md transition-colors text-gray-600 dark:text-zinc-300"><Plus className="w-3 h-3" /></button>
                                                         </div>
                                                         <div className={`font-bold text-sm ${theme.text}`}>
                                                             {getCurrencySymbol(store.currency)}{(getDisplayPrice(getItemPrice(item), item) * item.qty).toFixed(2)}

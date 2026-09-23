@@ -39,7 +39,7 @@ export default function SectionFooter({ draft, updateDraft }) {
                     placeholder="e.g. Crafted with love in India 🇮🇳"
                     className="w-full px-3 py-2 bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-xl text-sm text-gray-900 dark:text-white placeholder-slate-500 focus:ring-2 focus:ring-violet-500 outline-none"
                 />
-                <p className="text-xs text-gray-300 dark:text-slate-600">Appears in the bottom of your store footer.</p>
+                
             </div>
 
             {/* Social links */}

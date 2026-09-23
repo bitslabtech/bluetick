@@ -25,8 +25,8 @@ import {
     RefreshCcw
 } from 'lucide-react';
 import { 
-    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, 
-    BarChart, Bar 
+    ComposedChart, Area, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+    BarChart, ReferenceLine
 } from 'recharts';
 
 const FAST_POLL_MS = 3000;   // 3s when campaign is actively sending
@@ -56,69 +56,122 @@ export default function CampaignDetails() {
     // Calculate Chart Data
     const generateChartData = () => {
         if (!campaign || !campaign.processedLogs || campaign.processedLogs.length === 0) return { timeSeries: [], readDistribution: [], peakSummary: null };
-        
-        // 1. Time Series Data (group by hour)
-        const timeseriesMap = new Map();
-        
-        campaign.processedLogs.forEach(log => {
-            if (!log.timestamp) return;
-            const date = new Date(parseInt(log.timestamp) * 1000);
-            
-            // Format label: MM/DD HH:00
-            const label = `${date.getMonth()+1}/${date.getDate()} ${date.getHours()}:00`;
-            
-            if (!timeseriesMap.has(label)) {
-                timeseriesMap.set(label, { timeLabel: label, delivered: 0, read: 0, clicked: 0, failed: 0, sortKey: Math.floor(date.getTime() / 3600000) * 3600000 });
+
+        // ── Resolve all timestamps to ms ──────────────────────────────────────
+        const logsWithTs = campaign.processedLogs
+            .map(log => {
+                if (!log.timestamp) return null;
+                const ts = typeof log.timestamp === 'string' && log.timestamp.includes('-')
+                    ? new Date(log.timestamp).getTime()
+                    : parseInt(log.timestamp) * 1000;
+                return isNaN(ts) ? null : { ...log, tsMs: ts };
+            })
+            .filter(Boolean);
+
+        if (logsWithTs.length === 0) return { timeSeries: [], readDistribution: [], peakSummary: null };
+
+        // ── Adaptive bucket size: always target ~8 data points ───────────────
+        // Span = first activity → last activity (covers retries automatically)
+        const TARGET_POINTS = 8;
+        const allTs = logsWithTs.map(l => l.tsMs);
+        const spanMs = Math.max(Math.max(...allTs) - Math.min(...allTs), 60 * 1000); // min 1min span
+
+        // Raw bucket size in ms, rounded up to a clean human-readable interval
+        const rawBucketMs = spanMs / TARGET_POINTS;
+        const INTERVALS_MS = [
+            5 * 60 * 1000,    //  5 min
+            10 * 60 * 1000,   // 10 min
+            15 * 60 * 1000,   // 15 min
+            30 * 60 * 1000,   // 30 min
+            60 * 60 * 1000,   //  1 hour
+            2 * 3600 * 1000,  //  2 hours
+            3 * 3600 * 1000,  //  3 hours
+            4 * 3600 * 1000,  //  4 hours
+            6 * 3600 * 1000,  //  6 hours
+            12 * 3600 * 1000, // 12 hours
+            24 * 3600 * 1000, //  1 day
+        ];
+        const bucketMs = INTERVALS_MS.find(i => i >= rawBucketMs) || INTERVALS_MS[INTERVALS_MS.length - 1];
+
+        // ── Format label for bucket start time based on bucket size ──────────
+        const formatLabel = (tsMs) => {
+            const d = new Date(tsMs);
+            if (bucketMs >= 24 * 3600 * 1000) {
+                // daily: "Sep 23"
+                return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            } else if (bucketMs >= 3600 * 1000) {
+                // hourly+: "9/23 10:00"
+                return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:00`;
+            } else {
+                // sub-hour: "10:15"
+                return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
             }
-            const bucket = timeseriesMap.get(label);
-            
+        };
+
+        // ── 1. Group into adaptive buckets ────────────────────────────────────
+        const timeseriesMap = new Map();
+        logsWithTs.forEach(log => {
+            const bucketStart = Math.floor(log.tsMs / bucketMs) * bucketMs;
+            const label = formatLabel(bucketStart);
+            if (!timeseriesMap.has(bucketStart)) {
+                timeseriesMap.set(bucketStart, { timeLabel: label, delivered: 0, read: 0, clicked: 0, failed: 0, sortKey: bucketStart });
+            }
+            const bucket = timeseriesMap.get(bucketStart);
             if (log.status === 'DELIVERED') bucket.delivered++;
-            if (['READ', 'CLICKED'].includes(log.status)) bucket.read++;
+            if (['READ', 'CLICKED'].includes(log.status)) { bucket.read++; bucket.delivered++; }
             if (log.status === 'CLICKED') bucket.clicked++;
             if (log.status === 'FAILED') bucket.failed++;
         });
 
-        const timeSeries = Array.from(timeseriesMap.values()).sort((a,b) => a.sortKey - b.sortKey);
+        // ── Sort + cumulate ───────────────────────────────────────────────────
+        const sorted = Array.from(timeseriesMap.values()).sort((a, b) => a.sortKey - b.sortKey);
+        let cumDel = 0, cumRead = 0, cumClick = 0, cumFail = 0;
+        const timeSeries = sorted.map(bucket => {
+            cumDel   += bucket.delivered;
+            cumRead  += bucket.read;
+            cumClick += bucket.clicked;
+            cumFail  += bucket.failed;
+            const denominator = cumDel + cumFail;
+            const readRate = denominator > 0 ? parseFloat(((cumRead / denominator) * 100).toFixed(1)) : 0;
+            return { timeLabel: bucket.timeLabel, delivered: cumDel, read: cumRead, clicked: cumClick, failed: cumFail, readRate };
+        });
 
-        // 2. Read Distribution Data (peak hours)
+        // ── 2. Read Distribution by hour-of-day ───────────────────────────────
         const readHoursMap = new Map();
         let totalReads = 0;
         let peakHour = null;
         let peakCount = -1;
 
-        campaign.processedLogs.forEach(log => {
-            if (['READ', 'CLICKED'].includes(log.status) && log.timestamp) {
-                const date = new Date(parseInt(log.timestamp) * 1000);
-                const hour = date.getHours();
+        logsWithTs.forEach(log => {
+            if (['READ', 'CLICKED'].includes(log.status)) {
+                const d = new Date(log.tsMs);
+                const hour = d.getHours();
                 const hourLabel = `${hour === 0 ? 12 : hour > 12 ? hour - 12 : hour} ${hour >= 12 ? 'PM' : 'AM'}`;
-                
                 if (!readHoursMap.has(hourLabel)) readHoursMap.set(hourLabel, { hourLabel, count: 0, sortKey: hour });
                 readHoursMap.get(hourLabel).count++;
                 totalReads++;
             }
         });
 
-        const readDistribution = Array.from(readHoursMap.values()).sort((a,b) => a.sortKey - b.sortKey);
-        
+        const readDistribution = Array.from(readHoursMap.values()).sort((a, b) => a.sortKey - b.sortKey);
         readDistribution.forEach(item => {
-            if (item.count > peakCount) {
-                peakCount = item.count;
-                peakHour = item.hourLabel;
-            }
+            if (item.count > peakCount) { peakCount = item.count; peakHour = item.hourLabel; }
         });
 
         let peakSummary = null;
         if (peakHour) {
             const percentage = totalReads > 0 ? Math.round((peakCount / totalReads) * 100) : 0;
-            peakSummary = `Peak read activity occurred around ${peakHour} with ${peakCount} messages read. ${percentage}% of your readers interacted during this hour.`;
+            peakSummary = `Peak read activity at ${peakHour} — ${peakCount} reads (${percentage}% of all reads).`;
         } else {
-            peakSummary = "Not enough read data to determine peak time.";
+            peakSummary = 'Not enough read data to determine peak time.';
         }
 
         return { timeSeries, readDistribution, peakSummary };
     };
 
+
     const renderName = (name, phone) => {
+
         const isActuallyPhone = !name || name === phone || /^\d+$/.test(name.replace(/\D/g, ''));
         if (isActuallyPhone && isSubMember) {
             if (teamPolicy.phonePrivacy === 'blurred') return <span className="blur-sm select-none">{phone || name}</span>;
@@ -361,43 +414,62 @@ export default function CampaignDetails() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Main Engagement Graph */}
                     <div className="lg:col-span-2 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-6 shadow-sm flex flex-col">
-                        <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4">Engagement Over Time</h3>
+                        <div className="flex items-center justify-between mb-1">
+                            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Engagement Over Time</h3>
+                            <span className="text-[10px] font-semibold text-blue-500 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-full border border-blue-100 dark:border-blue-900/30">Read Rate % →</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 mb-3">Cumulative delivery progress &amp; read-rate % over time</p>
                         {enableCharts ? (
-                            <div className="h-64 w-full mt-2">
+                            <div className="h-64 w-full mt-1">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={timeSeries} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                                    <ComposedChart data={timeSeries} margin={{ top: 5, right: 28, left: 0, bottom: 5 }}>
                                         <defs>
-                                            <linearGradient id="colorDelivered" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
+                                            <linearGradient id="gradDelivered" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.18} />
                                                 <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
                                             </linearGradient>
-                                            <linearGradient id="colorRead" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                                            </linearGradient>
-                                            <linearGradient id="colorClicked" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
-                                                <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
-                                            </linearGradient>
-                                            <linearGradient id="colorFailed" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                                            <linearGradient id="gradFailed" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.18} />
                                                 <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
                                             </linearGradient>
                                         </defs>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.2} />
-                                        <XAxis dataKey="timeLabel" tick={{fontSize: 10}} axisLine={false} tickLine={false} tickMargin={10} stroke="#64748b" />
-                                        <YAxis tick={{fontSize: 10}} axisLine={false} tickLine={false} tickMargin={10} stroke="#64748b" />
-                                        <Tooltip 
-                                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                                            labelStyle={{ fontWeight: 'bold', color: '#64748b', marginBottom: '4px' }}
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.15} />
+                                        <XAxis dataKey="timeLabel" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} tickMargin={8} stroke="#64748b" />
+                                        {/* Left axis — message counts */}
+                                        <YAxis yAxisId="left" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} tickMargin={8} stroke="#64748b" width={36} />
+                                        {/* Right axis — read rate % */}
+                                        <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 9, fill: '#3b82f6' }} axisLine={false} tickLine={false} tickMargin={8} stroke="#3b82f6" width={32} unit="%" domain={[0, 100]} />
+                                        <Tooltip
+                                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.15)', fontSize: '11px' }}
+                                            labelStyle={{ fontWeight: 'bold', color: '#64748b', marginBottom: '6px' }}
+                                            formatter={(value, name) => {
+                                                if (name === 'Read Rate') return [`${value}%`, name];
+                                                return [value, name];
+                                            }}
                                         />
                                         <Legend content={renderChartLegend} />
-                                        
-                                        <Area type="monotone" dataKey="delivered" name="Delivered" stroke="#22c55e" strokeWidth={3} fill="url(#colorDelivered)" animationDuration={1500} fillOpacity={visibleLines.delivered ? 1 : 0} strokeOpacity={visibleLines.delivered ? 1 : 0} activeDot={visibleLines.delivered ? {r: 6} : false} dot={visibleLines.delivered ? {r: 4, strokeWidth: 2} : false} />
-                                        <Area type="monotone" dataKey="read" name="Read" stroke="#3b82f6" strokeWidth={3} fill="url(#colorRead)" animationDuration={1500} fillOpacity={visibleLines.read ? 1 : 0} strokeOpacity={visibleLines.read ? 1 : 0} activeDot={visibleLines.read ? {r: 6} : false} dot={visibleLines.read ? {r: 4, strokeWidth: 2} : false} />
-                                        <Area type="monotone" dataKey="clicked" name="Clicked" stroke="#a855f7" strokeWidth={3} fill="url(#colorClicked)" animationDuration={1500} fillOpacity={visibleLines.clicked ? 1 : 0} strokeOpacity={visibleLines.clicked ? 1 : 0} activeDot={visibleLines.clicked ? {r: 6} : false} dot={visibleLines.clicked ? {r: 4, strokeWidth: 2} : false} />
-                                        <Area type="monotone" dataKey="failed" name="Failed" stroke="#ef4444" strokeWidth={3} fill="url(#colorFailed)" animationDuration={1500} fillOpacity={visibleLines.failed ? 1 : 0} strokeOpacity={visibleLines.failed ? 1 : 0} activeDot={visibleLines.failed ? {r: 6} : false} dot={visibleLines.failed ? {r: 4, strokeWidth: 2} : false} />
-                                    </AreaChart>
+
+                                        {/* Delivered — stacked area bars for volume context */}
+                                        {visibleLines.delivered && (
+                                            <Area yAxisId="left" type="monotone" dataKey="delivered" name="Delivered" stroke="#22c55e" strokeWidth={2} fill="url(#gradDelivered)" animationDuration={1200} dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
+                                        )}
+                                        {/* Failed — subtle red area */}
+                                        {visibleLines.failed && (
+                                            <Area yAxisId="left" type="monotone" dataKey="failed" name="Failed" stroke="#ef4444" strokeWidth={2} fill="url(#gradFailed)" animationDuration={1200} dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
+                                        )}
+                                        {/* Read count — solid line on left axis */}
+                                        {visibleLines.read && (
+                                            <Line yAxisId="left" type="monotone" dataKey="read" name="Read" stroke="#60a5fa" strokeWidth={2.5} dot={false} animationDuration={1200} activeDot={{ r: 6, fill: '#3b82f6', strokeWidth: 0 }} strokeDasharray="0" />
+                                        )}
+                                        {/* Read Rate % — prominent glowing line on right axis */}
+                                        {visibleLines.read && (
+                                            <Line yAxisId="right" type="monotone" dataKey="readRate" name="Read Rate" stroke="#3b82f6" strokeWidth={3} dot={false} animationDuration={1400} activeDot={{ r: 7, fill: '#3b82f6', stroke: '#bfdbfe', strokeWidth: 3 }} />
+                                        )}
+                                        {/* Clicked — purple line */}
+                                        {visibleLines.clicked && campaign.stats?.clicked > 0 && (
+                                            <Line yAxisId="left" type="monotone" dataKey="clicked" name="Clicked" stroke="#a855f7" strokeWidth={2.5} dot={false} animationDuration={1200} activeDot={{ r: 5, fill: '#a855f7', strokeWidth: 0 }} />
+                                        )}
+                                    </ComposedChart>
                                 </ResponsiveContainer>
                             </div>
                         ) : (

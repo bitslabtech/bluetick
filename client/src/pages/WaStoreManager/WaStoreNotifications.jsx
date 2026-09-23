@@ -11,6 +11,23 @@ import toast from 'react-hot-toast';
 // ─── Trigger definitions ──────────────────────────────────────────────────────
 const TRIGGERS = [
     {
+        key: 'owner_order_alert',
+        isInternal: true,
+        label: 'Owner New Order Alert (Internal)',
+        description: 'Sent to YOUR store WhatsApp number when a new order is received.',
+        icon: Bell,
+        color: 'text-pink-500',
+        bg: 'bg-pink-50 dark:bg-pink-900/20',
+        border: 'border-pink-200 dark:border-pink-800/40',
+        aiPrompt: 'Create a WhatsApp Business message template to notify the store owner that a new order has been placed. Include customer name ({{1}}), order number ({{2}}), store name ({{3}}), and order total ({{4}}). Keep it brief and internal-facing. Use UTILITY category. No buttons needed. Template name should start with "owner_order_alert_".',
+        variables: [
+            { key: '{{1}}', label: 'customer_name' },
+            { key: '{{2}}', label: 'order_number' },
+            { key: '{{3}}', label: 'store_name' },
+            { key: '{{4}}', label: 'order_total' },
+        ],
+    },
+    {
         key: 'order_placed',
         label: 'Order Placed',
         description: 'Sent to customer immediately when they place a new order.',
@@ -527,7 +544,7 @@ export default function WaStoreNotifications() {
 
     return (
         <>
-            <div className="max-w-2xl space-y-6 pb-7 sm:pb-20">
+            <div className="max-w-5xl space-y-6 pb-7 sm:pb-20">
                 {/* Header */}
                 <div className="flex items-start justify-between gap-4">
                     <div>
@@ -555,36 +572,80 @@ export default function WaStoreNotifications() {
                 </div>
 
                 {/* Trigger cards */}
-                <div className="space-y-3">
-                    {loading ? (
-                        [1, 2, 3, 4].map(i => (
-                            <div key={i} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-4 animate-pulse">
-                                <div className="flex items-start gap-4">
-                                    <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-700 shrink-0" />
-                                    <div className="space-y-2 mt-1">
-                                        <div className="h-4 w-32 bg-slate-200 dark:bg-slate-700 rounded" />
-                                        <div className="h-3 w-48 bg-slate-100 dark:bg-slate-800 rounded" />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                    {/* Left Column: Customer Notifications */}
+                    <div className="space-y-3">
+                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-slate-300"></span>
+                            Customer Notifications
+                        </h3>
+                        {loading ? (
+                            [1, 2, 3, 4].map(i => (
+                                <div key={i} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-4 animate-pulse">
+                                    <div className="flex items-start gap-4">
+                                        <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-700 shrink-0" />
+                                        <div className="space-y-2 mt-1">
+                                            <div className="h-4 w-32 bg-slate-200 dark:bg-slate-700 rounded" />
+                                            <div className="h-3 w-48 bg-slate-100 dark:bg-slate-800 rounded" />
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col gap-2 shrink-0 w-full sm:w-64">
+                                        <div className="h-10 w-full bg-slate-100 dark:bg-slate-800 rounded-xl" />
+                                        <div className="flex gap-2">
+                                            <div className="h-8 w-1/2 bg-slate-100 dark:bg-slate-800 rounded-lg" />
+                                            <div className="h-8 w-1/2 bg-slate-100 dark:bg-slate-800 rounded-lg" />
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="flex flex-col gap-2 shrink-0 w-full sm:w-64">
-                                    <div className="h-10 w-full bg-slate-100 dark:bg-slate-800 rounded-xl" />
-                                    <div className="flex gap-2">
-                                        <div className="h-8 w-1/2 bg-slate-100 dark:bg-slate-800 rounded-lg" />
-                                        <div className="h-8 w-1/2 bg-slate-100 dark:bg-slate-800 rounded-lg" />
+                            ))
+                        ) : TRIGGERS.filter(t => !t.isInternal).map(trigger => (
+                            <TriggerCard
+                                key={trigger.key}
+                                trigger={trigger}
+                                config={configs[trigger.key]}
+                                templates={templates}
+                                onChange={handleChange}
+                                onAICreate={handleAICreate}
+                            />
+                        ))}
+                    </div>
+
+                    {/* Right Column: Internal Notifications */}
+                    <div className="space-y-3">
+                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                            Internal Notifications
+                        </h3>
+                        {loading ? (
+                            [1].map(i => (
+                                <div key={i} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-4 animate-pulse">
+                                    <div className="flex items-start gap-4">
+                                        <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-700 shrink-0" />
+                                        <div className="space-y-2 mt-1">
+                                            <div className="h-4 w-32 bg-slate-200 dark:bg-slate-700 rounded" />
+                                            <div className="h-3 w-48 bg-slate-100 dark:bg-slate-800 rounded" />
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col gap-2 shrink-0 w-full sm:w-64">
+                                        <div className="h-10 w-full bg-slate-100 dark:bg-slate-800 rounded-xl" />
+                                        <div className="flex gap-2">
+                                            <div className="h-8 w-1/2 bg-slate-100 dark:bg-slate-800 rounded-lg" />
+                                            <div className="h-8 w-1/2 bg-slate-100 dark:bg-slate-800 rounded-lg" />
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))
-                    ) : TRIGGERS.map(trigger => (
-                        <TriggerCard
-                            key={trigger.key}
-                            trigger={trigger}
-                            config={configs[trigger.key]}
-                            templates={templates}
-                            onChange={handleChange}
-                            onAICreate={handleAICreate}
-                        />
-                    ))}
+                            ))
+                        ) : TRIGGERS.filter(t => t.isInternal).map(trigger => (
+                            <TriggerCard
+                                key={trigger.key}
+                                trigger={trigger}
+                                config={configs[trigger.key]}
+                                templates={templates}
+                                onChange={handleChange}
+                                onAICreate={handleAICreate}
+                            />
+                        ))}
+                    </div>
                 </div>
 
                 {/* Save button */}

@@ -8,7 +8,7 @@ export default function SectionTrending({ draft, updateDraft }) {
                 <TrendingUp className="w-4 h-4 text-orange-400 shrink-0" />
                 <div>
                     <p className="text-sm font-medium text-gray-900 dark:text-white">Trending Now</p>
-                    <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">Shows your most recently added products in a horizontal slider.</p>
+                    
                 </div>
             </div>
 

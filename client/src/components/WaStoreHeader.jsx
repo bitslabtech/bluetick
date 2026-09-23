@@ -102,14 +102,14 @@ export default function WaStoreHeader({
                                 {product.imageUrls && product.imageUrls[0] ? (
                                     <img src={imgUrl(product.imageUrls[0])} alt={product.name} className="w-full h-full object-contain mix-blend-multiply" />
                                 ) : (
-                                    <ShoppingBag className="w-6 h-6 text-gray-300" />
+                                    <ShoppingBag className="w-6 h-6 text-gray-300 dark:text-zinc-600" />
                                 )}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <h4 className="font-semibold text-[15px] text-gray-900 dark:text-white truncate mb-0.5">{product.name}</h4>
+                                <h4 className="font-semibold text-[15px] text-gray-900 dark:text-zinc-100 dark:text-white truncate mb-0.5">{product.name}</h4>
                                 <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider truncate">{product.category || 'Uncategorized'}</p>
                             </div>
-                            <div className="font-bold text-[15px] text-gray-900 dark:text-white shrink-0 bg-gray-50 dark:bg-slate-800 px-2.5 py-1.5 rounded-lg border border-gray-100 dark:border-white/10">
+                            <div className="font-bold text-[15px] text-gray-900 dark:text-zinc-100 dark:text-white shrink-0 bg-gray-50 dark:bg-slate-800 px-2.5 py-1.5 rounded-lg border border-gray-100 dark:border-white/10">
                                 {getCurrencySymbol(store.currency)}{parseFloat(product.price).toFixed(2)}
                             </div>
                         </button>
@@ -122,7 +122,7 @@ export default function WaStoreHeader({
                             navigate(getStoreRoute(slug));
                             setTimeout(() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' }), 100);
                         }}
-                        className="text-[13px] font-bold text-gray-900 dark:text-white sm:text-blue-600 sm:dark:text-blue-400 bg-gray-100 dark:bg-slate-800 sm:bg-transparent px-4 py-3 sm:py-2 rounded-xl sm:rounded-none w-full sm:w-auto hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors"
+                        className="text-[13px] font-bold text-gray-900 dark:text-zinc-100 dark:text-white sm:text-blue-600 sm:dark:text-blue-400 bg-gray-100 dark:bg-slate-800 sm:bg-transparent px-4 py-3 sm:py-2 rounded-xl sm:rounded-none w-full sm:w-auto hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors"
                     >
                         View all search results
                     </button>
@@ -188,7 +188,7 @@ export default function WaStoreHeader({
                                     placeholder="Search products..." 
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full bg-gray-50 border border-gray-200 text-black py-2 pl-9 pr-8 rounded-full outline-none focus:border-black transition-colors text-sm"
+                                    className="w-full bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-black py-2 pl-9 pr-8 rounded-full outline-none focus:border-black transition-colors text-sm"
                                 />
                                 {searchQuery && (
                                     <button 
@@ -201,7 +201,7 @@ export default function WaStoreHeader({
                                 )}
                                 {/* Results */}
                                 {searchQuery.trim().length > 0 && (
-                                    <div className="absolute left-0 w-[150%] top-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50 max-h-[60vh] overflow-y-auto">
+                                    <div className="absolute left-0 w-[150%] top-full mt-2 bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-gray-100 dark:border-zinc-800 overflow-hidden z-50 max-h-[60vh] overflow-y-auto">
                                         {renderSearchResults()}
                                     </div>
                                 )}
@@ -390,7 +390,7 @@ export default function WaStoreHeader({
                                 )}
                                 {/* Results */}
                                 {searchQuery.trim().length > 0 && (
-                                    <div className="absolute right-0 w-80 top-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50 max-h-[60vh] overflow-y-auto text-black">
+                                    <div className="absolute right-0 w-80 top-full mt-2 bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-gray-100 dark:border-zinc-800 overflow-hidden z-50 max-h-[60vh] overflow-y-auto text-black">
                                         {renderSearchResults()}
                                     </div>
                                 )}
@@ -580,7 +580,7 @@ export default function WaStoreHeader({
                                 )}
                                 {/* Results */}
                                 {searchQuery.trim().length > 0 && (
-                                    <div className="absolute right-0 w-80 top-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50 max-h-[60vh] overflow-y-auto text-black">
+                                    <div className="absolute right-0 w-80 top-full mt-2 bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-gray-100 dark:border-zinc-800 overflow-hidden z-50 max-h-[60vh] overflow-y-auto text-black dark:text-white">
                                         {renderSearchResults()}
                                     </div>
                                 )}
@@ -605,83 +605,7 @@ export default function WaStoreHeader({
                     </div>)
                 )}
 
-                {/* ─── SEARCH BAR (Mobile Fullscreen / Desktop Dropdown) ─── */}
-                {/* CSS fade+slide replaces framer-motion */}
-                {isSearchOpen && (
-                    <div
-                        className="fixed inset-0 sm:inset-auto sm:absolute sm:left-0 sm:right-0 sm:top-full w-full bg-white sm:border-b sm:border-gray-100 sm:shadow-sm z-[100] sm:z-40 overflow-hidden sm:overflow-visible flex flex-col"
-                        style={{ animation: 'fadeSlideDown 0.2s ease forwards' }}
-                    >
-                        {/* Mobile Header for Full Screen Modal */}
-                        <div className="sm:hidden flex items-center px-4 h-16 border-b border-gray-100 shrink-0 bg-white shadow-sm z-10">
-                            <button 
-                                onClick={() => { setIsSearchOpen(false); setSearchQuery(''); }}
-                                className="mr-3 p-2 -ml-2 text-gray-500 hover:text-black rounded-full hover:bg-gray-100 transition-colors"
-                            >
-                                <ArrowLeft className="w-6 h-6" />
-                            </button>
-                            <input 
-                                type="text" 
-                                placeholder="Search products..." 
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                autoFocus
-                                className="w-full text-lg outline-none bg-transparent placeholder-gray-400 text-black font-medium"
-                            />
-                            {searchQuery && (
-                                <button onClick={() => setSearchQuery('')} className="p-2 -mr-2 text-gray-400 hover:text-black">
-                                    <X className="w-5 h-5" />
-                                </button>
-                            )}
-                        </div>
 
-                        {/* Desktop Search Input */}
-                        <div className="hidden sm:block max-w-[1440px] mx-auto px-4 py-4 sm:px-6 lg:px-8 relative w-full">
-                            <div className="relative">
-                                <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                                <input 
-                                    type="text" 
-                                    placeholder="Search for products..." 
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    autoFocus
-                                    className="w-full bg-gray-50 border border-gray-200 text-black py-3 pl-12 pr-4 rounded-xl outline-none focus:border-black transition-colors"
-                                />
-                                <button 
-                                    aria-label="Close search"
-                                    onClick={() => { setIsSearchOpen(false); setSearchQuery(''); }}
-                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black p-1"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
-                            
-                            {/* DESKTOP LIVE SEARCH RESULTS */}
-                            {searchQuery.trim().length > 0 && (
-                                <div className="absolute left-4 right-4 sm:left-6 sm:right-6 lg:left-8 lg:right-8 top-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50 max-h-[60vh] overflow-y-auto">
-                                    {renderSearchResults()}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* MOBILE LIVE SEARCH RESULTS */}
-                        <div className="sm:hidden flex-1 overflow-y-auto bg-gray-50 text-black">
-                            {searchQuery.trim().length > 0 ? (
-                                <div className="bg-white">
-                                    {renderSearchResults()}
-                                </div>
-                            ) : (
-                                <div className="px-4 py-16 text-center text-gray-400 flex flex-col items-center justify-center h-full pb-[30vh]">
-                                    <div className="bg-gray-100 p-4 rounded-full mb-4">
-                                        <Search className="w-8 h-8 text-gray-300" />
-                                    </div>
-                                    <h3 className="text-lg font-semibold text-gray-600 mb-1">Looking for something?</h3>
-                                    <p className="text-sm font-medium text-gray-400">Start typing to search across the store</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
 
                 {/* ─── MEGA MENU ─── */}
                 {store.megaMenu && store.megaMenu.length > 0 && theme.id !== 'glow' && (
@@ -754,7 +678,7 @@ export default function WaStoreHeader({
                 {/* ─── DESKTOP SEARCH DROPDOWN (Inside Header) ─── */}
                 {isSearchOpen && (
                     <div
-                        className={`hidden sm:flex absolute left-0 right-0 top-full w-full bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-white/10 shadow-sm z-40 overflow-visible flex-col ${isDarkTheme ? 'dark' : ''}`}
+                        className={`hidden sm:flex absolute left-0 right-0 top-full w-full bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-white/10 shadow-sm z-[100] overflow-visible flex-col ${isDarkTheme ? 'dark' : ''}`}
                         style={{ animation: 'fadeSlideDown 0.2s ease forwards' }}
                     >
                         {/* Desktop Search Input */}
@@ -827,9 +751,9 @@ export default function WaStoreHeader({
                         ) : (
                             <div className="px-4 py-16 text-center text-gray-400 dark:text-gray-500 flex flex-col items-center justify-center h-full pb-[30vh]">
                                 <div className="bg-gray-100 dark:bg-white/5 p-4 rounded-full mb-4">
-                                    <Search className="w-8 h-8 text-gray-300 dark:text-gray-600" />
+                                    <Search className="w-8 h-8 text-gray-300 dark:text-zinc-600 dark:text-gray-600" />
                                 </div>
-                                <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300 mb-1">Looking for something?</h3>
+                                <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300 dark:text-zinc-600 mb-1">Looking for something?</h3>
                                 <p className="text-sm font-medium text-gray-400 dark:text-gray-500">Start typing to search across the store</p>
                             </div>
                         )}

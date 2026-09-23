@@ -532,6 +532,7 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
             User.findByPk(store.userId).then(storeUser => {
                 if (storeUser) {
                     sendOrderNotification('order_placed', store, storeUser, order).catch(() => {});
+                    sendOwnerOrderAlert(store, storeUser, order).catch(() => {});
                     dispatchInAppNotifications(store, storeUser, order, validatedCustomerId).catch(() => {});
                 }
             }).catch(() => {});
@@ -637,6 +638,7 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
         User.findByPk(store.userId).then(storeUser => {
             if (storeUser) {
                 sendOrderNotification('order_placed', store, storeUser, order).catch(() => {});
+                sendOwnerOrderAlert(store, storeUser, order).catch(() => {});
                 dispatchInAppNotifications(store, storeUser, order, validatedCustomerId).catch(() => {});
             }
         }).catch(() => {});
@@ -889,6 +891,91 @@ async function sendOrderNotification(triggerKey, store, user, order, extras = {}
         console.log(`[OrderNotif] Sent ${triggerKey} notification to ${phone} (template: ${tmpl.name})`);
     } catch (err) {
         console.error(`[OrderNotif] Failed to send ${triggerKey} notification:`, err.response?.data || err.message);
+    }
+}
+
+async function sendOwnerOrderAlert(store, user, order) {
+    try {
+        const targetNumber = store.whatsappNumber;
+        if (!targetNumber) return;
+
+        const phone = targetNumber.replace(/\D/g, '');
+        if (phone.length < 7) return;
+
+        const customerName = order.customerName || 'Customer';
+        const storeName = store.name || 'Our Store';
+        const orderNumber = order.orderNumber || '';
+        const orderTotal = order.total != null
+            ? `${order.currency || ''} ${Number(order.total).toFixed(2)}`.trim()
+            : (order.subtotal != null ? `${order.currency || ''} ${Number(order.subtotal).toFixed(2)}`.trim() : '');
+
+        const notifConfig = store.notificationTemplates?.['owner_order_alert'];
+
+        // Scenario A: Owner HAS WhatsApp API configured + notification enabled
+        if (notifConfig?.enabled && notifConfig?.templateId && user.fbAccessToken && user.metaPhoneNumberId) {
+            const Template = require('../models/Template');
+            const tmpl = await Template.findByPk(notifConfig.templateId);
+            
+            if (tmpl && tmpl.status === 'APPROVED') {
+                const components = [];
+                const variableValues = [customerName, orderNumber, storeName, orderTotal];
+                const variableMatches = (tmpl.content || '').match(/\{\{\d+\}\}/g) || [];
+                const numVars = variableMatches.length;
+
+                if (numVars > 0) {
+                    const parameters = variableValues.slice(0, numVars).map(val => ({
+                        type: 'text',
+                        text: String(val || '')
+                    }));
+                    components.push({ type: 'body', parameters });
+                }
+
+                const { sendWhatsAppAndLog } = require('../utils/whatsappSender');
+                await sendWhatsAppAndLog({
+                    userId: user.id,
+                    metaPhoneNumberId: user.metaPhoneNumberId,
+                    metaAccessToken: user.fbAccessToken,
+                    toPhone: phone,
+                    type: 'template',
+                    payload: {
+                        messaging_product: 'whatsapp',
+                        recipient_type: 'individual',
+                        to: phone,
+                        type: 'template',
+                        template: {
+                            name: tmpl.name,
+                            language: { code: tmpl.language || 'en_US' },
+                            components
+                        }
+                    },
+                    summaryBody: `Sent owner alert template: ${tmpl.name}`
+                });
+                console.log(`[OwnerOrderAlert] Sent to owner via own API: ${phone}`);
+                return;
+            }
+        }
+
+        // Scenario B: Fallback to System CRM
+        const { sendSystemMessage } = require('../services/systemMessenger');
+        const components = [{
+            type: 'body',
+            parameters: [
+                { type: 'text', text: storeName },
+                { type: 'text', text: customerName },
+                { type: 'text', text: orderNumber },
+                { type: 'text', text: orderTotal }
+            ]
+        }];
+
+        await sendSystemMessage(phone, 'template', {
+            templateName: 'store_new_order_alert',
+            languageCode: 'en',
+            components
+        });
+        console.log(`[OwnerOrderAlert] Sent to owner via System CRM: ${phone}`);
+
+    } catch (err) {
+        console.error(`[OwnerOrderAlert] Failed to send alert:`, err.response?.data || err.message);
     }
 }
 

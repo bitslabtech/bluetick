@@ -93,9 +93,6 @@ export default function SectionCategories({ draft, updateDraft }) {
                     Pinned in slider {featured.length > 0 ? `(${featured.length})` : '— showing all'}
                 </label>
 
-                {featured.length === 0 && (
-                    <p className="text-xs text-gray-400 dark:text-slate-500 py-2">All categories shown. Pin specific ones below to control order.</p>
-                )}
 
                 <div className="space-y-1.5">
                     {featured.map((cat, idx) => (

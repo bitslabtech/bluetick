@@ -48,9 +48,7 @@ export default function SectionCollections({ draft, updateDraft }) {
 
     return (
         <div className="space-y-5">
-            <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed">
-                Each collection shows up to 8 products from a category in a horizontal slider, with a "View All →" card at the end.
-            </p>
+
 
             {/* Current collection rows */}
             <div className="space-y-2">

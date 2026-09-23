@@ -281,7 +281,7 @@ export default function PublicWaStore() {
     if (!store) return <StoreNotFound slug={slug} />;
 
     return (
-        <div className="min-h-screen bg-gray-50 font-sans text-gray-900 selection:bg-black selection:text-white pb-24" style={{ scrollbarGutter: 'stable' }}>
+        <div className="min-h-screen bg-gray-50 font-sans text-gray-900 dark:text-zinc-100 selection:bg-black selection:text-white pb-24" style={{ scrollbarGutter: 'stable' }}>
             
             {/* ─── MODERN HEADER ─── */}
             <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200">
@@ -363,7 +363,7 @@ export default function PublicWaStore() {
                 /* Fallback simple banner if no hero slides */
                 <div className="bg-white border-b border-gray-200 py-16 px-4">
                     <div className="max-w-4xl mx-auto text-center space-y-4">
-                        <h1 className="text-4xl font-bold tracking-tight text-gray-900">{store.name}</h1>
+                        <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-zinc-100">{store.name}</h1>
                         {store.description && <p className="text-lg text-gray-500">{store.description}</p>}
                     </div>
                 </div>
@@ -441,7 +441,7 @@ export default function PublicWaStore() {
                                         {product.imageUrls && product.imageUrls[0] ? (
                                             <img src={imgUrl(product.imageUrls[0])} alt={product.name} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500" onError={e => e.target.style.display = 'none'} />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center bg-gray-50"><ShoppingBag className="w-8 h-8 text-gray-300" /></div>
+                                            <div className="w-full h-full flex items-center justify-center bg-gray-50"><ShoppingBag className="w-8 h-8 text-gray-300 dark:text-zinc-600" /></div>
                                         )}
                                         {/* #1 — Sale badge uses compareAtPrice */}
                                         {product.compareAtPrice && parseFloat(product.compareAtPrice) > parseFloat(product.price) && (
@@ -462,7 +462,7 @@ export default function PublicWaStore() {
                                         <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400 mb-1.5 block">
                                             {product.category || '\u00A0'}
                                         </span>
-                                        <h3 className="text-[15px] font-semibold text-gray-900 mb-2 line-clamp-2 h-10 leading-snug hover:text-neutral-700 transition-colors">{product.name}</h3>
+                                        <h3 className="text-[15px] font-semibold text-gray-900 dark:text-zinc-100 mb-2 line-clamp-2 h-10 leading-snug hover:text-neutral-700 transition-colors">{product.name}</h3>
                                         
                                         <div className="flex items-baseline flex-wrap gap-2 mb-5">
                                             <span className="text-lg font-bold text-black">{getCurrencySymbol(store.currency)}{parseFloat(product.price).toFixed(2)}</span>
@@ -493,7 +493,7 @@ export default function PublicWaStore() {
                                             >
                                                 -
                                             </button>
-                                            <span className="font-bold text-xs text-gray-900 select-none">{qtyInCart}</span>
+                                            <span className="font-bold text-xs text-gray-900 dark:text-zinc-100 select-none">{qtyInCart}</span>
                                             <button 
                                                 onClick={(e) => { e.stopPropagation(); updateQty(product.id, 1); }} 
                                                 className="w-7 h-7 flex items-center justify-center hover:bg-white active:scale-95 rounded-full transition-all font-bold text-base text-gray-800 select-none"
@@ -539,7 +539,7 @@ export default function PublicWaStore() {
                 ) : (
                     <div className="text-center py-24 bg-white rounded-3xl border border-gray-100 shadow-sm">
                         <ShoppingBag className="w-12 h-12 text-gray-200 mx-auto mb-4" />
-                        <h2 className="text-lg font-semibold text-gray-900 mb-2">No products found</h2>
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-zinc-100 mb-2">No products found</h2>
                         <p className="text-gray-500 text-sm">Try adjusting your filters or search query.</p>
                         <button onClick={() => { setSearchQuery(''); setSelectedCategory('All'); }} className="mt-6 px-4 md:px-6 py-2 bg-black text-white text-sm font-medium rounded-full">Clear Filters</button>
                     </div>
@@ -593,7 +593,7 @@ export default function PublicWaStore() {
                         
                         <div className="md:w-1/2 p-8 md:p-4 md:p-10 flex flex-col overflow-y-auto">
                             {selectedProduct.category && <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">{selectedProduct.category}</span>}
-                            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 leading-tight">{selectedProduct.name}</h2>
+                            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-zinc-100 mb-4 leading-tight">{selectedProduct.name}</h2>
                             <div className="flex items-center gap-3 mb-2">
                                 <span className="text-2xl font-semibold text-black">{getCurrencySymbol(store.currency)}{parseFloat(selectedProduct.price).toFixed(2)}</span>
                                 {/* #1 — compareAtPrice fix in modal */}
@@ -665,7 +665,7 @@ export default function PublicWaStore() {
             {/* ─── CART DRAWER ─── */}
             <AnimatePresence>
                 {isCartOpen && (
-                    <div className="fixed inset-0 z-50 flex justify-end">
+                    <div className="fixed inset-0 z-[90] flex justify-end">
                         {/* Backdrop */}
                         <motion.div
                             initial={{ opacity: 0 }}
@@ -686,7 +686,7 @@ export default function PublicWaStore() {
                         >
                             
                             <div className="px-4 md:px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white">
-                                <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-900">
+                                <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-900 dark:text-zinc-100">
                                     <ShoppingBag className="w-5 h-5" /> Your Cart
                                 </h2>
                                 <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"><X className="w-5 h-5" /></button>
@@ -694,23 +694,23 @@ export default function PublicWaStore() {
 
                             <div className="flex-1 overflow-y-auto p-4 md:p-6">
                                 {cart.length === 0 ? (
-                                    <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-4">
+                                    <div className="h-full flex flex-col items-center justify-center text-gray-400 dark:text-zinc-500 space-y-4">
                                         <ShoppingBag className="w-16 h-16 opacity-20" />
                                         <p className="font-medium">Your cart is empty</p>
-                                        <button onClick={() => setIsCartOpen(false)} className="px-4 md:px-6 py-2 bg-gray-100 text-gray-900 text-sm font-medium rounded-full mt-4 hover:bg-gray-200 transition-colors">Start Shopping</button>
+                                        <button onClick={() => setIsCartOpen(false)} className="px-4 md:px-6 py-2 bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 dark:text-zinc-100 text-sm font-medium rounded-full mt-4 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors">Start Shopping</button>
                                     </div>
                                 ) : (
                                     <div className="space-y-6">
                                         {cart.map(item => (
                                             <div key={item.id} className="flex gap-4 items-start">
-                                                <div className="w-20 h-20 bg-gray-50 rounded-xl overflow-hidden border border-gray-100 shrink-0">
+                                                <div className="w-20 h-20 bg-gray-50 dark:bg-zinc-800/50 rounded-xl overflow-hidden border border-gray-100 dark:border-zinc-800 shrink-0">
                                                     {item.imageUrls && item.imageUrls[0] && (
                                                         <img src={imgUrl(item.imageUrls[0])} alt={item.name} className="w-full h-full object-contain" />
                                                     )}
                                                 </div>
                                                     <div className="flex-1 min-w-0 pt-1">
                                                     <div className="flex items-start justify-between gap-2">
-                                                        <h4 className="font-semibold text-sm text-gray-900 truncate">{item.name}</h4>
+                                                        <h4 className="font-semibold text-sm text-gray-900 dark:text-zinc-100 truncate">{item.name}</h4>
                                                         {/* #2 — Remove item button */}
                                                         <button onClick={() => removeFromCart(item.id)} className="p-1 text-gray-400 hover:text-red-500 transition-colors shrink-0" title="Remove item">
                                                             <Trash2 className="w-3.5 h-3.5" />
@@ -724,7 +724,7 @@ export default function PublicWaStore() {
                                                             <span className="text-xs text-gray-400 line-through whitespace-nowrap">
                                                                 {getCurrencySymbol(store.currency)}{parseFloat(item.priceChangedFrom).toFixed(2)}
                                                             </span>
-                                                            <span className="text-xs font-bold text-gray-900 whitespace-nowrap">
+                                                            <span className="text-xs font-bold text-gray-900 dark:text-zinc-100 whitespace-nowrap">
                                                                 → {getCurrencySymbol(store.currency)}{parseFloat(item.price).toFixed(2)}
                                                             </span>
                                                         </div>
@@ -743,10 +743,10 @@ export default function PublicWaStore() {
                                                     </div>
                                                     
                                                     <div className="flex items-center gap-3 mt-3">
-                                                        <div className="flex items-center bg-gray-100 rounded-lg p-1">
-                                                            <button onClick={() => updateQty(item.id, -1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors text-gray-600"><Minus className="w-3 h-3" /></button>
-                                                            <span className="w-8 text-center text-xs font-semibold text-gray-900">{item.qty}</span>
-                                                            <button onClick={() => updateQty(item.id, 1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors text-gray-600"><Plus className="w-3 h-3" /></button>
+                                                        <div className="flex items-center bg-gray-100 dark:bg-zinc-800 rounded-lg p-1">
+                                                            <button onClick={() => updateQty(item.id, -1)} className="w-6 h-6 flex items-center justify-center hover:bg-white dark:hover:bg-zinc-700 rounded-md transition-colors text-gray-600 dark:text-zinc-300"><Minus className="w-3 h-3" /></button>
+                                                            <span className="w-8 text-center text-xs font-semibold text-gray-900 dark:text-zinc-100">{item.qty}</span>
+                                                            <button onClick={() => updateQty(item.id, 1)} className="w-6 h-6 flex items-center justify-center hover:bg-white dark:hover:bg-zinc-700 rounded-md transition-colors text-gray-600 dark:text-zinc-300"><Plus className="w-3 h-3" /></button>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -761,7 +761,7 @@ export default function PublicWaStore() {
                                     {/* #19 — Coupon input for WhatsApp checkout */}
                                     {!appliedCoupon ? (
                                         <div className="flex gap-2 mb-4">
-                                            <div className="flex-1 flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 gap-2">
+                                            <div className="flex-1 flex items-center bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl px-3 gap-2">
                                                 <Tag className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                                                 <input
                                                     type="text"
@@ -796,7 +796,7 @@ export default function PublicWaStore() {
                                     )}
                                     <div className="flex justify-between items-center mb-6">
                                         <span className="text-gray-500">{appliedCoupon ? 'Total' : 'Subtotal'}</span>
-                                        <span className="text-xl font-bold text-gray-900">{getCurrencySymbol(store.currency)}{finalTotal.toFixed(2)}</span>
+                                        <span className="text-xl font-bold text-gray-900 dark:text-zinc-100">{getCurrencySymbol(store.currency)}{finalTotal.toFixed(2)}</span>
                                     </div>
                                     <button 
                                         onClick={() => handleWhatsAppCheckout()}

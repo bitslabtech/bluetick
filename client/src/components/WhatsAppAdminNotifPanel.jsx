@@ -19,6 +19,7 @@ const ADMIN_EVENTS = [
     { key: 'payout_request',         label: 'Payout Request',         desc: 'Tech partner requests a payout',              vars: ['name', 'amount'],             varDesc: ['Partner full name', 'Payout amount requested'],                      templateName: 'admin_alert_payout_request' },
     { key: 'ai_tokens_depleted',     label: 'AI Tokens Depleted',     desc: "A user's AI token balance hits zero",         vars: ['name'],                       varDesc: ['User full name'],                                                    templateName: 'admin_alert_ai_depleted' },
     { key: 'addon_installed',        label: 'Add-on Installed',       desc: 'A user installs a paid add-on',               vars: ['name', 'addonName'],          varDesc: ['User full name', 'Add-on name installed'],                           templateName: 'admin_alert_addon_installed' },
+    { key: 'store_new_order_alert',  label: 'Store New Order (Fallback)', desc: 'Sent to store owner if their WhatsApp API is missing', vars: ['store', 'customer', 'order', 'total'], varDesc: ['Store Name', 'Customer Name', 'Order Number', 'Order Total'], templateName: 'store_new_order_alert' },
 ];
 
 const Toggle = ({ enabled, onChange, danger }) => (
@@ -56,15 +57,21 @@ const WhatsAppAdminNotifPanel = () => {
     const [refreshingTemplates, setRefreshingTemplates] = useState(false);
     const [deletingTemplate, setDeletingTemplate] = useState(null);
 
-    const fetchSystemTemplates = async () => {
-        setRefreshingTemplates(true);
+    const fetchSystemTemplates = async (silent = false) => {
+        if (!silent) setRefreshingTemplates(true);
         try {
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/templates/system`);
-            setSystemTemplates(res.data || []);
+            // system-sync: fetches from Meta, updates statuses in DB, returns fresh list — all in one call
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/templates/system-sync`);
+            setSystemTemplates(res.data?.templates || res.data || []);
         } catch (err) {
-            console.warn('Could not fetch system templates:', err.message);
+            console.warn('Could not sync system templates:', err.message);
+            // Fallback: load from local DB if Meta is unreachable
+            try {
+                const fallback = await axios.get(`${import.meta.env.VITE_API_URL}/api/templates/system`);
+                setSystemTemplates(fallback.data || []);
+            } catch (_) {}
         } finally {
-            setRefreshingTemplates(false);
+            if (!silent) setRefreshingTemplates(false);
         }
     };
 
@@ -90,7 +97,7 @@ const WhatsAppAdminNotifPanel = () => {
     useEffect(() => {
         if (user?.isAdmin) {
             fetchData();
-            fetchSystemTemplates();
+            fetchSystemTemplates(true); // silent: syncs from Meta in background on mount, no spinner
         }
     }, [user]);
 

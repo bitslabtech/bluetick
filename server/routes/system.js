@@ -694,26 +694,70 @@ router.post('/actions/:action', superAdmin, async (req, res) => {
                 
                 const { runAi } = require('../utils/aiRunner');
 
-                const varList = variables.length > 0 
-                    ? variables.map((v, i) => `{{${i + 1}}} (representing ${variableDesc[i]})`).join(', ')
-                    : 'None';
+                const varCount = variables.length;
+                const varList = varCount > 0
+                    ? variables.map((v, i) => `  - {{${i + 1}}} represents: ${variableDesc[i]} (e.g. "${v}")`).join('\n')
+                    : '  NONE — this template must have zero variables.';
 
-                const prompt = 
-                    `You are an expert system writing a strict WhatsApp Business message template body for an admin notification.\n` +
-                    `Event Context: "${eventDescription}"\n` +
-                    `Required Variables: ${varList}\n\n` +
-                    `STRICT RULES:\n` +
-                    `1. You MUST include exactly the variables listed above in the format {{1}}, {{2}}, etc. If 'None' is listed, do NOT use any {{x}} variables.\n` +
-                    `2. Do NOT invent new variables or change the numbers. You must use ALL provided variables exactly once.\n` +
-                    `3. Write ONLY the message body text. No greetings, headers, footers, buttons, or explanations.\n` +
-                    `4. Start with a single relevant emoji.\n` +
-                    `5. Keep it concise, professional, and under 160 characters.`;
+                const expectedVarNums = varCount > 0
+                    ? variables.map((_, i) => `{{${i + 1}}}`).join(', ')
+                    : 'none';
 
-                // Lowering temperature to 0.2 for strict compliance with variables
-                const { text: aiText, modelUsed: aiModelUsed } = await runAi(config, null, prompt, { temperature: 0.2, maxOutputTokens: 256 });
-                console.log(`[GenerateTemplate] Used model: ${aiModelUsed} | Event: ${eventDescription}`);
+                // Rich, contextual prompt with example to anchor the AI
+                const prompt =
+                    `You are writing a WhatsApp Business API message template body for a SaaS platform called Bluetick.\n` +
+                    `Bluetick is a WhatsApp marketing, CRM, and store automation tool used by businesses.\n` +
+                    `This specific template is an admin notification sent to the platform's super-admin.\n\n` +
+                    `EVENT THIS TEMPLATE IS FOR: "${eventDescription}"\n\n` +
+                    `VARIABLES (${varCount} total — use ALL of them, in order, EXACTLY ONCE each):\n${varList}\n\n` +
+                    `HARD CONSTRAINTS — any violation will cause Meta to reject the template:\n` +
+                    `1. Use EXACTLY ${varCount} variable placeholder(s): ${varCount > 0 ? expectedVarNums : 'zero variables'}.\n` +
+                    `2. Use them in order — {{1}} before {{2}} before {{3}}, etc. Each used exactly once.\n` +
+                    `3. Do NOT add extra variables beyond what is listed. Do NOT skip any listed variable.\n` +
+                    `4. Output ONLY the raw message body text. No explanation, no quotes, no markdown, no buttons.\n` +
+                    `5. Start with one relevant emoji.\n` +
+                    `6. Write in a professional, concise tone relevant to the event. Max 200 characters.\n\n` +
+                    `GOOD EXAMPLE (event: "user signs up", variables: {{1}}=name, {{2}}=plan):\n` +
+                    `👤 New signup: {{1}} has registered and selected the {{2}} plan.\n\n` +
+                    `BAD EXAMPLE (wrong — invented extra variable {{3}} not in the list):\n` +
+                    `👤 New signup: {{1}} chose {{2}} plan on {{3}}.\n\n` +
+                    `Write the template body for the event "${eventDescription}" now:`;
+
+                // Helper: count distinct {{n}} variable placeholders in generated text
+                const countVars = (text) => {
+                    const found = new Set((text.match(/\{\{\d+\}\}/g) || []));
+                    return found.size;
+                };
+
+                let aiText = '';
+                let aiModelUsed = '';
+                let attempts = 0;
+                const maxAttempts = 3;
+
+                while (attempts < maxAttempts) {
+                    attempts++;
+                    const result = await runAi(config, null, prompt, { temperature: 0.1, maxOutputTokens: 300 });
+                    aiText = result.text.trim();
+                    aiModelUsed = result.modelUsed;
+
+                    const foundCount = countVars(aiText);
+                    if (foundCount === varCount) {
+                        // Variable count matches exactly — accept
+                        break;
+                    }
+
+                    console.warn(`[GenerateTemplate] Attempt ${attempts}/${maxAttempts}: Variable mismatch — required ${varCount}, found ${foundCount} in: "${aiText}". Retrying...`);
+
+                    if (attempts === maxAttempts) {
+                        return res.status(422).json({
+                            error: `AI could not generate a valid template after ${maxAttempts} attempts. It produced ${foundCount} variable(s) but exactly ${varCount} (${expectedVarNums}) are required. Please try again.`
+                        });
+                    }
+                }
+
+                console.log(`[GenerateTemplate] OK — model: ${aiModelUsed} | event: "${eventDescription}" | vars: ${varCount} | attempts: ${attempts}`);
                 
-                return res.json({ success: true, text: aiText.trim() });
+                return res.json({ success: true, text: aiText });
             }
 
             case 'submit-admin-template': {

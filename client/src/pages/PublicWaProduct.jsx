@@ -333,10 +333,10 @@ export default function PublicWaProduct({ customSlug }) {
     if (loading) return (
         <div className="flex flex-col min-h-screen bg-[#F9F6F3]">
             {/* Skeleton Header */}
-            <div className="w-full h-16 bg-white border-b border-gray-100 flex items-center px-6 gap-4 sticky top-0 z-40">
-                <div className="h-5 w-28 rounded-md bg-gray-200 animate-pulse" />
+            <div className="w-full h-16 bg-white dark:bg-zinc-900 border-b border-gray-100 dark:border-zinc-800 flex items-center px-6 gap-4 sticky top-0 z-40">
+                <div className="h-5 w-28 rounded-md bg-gray-200 dark:bg-zinc-800 animate-pulse" />
                 <div className="flex-1" />
-                <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse" />
+                <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-zinc-800 animate-pulse" />
             </div>
             {/* Breadcrumb */}
             <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-12 pt-6 flex gap-2 items-center">
@@ -534,7 +534,7 @@ export default function PublicWaProduct({ customSlug }) {
 
                         {/* Main Image Viewport */}
                         <div 
-                            className="w-full min-w-0 lg:flex-1 max-w-[500px] mx-auto lg:mx-0 aspect-square bg-white isolate border border-gray-100 rounded-2xl overflow-hidden relative group flex items-center justify-center cursor-zoom-in cursor-pointer" 
+                            className="w-full min-w-0 lg:flex-1 max-w-[500px] mx-auto lg:mx-0 aspect-square bg-white dark:bg-zinc-900 isolate border border-gray-100 dark:border-zinc-800 rounded-2xl overflow-hidden relative group flex items-center justify-center cursor-zoom-in cursor-pointer" 
                             onClick={() => setIsLightboxOpen(true)}
                             onTouchStart={(e) => {
                                 touchStartX.current = e.targetTouches[0].clientX;
@@ -756,17 +756,17 @@ export default function PublicWaProduct({ customSlug }) {
                         <div className="hidden md:block py-6 space-y-4 max-w-[280px]">
                             <div className="flex items-center justify-between">
                                 <span className={`text-xs font-bold uppercase tracking-wider ${theme.text}`}>Quantity</span>
-                                <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl p-1 shrink-0">
+                                <div className="flex items-center bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl p-1 shrink-0">
                                     <button 
                                         onClick={() => setQty(Math.max(1, qty - 1))} 
-                                        className="w-8 h-8 flex items-center justify-center hover:bg-white text-gray-500 rounded-lg transition-all"
+                                        className="w-8 h-8 flex items-center justify-center hover:bg-white dark:hover:bg-zinc-700 text-gray-500 dark:text-zinc-400 rounded-lg transition-all"
                                     >
                                         <Minus className="w-3.5 h-3.5" />
                                     </button>
                                     <span className={`w-10 text-center font-bold text-sm ${theme.text}`}>{qty}</span>
                                     <button 
                                         onClick={() => setQty(qty + 1)} 
-                                        className="w-8 h-8 flex items-center justify-center hover:bg-white text-gray-500 rounded-lg transition-all"
+                                        className="w-8 h-8 flex items-center justify-center hover:bg-white dark:hover:bg-zinc-700 text-gray-500 dark:text-zinc-400 rounded-lg transition-all"
                                     >
                                         <Plus className="w-3.5 h-3.5" />
                                     </button>
@@ -779,7 +779,7 @@ export default function PublicWaProduct({ customSlug }) {
                                     disabled={preventAdd}
                                     className={`w-full max-w-[280px] py-3.5 text-xs font-bold uppercase tracking-widest transition-all duration-200 flex items-center justify-center gap-2 rounded-xl border ${
                                         preventAdd 
-                                            ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                                            ? 'bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-500 border-gray-200 cursor-not-allowed'
                                             : (theme.id === 'amber' ? 'bg-[#382215] text-[#FAF7F2] border-[#382215] hover:bg-[#25160D] shadow-sm' : 'bg-white text-black border-black hover:bg-black hover:text-white shadow-sm')
                                     }`}
                                 >
@@ -872,7 +872,7 @@ export default function PublicWaProduct({ customSlug }) {
                                         }}
                                         className="shrink-0 w-36 cursor-pointer group/cs snap-start"
                                     >
-                                        <div className="aspect-square rounded-2xl overflow-hidden bg-white isolate border border-gray-100 mb-3 relative">
+                                        <div className="aspect-square rounded-2xl overflow-hidden bg-white dark:bg-zinc-900 isolate border border-gray-100 dark:border-zinc-800 mb-3 relative">
                                             {p.imageUrls && p.imageUrls[0] ? (
                                                 <img
                                                     src={imgUrl(p.imageUrls[0])}
@@ -898,7 +898,7 @@ export default function PublicWaProduct({ customSlug }) {
                                     onClick={() => navigate(getStoreRoute(slug, `?cat=${encodeURIComponent(product.category)}`))}
                                     className="shrink-0 w-36 cursor-pointer group/cs snap-start flex flex-col"
                                 >
-                                    <div className="aspect-square w-full rounded-2xl overflow-hidden bg-gray-50 hover:bg-gray-100 border border-gray-100 mb-3 flex flex-col items-center justify-center transition-colors">
+                                    <div className="aspect-square w-full rounded-2xl overflow-hidden bg-gray-50 dark:bg-zinc-800 hover:bg-gray-100 dark:hover:bg-zinc-700 border border-gray-100 dark:border-zinc-800 mb-3 flex flex-col items-center justify-center transition-colors">
                                         <ArrowRight className="w-6 h-6 text-gray-400 group-hover/cs:text-black mb-2 transition-colors" />
                                         <span className="text-xs font-bold uppercase tracking-widest text-gray-500 group-hover/cs:text-black transition-colors">View All</span>
                                     </div>
@@ -948,7 +948,7 @@ export default function PublicWaProduct({ customSlug }) {
             {/* ─── CART DRAWER ─── */}
             <AnimatePresence>
                 {isCartOpen && (
-                    <div className="fixed inset-0 z-50 flex justify-end">
+                    <div className="fixed inset-0 z-[90] flex justify-end">
                         {/* Backdrop */}
                         <motion.div
                             initial={{ opacity: 0 }}
@@ -977,16 +977,16 @@ export default function PublicWaProduct({ customSlug }) {
 
                             <div className="flex-1 overflow-y-auto p-4 md:p-6">
                                 {cart.length === 0 ? (
-                                    <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-4">
+                                    <div className="h-full flex flex-col items-center justify-center text-gray-400 dark:text-zinc-500 space-y-4">
                                         <ShoppingBag className="w-16 h-16 opacity-20" />
                                         <p className="font-medium">Your cart is empty</p>
-                                        <button onClick={() => setIsCartOpen(false)} className="px-4 md:px-6 py-2 bg-gray-100 text-gray-900 text-sm font-medium rounded-full mt-4 hover:bg-gray-200 transition-colors">Start Shopping</button>
+                                        <button onClick={() => setIsCartOpen(false)} className="px-4 md:px-6 py-2 bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 dark:text-zinc-100 text-sm font-medium rounded-full mt-4 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors">Start Shopping</button>
                                     </div>
                                 ) : (
                                     <div className="space-y-6">
                                         {cart.map(item => (
                                             <div key={item.cartItemId || item.id} className="flex gap-4 items-start">
-                                                <div className="w-20 h-20 bg-gray-50 rounded-xl overflow-hidden border border-gray-100 shrink-0 flex items-center justify-center">
+                                                <div className="w-20 h-20 bg-gray-50 dark:bg-zinc-800/50 rounded-xl overflow-hidden border border-gray-100 dark:border-zinc-800 shrink-0 flex items-center justify-center">
                                                     {(() => {
                                                         let rawUrl = null;
                                                         if (Array.isArray(item.imageUrls) && item.imageUrls.length > 0) rawUrl = item.imageUrls[0];
@@ -996,7 +996,7 @@ export default function PublicWaProduct({ customSlug }) {
                                                         }
                                                         else if (item.imageUrl) rawUrl = item.imageUrl;
 
-                                                        if (!rawUrl) return <ShoppingBag className="w-6 h-6 text-gray-300" />;
+                                                        if (!rawUrl) return <ShoppingBag className="w-6 h-6 text-gray-300 dark:text-zinc-600" />;
                                                         const cleanUrl = imgUrl(encodeURI(rawUrl.replace(/\\/g, '/')));
                                                         return (
                                                             <img 
@@ -1007,7 +1007,7 @@ export default function PublicWaProduct({ customSlug }) {
                                                             />
                                                         );
                                                     })()}
-                                                    <ShoppingBag className="w-6 h-6 text-gray-300 hidden" />
+                                                    <ShoppingBag className="w-6 h-6 text-gray-300 dark:text-zinc-600 hidden" />
                                                 </div>
                                                 <div className="flex-1 min-w-0 pt-1">
                                                     <h4 className={`font-semibold text-sm ${theme.text} truncate`}>{item.name}</h4>
@@ -1029,10 +1029,10 @@ export default function PublicWaProduct({ customSlug }) {
                                                     </div>
                                                     
                                                     <div className="flex items-center justify-between gap-3 mt-3">
-                                                        <div className="flex items-center bg-gray-100 rounded-lg p-1">
-                                                            <button onClick={() => updateQty(item.cartItemId || item.id, -1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors text-gray-600"><Minus className="w-3 h-3" /></button>
-                                                            <span className="w-8 text-center text-xs font-semibold text-gray-900">{item.qty}</span>
-                                                            <button onClick={() => updateQty(item.cartItemId || item.id, 1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded-md transition-colors text-gray-600"><Plus className="w-3 h-3" /></button>
+                                                        <div className="flex items-center bg-gray-100 dark:bg-zinc-800 rounded-lg p-1">
+                                                            <button onClick={() => updateQty(item.cartItemId || item.id, -1)} className="w-6 h-6 flex items-center justify-center hover:bg-white dark:hover:bg-zinc-700 rounded-md transition-colors text-gray-600 dark:text-zinc-300"><Minus className="w-3 h-3" /></button>
+                                                            <span className="w-8 text-center text-xs font-semibold text-gray-900 dark:text-zinc-100">{item.qty}</span>
+                                                            <button onClick={() => updateQty(item.cartItemId || item.id, 1)} className="w-6 h-6 flex items-center justify-center hover:bg-white dark:hover:bg-zinc-700 rounded-md transition-colors text-gray-600 dark:text-zinc-300"><Plus className="w-3 h-3" /></button>
                                                         </div>
                                                         <div className={`font-bold text-sm ${theme.text}`}>
                                                             {getCurrencySymbol(store.currency)}{(getDisplayPrice(getItemPrice(item), item) * item.qty).toFixed(2)}
@@ -1197,7 +1197,7 @@ export default function PublicWaProduct({ customSlug }) {
                     disabled={preventAdd}
                     className={`h-[38px] sm:h-[42px] px-3 sm:px-4 text-[10px] font-bold uppercase tracking-widest rounded-xl flex items-center justify-center shrink-0 ${
                         preventAdd 
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            ? 'bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-500 cursor-not-allowed'
                             : (theme.id === 'amber' ? 'bg-[#382215] text-[#FAF7F2] hover:bg-[#25160D] shadow-sm' : 'bg-black text-white hover:bg-neutral-800 shadow-md')
                     }`}
                 >

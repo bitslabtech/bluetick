@@ -77,6 +77,105 @@ router.get('/system', async (req, res) => {
     }
 });
 
+// POST /templates/system-sync — Superadmin: sync CRM account template statuses from Meta on panel open.
+// Lightweight: only updates status + metaTemplateId. Does NOT delete local templates.
+router.post('/system-sync', async (req, res) => {
+    try {
+        const SystemConfig = require('../models/SystemConfig');
+
+        const config = await SystemConfig.getCachedConfig();
+        let linkedUserId = config?.settings?.linkedAdminUserId;
+
+        if (!linkedUserId) {
+            // Fallback: first admin user
+            const User = require('../models/User');
+            const adminUser = await User.findOne({ where: { isAdmin: true } });
+            linkedUserId = adminUser?.id;
+        }
+
+        if (!linkedUserId) return res.json({ synced: 0, templates: [] });
+
+        const crmSettings = await Settings.findOne({ where: { userId: linkedUserId } });
+        if (!crmSettings?.metaAccessToken || !crmSettings?.metaBusinessAccountId) {
+            // No credentials — just return local templates as-is, don't error
+            const localTemplates = await Template.findAll({
+                where: { userId: linkedUserId },
+                order: [['createdAt', 'DESC']]
+            });
+            return res.json({ synced: 0, templates: localTemplates });
+        }
+
+        const { metaBusinessAccountId, metaAccessToken } = crmSettings;
+
+        // Fetch all templates from Meta (limit 200 to capture all system templates)
+        const metaRes = await fetch(
+            `https://graph.facebook.com/v21.0/${metaBusinessAccountId}/message_templates?fields=id,name,status,language&limit=200`,
+            { headers: { 'Authorization': `Bearer ${metaAccessToken}` } }
+        );
+        const metaData = await metaRes.json();
+
+        if (!metaRes.ok) {
+            // Meta API error — return local templates without crashing
+            console.warn('[SystemSync] Meta API error:', metaData.error?.message);
+            const localTemplates = await Template.findAll({
+                where: { userId: linkedUserId },
+                order: [['createdAt', 'DESC']]
+            });
+            return res.json({ synced: 0, templates: localTemplates, warning: metaData.error?.message });
+        }
+
+        const metaTemplates = metaData.data || [];
+        // Build a fast lookup: name+language → { id, status }
+        const metaMap = {};
+        for (const mt of metaTemplates) {
+            const key = `${mt.name}__${mt.language}`;
+            metaMap[key] = { id: mt.id, status: mt.status };
+        }
+
+        // Load all local templates for this CRM account
+        const localTemplates = await Template.findAll({
+            where: { userId: linkedUserId },
+            order: [['createdAt', 'DESC']]
+        });
+
+        let syncedCount = 0;
+        for (const tpl of localTemplates) {
+            const key = `${tpl.name}__${tpl.language || 'en'}`;
+            const meta = metaMap[key];
+            if (!meta) continue; // Not on Meta yet (still queued) — skip
+
+            let changed = false;
+            if (tpl.status !== meta.status) {
+                tpl.status = meta.status;
+                changed = true;
+            }
+            if (meta.id && tpl.metaTemplateId !== meta.id) {
+                tpl.metaTemplateId = meta.id;
+                changed = true;
+            }
+            if (changed) {
+                await tpl.save();
+                syncedCount++;
+            }
+        }
+
+        console.log(`[SystemSync] Synced ${syncedCount} system template status(es) from Meta.`);
+
+        // Return the fresh list after sync
+        const freshTemplates = await Template.findAll({
+            where: { userId: linkedUserId },
+            order: [['createdAt', 'DESC']]
+        });
+
+        res.json({ synced: syncedCount, templates: freshTemplates });
+
+    } catch (err) {
+        console.error('[SystemSync] Error:', err.message);
+        // Non-fatal — return empty so the panel doesn't break
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // POST upload media for template (Resumable Upload API)
 const { compressImage, isCompressibleImage } = require('../utils/imageCompressor');
 router.post('/upload', upload.single('file'), async (req, res) => {

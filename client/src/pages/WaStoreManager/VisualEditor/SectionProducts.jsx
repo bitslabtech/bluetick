@@ -35,7 +35,7 @@ export default function SectionProducts({ draft, updateDraft }) {
         <div className="space-y-5">
             <div className="flex items-center gap-2 p-3 bg-gray-100 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10">
                 <Grid2X2 className="w-4 h-4 text-gray-500 dark:text-slate-400 shrink-0" />
-                <p className="text-xs text-gray-500 dark:text-slate-400">Controls the main product grid that shows all products.</p>
+                
             </div>
 
             <div className="space-y-2">
