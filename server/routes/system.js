@@ -1035,23 +1035,45 @@ router.post('/actions/:action', superAdmin, async (req, res) => {
                     let metaTemplateId = null;
 
                     if (wabaId) {
-                        const exampleParams = (variables || []).map((v, idx) => `Example_${idx + 1}`);
+                        // Count actual {{n}} placeholders in the AI-generated body
+                        // CRITICAL: Use this count for example, NOT variables.length
+                        // The AI may produce a body with different var count than declared
+                        const bodyVarMatches = [...new Set((body.match(/\{\{\d+\}\}/g) || []))]
+                            .sort();
+                        const bodyVarCount = bodyVarMatches.length;
+                        const exampleParams = bodyVarCount > 0
+                            ? bodyVarMatches.map((_, idx) => `Example_${idx + 1}`)
+                            : [];
+
+                        // Sanitize body: remove/replace non-ASCII chars Meta rejects
+                        const sanitizedBody = body
+                            .replace(/[\u200B-\u200D\uFEFF]/g, '')  // zero-width chars
+                            .replace(/[\u2018\u2019]/g, "'")          // curly single quotes → straight
+                            .replace(/[\u201C\u201D]/g, '"')          // curly double quotes → straight
+                            .replace(/[\u2014\u2015]/g, ' - ')        // em dash / horizontal bar → spaced hyphen
+                            .replace(/\u2013/g, '-')                  // en dash → regular hyphen
+                            .replace(/\u2026/g, '...')                // ellipsis char → three dots
+                            .replace(/[\u00A0]/g, ' ')                // non-breaking space → regular space
+                            .trim();
+
                         try {
                             const axiosLib = require('axios');
+                            const metaPayload = {
+                                name: name,
+                                language: 'en',
+                                category: 'UTILITY',
+                                components: [
+                                    {
+                                        type: 'BODY',
+                                        text: sanitizedBody,
+                                        ...(bodyVarCount > 0 ? { example: { body_text: [exampleParams] } } : {})
+                                    }
+                                ]
+                            };
+                            console.log(`[BatchSubmit] Sending to Meta (${i+1}/${batchTemplates.length}): ${name} | vars=${bodyVarCount} | body="${sanitizedBody.substring(0,80)}..."`);
                             const metaRes = await axiosLib.post(
                                 `https://graph.facebook.com/v21.0/${wabaId}/message_templates`,
-                                {
-                                    name: name,
-                                    language: 'en',
-                                    category: 'UTILITY',
-                                    components: [
-                                        {
-                                            type: 'BODY',
-                                            text: body,
-                                            example: (variables || []).length > 0 ? { body_text: [exampleParams] } : undefined
-                                        }
-                                    ]
-                                },
+                                metaPayload,
                                 {
                                     headers: {
                                         'Authorization': `Bearer ${token}`,
@@ -1060,16 +1082,20 @@ router.post('/actions/:action', superAdmin, async (req, res) => {
                                 }
                             );
                             if (metaRes.data?.id) {
-                                metaTemplateId = metaRes.data.id;
+                                metaTemplateId = String(metaRes.data.id);
                             } else {
                                 results.push({ eventKey, name, success: false, error: 'Meta did not return a template ID.' });
                                 continue;
                             }
                         } catch (metaErr) {
-                            const errMsg = metaErr.response?.data?.error?.message || metaErr.message;
-                            const errCode = metaErr.response?.data?.error?.code;
-                            console.warn(`[BatchSubmit] Meta rejected ${name} (${errCode}): ${errMsg}`);
-                            results.push({ eventKey, name, success: false, error: `Meta: ${errMsg}`, code: errCode });
+                            const metaErrData = metaErr.response?.data?.error || {};
+                            const errMsg = metaErrData.message || metaErr.message;
+                            const errCode = metaErrData.code;
+                            const errDetails = metaErrData.error_data?.messaging_product_items?.[0]?.rejected_reason
+                                || metaErrData.error_user_msg
+                                || '';
+                            console.warn(`[BatchSubmit] Meta rejected ${name} (${errCode}): ${errMsg}${errDetails ? ' | ' + errDetails : ''}`);
+                            results.push({ eventKey, name, success: false, error: `Meta (${errCode}): ${errMsg}`, details: errDetails });
                             // Throttle: even on error, wait before next request
                             if (i < batchTemplates.length - 1) {
                                 await new Promise(r => setTimeout(r, 3000));

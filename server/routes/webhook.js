@@ -146,7 +146,11 @@ router.post('/:userId', (req, res, next) => {
                     console.log(`[WEBHOOK] Template Status Update: ${templateName} -> ${eventStatus}${newCategory ? ` (category reclassified to ${newCategory})` : ''}`);
 
                     try {
-                        const template = await Template.findOne({ where: { metaTemplateId, userId } });
+                        // Meta sends message_template_id as a number (bigint) in the webhook payload,
+                        // but our DB column metaTemplateId is varchar. Cast to String to avoid
+                        // PostgreSQL "operator does not exist: character varying = bigint" error.
+                        const metaIdStr = String(metaTemplateId);
+                        const template = await Template.findOne({ where: { metaTemplateId: metaIdStr, userId } });
                         if (template) {
                             let categoryChanged = false;
                             template.status = eventStatus;
