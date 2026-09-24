@@ -156,7 +156,7 @@ app.use(cors({
         } catch (e) {}
 
         // Not in the allowed list
-        callback(new Error('Not allowed by CORS'));
+        callback(new Error(`Not allowed by CORS: ${origin}`));
     },
     credentials: true,
     exposedHeaders: ['x-csrf-token']
@@ -318,6 +318,14 @@ app.use(async (err, req, res, next) => {
         if (!lastFired || lastFired < fiveMinutesAgo) {
             _sysErrCooldown.set(errKey, Date.now());
             const { sendAdminAlert } = require('./services/systemMessenger');
+            const AdminNotification = require('./models/AdminNotification');
+            
+            await AdminNotification.create({
+                type: 'SYSTEM_ERROR',
+                message: `Server error on ${req.method} ${req.path}`,
+                data: { error: err.message?.substring(0, 500) || 'Unknown error' }
+            });
+
             await sendAdminAlert('system_error', `Server error on ${req.method} ${req.path}`, {
                 error: `${err.message?.substring(0, 200) || 'Unknown error'}`
             });

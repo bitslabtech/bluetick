@@ -80,10 +80,20 @@ router.post('/demo', async (req, res) => {
                 primaryOwnerId = bookDemoConfig.crmOwners[0];
             }
 
-            const customTags = [
-                ...parseTags(bookDemoConfig.crmTags),
-                ...parseTags(bookDemoConfig.crmGroups)
-            ];
+            const parsedCrmTags = parseTags(bookDemoConfig.crmTags);
+            const parsedCrmGroups = parseTags(bookDemoConfig.crmGroups);
+
+            const Label = require('../models/Label');
+            let matchedLabels = [];
+            if (parsedCrmTags.length > 0) {
+                matchedLabels = await Label.findAll({
+                    where: {
+                        userId: linkedAdminUserId,
+                        name: parsedCrmTags
+                    }
+                });
+            }
+            const newLabelsToAdd = matchedLabels.map(l => ({ id: l.id, name: l.name, color: l.color }));
 
             // 1. Instantly validate by sending the template if configured
             if (triggerTemplate) {
@@ -127,8 +137,14 @@ router.post('/demo', async (req, res) => {
             
             if (contact) {
                 // Ensure tags exist
-                let currentTags = contact.tags || [];
-                contact.tags = [...new Set([...currentTags, 'demo request', ...customTags])];
+                let currentGroups = contact.tags || [];
+                contact.tags = [...new Set([...currentGroups, 'demo request', ...parsedCrmGroups])];
+                
+                let currentLabels = contact.labels || [];
+                const existingLabelIds = new Set(currentLabels.map(l => l.id));
+                const addedLabels = newLabelsToAdd.filter(l => !existingLabelIds.has(l.id));
+                contact.labels = [...currentLabels, ...addedLabels];
+
                 if (contact.name === 'AI Chatbot Lead') contact.name = name;
                 await contact.save();
             } else {
@@ -136,7 +152,8 @@ router.post('/demo', async (req, res) => {
                     userId: primaryOwnerId,
                     name,
                     phone: fullPhone,
-                    tags: [...new Set(['demo request', ...customTags])],
+                    tags: [...new Set(['demo request', ...parsedCrmGroups])],
+                    labels: newLabelsToAdd,
                     createdById: primaryOwnerId
                 });
             }
