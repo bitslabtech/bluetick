@@ -266,7 +266,9 @@ app.use('/api/labels', require('./routes/labels')); // NEW
 app.use('/api/coupons', require('./routes/coupons')); // NEW
 app.use('/api/versioning', require('./routes/versioning')); // Versioning & Changelog
 app.use('/api/whatsapp/chat', require('./routes/chat')); // Renamed from WhatsApp Inbox
+app.use('/api/whatsapp/meta-analytics', require('./routes/metaAnalytics')); // Meta Usage & Spend Analytics
 app.use('/api/whatsapp', whatsappAuthRoute); // WhatsApp Graph API Auth
+
 app.use('/api/flows', require('./routes/flows')); // NEW FlowBot routes
 app.use('/api/integrations', require('./routes/integrations')); // NEW Developer Ecosystem
 app.use('/api/referrals', require('./routes/referrals')); // Referral System

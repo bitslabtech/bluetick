@@ -28,6 +28,7 @@ const AddonDetail = React.lazy(() => import('./pages/AddonDetail'));
 const Integrations = React.lazy(() => import('./pages/Integrations'));
 const WhatsAppInbox = React.lazy(() => import('./pages/WhatsAppInbox'));
 const WhatsAppSettings = React.lazy(() => import('./pages/WhatsAppSettings'));
+const WhatsAppUsage = React.lazy(() => import('./pages/WhatsAppUsage'));
 const PublicForm = React.lazy(() => import('./pages/PublicForm'));
 const Login = React.lazy(() => import('./pages/Login'));
 const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword'));
@@ -689,6 +690,7 @@ function App() {
                                                 <Route path="/settings" element={<Settings />} />
                                                 <Route path="/whatsapp" element={<WhatsAppInbox />} />
                                                 <Route path="/whatsapp-settings" element={<WhatsAppSettings />} />
+                                                <Route path="/whatsapp-usage" element={<WhatsAppUsage />} />
                                                 <Route path="/marketplace" element={<Marketplace />} />
                                                 <Route path="/integrations" element={<Integrations />} />
                                                 <Route path="/marketplace/:id" element={<AddonDetail />} />

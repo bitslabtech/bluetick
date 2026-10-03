@@ -87,7 +87,10 @@ const getMonthlyMessageCount = async (userId) => {
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
-    return ChatMessage.count({
+    const MessageLog = require('../models/MessageLog');
+    const Message = require('../models/Message');
+
+    const chatMessageCount = await ChatMessage.count({
         where: {
             direction: 'OUTBOUND',
             createdAt: { [Op.gte]: startOfMonth },
@@ -95,6 +98,19 @@ const getMonthlyMessageCount = async (userId) => {
         },
         include: [{ model: Conversation, attributes: [] }]
     });
+
+    const campaignMessageCount = await MessageLog.count({
+        where: {
+            createdAt: { [Op.gte]: startOfMonth }
+        },
+        include: [{ 
+            model: Message, 
+            where: { userId },
+            attributes: []
+        }]
+    });
+
+    return chatMessageCount + campaignMessageCount;
 };
 
 /**

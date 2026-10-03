@@ -18,6 +18,7 @@ import AssignAgentPopover from '../components/AssignAgentPopover';
 import TopHeader from '../components/TopHeader';
 import MediaPickerModal, { MIME_PRESETS } from '../components/MediaPickerModal';
 import MediaGallery from './MediaGallery';
+import MediaLightbox from '../components/MediaLightbox';
 
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -44,6 +45,11 @@ const WhatsAppInbox = () => {
     const [mediaCaption, setMediaCaption] = useState('');
     const [isConfigured, setIsConfigured] = useState(true);
     const [hasActiveBots, setHasActiveBots] = useState(false);
+
+    // Media Lightbox state
+    const [lightboxItems, setLightboxItems] = useState([]);
+    const [lightboxIndex, setLightboxIndex] = useState(0);
+    const [showLightbox, setShowLightbox] = useState(false);
 
     const isSubMember = !!user?.parentUserId;
     const teamPolicy = user?.teamPolicy || { inboxVisibility: 'see_all', phonePrivacy: 'visible' };
@@ -454,6 +460,10 @@ const WhatsAppInbox = () => {
     };
 
     const openTemplateModal = () => {
+        if (!isConfigured) {
+            showToast('Your WhatsApp account is disconnected. Please reconnect it to send templates.', 'error');
+            return;
+        }
         setShowTemplateModal(true);
         setTemplateStep(1);
         setSelectedTemplate(null);
@@ -661,7 +671,14 @@ const WhatsAppInbox = () => {
             fetchConversations();
         } catch (err) {
             console.error('Failed to send template:', err);
-            alert(err.response?.data?.error || 'Failed to send template');
+            const errData = err.response?.data;
+            if (errData?.code === 'LIMIT_REACHED') {
+                const msg = `Monthly limit reached (${errData.sentThisMonth}/${errData.monthlyLimit} messages). Please upgrade your plan.`;
+                showToast({ type: 'error', title: 'Limit Reached', message: msg });
+                alert(`🚫 ${msg}`);
+            } else {
+                alert(errData?.error || 'Failed to send template');
+            }
         } finally { setSendingTemplate(false); }
     };
 
@@ -785,7 +802,9 @@ const WhatsAppInbox = () => {
         } catch (err) {
             const errData = err.response?.data;
             if (errData?.code === 'LIMIT_REACHED') {
-                setSendError(`🚫 Monthly limit reached (${errData.sentThisMonth}/${errData.monthlyLimit} messages). Please upgrade your plan.`);
+                const msg = `Monthly limit reached (${errData.sentThisMonth}/${errData.monthlyLimit} messages). Please upgrade your plan.`;
+                setSendError(`🚫 ${msg}`);
+                showToast({ type: 'error', title: 'Limit Reached', message: msg });
             } else if (err.response?.status === 403 && errData?.error?.includes('assigned to you')) {
                 setShowAccessDeniedModal(true);
             } else {
@@ -871,8 +890,15 @@ const WhatsAppInbox = () => {
             setMessages(prev => [...prev, res.data]);
             fetchConversations();
         } catch (err) {
-            setSendError(err.response?.data?.error || 'Failed to send media');
-            showToast({ type: 'error', title: 'Upload Failed', message: err.response?.data?.error || 'Failed to send media via WhatsApp.' });
+            const errData = err.response?.data;
+            if (errData?.code === 'LIMIT_REACHED') {
+                const msg = `Monthly limit reached (${errData.sentThisMonth}/${errData.monthlyLimit} messages). Please upgrade your plan.`;
+                setSendError(`🚫 ${msg}`);
+                showToast({ type: 'error', title: 'Limit Reached', message: msg });
+            } else {
+                setSendError(errData?.error || 'Failed to send media');
+                showToast({ type: 'error', title: 'Upload Failed', message: errData?.error || 'Failed to send media via WhatsApp.' });
+            }
         } finally {
             setUploadingMedia(false);
         }
@@ -1314,20 +1340,89 @@ const WhatsAppInbox = () => {
                                                 )}
 
                                                 {/* Media rendering */}
-                                                {item.type === 'image' && item.mediaUrl && (
-                                                    <img src={item.mediaUrl.startsWith('/uploads') ? `${API_BASE}${item.mediaUrl}` : item.mediaUrl} alt="img" className="rounded-xl max-w-full max-h-60 object-cover mb-1" />
-                                                )}
-                                                {item.type === 'video' && item.mediaUrl && (
-                                                    <video src={item.mediaUrl.startsWith('/uploads') ? `${API_BASE}${item.mediaUrl}` : item.mediaUrl} controls className="rounded-xl max-w-full max-h-60 object-cover mb-1" />
-                                                )}
+                                                {item.type === 'image' && item.mediaUrl && (() => {
+                                                    const src = item.mediaUrl.startsWith('/uploads') ? `${API_BASE}${item.mediaUrl}` : item.mediaUrl;
+                                                    // Build lightbox item list from all image/video messages in the conversation
+                                                    const openLightbox = () => {
+                                                        const mediaMessages = messages.filter(m => (m.type === 'image' || m.type === 'video') && m.mediaUrl);
+                                                        const lightboxList = mediaMessages.map(m => ({
+                                                            url: m.mediaUrl.startsWith('/uploads') ? `${API_BASE}${m.mediaUrl}` : m.mediaUrl,
+                                                            type: m.type,
+                                                            caption: m.body || undefined,
+                                                            senderName: m.direction === 'OUTBOUND' ? (user?.displayName || 'You') : (selectedChat?.contactName || selectedChat?.phoneNumber),
+                                                            timestamp: format(new Date(m.timestamp), 'dd MMM yyyy, HH:mm'),
+                                                        }));
+                                                        const idx = mediaMessages.findIndex(m => m.id === item.id);
+                                                        setLightboxItems(lightboxList);
+                                                        setLightboxIndex(idx >= 0 ? idx : 0);
+                                                        setShowLightbox(true);
+                                                    };
+                                                    return (
+                                                        <div className="relative group/img mb-1 rounded-xl overflow-hidden cursor-pointer" onClick={openLightbox}>
+                                                            <img src={src} alt="img" className="rounded-xl max-w-full max-h-60 object-cover w-full block" />
+                                                            {/* Hover overlay */}
+                                                            <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition-all flex items-center justify-center">
+                                                                <div className="opacity-0 group-hover/img:opacity-100 transition-opacity bg-black/50 backdrop-blur-sm rounded-full p-2">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()}
+                                                {item.type === 'video' && item.mediaUrl && (() => {
+                                                    const src = item.mediaUrl.startsWith('/uploads') ? `${API_BASE}${item.mediaUrl}` : item.mediaUrl;
+                                                    const openLightbox = () => {
+                                                        const mediaMessages = messages.filter(m => (m.type === 'image' || m.type === 'video') && m.mediaUrl);
+                                                        const lightboxList = mediaMessages.map(m => ({
+                                                            url: m.mediaUrl.startsWith('/uploads') ? `${API_BASE}${m.mediaUrl}` : m.mediaUrl,
+                                                            type: m.type,
+                                                            caption: m.body || undefined,
+                                                            senderName: m.direction === 'OUTBOUND' ? (user?.displayName || 'You') : (selectedChat?.contactName || selectedChat?.phoneNumber),
+                                                            timestamp: format(new Date(m.timestamp), 'dd MMM yyyy, HH:mm'),
+                                                        }));
+                                                        const idx = mediaMessages.findIndex(m => m.id === item.id);
+                                                        setLightboxItems(lightboxList);
+                                                        setLightboxIndex(idx >= 0 ? idx : 0);
+                                                        setShowLightbox(true);
+                                                    };
+                                                    return (
+                                                        <div className="relative group/vid mb-1 rounded-xl overflow-hidden cursor-pointer" onClick={openLightbox}>
+                                                            <video src={src} className="rounded-xl max-w-full max-h-60 object-cover w-full block" muted playsInline />
+                                                            {/* Play overlay */}
+                                                            <div className="absolute inset-0 bg-black/30 group-hover/vid:bg-black/50 transition-all flex items-center justify-center">
+                                                                <div className="bg-black/50 backdrop-blur-sm rounded-full p-3 group-hover/vid:scale-110 transition-transform">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()}
                                                 {item.type === 'audio' && item.mediaUrl && (
-                                                    <audio src={item.mediaUrl.startsWith('/uploads') ? `${API_BASE}${item.mediaUrl}` : item.mediaUrl} controls className="max-w-full mb-1 h-10 w-60" />
+                                                    <div className="mb-1">
+                                                        <audio src={item.mediaUrl.startsWith('/uploads') ? `${API_BASE}${item.mediaUrl}` : item.mediaUrl} controls className="max-w-full h-10 w-60" />
+                                                        <div className="flex justify-end mt-1">
+                                                            <a
+                                                                href={item.mediaUrl.startsWith('/uploads') ? `${API_BASE}${item.mediaUrl}` : item.mediaUrl}
+                                                                download
+                                                                className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-indigo-500 transition-colors px-1"
+                                                                title="Download audio"
+                                                            >
+                                                                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                                                Download
+                                                            </a>
+                                                        </div>
+                                                    </div>
                                                 )}
                                                 {item.type === 'document' && item.mediaUrl && (
-                                                    <a href={item.mediaUrl.startsWith('/uploads') ? `${API_BASE}${item.mediaUrl}` : item.mediaUrl} target="_blank" rel="noopener noreferrer"
-                                                        className="flex items-center gap-2 bg-black/5 dark:bg-white/5 rounded-lg px-3 py-2 mb-1 hover:bg-black/10 transition-colors">
+                                                    <a
+                                                        href={item.mediaUrl.startsWith('/uploads') ? `${API_BASE}${item.mediaUrl}` : item.mediaUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="group/doc flex items-center gap-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg px-3 py-2 mb-1 transition-colors"
+                                                    >
                                                         <FileText className="w-5 h-5 text-indigo-500 shrink-0" />
-                                                        <span className="text-xs text-slate-600 dark:text-slate-300 truncate">{item.body || 'Document'}</span>
+                                                        <span className="text-xs text-slate-600 dark:text-slate-300 truncate flex-1">{item.body || 'Document'}</span>
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-slate-400 group-hover/doc:text-indigo-500 transition-colors shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                                                     </a>
                                                 )}
 
@@ -2010,6 +2105,14 @@ const WhatsAppInbox = () => {
                         </div>
                     </div>
                 </div>
+            )}
+            {/* ── Media Lightbox ────────────────────────────────────────────────── */}
+            {showLightbox && lightboxItems.length > 0 && (
+                <MediaLightbox
+                    items={lightboxItems}
+                    initialIndex={lightboxIndex}
+                    onClose={() => setShowLightbox(false)}
+                />
             )}
         </div>
     );

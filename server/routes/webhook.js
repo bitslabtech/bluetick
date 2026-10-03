@@ -81,6 +81,14 @@ router.post('/:userId', (req, res, next) => {
     }
     next();
 }, async (req, res) => {
+    // ── CRITICAL: Respond to Meta immediately with 200 ──────────────────────────
+    // Meta requires a 200 response within 20 seconds. If we block on DB/media/AI
+    // processing, Meta will timeout, retry the webhook, and create duplicate messages.
+    // We acknowledge receipt first, then process everything asynchronously.
+    res.sendStatus(200);
+
+    // Run all processing in the background (non-blocking)
+    setImmediate(async () => {
     try {
         console.log('==========================================');
         console.log(`[WEBHOOK] POST /api/webhook/${req.params.userId}`);
@@ -93,7 +101,7 @@ router.post('/:userId', (req, res, next) => {
         const body = req.body;
 
         if (body.object !== 'whatsapp_business_account') {
-            return res.sendStatus(404);
+            return; // Already responded 200
         }
 
         let userId = req.params.userId;
@@ -353,6 +361,7 @@ router.post('/:userId', (req, res, next) => {
                         const upperStatus = rawStatus.toUpperCase();
 
                         console.log(`[WEBHOOK] Status Update: ${upperStatus} for messageId: ${metaMessageId}`);
+
 
                         // --- Update Campaign MessageLog ---
                         try {
@@ -1371,12 +1380,11 @@ router.post('/:userId', (req, res, next) => {
                 }
             }
 
-        res.sendStatus(200);
 
     } catch (error) {
         console.error('[WEBHOOK ERROR]', error);
-        res.sendStatus(500);
     }
+    }); // end setImmediate
 });
 
 module.exports = router;
