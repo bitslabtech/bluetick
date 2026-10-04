@@ -196,8 +196,8 @@ export default function WaProductList() {
     const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
     const [isVariationsOpen, setIsVariationsOpen] = useState(false);
     const [isSeoOpen, setIsSeoOpen] = useState(false);
-
-    // ── Bulk Selection state ──────────────────────────────────────────────────
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('');
     const [selectedProductIds, setSelectedProductIds] = useState([]);
     const [showBulkSubModal, setShowBulkSubModal] = useState(false);
     const [bulkCategory, setBulkCategory] = useState('');
@@ -263,6 +263,12 @@ export default function WaProductList() {
             setLoading(false);
         }
     };
+
+    const filteredProducts = products.filter(p => {
+        const matchesSearch = (p.name || '').toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesCategory = selectedCategory === '' || p.category === selectedCategory;
+        return matchesSearch && matchesCategory;
+    });
 
     const handleExportProducts = () => {
         if (products.length === 0) {
@@ -644,6 +650,33 @@ export default function WaProductList() {
                 </div>
             </div>
 
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input 
+                        type="text" 
+                        placeholder="Search products by name..." 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                    />
+                </div>
+                <div className="sm:w-64 relative">
+                    <select
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors appearance-none pr-10"
+                    >
+                        <option value="">All Categories</option>
+                        {storeCategories.map(c => (
+                            <option key={c} value={c}>{c}</option>
+                        ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                </div>
+            </div>
+
             {loading ? (
                 <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden overflow-x-auto">
                     <table className="w-full text-left text-sm whitespace-nowrap">
@@ -689,7 +722,7 @@ export default function WaProductList() {
                         </tbody>
                     </table>
                 </div>
-            ) : products.length === 0 ? (
+            ) : filteredProducts.length === 0 ? (
                 <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 md:p-12 text-center">
                     <Package className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">No products found</h3>
@@ -706,10 +739,10 @@ export default function WaProductList() {
                                 <th className="pl-6 pr-2 py-4 w-10">
                                     <input
                                         type="checkbox"
-                                        checked={products.length > 0 && selectedProductIds.length === products.length}
+                                        checked={filteredProducts.length > 0 && selectedProductIds.length === filteredProducts.length}
                                         onChange={(e) => {
                                             if (e.target.checked) {
-                                                setSelectedProductIds(products.map(p => p.id));
+                                                setSelectedProductIds(filteredProducts.map(p => p.id));
                                             } else {
                                                 setSelectedProductIds([]);
                                             }
@@ -725,7 +758,7 @@ export default function WaProductList() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 dark:divide-white/5">
-                            {products.map(product => (
+                            {filteredProducts.map(product => (
                                 <tr key={product.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
                                     <td className="pl-6 pr-2 py-4">
                                         <input
@@ -840,7 +873,7 @@ export default function WaProductList() {
                         <button
                             type="button"
                             onClick={() => {
-                                const selectedProducts = products.filter(p => selectedProductIds.includes(p.id));
+                                const selectedProducts = filteredProducts.filter(p => selectedProductIds.includes(p.id));
                                 const cats = [...new Set(selectedProducts.map(p => p.category).filter(Boolean))];
                                 if (cats.length === 1 && storeCategories.includes(cats[0])) {
                                     setBulkCategory(cats[0]);
