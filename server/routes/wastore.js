@@ -2353,11 +2353,8 @@ router.post('/:storeId/products', auth, async (req, res) => {
             if (!Array.isArray(payload.subCategories)) {
                 payload.subCategories = payload.subCategories ? [payload.subCategories] : [];
             }
-            if (payload.subCategories.length === 0) {
-                return res.status(400).json({ error: 'At least one subcategory must be selected.' });
-            }
         } else {
-            return res.status(400).json({ error: 'At least one subcategory must be selected.' });
+            payload.subCategories = [];
         }
 
         if (store.taxConfig && store.taxConfig.enabled) {
@@ -2396,11 +2393,8 @@ router.put('/products/:productId', auth, async (req, res) => {
             if (!Array.isArray(payload.subCategories)) {
                 payload.subCategories = payload.subCategories ? [payload.subCategories] : [];
             }
-            if (payload.subCategories.length === 0) {
-                return res.status(400).json({ error: 'At least one subcategory must be selected.' });
-            }
         } else {
-            return res.status(400).json({ error: 'At least one subcategory must be selected.' });
+            payload.subCategories = [];
         }
 
         if (store.taxConfig && store.taxConfig.enabled) {

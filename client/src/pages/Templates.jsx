@@ -226,6 +226,8 @@ const Templates = () => {
         }
     };
 
+    const isLimitReached = templateLimit !== -1 && templates.length >= templateLimit;
+
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark text-slate-900 dark:text-white font-display relative transition-colors duration-300">
 
@@ -336,28 +338,30 @@ const Templates = () => {
                             </button>
                             <button
                                 onClick={() => setShowAiDraftModal(true)}
-                                disabled={isConfigured === false}
+                                disabled={isConfigured === false || isLimitReached}
                                 className={`flex-1 sm:flex-none justify-center px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-md active:scale-95 relative overflow-hidden group ${
-                                    isConfigured === false 
+                                    (isConfigured === false || isLimitReached) 
                                     ? 'bg-slate-300 dark:bg-slate-800 text-slate-500 cursor-not-allowed opacity-70 shadow-none' 
                                     : 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-indigo-500/20'
                                 }`}
+                                title={isLimitReached ? "Template limit reached. Please upgrade to create more." : (isConfigured === false ? "Please configure WhatsApp API first" : "")}
                             >
-                                {isConfigured !== false && (
+                                {isConfigured !== false && !isLimitReached && (
                                     <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]"></div>
                                 )}
-                                <Sparkles className={`w-4 h-4 sm:w-5 sm:h-5 ${isConfigured === false ? 'text-slate-500' : 'text-indigo-100'}`} />
+                                <Sparkles className={`w-4 h-4 sm:w-5 sm:h-5 ${(isConfigured === false || isLimitReached) ? 'text-slate-500' : 'text-indigo-100'}`} />
                                 <span className="hidden sm:inline">Create with AI</span>
                                 <span className="sm:hidden">Create with AI</span>
                             </button>
                             <button
                                 onClick={() => checkSettingsAndOpenModal(null)}
-                                disabled={isConfigured === false}
+                                disabled={isConfigured === false || isLimitReached}
                                 className={`flex-1 sm:flex-none justify-center px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-md active:scale-95 ${
-                                    isConfigured === false 
+                                    (isConfigured === false || isLimitReached) 
                                     ? 'bg-slate-300 dark:bg-slate-800 text-slate-500 cursor-not-allowed opacity-70 shadow-none' 
                                     : 'bg-primary hover:bg-blue-600 text-white shadow-primary/20'
                                 }`}
+                                title={isLimitReached ? "Template limit reached. Please upgrade to create more." : (isConfigured === false ? "Please configure WhatsApp API first" : "")}
                             >
                                 <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
                                 <span className="hidden sm:inline">New Template</span>

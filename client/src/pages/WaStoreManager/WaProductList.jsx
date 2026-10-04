@@ -299,10 +299,6 @@ export default function WaProductList() {
             toast.error("Please select a category");
             return;
         }
-        if (bulkSelectedSubs.length === 0) {
-            toast.error("Please select at least one subcategory");
-            return;
-        }
         if (selectedProductIds.length === 0) {
             toast.error("No products selected");
             return;
@@ -397,10 +393,6 @@ export default function WaProductList() {
 
 
             payload.subCategories = Array.isArray(payload.subCategories) ? payload.subCategories : [];
-            if (payload.subCategories.length === 0) {
-                toast.error("Please select at least one subcategory.");
-                return;
-            }
 
             payload.imageUrls = (payload.imageUrls || []).filter(url => url && url.trim() !== '');
             if (payload.imageUrls.length === 0) {
