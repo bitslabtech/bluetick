@@ -656,12 +656,14 @@ export async function printShippingLabelDirect(params) {
                 window.open(blobUrl, '_blank');
             }
             // Cleanup after printing
+            iframe.contentWindow.onafterprint = () => {
+                try { document.body.removeChild(iframe); } catch(e) {}
+                try { URL.revokeObjectURL(blobUrl); } catch(e) {}
+            };
             setTimeout(() => {
-                try {
-                    document.body.removeChild(iframe);
-                } catch {}
-                URL.revokeObjectURL(blobUrl);
-            }, 60000);
+                try { document.body.removeChild(iframe); } catch(e) {}
+                try { URL.revokeObjectURL(blobUrl); } catch(e) {}
+            }, 300000); // 5 minutes fallback
         }, 300);
     };
 }

@@ -487,7 +487,7 @@ const Settings = () => {
             showModal({
                 type: 'error',
                 title: 'Error',
-                message: 'Failed to save settings',
+                message: err.response?.data?.error || 'Failed to save settings',
                 confirmText: 'Close'
             });
         } finally {

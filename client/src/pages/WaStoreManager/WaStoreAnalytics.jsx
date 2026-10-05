@@ -8,7 +8,7 @@ import {
 import {
     ShoppingBag, TrendingUp, Eye, Package, DollarSign,
     Calendar, RefreshCw, AlertCircle, ArrowUpRight, ArrowDownRight,
-    Clock, CheckCircle, Truck, XCircle, Loader2
+    Clock, CheckCircle, Truck, XCircle, Loader2, ShoppingCart
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -130,6 +130,7 @@ function KpiCard({ icon, label, value, sub, color, loading }) {
         violet:  { bg: 'bg-violet-500/10',  icon: 'text-violet-500',  ring: 'ring-violet-500/20' },
         amber:   { bg: 'bg-amber-500/10',   icon: 'text-amber-500',   ring: 'ring-amber-500/20' },
         sky:     { bg: 'bg-sky-500/10',     icon: 'text-sky-500',     ring: 'ring-sky-500/20' },
+        rose:    { bg: 'bg-rose-500/10',    icon: 'text-rose-500',    ring: 'ring-rose-500/20' },
     };
     const c = colors[color] || colors.indigo;
     return (
@@ -303,7 +304,7 @@ export default function WaStoreAnalytics() {
             </div>
 
             {/* ── KPI Cards ── */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 <KpiCard
                     loading={loading}
                     icon={<ShoppingBag className="w-5 h-5" />}
@@ -340,6 +341,14 @@ export default function WaStoreAnalytics() {
                     value={loading ? '—' : fmtNum(data?.totalProducts)}
                     sub="In catalogue"
                     color="amber"
+                />
+                <KpiCard
+                    loading={loading}
+                    icon={<ShoppingCart className="w-5 h-5" />}
+                    label="Abandoned Carts"
+                    value={loading ? '—' : fmtNum(data?.totalAbandoned || 0)}
+                    sub="All-time pending"
+                    color="rose"
                 />
             </div>
 

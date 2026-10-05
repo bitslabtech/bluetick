@@ -225,6 +225,40 @@ router.post('/', async (req, res) => {
 
         let settings = await Settings.findOne({ where: { userId: req.user.id } });
 
+        // --- WhatsApp Credentials Validation ---
+        let effectivePhoneId = metaPhoneNumberId !== undefined ? String(metaPhoneNumberId).replace(/\s/g, '') : (settings ? settings.metaPhoneNumberId : undefined);
+        let effectiveToken = (metaAccessToken !== undefined && !isMasked(metaAccessToken)) ? String(metaAccessToken).replace(/\s/g, '') : (settings ? settings.metaAccessToken : undefined);
+        let effectiveWabaId = metaBusinessAccountId !== undefined ? String(metaBusinessAccountId).replace(/\s/g, '') : (settings ? settings.metaBusinessAccountId : undefined);
+
+        const isWaUpdate = (metaPhoneNumberId !== undefined && metaPhoneNumberId !== '') || 
+                           (metaAccessToken !== undefined && metaAccessToken !== '' && !isMasked(metaAccessToken)) || 
+                           (metaBusinessAccountId !== undefined && metaBusinessAccountId !== '');
+
+        if (isWaUpdate && effectivePhoneId && effectiveToken && effectiveWabaId) {
+            try {
+                // Validate WABA ID
+                const wabaRes = await fetch(`https://graph.facebook.com/v21.0/${effectiveWabaId}`, {
+                    headers: { 'Authorization': `Bearer ${effectiveToken}` }
+                });
+                const wabaData = await wabaRes.json();
+                if (wabaData.error) {
+                    return res.status(400).json({ error: `Invalid WABA ID or Access Token: ${wabaData.error.message}` });
+                }
+
+                // Validate Phone Number ID
+                const phoneRes = await fetch(`https://graph.facebook.com/v21.0/${effectivePhoneId}`, {
+                    headers: { 'Authorization': `Bearer ${effectiveToken}` }
+                });
+                const phoneData = await phoneRes.json();
+                if (phoneData.error) {
+                    return res.status(400).json({ error: `Invalid Phone Number ID or Access Token: ${phoneData.error.message}` });
+                }
+            } catch (err) {
+                return res.status(400).json({ error: `Network error while validating WhatsApp credentials: ${err.message}` });
+            }
+        }
+        // ---------------------------------------
+
         if (!settings) {
             settings = await Settings.create({
                 metaPhoneNumberId: metaPhoneNumberId ? String(metaPhoneNumberId).replace(/\s/g, '') : undefined,

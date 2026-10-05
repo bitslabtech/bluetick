@@ -13,7 +13,7 @@ import { applyStoreSeo, cleanupStoreSeo } from '../utils/storeSeo';
 import { cdnImg, cdnSrcSet } from '../utils/cdnImage';
 import { StoreCustomerProvider, useStoreCustomer } from '../context/StoreCustomerContext';
 import { getStoreRoute } from '../utils/storeRouting';
-
+import PublicQuickAddModal from '../components/PublicQuickAddModal';
 // Generates a SEO-friendly product URL slug: "blue-cotton-shirt--a1b2c3d4"
 
 /**
@@ -155,6 +155,7 @@ export default function PublicWaStore({ customSlug }) {
     const [trendingProducts, setTrendingProducts] = useState(preloaded?.trendingProducts || []);
     const [loading, setLoading] = useState(!preloaded?.store);
     const [isCartOpen, setIsCartOpen] = useState(false);
+    const [quickAddProduct, setQuickAddProduct] = useState(null);
 
     // ── Visual Store Editor (VSE) live preview mode ──────────────────────────
     // When loaded inside the VSE iframe (?editor=true), listen for postMessage
@@ -654,9 +655,10 @@ export default function PublicWaStore({ customSlug }) {
         return Math.ceil(filteredAndSortedProducts.length / limit);
     }, [filteredAndSortedProducts.length]);
 
-    const addToCart = (product, qty = 1) => {
-        if (product.options && Array.isArray(product.options) && product.options.length > 0) {
-            navigate(getStoreRoute(slug, `/product/${slugifyProduct(product)}`));
+    const addToCart = (product, qty = 1, isFromQuickAdd = false) => {
+        if (!isFromQuickAdd && product.options && Array.isArray(product.options) && product.options.length > 0) {
+            // Instead of navigating, open the quick add bottom sheet
+            setQuickAddProduct(product);
             return;
         }
 
@@ -771,15 +773,40 @@ export default function PublicWaStore({ customSlug }) {
                     </div>
                     <h3 className={`text-base md:text-[17px] font-bold ${theme.text} mb-1.5 line-clamp-2 leading-tight hover:opacity-80 transition-opacity capitalize`}>{product.name}</h3>
 
+                    {product.options && product.options.length > 0 && (
+                        <div 
+                            className="flex flex-wrap gap-1 mb-2 items-center cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                addToCart(product);
+                            }}
+                        >
+                            <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-medium border border-gray-200">
+                                {product.options[0].values?.[0]}
+                            </span>
+                            {(() => {
+                                const totalCombinations = product.options.reduce((total, opt) => total * (opt.values?.length || 1), 1);
+                                const remaining = totalCombinations - 1;
+                                if (remaining > 0) {
+                                    return (
+                                        <span className="text-[10px] text-gray-400 px-1 py-0.5 font-medium">
+                                            + {remaining} option{remaining > 1 ? 's' : ''}
+                                        </span>
+                                    );
+                                }
+                                return null;
+                            })()}
+                        </div>
+                    )}
+
                     <div className="flex items-baseline flex-wrap gap-1 md:gap-2 mb-3 md:mb-5">
                         {(() => {
                             const variantPrices = (product.variants || []).map(v => v.price).filter(p => p != null);
                             const minPrice = variantPrices.length > 0 ? Math.min(...variantPrices) : parseFloat(product.price);
-                            const hasVariantPricing = variantPrices.length > 0 && variantPrices.some(p => p !== parseFloat(product.price));
                             return (
                                 <>
                                     <span className={`${theme.priceStyle || 'text-base md:text-lg font-bold text-black'}`}>
-                                        {hasVariantPricing ? 'from ' : ''}{getCurrencySymbol(store.currency)}{formatPrice(getDisplayPrice(minPrice, product))}
+                                        {getCurrencySymbol(store.currency)}{formatPrice(getDisplayPrice(minPrice, product))}
                                     </span>
                                     {product.compareAtPrice && parseFloat(product.compareAtPrice) > parseFloat(product.price) && (
                                         <span className={`${theme.priceCompareStyle || 'text-xs md:text-sm text-gray-400 line-through font-normal'}`}>
@@ -834,7 +861,7 @@ export default function PublicWaStore({ customSlug }) {
                                 ) : (
                                     <>
                                         <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
-                                        <span>{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
+                                        <span>{isOutOfStock ? 'Out of Stock' : (product.options && product.options.length > 0 ? `Select ${product.options[0].name}` : 'Add to Cart')}</span>
                                     </>
                                 )}
                             </button>
@@ -1518,6 +1545,23 @@ export default function PublicWaStore({ customSlug }) {
                     </div>
                 </div>
             )}
+
+            {/* Quick Add Bottom Sheet Modal — always mounted to avoid mount-delay on open */}
+            <PublicQuickAddModal
+                isOpen={!!quickAddProduct}
+                onClose={() => setQuickAddProduct(null)}
+                product={quickAddProduct}
+                store={store}
+                cart={cart}
+                addToCart={addToCart}
+                updateQty={updateQty}
+                theme={theme}
+                imgUrl={imgUrl}
+                cdnImg={cdnImg}
+                cdnSrcSet={cdnSrcSet}
+                getCurrencySymbol={getCurrencySymbol}
+                formatPrice={formatPrice}
+            />
 
             {/* ─── MOBILE NAVIGATION DRAWER ─── */}
             <div id="store-footer">

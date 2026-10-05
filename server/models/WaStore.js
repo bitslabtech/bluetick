@@ -84,6 +84,11 @@ const WaStore = sequelize.define('WaStore', {
         defaultValue: [],
         comment: 'Ordered array of category names to show as Collection rows on the homepage (each shows 8 products + View All card)'
     },
+    collectionProducts: {
+        type: DataTypes.JSON,
+        defaultValue: {},
+        comment: 'Map of collection name (category) to ordered array of product IDs'
+    },
     whatsappNumber: {
         type: DataTypes.STRING,
         allowNull: false,

@@ -3041,12 +3041,18 @@ router.get('/:storeId/analytics', auth, async (req, res) => {
         // --- Total products & coupons count ---
         const totalProducts = await WaProduct.count({ where: { storeId: store.id } });
 
+        // --- Abandoned Carts (All-time pending) ---
+        const totalAbandoned = await WaOrder.count({ 
+            where: { storeId: store.id, status: 'pending', abandonedReminderSent: false, customerPhone: { [Op.not]: null } } 
+        });
+
         res.json({
             storeViews: store.views || 0,
             totalOrders,
             totalRevenue: parseFloat(totalRevenue.toFixed(2)),
             avgOrderValue: parseFloat(avgOrderValue.toFixed(2)),
             totalProducts,
+            totalAbandoned,
             statusCounts,
             dailyTrend,
             topProducts,

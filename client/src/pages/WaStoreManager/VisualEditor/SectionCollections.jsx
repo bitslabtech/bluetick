@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { GripVertical, X, Loader2 } from 'lucide-react';
+import { GripVertical, X, Loader2, Edit2 } from 'lucide-react';
 import axios from 'axios';
+import CollectionEditorModal from './CollectionEditorModal';
 
 export default function SectionCollections({ draft, updateDraft }) {
     const collections = draft.homepageCollections || [];
@@ -8,6 +9,7 @@ export default function SectionCollections({ draft, updateDraft }) {
     const [loadingCats, setLoadingCats] = useState(false);
     const [dragIdx, setDragIdx] = useState(null);
     const [dragOverIdx, setDragOverIdx] = useState(null);
+    const [editingCollection, setEditingCollection] = useState(null);
 
     // Fetch available categories from the public store API
     useEffect(() => {
@@ -78,13 +80,23 @@ export default function SectionCollections({ draft, updateDraft }) {
                             <span className="text-xs text-gray-400 dark:text-slate-500 w-4 shrink-0 font-mono">{idx + 1}</span>
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm text-gray-900 dark:text-white font-medium truncate">{cat}</p>
-                                <p className="text-xs text-gray-400 dark:text-slate-500">8 products + View All card</p>
+                                <p className="text-xs text-gray-400 dark:text-slate-500">
+                                    {(draft.collectionProducts && draft.collectionProducts[cat]) ? draft.collectionProducts[cat].length : '8'} products + View All card
+                                </p>
                             </div>
                             <button
-                                onClick={() => removeCollection(cat)}
-                                className="w-6 h-6 flex items-center justify-center rounded-md text-gray-400 dark:text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+                                onClick={() => setEditingCollection(cat)}
+                                className="w-7 h-7 flex items-center justify-center rounded-md text-gray-400 dark:text-slate-500 hover:text-violet-500 hover:bg-violet-500/10 transition-all opacity-0 group-hover:opacity-100"
+                                title="Edit Products"
                             >
-                                <X className="w-3 h-3" />
+                                <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                                onClick={() => removeCollection(cat)}
+                                className="w-7 h-7 flex items-center justify-center rounded-md text-gray-400 dark:text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+                                title="Remove Collection"
+                            >
+                                <X className="w-3.5 h-3.5" />
                             </button>
                         </div>
                     ))}
@@ -117,6 +129,15 @@ export default function SectionCollections({ draft, updateDraft }) {
             {!loadingCats && availableCategories.length === 0 && (
                 <p className="text-xs text-gray-300 dark:text-slate-600 py-2">No categories found. Add products with categories first.</p>
             )}
+
+            <CollectionEditorModal
+                isOpen={!!editingCollection}
+                onClose={() => setEditingCollection(null)}
+                collectionName={editingCollection}
+                storeSlug={draft?.slug}
+                draft={draft}
+                updateDraft={updateDraft}
+            />
         </div>
     );
 }

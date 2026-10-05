@@ -359,7 +359,15 @@ export default function ShippingLabelModal({ order: initialOrder, orders, store,
             iframe.src = blobUrl;
             iframe.onload = () => {
                 iframe.contentWindow.print();
-                setTimeout(() => document.body.removeChild(iframe), 3000);
+                
+                // Remove iframe after printing is done, or fallback to a 5-minute timeout.
+                // 3000ms is too short and closes the print dialog if the user changes settings like paper size.
+                iframe.contentWindow.onafterprint = () => {
+                    try { document.body.removeChild(iframe); } catch(e) {}
+                };
+                setTimeout(() => {
+                    try { document.body.removeChild(iframe); } catch(e) {}
+                }, 300000);
             };
             toast.success(targetOrders.length > 1 ? `Sent ${targetOrders.length} labels to printer` : 'Sent to printer');
         } catch (error) {
