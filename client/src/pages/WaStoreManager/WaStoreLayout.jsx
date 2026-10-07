@@ -15,6 +15,7 @@ export default function WaStoreLayout() {
     const [coverHover, setCoverHover] = useState(false);
     const [coverDragOver, setCoverDragOver] = useState(false);
     const [debugInfo, setDebugInfo] = useState({});
+    const [unreadStoreCounts, setUnreadStoreCounts] = useState({ orders: 0, customers: 0, abandonedCarts: 0 });
     const coverInputRef = useRef(null);
     const location = useLocation();
 
@@ -121,6 +122,18 @@ export default function WaStoreLayout() {
         };
         fetchStore();
     }, [slug]);
+
+    useEffect(() => {
+        if (!store?.id) return;
+        const fetchStoreUnread = () => {
+            axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/unread-count?storeId=${store.id}`)
+                .then(res => setUnreadStoreCounts(res.data))
+                .catch(() => {});
+        };
+        fetchStoreUnread();
+        const interval = setInterval(fetchStoreUnread, 60000); // 1 min poll
+        return () => clearInterval(interval);
+    }, [store?.id]);
 
     // ── Cover image upload handler ──
     const handleCoverFile = async (file) => {
@@ -434,8 +447,27 @@ export default function WaStoreLayout() {
                                             }`
                                         }
                                     >
-                                        {item.icon}
-                                        {item.label}
+                                        <div className="flex items-center justify-between w-full">
+                                            <div className="flex items-center gap-2">
+                                                {item.icon}
+                                                {item.label}
+                                            </div>
+                                            {item.label === 'Orders' && unreadStoreCounts.orders > 0 && (
+                                                <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center ml-2">
+                                                    {unreadStoreCounts.orders}
+                                                </span>
+                                            )}
+                                            {item.label === 'Customers' && unreadStoreCounts.customers > 0 && (
+                                                <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center ml-2">
+                                                    {unreadStoreCounts.customers}
+                                                </span>
+                                            )}
+                                            {item.label === 'Abandoned Cart' && unreadStoreCounts.abandonedCarts > 0 && (
+                                                <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center ml-2">
+                                                    {unreadStoreCounts.abandonedCarts}
+                                                </span>
+                                            )}
+                                        </div>
                                     </NavLink>
                                 ))}
                             </nav>
@@ -447,6 +479,12 @@ export default function WaStoreLayout() {
                         <nav className="flex flex-col">
                             {menuGroups.map((group, groupIdx) => {
                                 const isCollapsed = collapsedGroups[group.group];
+                                const groupBadgeCount = group.items.reduce((total, item) => {
+                                    if (item.label === 'Orders') return total + (unreadStoreCounts.orders || 0);
+                                    if (item.label === 'Customers') return total + (unreadStoreCounts.customers || 0);
+                                    if (item.label === 'Abandoned Cart') return total + (unreadStoreCounts.abandonedCarts || 0);
+                                    return total;
+                                }, 0);
                                 return (
                                     <div key={group.group} className={`${groupIdx !== 0 ? 'border-t border-slate-100 dark:border-white/5 mt-1 pt-1' : ''}`}>
                                         {group.group !== 'Overview' && (
@@ -454,9 +492,16 @@ export default function WaStoreLayout() {
                                                 onClick={() => toggleGroup(group.group)}
                                                 className={`w-full flex items-center justify-between px-3 py-2.5 mt-2 transition-colors rounded-xl group/btn ${isCollapsed ? 'hover:bg-slate-50 dark:hover:bg-white/5' : 'bg-slate-50 dark:bg-white/5'}`}
                                             >
-                                                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                                                    {group.group}
-                                                </p>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                                                        {group.group}
+                                                    </p>
+                                                    {isCollapsed && groupBadgeCount > 0 && (
+                                                        <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
+                                                            {groupBadgeCount}
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isCollapsed ? '-rotate-90' : 'rotate-0'}`} />
                                             </button>
                                         )}
@@ -474,8 +519,27 @@ export default function WaStoreLayout() {
                                                         }`
                                                     }
                                                 >
-                                                    {item.icon}
-                                                    {item.label}
+                                                    <div className="flex items-center justify-between w-full">
+                                                        <div className="flex items-center gap-3">
+                                                            {item.icon}
+                                                            {item.label}
+                                                        </div>
+                                                        {item.label === 'Orders' && unreadStoreCounts.orders > 0 && (
+                                                            <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
+                                                                {unreadStoreCounts.orders}
+                                                            </span>
+                                                        )}
+                                                        {item.label === 'Customers' && unreadStoreCounts.customers > 0 && (
+                                                            <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
+                                                                {unreadStoreCounts.customers}
+                                                            </span>
+                                                        )}
+                                                        {item.label === 'Abandoned Cart' && unreadStoreCounts.abandonedCarts > 0 && (
+                                                            <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
+                                                                {unreadStoreCounts.abandonedCarts}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </NavLink>
                                             ))}
                                         </div>

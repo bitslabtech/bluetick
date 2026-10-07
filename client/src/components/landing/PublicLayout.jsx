@@ -141,6 +141,7 @@ const PublicLayout = ({ children, title, pageKey, fullWidth = false }) => {
                                         <li><Link to="/#platform" className="hover:text-indigo-600 transition-colors">Features</Link></li>
                                         <li><Link to="/#pricing" className="hover:text-indigo-600 transition-colors">Pricing</Link></li>
                                         <li><Link to="/blog" className="hover:text-indigo-600 transition-colors">Blog</Link></li>
+                                        <li><Link to="/faq" className="hover:text-indigo-600 transition-colors">FAQ</Link></li>
                                     </ul>
                                 </div>
                                 <div>

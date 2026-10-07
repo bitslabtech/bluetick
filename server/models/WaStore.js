@@ -339,6 +339,21 @@ const WaStore = sequelize.define('WaStore', {
             useTemplate: false,
         },
         comment: 'Abandoned cart recovery settings: enabled, delayHours, WhatsApp template'
+    },
+    lastViewedOrdersAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: 'Timestamp when store owner last viewed the Orders page'
+    },
+    lastViewedCustomersAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: 'Timestamp when store owner last viewed the Customers page'
+    },
+    lastViewedAbandonedCartsAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: 'Timestamp when store owner last viewed the Abandoned Carts page'
     }
 }, {
     timestamps: true,

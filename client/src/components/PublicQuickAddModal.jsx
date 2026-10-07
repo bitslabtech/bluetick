@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { X, ShoppingBag } from 'lucide-react';
+import { X, ShoppingBag, Minus, Plus } from 'lucide-react';
 
 /**
  * Pure CSS transition bottom-sheet modal.
@@ -112,10 +112,11 @@ export default function PublicQuickAddModal({
                 {/* Sheet panel - pure CSS translateY transition */}
                 <div
                     style={{
-                        transform: visible ? 'translateY(0)' : 'translateY(100%)',
-                        transition: 'transform 320ms cubic-bezier(0.32, 0.72, 0, 1)',
-                        willChange: 'transform',
-                        pointerEvents: 'auto',
+                        transform: visible ? 'translateY(0) scale(1)' : 'translateY(100%) scale(0.95)',
+                        opacity: visible ? 1 : 0,
+                        transition: 'transform 320ms cubic-bezier(0.32, 0.72, 0, 1), opacity 320ms ease',
+                        willChange: 'transform, opacity',
+                        pointerEvents: visible ? 'auto' : 'none',
                     }}
                     className="w-full max-w-md bg-white rounded-t-[24px] sm:rounded-[24px] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
                 >
@@ -205,22 +206,22 @@ export default function PublicQuickAddModal({
                             {/* Footer */}
                             <div className="p-5 border-t border-gray-100 bg-white">
                                 {qtyInCart > 0 ? (
-                                    <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-[20px] p-2 h-[56px]">
+                                    <div className="flex items-center justify-between bg-black rounded-[20px] p-1 h-[56px] shadow-xl shadow-black/10">
                                         <button
                                             onClick={() => updateQty(cartItemId, -1)}
-                                            className="w-12 h-12 flex items-center justify-center bg-white border border-gray-200 rounded-[14px] hover:bg-gray-100 active:scale-95 transition-all"
+                                            className="w-14 h-full flex items-center justify-center rounded-[16px] hover:bg-white/10 active:scale-95 transition-all text-white"
                                         >
-                                            <span className="text-2xl text-gray-800 leading-none mb-1">-</span>
+                                            <Minus className="w-5 h-5" />
                                         </button>
-                                        <div className="flex flex-col items-center">
-                                            <span className="text-lg font-black text-gray-900 leading-none">{qtyInCart}</span>
-                                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mt-1">In Cart</span>
+                                        <div className="flex flex-col items-center justify-center flex-1">
+                                            <span className="text-lg font-black text-white leading-none">{qtyInCart}</span>
+                                            <span className="text-[9px] font-bold text-white/60 uppercase tracking-wider mt-1">In Cart</span>
                                         </div>
                                         <button
                                             onClick={() => updateQty(cartItemId, 1)}
-                                            className="w-12 h-12 flex items-center justify-center bg-white border border-gray-200 rounded-[14px] hover:bg-gray-100 active:scale-95 transition-all"
+                                            className="w-14 h-full flex items-center justify-center rounded-[16px] hover:bg-white/10 active:scale-95 transition-all text-white"
                                         >
-                                            <span className="text-2xl text-gray-800 leading-none mb-1">+</span>
+                                            <Plus className="w-5 h-5" />
                                         </button>
                                     </div>
                                 ) : (

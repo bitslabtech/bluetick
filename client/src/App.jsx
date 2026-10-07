@@ -129,6 +129,7 @@ const TermsOfService = React.lazy(() => import('./pages/TermsOfService'));
 const RefundPolicy = React.lazy(() => import('./pages/RefundPolicy'));
 const AboutUs = React.lazy(() => import('./pages/AboutUs'));
 const ContactUs = React.lazy(() => import('./pages/ContactUs'));
+const FAQ = React.lazy(() => import('./pages/FAQ'));
 const PartnerWithUs = React.lazy(() => import('./pages/PartnerWithUs'));
 const MediaGallery = React.lazy(() => import('./pages/MediaGallery'));
 const NotFound404 = React.lazy(() => import('./pages/NotFound404'));
@@ -184,7 +185,7 @@ function SetupRedirect() {
     const location = useLocation();
     useEffect(() => {
         // Skip on /setup (already there) and public-facing routes that need no check
-        const publicPrefixes = ['/store/', '/v/', '/n/', '/form/', '/verify', '/blog'];
+        const publicPrefixes = ['/store/', '/v/', '/n/', '/form/', '/verify', '/blog', '/faq'];
         if (location.pathname === '/setup') return;
         if (publicPrefixes.some(prefix => location.pathname.startsWith(prefix))) return;
         axios.get(`${import.meta.env.VITE_API_URL}/api/setup/status`)
@@ -632,6 +633,7 @@ function App() {
                                         <Route path="/refund-policy" element={<RefundPolicy />} />
                                         <Route path="/about" element={<AboutUs />} />
                                         <Route path="/contact" element={<ContactUs />} />
+                                        <Route path="/faq" element={<FAQ />} />
                                         <Route path="/partner" element={<PartnerWithUs />} />
 
                                         {/* Google OAuth Relay — must be public, no auth */}

@@ -217,11 +217,12 @@ export default function PublicWaStoreCategory({ customSlug }) {
         }
         
         setCart(prev => {
-            const existing = prev.find(item => (item.cartItemId || item.id) === product.id);
+            const targetId = product.cartItemId || product.id;
+            const existing = prev.find(item => (item.cartItemId || item.id) === targetId);
             if (existing) {
-                return prev.map(item => (item.cartItemId || item.id) === product.id ? { ...item, qty: item.qty + qty } : item);
+                return prev.map(item => (item.cartItemId || item.id) === targetId ? { ...item, qty: item.qty + qty } : item);
             }
-            return [...prev, { ...product, cartItemId: product.id, qty }];
+            return [...prev, { ...product, cartItemId: targetId, qty }];
         });
         toast.success(`Added ${product.name} to cart`);
     };

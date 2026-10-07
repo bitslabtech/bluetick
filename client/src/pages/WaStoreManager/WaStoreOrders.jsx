@@ -632,7 +632,13 @@ export default function WaStoreOrders() {
         }
     }, [storeId, statusFilter]);
 
-    useEffect(() => { fetchOrders(); }, [fetchOrders]);
+    useEffect(() => { 
+        fetchOrders(); 
+        // Update last viewed timestamp so badges disappear
+        if (storeId) {
+            axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, { lastViewedOrdersAt: new Date() }).catch(() => {});
+        }
+    }, [fetchOrders, storeId]);
 
     const handleUpdate = (updated) => {
         setOrders(prev => prev.map(o => o.id === updated.id ? updated : o));

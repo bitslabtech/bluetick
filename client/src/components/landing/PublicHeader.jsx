@@ -54,7 +54,7 @@ const PublicHeader = () => {
                     <a href="/#platform" className="hover:text-indigo-600 transition-colors">Features</a>
                     <a href="/#solutions" className="hover:text-indigo-600 transition-colors">Solutions</a>
                     <a href="/#pricing" className="hover:text-indigo-600 transition-colors">Pricing</a>
-                    <a href="/#faq" className="hover:text-indigo-600 transition-colors">FAQ</a>
+                    <Link to="/faq" className="hover:text-indigo-600 transition-colors">FAQ</Link>
                     <div className="h-4 w-[1px] max-w-full bg-slate-300" />
                     
                     {user ? (
@@ -83,7 +83,7 @@ const PublicHeader = () => {
                             <a href="/#platform" onClick={() => setIsMenuOpen(false)}>Features</a>
                             <a href="/#solutions" onClick={() => setIsMenuOpen(false)}>Solutions</a>
                             <a href="/#pricing" onClick={() => setIsMenuOpen(false)}>Pricing</a>
-                            <a href="/#faq" onClick={() => setIsMenuOpen(false)}>FAQ</a>
+                            <Link to="/faq" onClick={() => setIsMenuOpen(false)}>FAQ</Link>
                             <div className="h-[1px] w-full bg-slate-200" />
                             
                             {user ? (

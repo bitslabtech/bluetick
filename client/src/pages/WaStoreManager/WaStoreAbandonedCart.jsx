@@ -83,7 +83,12 @@ export default function WaStoreAbandonedCart() {
         }
     };
 
-    useEffect(() => { fetchData(); }, [storeId]);
+    useEffect(() => { 
+        fetchData(); 
+        if (storeId) {
+            axios.put(`${API}/api/wastore/${storeId}`, { lastViewedAbandonedCartsAt: new Date() }).catch(() => {});
+        }
+    }, [storeId]);
 
     const handleSave = async () => {
         setSaving(true);

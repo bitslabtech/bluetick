@@ -126,51 +126,29 @@ const defaultTestimonials = [
 ];
 
 // ──────────────────────────────────────────────────────────
-// Powerful Capabilities Section (4 MSME Core Impact Blocks)
+// Powerful Capabilities Section (4 MSME Core Impact Blocks with Horizontal Tabs)
 // ──────────────────────────────────────────────────────────
-const CapabilitiesBento = ({ config }) => {
+const CapabilitiesBento = ({ config, activeCapability, setActiveCapability }) => {
     const defaultData = {
         title: 'Powerful Capabilities That Maximize Your Reach',
         subtitle: 'Designed to help MSMEs & growing businesses automate customer conversations, drive sales, and scale with zero tech friction.',
     };
 
     const data = config || defaultData;
+    const [localTab, setLocalTab] = useState('online_store');
+    const currentTab = activeCapability !== undefined ? activeCapability : localTab;
+    const setCurrentTab = (id) => {
+        if (setActiveCapability) {
+            setActiveCapability(id);
+        } else {
+            setLocalTab(id);
+        }
+    };
 
     const capabilitiesList = [
         {
-            id: 'automation_crm',
-            badge: 'AUTOMATION & CRM',
-            title: 'WhatsApp Automation & CRM',
-            subtitle: 'Turn WhatsApp into your 24/7 sales team & customer support engine.',
-            bgGradient: 'from-indigo-50/80 via-white to-purple-50/50 dark:from-indigo-950/30 dark:via-zinc-900/40 dark:to-purple-950/20',
-            borderColor: 'border-indigo-100 dark:border-indigo-800/40',
-            glowColor: 'shadow-indigo-500/10 dark:shadow-indigo-500/20',
-            badgeBg: 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/50',
-            accentGradient: 'from-indigo-600 to-purple-600',
-            icon: MessageSquare,
-            impactPoints: [
-                { title: 'Smart Broadcast', desc: 'Send bulk messages to your customers safely without the risk of getting your number banned.' },
-                { title: 'Multi-Agent Shared Inbox', desc: 'Let your whole team reply to customers from one single official WhatsApp number.' },
-                { title: 'Automated Followups & Flowbot', desc: 'Easily set up automatic replies and reminders to follow up with customers, no coding needed.' },
-                { title: 'WhatsApp CRM & Lead Management', desc: 'Keep all your customer details, notes, and chats neatly organized in one simple dashboard.' },
-            ],
-            visualMockup: (
-                <div className="w-full flex items-center justify-center relative py-4">
-                    <div className="w-full max-w-[210px] sm:max-w-[230px] aspect-[792/1708] overflow-hidden shadow-2xl relative bg-black group-hover:shadow-indigo-500/20 transition-all duration-500 rounded-xl">
-                        <video
-                            src="/whatsapp-mockup-video.mp4"
-                            autoPlay
-                            loop
-                            muted
-                            playsInline
-                            className="w-full h-full object-cover object-center"
-                        />
-                    </div>
-                </div>
-            )
-        },
-        {
             id: 'online_store',
+            tabLabel: 'Online Store',
             badge: 'SMART COMMERCE',
             title: 'Online E-Commerce Store',
             subtitle: 'Launch an independent, fast E-Commerce store for your brand with deep WhatsApp automation built right in.',
@@ -187,15 +165,48 @@ const CapabilitiesBento = ({ config }) => {
                 { title: 'Premium & Blazing-Fast Experience', desc: 'Give your customers a lightning-fast, ultra-modern shopping experience that makes your brand look expensive and miles ahead of competitors.' },
             ],
             visualMockup: (
-                <div className="w-full flex items-center justify-center relative py-4">
-                    <div className="w-full max-w-[210px] sm:max-w-[230px] aspect-[792/1708] rounded-[2rem] overflow-hidden shadow-2xl border-4 border-slate-800 dark:border-zinc-700 relative bg-black group-hover:shadow-emerald-500/20 transition-all duration-500">
+                <div className="w-full flex items-center justify-center relative py-2">
+                    <div className="w-full max-w-[210px] sm:max-w-[230px] aspect-[792/1708] rounded-2xl overflow-hidden shadow-2xl border-4 border-slate-800 dark:border-zinc-700 relative bg-black group-hover:shadow-emerald-500/20 transition-all duration-500">
                         <video
                             src="/online-store-demo.mp4"
                             autoPlay
                             loop
                             muted
                             playsInline
-                            className="w-full h-full object-cover rounded-[1.6rem]"
+                            className="w-full h-full object-cover"
+                        />
+                    </div>
+                </div>
+            )
+        },
+        {
+            id: 'automation_crm',
+            tabLabel: 'WhatsApp API & CRM',
+            badge: 'AUTOMATION & CRM',
+            title: 'WhatsApp Automation & CRM',
+            subtitle: 'Turn WhatsApp into your 24/7 sales team & customer support engine.',
+            bgGradient: 'from-indigo-50/80 via-white to-purple-50/50 dark:from-indigo-950/30 dark:via-zinc-900/40 dark:to-purple-950/20',
+            borderColor: 'border-indigo-100 dark:border-indigo-800/40',
+            glowColor: 'shadow-indigo-500/10 dark:shadow-indigo-500/20',
+            badgeBg: 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/50',
+            accentGradient: 'from-indigo-600 to-purple-600',
+            icon: MessageSquare,
+            impactPoints: [
+                { title: 'Smart Broadcast', desc: 'Send bulk messages to your customers safely without the risk of getting your number banned.' },
+                { title: 'Multi-Agent Shared Inbox', desc: 'Let your whole team reply to customers from one single official WhatsApp number.' },
+                { title: 'Automated Followups & Flowbot', desc: 'Easily set up automatic replies and reminders to follow up with customers, no coding needed.' },
+                { title: 'WhatsApp CRM & Lead Management', desc: 'Keep all your customer details, notes, and chats neatly organized in one simple dashboard.' },
+            ],
+            visualMockup: (
+                <div className="w-full flex items-center justify-center relative py-2">
+                    <div className="w-full max-w-[210px] sm:max-w-[230px] aspect-[792/1708] overflow-hidden shadow-2xl relative bg-black group-hover:shadow-indigo-500/20 transition-all duration-500 rounded-2xl border-4 border-slate-800 dark:border-zinc-700">
+                        <video
+                            src="/whatsapp-mockup-video.mp4"
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            className="w-full h-full object-cover object-center"
                         />
                     </div>
                 </div>
@@ -203,6 +214,7 @@ const CapabilitiesBento = ({ config }) => {
         },
         {
             id: 'meta_ads',
+            tabLabel: 'Meta Ads & Growth',
             badge: 'META ADS & GROWTH',
             title: 'Instagram & Facebook Ads',
             subtitle: 'Run Instagram & Facebook Ads that connect directly to WhatsApp — turn scrollers into paying customers.',
@@ -219,8 +231,8 @@ const CapabilitiesBento = ({ config }) => {
                 { title: 'High-Intent Buyer Retargeting', desc: 'Re-engage users who clicked your ad with instant broadcast offers.' },
             ],
             visualMockup: (
-                <div className="w-full flex items-center justify-center relative py-4">
-                    <div className="w-full max-w-[210px] sm:max-w-[230px] aspect-[792/1708] overflow-hidden shadow-2xl relative transition-all duration-500 group-hover:shadow-rose-500/20 rounded-xl">
+                <div className="w-full flex items-center justify-center relative py-2">
+                    <div className="w-full max-w-[210px] sm:max-w-[230px] aspect-[792/1708] overflow-hidden shadow-2xl relative transition-all duration-500 group-hover:shadow-rose-500/20 rounded-2xl border-4 border-slate-800 dark:border-zinc-700">
                         <video
                             src="/ctwa-final.mp4"
                             autoPlay
@@ -235,6 +247,7 @@ const CapabilitiesBento = ({ config }) => {
         },
         {
             id: 'vcards',
+            tabLabel: 'Vecards (Digital Card)',
             badge: 'SMART NETWORKING',
             title: 'Vcards — Digital Business Card',
             subtitle: 'Interactive digital business cards that capture leads & save contacts in 1 tap.',
@@ -251,7 +264,7 @@ const CapabilitiesBento = ({ config }) => {
                 { title: 'Analytics & Click Tracking', desc: 'Monitor profile views, catalog clicks, and WhatsApp inquiry counts.' },
             ],
             visualMockup: (
-                <div className="w-full bg-white dark:bg-zinc-900/90 rounded-2xl p-4 border border-cyan-100 dark:border-white/10 shadow-lg relative overflow-hidden">
+                <div className="w-full max-w-sm mx-auto bg-white dark:bg-zinc-900/90 rounded-2xl p-4 sm:p-5 border border-cyan-100 dark:border-white/10 shadow-xl relative overflow-hidden">
                     <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-white/5">
                         <div className="flex items-center gap-2">
                             <QrCode className="w-4 h-4 text-cyan-500" />
@@ -259,16 +272,24 @@ const CapabilitiesBento = ({ config }) => {
                         </div>
                         <span className="px-2 py-0.5 bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 rounded-md text-[10px] font-bold">QR / NFC Ready</span>
                     </div>
-                    <div className="flex items-center gap-3 bg-slate-50 dark:bg-zinc-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-white/5">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold shrink-0">
+                    <div className="flex items-center gap-3 bg-slate-50 dark:bg-zinc-800/60 p-3 rounded-xl border border-slate-100 dark:border-white/5 mb-3">
+                        <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold shrink-0">
                             vC
                         </div>
                         <div className="flex-1 min-w-0">
-                            <div className="font-bold text-slate-800 dark:text-slate-200 text-xs truncate">Your Business Vcard</div>
-                            <div className="text-[10px] text-cyan-600 dark:text-cyan-400 font-semibold truncate">Tap to Save Contact</div>
+                            <div className="font-bold text-slate-800 dark:text-slate-200 text-xs sm:text-sm truncate">Your Business Vcard</div>
+                            <div className="text-[11px] text-cyan-600 dark:text-cyan-400 font-semibold truncate">Tap to Save Contact</div>
                         </div>
-                        <div className="px-2 py-1 bg-cyan-500 text-white font-bold rounded-lg text-[10px] shrink-0">
-                            Save + WhatsApp
+                        <div className="px-2.5 py-1 bg-cyan-500 text-white font-bold rounded-lg text-[10px] shrink-0">
+                            Save + WA
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-center text-[10px] font-semibold text-slate-600 dark:text-slate-400">
+                        <div className="p-2 rounded-lg bg-slate-50 dark:bg-zinc-800/40 border border-slate-100 dark:border-white/5">
+                            <span className="block font-bold text-slate-900 dark:text-white text-xs">1-Tap</span> Add to Contacts
+                        </div>
+                        <div className="p-2 rounded-lg bg-slate-50 dark:bg-zinc-800/40 border border-slate-100 dark:border-white/5">
+                            <span className="block font-bold text-slate-900 dark:text-white text-xs">Dynamic</span> Live QR Updates
                         </div>
                     </div>
                 </div>
@@ -276,15 +297,17 @@ const CapabilitiesBento = ({ config }) => {
         }
     ];
 
+    const selectedCap = capabilitiesList.find(c => c.id === currentTab) || capabilitiesList[0];
+
     return (
-        <section className="py-24 bg-slate-50 dark:bg-[#05050A] transition-colors relative overflow-hidden border-t border-slate-200/60 dark:border-white/5">
+        <section id="capabilities-section" className="py-20 md:py-24 bg-slate-50 dark:bg-[#05050A] transition-colors relative overflow-hidden border-t border-slate-200/60 dark:border-white/5 scroll-mt-12">
             {/* Ambient glows */}
             <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-indigo-500/10 dark:bg-indigo-500/15 rounded-full blur-[100px] pointer-events-none -z-10" />
             <div className="absolute bottom-10 right-10 w-[500px] h-[400px] bg-cyan-500/10 dark:bg-cyan-500/15 rounded-full blur-[80px] pointer-events-none -z-10" />
 
             <div className="max-w-7xl mx-auto px-4 md:px-6 relative z-10">
                 {/* Section Header */}
-                <div className="text-center max-w-3xl mx-auto mb-16">
+                <div className="text-center max-w-3xl mx-auto mb-10 md:mb-12">
                     <motion.div
                         initial={{ opacity: 0, y: 15 }}
                         whileInView={{ opacity: 1, y: 0 }}
@@ -300,7 +323,7 @@ const CapabilitiesBento = ({ config }) => {
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.5, delay: 0.1 }}
-                        className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight mb-5"
+                        className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight mb-4"
                     >
                         {data.title || 'Powerful Capabilities That Maximize Your Reach'}
                     </motion.h2>
@@ -316,63 +339,97 @@ const CapabilitiesBento = ({ config }) => {
                     </motion.p>
                 </div>
 
-                {/* 4 CORE BLOCKS (1x4 Full-Size Stack) */}
-                <div className="flex flex-col gap-12 lg:gap-16">
-                    {capabilitiesList.map((cap, idx) => {
-                        const isReverse = idx % 2 === 1;
-                        return (
-                            <motion.div
-                                key={cap.id}
-                                initial={{ opacity: 0, y: 30 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ duration: 0.5, delay: 0.1 }}
-                                className={`rounded-3xl p-5 md:p-6 lg:p-7 bg-gradient-to-br ${cap.bgGradient} border ${cap.borderColor} shadow-lg ${cap.glowColor} transition-all duration-300 relative overflow-hidden group`}
-                            >
-                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
-                                    {/* Content Column (7 cols) */}
-                                    <div className={`lg:col-span-7 ${isReverse ? 'lg:order-2' : 'lg:order-1'}`}>
-                                        <h3 className="text-xl md:text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-white mb-2 leading-tight">
-                                            {cap.title}
-                                        </h3>
+                {/* Horizontal Tabs (Mobile Responsive & Scrollable) */}
+                <div className="flex justify-center mb-8 sm:mb-10">
+                    <div
+                        className="w-full sm:w-auto p-1.5 bg-slate-100/60 dark:bg-zinc-900/60 backdrop-blur-xl rounded-2xl sm:rounded-full border border-slate-200/60 dark:border-white/10 flex items-center gap-1.5 sm:gap-2 overflow-x-auto hide-scrollbar shadow-xs"
+                        style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+                    >
+                        {capabilitiesList.map((cap) => {
+                            const CapIcon = cap.icon;
+                            const isActive = currentTab === cap.id;
+                            return (
+                                <button
+                                    key={cap.id}
+                                    onClick={() => setCurrentTab(cap.id)}
+                                    className={`flex-1 sm:flex-initial relative px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-full text-xs sm:text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap shrink-0 active:scale-95 ${isActive
+                                        ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-md shadow-slate-200/50 dark:shadow-none border border-slate-200/80 dark:border-white/10'
+                                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-white/5'
+                                        }`}
+                                >
+                                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors ${isActive
+                                        ? `bg-gradient-to-tr ${cap.accentGradient} text-white shadow-xs`
+                                        : 'bg-white/80 dark:bg-white/5 text-slate-500 dark:text-slate-400 border border-slate-200/50 dark:border-transparent'
+                                        }`}>
+                                        <CapIcon className="w-3.5 h-3.5 stroke-[2.2]" />
+                                    </div>
+                                    <span>{cap.tabLabel}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
 
-                                        <p className="text-slate-600 dark:text-slate-400 text-sm md:text-base font-medium mb-4 leading-relaxed">
-                                            {cap.subtitle}
-                                        </p>
+                {/* Active Capability Card Content (Replaces vertical 4-card stack) */}
+                <AnimatePresence mode="wait">
+                    {selectedCap && (
+                        <motion.div
+                            key={selectedCap.id}
+                            id={`capability-${selectedCap.id}`}
+                            initial={{ opacity: 0, y: 15 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -15 }}
+                            transition={{ duration: 0.3 }}
+                            className={`rounded-3xl p-6 sm:p-8 lg:p-10 bg-gradient-to-br ${selectedCap.bgGradient} border ${selectedCap.borderColor} shadow-xl ${selectedCap.glowColor} transition-all duration-300 relative overflow-hidden group`}
+                        >
+                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+                                {/* Content Column (7 cols) */}
+                                <div className="lg:col-span-7">
+                                    <span className={`inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider border mb-4 ${selectedCap.badgeBg}`}>
+                                        <selectedCap.icon className="w-3.5 h-3.5" />
+                                        {selectedCap.badge}
+                                    </span>
 
-                                        {/* MSME Impact Points (2x2 sub-grid) */}
-                                        <div className="space-y-2 pt-4 border-t border-slate-200/60 dark:border-white/10">
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                                {cap.impactPoints.map((pt, pIdx) => (
-                                                    <div key={pIdx} className="flex items-start gap-2.5 bg-white/60 dark:bg-zinc-900/60 p-2.5 rounded-xl border border-slate-100 dark:border-white/5 shadow-sm">
-                                                        <div className={`mt-0.5 w-4 h-4 rounded-full bg-gradient-to-tr ${cap.accentGradient} flex items-center justify-center text-white shrink-0 shadow-sm`}>
-                                                            <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                    <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 dark:text-white mb-3 leading-tight">
+                                        {selectedCap.title}
+                                    </h3>
+
+                                    <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base font-normal mb-6 leading-relaxed">
+                                        {selectedCap.subtitle}
+                                    </p>
+
+                                    {/* MSME Impact Points (2x2 grid) */}
+                                    <div className="space-y-2 pt-4 border-t border-slate-200/60 dark:border-white/10">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            {selectedCap.impactPoints.map((pt, pIdx) => (
+                                                <div key={pIdx} className="flex items-start gap-2.5 bg-white/70 dark:bg-zinc-900/60 p-3 rounded-2xl border border-slate-100 dark:border-white/5 shadow-xs">
+                                                    <div className={`mt-0.5 w-4 h-4 rounded-full bg-gradient-to-tr ${selectedCap.accentGradient} flex items-center justify-center text-white shrink-0 shadow-xs`}>
+                                                        <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-xs font-bold text-slate-900 dark:text-slate-100 mb-0.5">
+                                                            {pt.title}
                                                         </div>
-                                                        <div>
-                                                            <div className="text-xs font-bold text-slate-900 dark:text-slate-100 mb-0.5">
-                                                                {pt.title}
-                                                            </div>
-                                                            <div className="text-[11px] text-slate-600 dark:text-slate-400 font-medium leading-normal">
-                                                                {pt.desc}
-                                                            </div>
+                                                        <div className="text-[11px] text-slate-600 dark:text-slate-400 font-medium leading-normal">
+                                                            {pt.desc}
                                                         </div>
                                                     </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Visual Mockup Column (5 cols) */}
-                                    <div className={`lg:col-span-5 ${isReverse ? 'lg:order-1' : 'lg:order-2'} flex items-center justify-center`}>
-                                        <div className="w-full transform group-hover:scale-[1.01] transition-transform duration-500">
-                                            {cap.visualMockup}
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
                                 </div>
-                            </motion.div>
-                        );
-                    })}
-                </div>
+
+                                {/* Visual Mockup Column (5 cols) */}
+                                <div className="lg:col-span-5 flex items-center justify-center">
+                                    <div className="w-full transform group-hover:scale-[1.01] transition-transform duration-500">
+                                        {selectedCap.visualMockup}
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </section>
     );
@@ -1354,107 +1411,7 @@ function AdvancedFeaturesShowcase({ config }) {
 }
 
 
-// ──────────────────────────────────────────────────────────
-// FAQ SECTION
-// ──────────────────────────────────────────────────────────
-function FAQSection({ faqs }) {
-    const [openIdx, setOpenIdx] = useState(null);
-    const [showAll, setShowAll] = useState(false);
 
-    const displayedFaqs = showAll ? faqs : (faqs || []).slice(0, 4);
-
-    return (
-        <section id="faq" className="py-24 bg-white dark:bg-[#05050A] transition-colors relative overflow-hidden">
-            {/* Ambient background */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] max-w-full h-[400px] bg-indigo-400/5 dark:bg-indigo-500/8 rounded-full blur-[100px] pointer-events-none" />
-
-            <div className="max-w-6xl mx-auto px-4 md:px-6 relative z-10">
-                {/* Header */}
-                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-14">
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/40 rounded-full text-indigo-600 dark:text-indigo-400 text-[11px] font-bold uppercase tracking-widest mb-5">
-                        <MessageCircle className="w-3 h-3" /> FAQ
-                    </div>
-                    <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-4 leading-tight">
-                        Frequently Asked <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-violet-600">Questions</span>
-                    </h2>
-                    <p className="text-slate-500 dark:text-slate-400 font-medium text-lg max-w-xl mx-auto">
-                        Everything you need to know before you get started.
-                    </p>
-                </motion.div>
-
-                {/* Accordion */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 items-start">
-                    {displayedFaqs.map((faq, i) => {
-                        const isOpen = openIdx === i;
-                        return (
-                            <motion.div
-                                key={i}
-                                initial={{ opacity: 0, y: 12 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: i * 0.06 }}
-                                className={`rounded-2xl border transition-all duration-300 ${isOpen
-                                    ? 'bg-indigo-50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800/50 shadow-md'
-                                    : 'bg-white dark:bg-zinc-900 border-slate-200 dark:border-white/8 hover:border-indigo-200 dark:hover:border-indigo-800/40 hover:shadow-sm'
-                                    }`}
-                            >
-                                <button
-                                    onClick={() => setOpenIdx(isOpen ? null : i)}
-                                    className="w-full flex items-center justify-between gap-4 px-4 md:px-6 py-5 text-left"
-                                >
-                                    <span className={`font-bold text-base leading-snug transition-colors ${isOpen ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-900 dark:text-white'}`}>
-                                        {faq.question}
-                                    </span>
-                                    <motion.div
-                                        animate={{ rotate: isOpen ? 45 : 0 }}
-                                        transition={{ duration: 0.2 }}
-                                        className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isOpen ? 'bg-indigo-500 text-white' : 'bg-slate-100 dark:bg-white/8 text-slate-400'}`}
-                                    >
-                                        <Plus className="w-4 h-4" />
-                                    </motion.div>
-                                </button>
-                                <AnimatePresence initial={false}>
-                                    {isOpen && (
-                                        <motion.div
-                                            key="answer"
-                                            initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: 'auto', opacity: 1 }}
-                                            exit={{ height: 0, opacity: 0 }}
-                                            transition={{ duration: 0.25, ease: 'easeInOut' }}
-                                            className="overflow-hidden"
-                                        >
-                                            <p className="px-4 md:px-6 pb-6 text-slate-600 dark:text-slate-400 font-medium leading-relaxed whitespace-pre-wrap">
-                                                {faq.answer}
-                                            </p>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </motion.div>
-                        );
-                    })}
-                </div>
-
-                {!showAll && faqs && faqs.length > 4 && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        whileInView={{ opacity: 1 }}
-                        className="mt-10 flex justify-center"
-                    >
-                        <button
-                            onClick={() => setShowAll(true)}
-                            className="px-8 py-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-full font-bold text-slate-700 dark:text-slate-300 transition-all shadow-sm flex items-center gap-2"
-                        >
-                            Load More
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </button>
-                    </motion.div>
-                )}
-            </div>
-        </section>
-    );
-}
 
 
 
@@ -1617,6 +1574,49 @@ function TestimonialSlider({ testimonials }) {
     );
 }
 
+const HERO_CARDS = [
+    {
+        id: 'online_store',
+        targetId: 'online_store',
+        title: 'Online Store',
+        tagline: 'Launch your 0% commission storefront with WhatsApp checkout.',
+        badge: '0% Commission',
+        icon: ShoppingCart,
+        iconBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+        hoverBorder: 'hover:border-emerald-500/40 hover:shadow-emerald-500/10',
+    },
+    {
+        id: 'whatsapp_api',
+        targetId: 'automation_crm',
+        title: 'WhatsApp Business API',
+        tagline: 'Official Cloud API with multi-agent team inbox & broadcasts.',
+        badge: 'Official API',
+        icon: MessageSquare,
+        iconBg: 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20',
+        hoverBorder: 'hover:border-green-500/40 hover:shadow-green-500/10',
+    },
+    {
+        id: 'meta_ads',
+        targetId: 'meta_ads',
+        title: 'Meta Digital Marketing',
+        tagline: 'Click-to-WhatsApp Ads that drive direct inquiries and sales.',
+        badge: 'High ROAS',
+        icon: Target,
+        iconBg: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20',
+        hoverBorder: 'hover:border-indigo-500/40 hover:shadow-indigo-500/10',
+    },
+    {
+        id: 'vcards',
+        targetId: 'vcards',
+        title: 'Vecards (Digital Card)',
+        tagline: 'Smart NFC & QR digital business cards that save in 1 tap.',
+        badge: '1-Tap Save',
+        icon: QrCode,
+        iconBg: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20',
+        hoverBorder: 'hover:border-cyan-500/40 hover:shadow-cyan-500/10',
+    },
+];
+
 export default function LandingPage() {
     const [config, setConfig] = useState(null);
     const [publicSettings, setPublicSettings] = useState(null);
@@ -1638,6 +1638,15 @@ export default function LandingPage() {
     const industryScrollRef = useRef(null);
     const pricingSectionRef = useRef(null);
     const [pricingInView, setPricingInView] = useState(false);
+    const [activeCapability, setActiveCapability] = useState('online_store');
+
+    const scrollToCapability = (targetId) => {
+        setActiveCapability(targetId);
+        const el = document.getElementById('capabilities-section');
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
 
     useEffect(() => {
         const el = pricingSectionRef.current;
@@ -1973,133 +1982,299 @@ export default function LandingPage() {
                     <PublicHeader />
 
                     {/* 2. HERO SECTION */}
+                    <section className="relative isolate pt-28 sm:pt-36 md:pt-40 pb-16 sm:pb-20 md:pb-24 px-4 sm:px-6 overflow-hidden min-h-[85vh] flex flex-col items-center justify-center">
+                        {/* ── HERO-ONLY BACKGROUND EFFECTS (Guaranteed Stacking with isolate) ───────────────────────── */}
+                        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 select-none">
+                            {/* 1. Rich Radial Horizon Glow */}
+                            <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(99,102,241,0.22),transparent_75%)] dark:bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(99,102,241,0.30),transparent_75%)]" />
 
+                            {/* 2. Geometric Dot Matrix Grid with Radial Vignette */}
+                            <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(99,102,241,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(99,102,241,0.08)_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:radial-gradient(ellipse_60%_55%_at_50%_25%,#000_75%,transparent_100%)]" />
 
+                            {/* 3. Top Edge Ambient Laser Beam */}
+                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4/5 max-w-4xl h-[2px] bg-gradient-to-r from-transparent via-indigo-500/60 dark:via-indigo-400/80 to-transparent" />
+                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 max-w-2xl h-[3px] bg-gradient-to-r from-transparent via-violet-400/60 to-transparent blur-[2px]" />
 
-                    <section className="relative pt-24 md:pt-28 pb-12 px-4 md:px-6 overflow-hidden min-h-[85vh] flex items-center justify-center">
-                        <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-                            {/* Left Column: Headline & CTAs */}
+                            {/* 4. Concentric Architectural Orbit Rings (Scale & Modern Tech Elegance) */}
+                            <div className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] rounded-full border border-indigo-500/15 dark:border-indigo-400/20" />
+                            <div className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[860px] h-[860px] rounded-full border border-indigo-500/10 dark:border-indigo-400/15" />
+                            <div className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1220px] h-[1220px] rounded-full border border-dashed border-indigo-500/[0.08] dark:border-indigo-400/[0.1] animate-[spin_240s_linear_infinite]" />
+
+                            {/* 5. Breathing Aurora Light Orbs (Fluid organic movement) */}
                             <motion.div
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.6 }}
-                                className="lg:col-span-6 text-center lg:text-left space-y-5"
+                                animate={{
+                                    scale: [1, 1.25, 1],
+                                    opacity: [0.35, 0.55, 0.35],
+                                    x: [0, 30, 0],
+                                    y: [0, -20, 0],
+                                }}
+                                transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+                                className="absolute -top-16 left-1/4 w-[520px] h-[520px] bg-gradient-to-br from-indigo-500/40 via-purple-500/30 to-transparent rounded-full blur-[90px]"
+                            />
+                            <motion.div
+                                animate={{
+                                    scale: [1.2, 1, 1.2],
+                                    opacity: [0.25, 0.45, 0.25],
+                                    x: [0, -35, 0],
+                                    y: [0, 25, 0],
+                                }}
+                                transition={{ duration: 11, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                                className="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-gradient-to-bl from-teal-400/30 via-indigo-500/25 to-transparent rounded-full blur-[100px]"
+                            />
+
+                            {/* 6. Subtle Twinkling Micro-Sparkles */}
+                            <motion.div
+                                animate={{ opacity: [0.3, 0.9, 0.3], scale: [0.85, 1.2, 0.85] }}
+                                transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
+                                className="absolute top-28 left-[16%] text-indigo-500/70 dark:text-indigo-300/80 hidden md:block"
                             >
-                                <span className="inline-flex items-center gap-2 py-1.5 px-3.5 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-wider border border-indigo-200 dark:border-indigo-800/40">
-                                    <Star className="w-3.5 h-3.5 fill-current text-indigo-500" /> Complete Business Ecosystem
+                                <Sparkles className="w-5 h-5" />
+                            </motion.div>
+                            <motion.div
+                                animate={{ opacity: [0.3, 0.85, 0.3], scale: [1.1, 0.85, 1.1] }}
+                                transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                                className="absolute top-36 right-[18%] text-violet-500/70 dark:text-violet-300/80 hidden md:block"
+                            >
+                                <Sparkles className="w-4 h-4" />
+                            </motion.div>
+
+                            {/* 7. Floating Desktop Ambient Stat Badges (Frames the Hero) */}
+                            {/* Left Card 1: Online Store */}
+                            <motion.div
+                                animate={{ y: [0, -10, 0], rotate: [0, -0.8, 0] }}
+                                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                                className="hidden xl:flex absolute top-36 left-8 2xl:left-24 items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white/85 dark:bg-zinc-900/85 border border-slate-200 dark:border-white/15 shadow-xl shadow-slate-900/10 dark:shadow-black/30 backdrop-blur-xl"
+                            >
+                                <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-xs">
+                                    <Store className="w-4 h-4" />
+                                </div>
+                                <div className="text-left">
+                                    <div className="text-xs font-bold text-slate-800 dark:text-zinc-100">Online Store</div>
+                                    <div className="text-[10px] text-slate-500 dark:text-zinc-400">Native E-commerce</div>
+                                </div>
+                            </motion.div>
+
+                            {/* Left Card 2: WhatsApp API */}
+                            <motion.div
+                                animate={{ y: [0, 8, 0], rotate: [0, 1, 0] }}
+                                transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut", delay: 1.2 }}
+                                className="hidden xl:flex absolute top-64 left-16 2xl:left-32 items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white/85 dark:bg-zinc-900/85 border border-slate-200 dark:border-white/15 shadow-xl shadow-slate-900/10 dark:shadow-black/30 backdrop-blur-xl"
+                            >
+                                <div className="w-8 h-8 rounded-xl bg-green-500/15 text-green-600 dark:text-green-400 flex items-center justify-center font-bold text-xs">
+                                    <MessageCircle className="w-4 h-4" />
+                                </div>
+                                <div className="text-left">
+                                    <div className="text-xs font-bold text-slate-800 dark:text-zinc-100">WhatsApp API</div>
+                                    <div className="text-[10px] text-slate-500 dark:text-zinc-400">Official Cloud API</div>
+                                </div>
+                            </motion.div>
+
+                            {/* Right Card 1: VeCards */}
+                            <motion.div
+                                animate={{ y: [0, 12, 0], rotate: [0, 1, 0] }}
+                                transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
+                                className="hidden xl:flex absolute top-40 right-8 2xl:right-24 items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white/85 dark:bg-zinc-900/85 border border-slate-200 dark:border-white/15 shadow-xl shadow-slate-900/10 dark:shadow-black/30 backdrop-blur-xl"
+                            >
+                                <div className="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs">
+                                    <Briefcase className="w-4 h-4" />
+                                </div>
+                                <div className="text-left">
+                                    <div className="text-xs font-bold text-slate-800 dark:text-zinc-100">VeCards</div>
+                                    <div className="text-[10px] text-slate-500 dark:text-zinc-400">Digital Business Cards</div>
+                                </div>
+                            </motion.div>
+
+                            {/* Right Card 2: Meta Marketing */}
+                            <motion.div
+                                animate={{ y: [0, -8, 0], rotate: [0, -1, 0] }}
+                                transition={{ duration: 6.5, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
+                                className="hidden xl:flex absolute top-68 right-16 2xl:right-32 items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white/85 dark:bg-zinc-900/85 border border-slate-200 dark:border-white/15 shadow-xl shadow-slate-900/10 dark:shadow-black/30 backdrop-blur-xl"
+                            >
+                                <div className="w-8 h-8 rounded-xl bg-violet-500/15 text-violet-600 dark:text-violet-400 flex items-center justify-center font-bold text-xs">
+                                    <Megaphone className="w-4 h-4" />
+                                </div>
+                                <div className="text-left">
+                                    <div className="text-xs font-bold text-slate-800 dark:text-zinc-100">Meta Marketing</div>
+                                    <div className="text-[10px] text-slate-500 dark:text-zinc-400">Ads & Campaigns</div>
+                                </div>
+                            </motion.div>
+                        </div>
+                        {/* ── END HERO-ONLY BACKGROUND EFFECTS ───────────────────── */}
+
+                        {/* Top Centered Content: Title, Subtitle & CTAs */}
+                        <div className="relative z-10 max-w-4xl mx-auto w-full text-center space-y-6 sm:space-y-7">
+                            {/* Refined Status Pill Badge */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 12 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.4 }}
+                                className="inline-flex items-center gap-2.5 py-1.5 px-4 rounded-full bg-slate-900/[0.04] dark:bg-white/[0.06] border border-slate-200/80 dark:border-white/10 shadow-xs backdrop-blur-md"
+                            >
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                                 </span>
+                                <span className="text-xs font-semibold tracking-wide text-slate-700 dark:text-zinc-300">
+                                    All-in-One WhatsApp Commerce & Growth Engine
+                                </span>
+                            </motion.div>
 
-                                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] text-slate-900 dark:text-white">
-                                    Bring Your Business Online.<br />
-                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
-                                        Now Simplified.
-                                    </span>
-                                </h1>
+                            {/* Headline: Masterful, Clean Typography */}
+                            <motion.h1
+                                initial={{ opacity: 0, y: 16 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5, delay: 0.08 }}
+                                className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.08] text-slate-900 dark:text-white"
+                            >
+                                {config?.hero?.title ? (
+                                    <span className="whitespace-pre-line">{config.hero.title}</span>
+                                ) : (
+                                    <>
+                                        Bring Your Entire Business Online.
+                                        <span className="block mt-1 sm:mt-2 text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-700 dark:from-indigo-400 dark:via-violet-300 dark:to-indigo-300">
+                                            Intelligently Automated.
+                                        </span>
+                                    </>
+                                )}
+                            </motion.h1>
 
-                                <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 max-w-xl mx-auto lg:mx-0 font-normal leading-relaxed">
-                                    Launch your e-commerce store, automate your WhatsApp, run Meta ads for your brand, and network with smart VeCards—all from one easy-to-use dashboard.
-                                </p>
+                            {/* Subtitle */}
+                            <motion.p
+                                initial={{ opacity: 0, y: 16 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5, delay: 0.16 }}
+                                className="text-sm sm:text-base md:text-lg lg:text-xl text-slate-600 dark:text-zinc-400 max-w-2xl sm:max-w-3xl mx-auto font-normal leading-relaxed"
+                            >
+                                {config?.hero?.subtitle || 'Launch your 0% commission e-commerce store, automate customer interactions via WhatsApp Cloud API, run targeted Meta ads, and network seamlessly with smart digital vCards.'}
+                            </motion.p>
 
-                                <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 pt-2">
+                            {/* Dual CTAs & Trust Indicators */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 16 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5, delay: 0.24 }}
+                                className="flex flex-col items-center justify-center gap-4 pt-1"
+                            >
+                                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto">
                                     <Link
                                         to={config?.hero?.ctaLink || '/register'}
-                                        className="w-full sm:w-auto px-7 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold text-base hover:scale-105 transition-all shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2"
+                                        className="w-full sm:w-auto px-7 py-3.5 sm:py-4 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 rounded-full font-bold text-sm sm:text-base transition-all duration-200 shadow-lg shadow-slate-900/10 dark:shadow-white/10 hover:shadow-xl flex items-center justify-center gap-2 group active:scale-[0.98]"
                                     >
-                                        Start Free Trial <ArrowRight className="w-4 h-4" />
+                                        <span>{config?.hero?.ctaText || 'Start Free Trial'}</span>
+                                        <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                                     </Link>
                                     {config?.bookDemo?.enabled !== false && (
                                         <button
                                             onClick={() => setShowDemoModal(true)}
-                                            className="w-full sm:w-auto px-6 py-3.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-full font-bold text-base hover:bg-slate-50 dark:hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+                                            className="w-full sm:w-auto px-6 py-3.5 sm:py-4 bg-white/80 dark:bg-zinc-900/80 hover:bg-white dark:hover:bg-zinc-800 border border-slate-200/90 dark:border-white/10 text-slate-800 dark:text-zinc-200 rounded-full font-semibold text-sm sm:text-base backdrop-blur-md shadow-xs hover:shadow-md transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98]"
                                         >
-                                            <Phone className="w-4 h-4 fill-current" /> {config?.bookDemo?.buttonText || 'Book Free Demo'}
+                                            <Phone className="w-4 h-4 text-indigo-500 shrink-0" />
+                                            <span>{config?.bookDemo?.buttonText || 'Book Free Demo'}</span>
                                         </button>
                                     )}
                                 </div>
-                            </motion.div>
 
-                            {/* Right Column: Hero Showcase */}
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ duration: 0.6, delay: 0.2 }}
-                                className="lg:col-span-6 w-full"
-                            >
-                                <HeroShowcase />
+                                {/* Curated Trust & Quality Signals */}
+                                <div className="pt-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-slate-500 dark:text-zinc-400 font-medium">
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> Official Meta Tech Provider
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> 0% Commission Storefront
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> 14-Day Free Trial
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> No Credit Card Required
+                                    </span>
+                                </div>
                             </motion.div>
                         </div>
-                    </section>
 
-                    {/* 3. WHY CHOOSE US — Slim Trust Strip */}
-                    <section className="border-y border-slate-200 dark:border-white/5 bg-white dark:bg-black/20 transition-colors relative overflow-hidden">
-                        <div className="max-w-6xl mx-auto px-4 py-6">
-                            <p className="text-center text-[11px] font-bold uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500 mb-5">Why Choose Us</p>
-
-                            <div className="flex flex-col sm:flex-row items-stretch justify-center gap-6 sm:divide-x sm:divide-slate-200 sm:dark:divide-white/10">
-
-                                {/* Badge 1: Official WhatsApp API */}
-                                <motion.div initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0 }}
-                                    className="flex flex-col items-center gap-4 px-4 text-center group">
-                                    <div className="w-14 h-14 rounded-2xl bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/20 shrink-0 group-hover:scale-110 transition-transform">
-                                        <svg viewBox="0 0 24 24" className="w-8 h-8 fill-white">
-                                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                                        </svg>
+                        {/* Optional Custom Hero Image Showcase (if configured by admin) */}
+                        {(config?.hero?.imageType2 || config?.hero?.imageType1 || config?.hero?.image) && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.6, delay: 0.3 }}
+                                className="mt-10 sm:mt-12 w-full max-w-5xl mx-auto px-1 sm:px-0"
+                            >
+                                <div className="relative rounded-2xl md:rounded-3xl border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl p-2 sm:p-3 shadow-2xl shadow-indigo-500/5">
+                                    <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100 dark:border-white/5 mb-2">
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="w-2.5 h-2.5 rounded-full bg-rose-400/80" />
+                                            <span className="w-2.5 h-2.5 rounded-full bg-amber-400/80" />
+                                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400/80" />
+                                        </div>
+                                        <div className="mx-auto text-[11px] font-mono text-slate-400 dark:text-zinc-500">
+                                            bluetick.io
+                                        </div>
                                     </div>
-                                    <div className="space-y-1">
-                                        <div className="font-extrabold text-lg md:text-xl text-slate-900 dark:text-white leading-tight md:whitespace-nowrap">Official WhatsApp Business API</div>
-                                        <div className="text-sm text-green-600 dark:text-green-400 font-bold uppercase tracking-wide md:whitespace-nowrap">✓ Meta Verified & Compliant</div>
-                                    </div>
-                                </motion.div>
-
-                                {/* Badge 2: Meta Business Tech Partner */}
-                                <motion.div initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
-                                    className="flex flex-col items-center gap-4 px-4 text-center group">
-                                    <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 dark:border-white/10 flex items-center justify-center shadow-lg shadow-blue-100/60 dark:shadow-blue-900/20 shrink-0 group-hover:scale-110 transition-transform p-2">
+                                    <div className="rounded-xl overflow-hidden aspect-[16/9] max-h-[460px] bg-slate-900">
                                         <img
-                                            src="/meta-icon.svg"
-                                            alt="Meta"
-                                            className="w-full h-full object-contain"
+                                            src={config?.hero?.imageType2 || config?.hero?.imageType1 || config?.hero?.image}
+                                            alt="Platform Dashboard"
+                                            className="w-full h-full object-cover"
                                         />
                                     </div>
-                                    <div className="space-y-1">
-                                        <div className="font-extrabold text-lg md:text-xl text-slate-900 dark:text-white leading-tight md:whitespace-nowrap">Meta Business Tech Provider</div>
-                                        <div className="text-sm text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wide md:whitespace-nowrap">✓ Officially Recognized by Meta</div>
-                                    </div>
-                                </motion.div>
+                                </div>
+                            </motion.div>
+                        )}
 
-                                {/* Badge 3: Razorpay Partner */}
-                                <motion.div initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
-                                    className="flex flex-col items-center gap-4 px-4 text-center group">
-                                    <div className="w-24 h-14 rounded-2xl bg-white border border-slate-200 dark:border-white/10 flex items-center justify-center shadow-lg shadow-blue-100/60 dark:shadow-blue-900/20 shrink-0 group-hover:scale-110 transition-transform p-3">
-                                        <img 
-                                            src="/razorpay-logo.svg" 
-                                            alt="Razorpay" 
-                                            className="w-full h-full object-contain"
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <div className="font-extrabold text-lg md:text-xl text-slate-900 dark:text-white leading-tight md:whitespace-nowrap">Official Razorpay Partner</div>
-                                        <div className="text-sm text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wide md:whitespace-nowrap">✓ Verified Payment Gateway</div>
-                                    </div>
-                                </motion.div>
+                        {/* 4 Core Pillars: Sleek Unified Platform Dock */}
+                        <div className="relative z-10 mt-12 sm:mt-16 w-full max-w-7xl mx-auto">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 lg:gap-5">
+                                {HERO_CARDS.map((card, idx) => {
+                                    const CardIcon = card.icon;
+                                    return (
+                                        <motion.div
+                                            key={card.id}
+                                            initial={{ opacity: 0, y: 16 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ duration: 0.4, delay: 0.1 + (0.06 * idx) }}
+                                            whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                                            onClick={() => scrollToCapability(card.targetId)}
+                                            className="group relative rounded-2xl p-5 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-slate-200/70 dark:border-white/[0.08] shadow-xs hover:shadow-xl hover:shadow-indigo-500/5 dark:hover:shadow-indigo-500/10 hover:border-indigo-400/50 dark:hover:border-indigo-500/40 transition-all duration-300 flex flex-col justify-between cursor-pointer overflow-hidden text-left"
+                                        >
+                                            {/* Top Row: Icon + Badge Pill */}
+                                            <div className="flex items-center justify-between gap-2 mb-4">
+                                                <div className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all duration-300 shrink-0 ${card.iconBg || 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-200 border-slate-200/80 dark:border-zinc-700'}`}>
+                                                    <CardIcon className="w-5 h-5 stroke-[2]" />
+                                                </div>
+                                                <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-slate-100/90 dark:bg-white/[0.06] text-slate-600 dark:text-zinc-300 border border-slate-200/60 dark:border-white/5">
+                                                    {card.badge || 'Explore'}
+                                                </span>
+                                            </div>
 
-                                {/* Badge 4: Enterprise Security */}
-                                <motion.div initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.3 }}
-                                    className="flex flex-col items-center gap-4 px-4 text-center group">
-                                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0 group-hover:scale-110 transition-transform">
-                                        <Shield className="w-8 h-8 text-white" />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <div className="font-extrabold text-lg md:text-xl text-slate-900 dark:text-white leading-tight md:whitespace-nowrap">Enterprise Security & 99.9% Uptime</div>
-                                        <div className="text-sm text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wide md:whitespace-nowrap">✓ GDPR Compliant · End-to-End Encrypted</div>
-                                    </div>
-                                </motion.div>
+                                            {/* Text Content */}
+                                            <div>
+                                                <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mb-1.5 leading-snug group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                                                    {card.title}
+                                                </h3>
+                                                <p className="text-xs text-slate-500 dark:text-zinc-400 font-normal leading-relaxed line-clamp-2">
+                                                    {card.tagline}
+                                                </p>
+                                            </div>
 
+                                            {/* Bottom Interactive Prompt */}
+                                            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-xs font-semibold text-slate-400 dark:text-zinc-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                                                <span>Explore Features</span>
+                                                <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                                            </div>
+                                        </motion.div>
+                                    );
+                                })}
                             </div>
                         </div>
                     </section>
 
-                    <CapabilitiesBento config={config?.capabilities} />
+
+                    <CapabilitiesBento
+                        config={config?.capabilities}
+                        activeCapability={activeCapability}
+                        setActiveCapability={setActiveCapability}
+                    />
 
 
 
@@ -2287,7 +2462,7 @@ export default function LandingPage() {
                                                 let billedTotal = null;
                                                 let billedPeriodText = '';
                                                 let savingsPercentage = 0;
-                                                
+
                                                 const baseMonthlyPrice = parseFloat(plan.monthlyPrice) || parseFloat(plan.price) || 0;
 
                                                 if (billingInterval === 'monthly') {
@@ -2296,7 +2471,7 @@ export default function LandingPage() {
                                                     internalIntervalCode = 'month';
                                                 } else if (billingInterval === 'half-yearly' && parseFloat(plan.halfYearlyPrice) > 0) {
                                                     billedTotal = parseFloat(plan.halfYearlyPrice);
-                                                    displayPrice = billedTotal / 6; 
+                                                    displayPrice = billedTotal / 6;
                                                     displayInterval = 'mo';
                                                     internalIntervalCode = 'half-year';
                                                     originalTotal = baseMonthlyPrice * 6;
@@ -2320,19 +2495,19 @@ export default function LandingPage() {
 
                                                 const STATIC_ITEM_DEFS = {
                                                     whatsapp: [
-                                                        { id: '_s_msg',       getLabel: d => Number(d.messageLimit) === 0 ? 'Messages/mo' : `${d.messageLimit === -1 ? 'Unlimited' : Number(d.messageLimit).toLocaleString()} Messages/mo`,       always: true, included: d => Number(d.messageLimit) > 0 || d.messageLimit === -1 },
-                                                        { id: '_s_contacts',  getLabel: d => Number(d.contactLimit) === 0 ? 'Contacts' : `${d.contactLimit === -1 ? 'Unlimited' : Number(d.contactLimit).toLocaleString()} Contacts`,           always: true, included: d => Number(d.contactLimit) > 0 || d.contactLimit === -1 },
-                                                        { id: '_s_templates', getLabel: d => Number(d.templateLimit) === 0 ? 'Templates' : `${d.templateLimit === -1 ? 'Unlimited' : d.templateLimit} Templates`,                                  always: true, included: d => Number(d.templateLimit) > 0 || d.templateLimit === -1 },
-                                                        { id: '_s_team',      getLabel: d => Number(d.teamMemberLimit) === 0 ? 'Team Members' : `${d.teamMemberLimit === -1 ? 'Unlimited' : d.teamMemberLimit} Team Members`,                           always: true, included: d => Number(d.teamMemberLimit) > 0 || d.teamMemberLimit === -1 },
-                                                        { id: '_s_flowbot',   getLabel: d => d.flowBotEnabled ? `${d.flowLimit === -1 ? 'Unlimited' : d.flowLimit} AI FlowBots` : 'AI FlowBot Builder', always: true, included: d => d.flowBotEnabled },
-                                                        { id: '_s_ai',        getLabel: d => Number(d.aiTokensAllowance) === 0 ? 'AI Tokens' : `${d.aiTokensAllowance === -1 ? 'Unlimited' : Number(d.aiTokensAllowance).toLocaleString()} AI Tokens`, always: true, included: d => Number(d.aiTokensAllowance) > 0 || d.aiTokensAllowance === -1 },
+                                                        { id: '_s_msg', getLabel: d => Number(d.messageLimit) === 0 ? 'Messages/mo' : `${d.messageLimit === -1 ? 'Unlimited' : Number(d.messageLimit).toLocaleString()} Messages/mo`, always: true, included: d => Number(d.messageLimit) > 0 || d.messageLimit === -1 },
+                                                        { id: '_s_contacts', getLabel: d => Number(d.contactLimit) === 0 ? 'Contacts' : `${d.contactLimit === -1 ? 'Unlimited' : Number(d.contactLimit).toLocaleString()} Contacts`, always: true, included: d => Number(d.contactLimit) > 0 || d.contactLimit === -1 },
+                                                        { id: '_s_templates', getLabel: d => Number(d.templateLimit) === 0 ? 'Templates' : `${d.templateLimit === -1 ? 'Unlimited' : d.templateLimit} Templates`, always: true, included: d => Number(d.templateLimit) > 0 || d.templateLimit === -1 },
+                                                        { id: '_s_team', getLabel: d => Number(d.teamMemberLimit) === 0 ? 'Team Members' : `${d.teamMemberLimit === -1 ? 'Unlimited' : d.teamMemberLimit} Team Members`, always: true, included: d => Number(d.teamMemberLimit) > 0 || d.teamMemberLimit === -1 },
+                                                        { id: '_s_flowbot', getLabel: d => d.flowBotEnabled ? `${d.flowLimit === -1 ? 'Unlimited' : d.flowLimit} AI FlowBots` : 'AI FlowBot Builder', always: true, included: d => d.flowBotEnabled },
+                                                        { id: '_s_ai', getLabel: d => Number(d.aiTokensAllowance) === 0 ? 'AI Tokens' : `${d.aiTokensAllowance === -1 ? 'Unlimited' : Number(d.aiTokensAllowance).toLocaleString()} AI Tokens`, always: true, included: d => Number(d.aiTokensAllowance) > 0 || d.aiTokensAllowance === -1 },
                                                     ],
                                                     store: [
                                                         { id: '_s_store', getLabel: d => (Number(d.waStoreLimit) > 0 || d.waStoreLimit === -1) ? `${d.waStoreLimit === -1 ? 'Unlimited' : d.waStoreLimit} Online Store${d.waStoreLimit !== 1 ? 's' : ''}` : 'Online Store', always: true, included: d => Number(d.waStoreLimit) > 0 || d.waStoreLimit === -1 },
                                                     ],
                                                     ads: [
-                                                        { id: '_s_meta', getLabel: () => 'Meta Ads Manager',          always: true, included: d => d.allowMetaAds },
-                                                        { id: '_s_ctwa', getLabel: () => 'Click-to-WhatsApp Ads',     always: true, included: d => d.allowCtwaAnalytics },
+                                                        { id: '_s_meta', getLabel: () => 'Meta Ads Manager', always: true, included: d => d.allowMetaAds },
+                                                        { id: '_s_ctwa', getLabel: () => 'Click-to-WhatsApp Ads', always: true, included: d => d.allowCtwaAnalytics },
                                                     ],
                                                     vcard: [
                                                         { id: '_s_vcard', getLabel: d => (Number(d.vcardLimit) > 0 || d.vcardLimit === -1) ? `${d.vcardLimit === -1 ? 'Unlimited' : d.vcardLimit} VeCard${d.vcardLimit !== 1 ? 's' : ''}` : 'VeCards', always: true, included: d => Number(d.vcardLimit) > 0 || d.vcardLimit === -1 },
@@ -2350,7 +2525,7 @@ export default function LandingPage() {
                                                             if (!f.name || !f.name.trim()) return false;
                                                             // Resolve category using a master map derived from all plans, to prevent inconsistencies across cards
                                                             let resolvedCategory = f.category || 'whatsapp';
-                                                            
+
                                                             // Find if ANY plan has explicitly categorized this feature into a specific non-default section
                                                             for (const p of plans) {
                                                                 const matchingFeat = (p.coreFeatures || []).find(feat => feat.name === f.name);
@@ -2364,7 +2539,7 @@ export default function LandingPage() {
                                                         .forEach(f => { coreFeatMap[f._id || f.name] = f; });
 
                                                     const currentOrder = (plan.featureOrder && plan.featureOrder[category]) || [];
-                                                    
+
                                                     const orderedRows = [];
                                                     const seenIds = new Set();
 
@@ -2399,7 +2574,7 @@ export default function LandingPage() {
                                                             orderedRows.push({ id: f._id || f.name, label: f.name, qty: f.qty });
                                                         }
                                                     });
-                                                    
+
                                                     return orderedRows.map(row => {
                                                         const isCrossed = row.qty === '✗';
                                                         const isGreen = !isCrossed && row.included !== false && row.qty !== '0';
@@ -2583,9 +2758,9 @@ export default function LandingPage() {
                                                         </div>
 
 
-                                                            <Link to={`/register?plan=${plan.id}&interval=${internalIntervalCode}`} className={`w-full py-4 rounded-xl font-bold text-center transition-all mt-auto bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20`}>
-                                                                Choose {plan.name}
-                                                            </Link>
+                                                        <Link to={`/register?plan=${plan.id}&interval=${internalIntervalCode}`} className={`w-full py-4 rounded-xl font-bold text-center transition-all mt-auto bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20`}>
+                                                            Choose {plan.name}
+                                                        </Link>
                                                     </motion.div>
                                                 );
                                             })}
@@ -2696,6 +2871,75 @@ export default function LandingPage() {
 
 
 
+                    {/* 3. WHY CHOOSE US — Slim Trust Strip */}
+                    <section className="bg-slate-50 dark:bg-[#05050A] transition-colors relative overflow-hidden">
+                        <div className="max-w-6xl mx-auto px-4 py-8">
+                            <h2 className="text-center text-2xl md:text-3xl font-extrabold uppercase tracking-widest text-slate-900 dark:text-white mb-8">Why Choose Us</h2>
+
+                            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:divide-x sm:divide-slate-200 sm:dark:divide-white/10">
+
+                                {/* Badge 1: Official WhatsApp API */}
+                                <motion.div initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0 }}
+                                    className="flex flex-col items-center gap-2 px-4 text-center group">
+                                    <div className="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center shadow-md shadow-green-500/20 shrink-0 group-hover:scale-105 transition-transform p-2">
+                                        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white">
+                                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                                        </svg>
+                                    </div>
+                                    <div className="space-y-0.5">
+                                        <div className="font-semibold text-sm md:text-base text-slate-900 dark:text-white leading-tight md:whitespace-nowrap">Official WhatsApp Business API</div>
+                                        <div className="text-[10px] sm:text-xs text-green-600 dark:text-green-400 font-medium uppercase tracking-wide md:whitespace-nowrap">✓ Meta Verified & Compliant</div>
+                                    </div>
+                                </motion.div>
+
+                                {/* Badge 2: Meta Business Tech Partner */}
+                                <motion.div initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
+                                    className="flex flex-col items-center gap-2 px-4 text-center group">
+                                    <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 dark:border-white/10 flex items-center justify-center shadow-md shadow-blue-100/60 dark:shadow-blue-900/20 shrink-0 group-hover:scale-105 transition-transform p-1.5">
+                                        <img
+                                            src="/meta-icon.svg"
+                                            alt="Meta"
+                                            className="w-full h-full object-contain"
+                                        />
+                                    </div>
+                                    <div className="space-y-0.5">
+                                        <div className="font-semibold text-sm md:text-base text-slate-900 dark:text-white leading-tight md:whitespace-nowrap">Meta Business Tech Provider</div>
+                                        <div className="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 font-medium uppercase tracking-wide md:whitespace-nowrap">✓ Officially Recognized by Meta</div>
+                                    </div>
+                                </motion.div>
+
+                                {/* Badge 3: Razorpay Partner */}
+                                <motion.div initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
+                                    className="flex flex-col items-center gap-2 px-4 text-center group">
+                                    <div className="w-16 h-10 rounded-xl bg-white border border-slate-200 dark:border-white/10 flex items-center justify-center shadow-md shadow-blue-100/60 dark:shadow-blue-900/20 shrink-0 group-hover:scale-105 transition-transform p-2">
+                                        <img
+                                            src="/razorpay-logo.svg"
+                                            alt="Razorpay"
+                                            className="w-full h-full object-contain"
+                                        />
+                                    </div>
+                                    <div className="space-y-0.5">
+                                        <div className="font-semibold text-sm md:text-base text-slate-900 dark:text-white leading-tight md:whitespace-nowrap">Official Razorpay Partner</div>
+                                        <div className="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 font-medium uppercase tracking-wide md:whitespace-nowrap">✓ Verified Payment Gateway</div>
+                                    </div>
+                                </motion.div>
+
+                                {/* Badge 4: Enterprise Security */}
+                                <motion.div initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.3 }}
+                                    className="flex flex-col items-center gap-2 px-4 text-center group">
+                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-md shadow-indigo-500/20 shrink-0 group-hover:scale-105 transition-transform">
+                                        <Shield className="w-5 h-5 text-white" />
+                                    </div>
+                                    <div className="space-y-0.5">
+                                        <div className="font-semibold text-sm md:text-base text-slate-900 dark:text-white leading-tight md:whitespace-nowrap">Enterprise Security & 99.9% Uptime</div>
+                                        <div className="text-[10px] sm:text-xs text-indigo-600 dark:text-indigo-400 font-medium uppercase tracking-wide md:whitespace-nowrap">✓ GDPR Compliant · End-to-End Encrypted</div>
+                                    </div>
+                                </motion.div>
+
+                            </div>
+                        </div>
+                    </section>
+
                     {/* 10. SOCIAL PROOF / TESTIMONIALS */}
                     <section id="testimonials" className="py-24 bg-slate-50 dark:bg-[#05050A] transition-colors relative overflow-hidden">
                         <div className="max-w-7xl mx-auto px-4 md:px-6 relative z-10">
@@ -2715,13 +2959,6 @@ export default function LandingPage() {
                             <TestimonialSlider testimonials={(config?.testimonials && config.testimonials.length >= 3) ? config.testimonials : defaultTestimonials} />
                         </div>
                     </section>
-
-
-
-                    {/* 13. FAQ Section */}
-                    {config.faqs && config.faqs.length > 0 && (
-                        <FAQSection faqs={config.faqs} />
-                    )}
 
                     {/* 14. BECOME A PARTNER (COLLAPSIBLE / EXPANDABLE BANNER) */}
                     <section className="py-10 bg-slate-50 dark:bg-[#05050A] transition-colors relative overflow-hidden">

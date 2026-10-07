@@ -256,6 +256,21 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     const [unreadSupportTickets, setUnreadSupportTickets] = useState(0);
     const [unreadWhatsAppMsgs, setUnreadWhatsAppMsgs] = useState(0);
     const [unreadPurchases, setUnreadPurchases] = useState(0);
+    const [unreadStoreOrders, setUnreadStoreOrders] = useState(0);
+
+    // Fetch unread store updates
+    useEffect(() => {
+        if (user && !user.isAdmin) {
+            const fetchStoreUnread = () => {
+                axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/unread-count`)
+                    .then(res => setUnreadStoreOrders(res.data.total || 0))
+                    .catch(() => {});
+            };
+            fetchStoreUnread();
+            const interval = setInterval(fetchStoreUnread, 60000); // 1 min poll
+            return () => clearInterval(interval);
+        }
+    }, [user]);
 
     // Fetch latest version on mount
     useEffect(() => {
@@ -476,13 +491,15 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                                     unreadCount={
                                         clonedItem.label === 'WhatsApp'
                                             ? unreadWhatsAppMsgs
-                                            : clonedItem.path === '/superadmin/messages'
-                                                ? unreadContactMsgs
-                                                : (clonedItem.path === '/superadmin/purchases-invoices' || clonedItem.path === '/superadmin/purchases')
-                                                    ? unreadPurchases
-                                                    : (clonedItem.path === '/support' || clonedItem.path === '/superadmin/support')
-                                                        ? unreadSupportTickets
-                                                        : null
+                                            : clonedItem.label === 'Online Store'
+                                                ? unreadStoreOrders
+                                                : clonedItem.path === '/superadmin/messages'
+                                                    ? unreadContactMsgs
+                                                    : (clonedItem.path === '/superadmin/purchases-invoices' || clonedItem.path === '/superadmin/purchases')
+                                                        ? unreadPurchases
+                                                        : (clonedItem.path === '/support' || clonedItem.path === '/superadmin/support')
+                                                            ? unreadSupportTickets
+                                                            : null
                                     }
                                 />
                             );

@@ -10,6 +10,7 @@ const AiTokenLog = require('../models/AiTokenLog');
 const SystemConfig = require('../models/SystemConfig');
 const Settings = require('../models/Settings');
 const SystemNotification = require('../models/SystemNotification');
+const StoreCustomer = require('../models/StoreCustomer');
 const auth = require('../middleware/auth');
 const axios = require('axios');
 const storageProvider = require('../utils/storageProvider');
@@ -1400,6 +1401,58 @@ router.post('/:id/upload/category', checkStoreOwnership, storageProvider('catego
     } catch (error) {
         console.error('Category image upload error:', error);
         res.status(500).json({ error: 'Upload failed' });
+    }
+});
+
+// Get total unread counts for store (Orders, Customers, Abandoned Carts)
+router.get('/unread-count', auth, async (req, res) => {
+    try {
+        const { storeId } = req.query;
+        let ordersCount = 0;
+        let abandonedCartsCount = 0;
+        let customersCount = 0;
+
+        const storesList = storeId 
+            ? await WaStore.findAll({ where: { id: storeId, userId: req.user.id } })
+            : await WaStore.findAll({ where: { userId: req.user.id } });
+
+        if (!storesList.length) return res.json({ orders: 0, customers: 0, abandonedCarts: 0, total: 0 });
+
+        for (const st of storesList) {
+            // Orders (Pending AND created after lastViewedOrdersAt)
+            const orderWhere = { storeId: st.id, status: 'pending' };
+            if (st.lastViewedOrdersAt) {
+                orderWhere.createdAt = { [Op.gt]: st.lastViewedOrdersAt };
+            }
+            ordersCount += await WaOrder.count({ where: orderWhere });
+
+            // Abandoned Carts (Pending, no reminder, has phone AND created after lastViewedAbandonedCartsAt)
+            const abandonedWhere = { storeId: st.id, status: 'pending', abandonedReminderSent: false, customerPhone: { [Op.not]: null } };
+            if (st.lastViewedAbandonedCartsAt) {
+                abandonedWhere.createdAt = { [Op.gt]: st.lastViewedAbandonedCartsAt };
+            }
+            abandonedCartsCount += await WaOrder.count({ where: abandonedWhere });
+
+            // Customers (Created after lastViewedCustomersAt, or last 24 hours if null)
+            const custWhere = { storeId: st.id };
+            if (st.lastViewedCustomersAt) {
+                custWhere.createdAt = { [Op.gt]: st.lastViewedCustomersAt };
+            } else {
+                const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                custWhere.createdAt = { [Op.gte]: oneDayAgo };
+            }
+            customersCount += await StoreCustomer.count({ where: custWhere });
+        }
+
+        res.json({ 
+            orders: ordersCount, 
+            customers: customersCount, 
+            abandonedCarts: abandonedCartsCount,
+            total: ordersCount + customersCount 
+        });
+    } catch (err) {
+        console.error('Error fetching unread counts:', err);
+        res.status(500).json({ error: 'Server error' });
     }
 });
 

@@ -91,7 +91,7 @@ const Dashboard = () => {
         readCount: 0,
         readRate: 0,
         recentCampaigns: [],
-        isWhatsappConfigured: false,
+        isWhatsappConfigured: !!user?.metaPhoneNumberId,
         monthlyUsageCount: 0,
         aiTokenBalance: 0,
         aiTokensAllowance: 0,
@@ -601,11 +601,7 @@ const Dashboard = () => {
                 {activeTab === 'store' && <StoreAnalytics />}
 
                 <div className="w-full flex flex-col gap-8" style={{ display: activeTab === 'whatsapp' ? 'flex' : 'none' }}>
-                    {loading && !!user?.metaPhoneNumberId ? (
-                        <div className="flex justify-center items-center py-20 min-h-[400px]">
-                            <div className="w-10 h-10 rounded-full border-4 border-slate-200 dark:border-white/10 border-t-primary animate-spin"></div>
-                        </div>
-                    ) : (!loading && !stats.isWhatsappConfigured) || (loading && !user?.metaPhoneNumberId) ? (
+                    {!stats.isWhatsappConfigured ? (
                         <WhatsAppEmptyState 
                             onConnect={() => setShowChecklistModal(true)} 
                             loading={fbLoading} 

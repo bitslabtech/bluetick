@@ -271,7 +271,12 @@ export default function WaStoreCustomers() {
         }
     }, [storeId, search]);
 
-    useEffect(() => { fetchCustomers(1, ''); }, [storeId]);
+    useEffect(() => { 
+        fetchCustomers(1, ''); 
+        if (storeId) {
+            axios.put(`${API}/api/wastore/${storeId}`, { lastViewedCustomersAt: new Date() }).catch(() => {});
+        }
+    }, [storeId]);
 
     const handleSearch = (e) => {
         e.preventDefault();

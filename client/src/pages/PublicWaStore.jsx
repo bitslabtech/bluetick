@@ -663,11 +663,12 @@ export default function PublicWaStore({ customSlug }) {
         }
 
         setCart(prev => {
-            const existing = prev.find(item => (item.cartItemId || item.id) === product.id);
+            const targetId = product.cartItemId || product.id;
+            const existing = prev.find(item => (item.cartItemId || item.id) === targetId);
             if (existing) {
-                return prev.map(item => (item.cartItemId || item.id) === product.id ? { ...item, qty: item.qty + qty } : item);
+                return prev.map(item => (item.cartItemId || item.id) === targetId ? { ...item, qty: item.qty + qty } : item);
             }
-            return [...prev, { ...product, cartItemId: product.id, qty }];
+            return [...prev, { ...product, cartItemId: targetId, qty }];
         });
         toast.success(`Added ${product.name} to cart`);
     };
@@ -1031,10 +1032,29 @@ export default function PublicWaStore({ customSlug }) {
                                         )}
                                         </>
                                     ) : (
-                                        <div className={`py-16 px-4 ${theme.header}`}>
-                                            <div className="max-w-4xl mx-auto text-center space-y-4">
-                                                <h1 className={`text-4xl font-bold tracking-tight ${theme.headerLogo}`}>{store.name}</h1>
-                                                {store.description && <p className={`text-lg ${theme.textMuted}`}>{store.description}</p>}
+                                        <div className={`relative isolate py-20 px-4 overflow-hidden ${theme.header} text-center`}>
+                                            {/* Store Hero Background Effects */}
+                                            <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden select-none">
+                                                <div className="absolute inset-0 bg-[radial-gradient(ellipse_75%_50%_at_50%_20%,rgba(99,102,241,0.15),transparent_75%)] dark:bg-[radial-gradient(ellipse_75%_50%_at_50%_20%,rgba(99,102,241,0.22),transparent_75%)]" />
+                                                <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(99,102,241,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(99,102,241,0.06)_1px,transparent_1px)] bg-[size:28px_28px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_30%,#000_70%,transparent_100%)]" />
+                                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full border border-indigo-500/10 pointer-events-none" />
+                                            </div>
+                                            <div className="relative z-10 max-w-4xl mx-auto space-y-4">
+                                                {store.logo && (
+                                                    <div className="inline-block p-1 rounded-2xl bg-white/80 dark:bg-zinc-800/80 shadow-md backdrop-blur-md mb-2">
+                                                        <img src={imgUrl(store.logo)} alt={store.name} className="w-16 h-16 rounded-xl object-contain" />
+                                                    </div>
+                                                )}
+                                                <h1 className={`text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight ${theme.headerLogo}`}>{store.name}</h1>
+                                                {store.description && <p className={`text-sm sm:text-base md:text-lg max-w-2xl mx-auto leading-relaxed ${theme.textMuted}`}>{store.description}</p>}
+                                                <div className="pt-2">
+                                                    <button
+                                                        onClick={() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' })}
+                                                        className="px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 shadow-md transition-all active:scale-95"
+                                                    >
+                                                        Explore Products &darr;
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     )}
