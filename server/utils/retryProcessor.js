@@ -298,9 +298,18 @@ async function processRetries() {
                         }
 
                         // Build rich component data for template preview in inbox
+                        // NOTE: inbox renderer reads `header.format` (not `header.mediaType`) and `header.localUrl`
                         const richComponents = [];
-                        if (stdHeaderType === 'TEXT' && headerPreview) richComponents.push({ type: 'HEADER', text: headerPreview });
-                        else if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(stdHeaderType)) richComponents.push({ type: 'HEADER', mediaType: stdHeaderType });
+                        if (stdHeaderType === 'TEXT' && headerPreview) {
+                            richComponents.push({ type: 'HEADER', format: 'TEXT', text: headerPreview });
+                        } else if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(stdHeaderType)) {
+                            const headerComp = { type: 'HEADER', format: stdHeaderType };
+                            // Include the locally-stored file URL so the inbox can render the actual media
+                            // (stored as 'headerLocalUrl' in campaign params by CampaignStep3 uploader)
+                            const localUrl = userParams['headerLocalUrl'];
+                            if (localUrl) headerComp.localUrl = localUrl;
+                            richComponents.push(headerComp);
+                        }
                         if (template.content) richComponents.push({ type: 'BODY', text: fullBody });
                         if (template.buttons && template.buttons.length > 0) richComponents.push({ type: 'BUTTONS', buttons: template.buttons });
 

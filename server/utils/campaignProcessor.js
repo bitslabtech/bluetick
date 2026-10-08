@@ -529,7 +529,20 @@ const processCampaign = async (campaignId, isRecovery = false) => {
                                     })
                                 });
                             } else {
-                                // Standard template
+                                // Standard template — include HEADER so inbox renders the media/text header
+                                if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(stdHeaderType)) {
+                                    const headerComp = { type: 'HEADER', format: stdHeaderType };
+                                    const localUrl = userParams['headerLocalUrl'];
+                                    if (localUrl) headerComp.localUrl = localUrl;
+                                    richTemplateComponents.push(headerComp);
+                                } else if (stdHeaderType === 'TEXT' && template.headerContent) {
+                                    // Resolve any variables in the TEXT header for the inbox preview
+                                    let hdrText = template.headerContent;
+                                    headerVariables.forEach(vn => {
+                                        hdrText = hdrText.replace(new RegExp(`\\{\\{${vn}\\}\\}`, 'g'), resolveParam(vn, contact));
+                                    });
+                                    richTemplateComponents.push({ type: 'HEADER', format: 'TEXT', text: hdrText });
+                                }
                                 if (template.content) richTemplateComponents.push({ type: 'BODY', text: fullBody });
                                 // Add buttons if stored on template
                                 if (template.buttons && template.buttons.length > 0) {

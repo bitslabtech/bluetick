@@ -51,10 +51,10 @@ const PublicHeader = () => {
                 </Link>
 
                 <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-600">
-                    <a href="/#platform" className="hover:text-indigo-600 transition-colors">Features</a>
-                    <a href="/#solutions" className="hover:text-indigo-600 transition-colors">Solutions</a>
+                    <a href="/#capabilities-section" className="hover:text-indigo-600 transition-colors">Features</a>
                     <a href="/#pricing" className="hover:text-indigo-600 transition-colors">Pricing</a>
                     <Link to="/faq" className="hover:text-indigo-600 transition-colors">FAQ</Link>
+                    <Link to="/contact" className="hover:text-indigo-600 transition-colors">Contact Us</Link>
                     <div className="h-4 w-[1px] max-w-full bg-slate-300" />
                     
                     {user ? (
@@ -80,10 +80,10 @@ const PublicHeader = () => {
                 {isMenuOpen && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="md:hidden bg-white border-b border-slate-200 overflow-hidden">
                         <div className="flex flex-col p-4 md:p-6 gap-6 text-center text-slate-600 font-semibold">
-                            <a href="/#platform" onClick={() => setIsMenuOpen(false)}>Features</a>
-                            <a href="/#solutions" onClick={() => setIsMenuOpen(false)}>Solutions</a>
+                            <a href="/#capabilities-section" onClick={() => setIsMenuOpen(false)}>Features</a>
                             <a href="/#pricing" onClick={() => setIsMenuOpen(false)}>Pricing</a>
                             <Link to="/faq" onClick={() => setIsMenuOpen(false)}>FAQ</Link>
+                            <Link to="/contact" onClick={() => setIsMenuOpen(false)}>Contact Us</Link>
                             <div className="h-[1px] w-full bg-slate-200" />
                             
                             {user ? (

@@ -199,7 +199,7 @@ const CapabilitiesBento = ({ config, activeCapability, setActiveCapability }) =>
             ],
             visualMockup: (
                 <div className="w-full flex items-center justify-center relative py-2">
-                    <div className="w-full max-w-[210px] sm:max-w-[230px] aspect-[792/1708] overflow-hidden shadow-2xl relative bg-black group-hover:shadow-indigo-500/20 transition-all duration-500 rounded-2xl border-4 border-slate-800 dark:border-zinc-700">
+                    <div className="w-full max-w-[210px] sm:max-w-[230px] aspect-[792/1708] overflow-hidden shadow-2xl relative group-hover:shadow-indigo-500/20 transition-all duration-500 rounded-xl">
                         <video
                             src="/whatsapp-mockup-video.mp4"
                             autoPlay
@@ -232,7 +232,7 @@ const CapabilitiesBento = ({ config, activeCapability, setActiveCapability }) =>
             ],
             visualMockup: (
                 <div className="w-full flex items-center justify-center relative py-2">
-                    <div className="w-full max-w-[210px] sm:max-w-[230px] aspect-[792/1708] overflow-hidden shadow-2xl relative transition-all duration-500 group-hover:shadow-rose-500/20 rounded-2xl border-4 border-slate-800 dark:border-zinc-700">
+                    <div className="w-full max-w-[210px] sm:max-w-[230px] aspect-[792/1708] overflow-hidden shadow-2xl relative transition-all duration-500 group-hover:shadow-rose-500/20 rounded-xl">
                         <video
                             src="/ctwa-final.mp4"
                             autoPlay
