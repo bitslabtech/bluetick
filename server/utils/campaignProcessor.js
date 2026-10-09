@@ -550,30 +550,32 @@ const processCampaign = async (campaignId, isRecovery = false) => {
                                 }
                             }
 
-                            // Create Chat Message
-                            const chatMsg = await ChatMessage.create({
-                                conversationId: conversation.id,
-                                messageId: sentMessageId,
-                                direction: 'OUTBOUND',
-                                type: 'template',
-                                body: fullBody,
-                                templateData: {
-                                    name: template.name,
-                                    language: template.language,
-                                    components: richTemplateComponents
-                                },
-                                status: 'sent',
-                                timestamp: now
-                            });
-
-                            // Emit WebSocket to update UI instantly
+                            // ── OPTION A: Do NOT push to Live Inbox yet ───────────────────────────
+                            // The inbox only shows a message when Meta CONFIRMS delivery.
+                            //   • 'delivered' webhook  → webhook.js creates the ChatMessage
+                            //   • retry success        → retryProcessor.js creates the ChatMessage
+                            //   • permanent failure    → no ChatMessage is ever created
+                            // This matches industry-standard behaviour (AiSensy, Wati, Interakt).
+                            //
+                            // Cache the rich inbox payload on the MessageLog so that webhook.js
+                            // can reconstruct the full inbox card on first delivery confirmation
+                            // without needing to reload the template.
                             try {
-                                getIo().to(userId).emit('new_message', {
-                                    conversation: conversation,
-                                    message: chatMsg
-                                });
-                            } catch (wsErr) {
-                                console.error('[CAMPAIGN INBOX SYNC] WebSocket emission failed:', wsErr.message);
+                                const logForCache = await MessageLog.findOne({ where: { messageId: sentMessageId } });
+                                if (logForCache) {
+                                    await logForCache.update({
+                                        inboxPayload: JSON.stringify({
+                                            fullBody,
+                                            contactName: contact.name || 'Unknown',
+                                            templateName: template.name,
+                                            templateLanguage: template.language,
+                                            richComponents: richTemplateComponents
+                                        })
+                                    });
+                                }
+                            } catch (cacheErr) {
+                                // Non-fatal — webhook.js will fall back to a minimal card
+                                console.warn('[CAMPAIGN INBOX CACHE] Could not cache inboxPayload:', cacheErr.message);
                             }
 
                         } catch (inboxErr) {

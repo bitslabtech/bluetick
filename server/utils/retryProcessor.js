@@ -100,11 +100,11 @@ async function processRetries() {
                     const colKey = raw.replace('__col__', '');
                     const fallback = userParams[`__fallback__${varName}`] || 'Customer';
                     let resolved = '';
-                    if (colKey === 'name')            resolved = contact.name || '';
+                    if (colKey === 'name') resolved = contact.name || '';
                     else if (colKey === 'first_name') resolved = (contact.name || '').split(' ')[0] || '';
-                    else if (colKey === 'phone')      resolved = contact.phone || '';
-                    else if (colKey === 'email')      resolved = contact.email || '';
-                    else if (colKey === 'tags')       resolved = (contact.tags || [])[0] || '';
+                    else if (colKey === 'phone') resolved = contact.phone || '';
+                    else if (colKey === 'email') resolved = contact.email || '';
+                    else if (colKey === 'tags') resolved = (contact.tags || [])[0] || '';
                     return resolved.trim() || fallback;
                 };
 
@@ -122,7 +122,7 @@ async function processRetries() {
                 const variables = bodyVarMatches.map(v => v.replace(/\{\{|\}\}/g, ''));
 
                 const headerParameters = headerVariables.map(v => ({ type: 'text', text: resolveParam(v) }));
-                const bodyParameters   = variables.map(v => ({ type: 'text', text: resolveParam(v) }));
+                const bodyParameters = variables.map(v => ({ type: 'text', text: resolveParam(v) }));
 
                 console.log(`[RETRY] [${log.id}] [${phone}] tpl="${template.name}" hdrType=${stdHeaderType} hdrVars=[${headerVariables.join(',')}] bodyVars=[${variables.join(',')}]`);
 
@@ -147,11 +147,13 @@ async function processRetries() {
                             ? (card.content.match(/\{\{([^}]+)\}\}/g) || []).map(v => v.replace(/\{\{|\}\}/g, ''))
                             : [];
                         if (cardVars.length > 0) {
-                            cardComps.push({ type: 'body', parameters: cardVars.map(vn => {
-                                let val = userParams[`card_${cardIndex}_var_${vn}`] || '';
-                                if (!val && (vn === 'name' || vn.toLowerCase().includes('name'))) val = contact.name || 'Customer';
-                                return { type: 'text', text: val };
-                            })});
+                            cardComps.push({
+                                type: 'body', parameters: cardVars.map(vn => {
+                                    let val = userParams[`card_${cardIndex}_var_${vn}`] || '';
+                                    if (!val && (vn === 'name' || vn.toLowerCase().includes('name'))) val = contact.name || 'Customer';
+                                    return { type: 'text', text: val };
+                                })
+                            });
                         }
                         if (card.buttons && card.buttons.length > 0) {
                             card.buttons.forEach((btn, bi) => {
@@ -313,34 +315,20 @@ async function processRetries() {
                         if (template.content) richComponents.push({ type: 'BODY', text: fullBody });
                         if (template.buttons && template.buttons.length > 0) richComponents.push({ type: 'BUTTONS', buttons: template.buttons });
 
-                        // Find existing ChatMessage by old messageId (to avoid double-counting)
-                        const existingChatMsg = log.messageId
-                            ? await ChatMessage.findOne({ where: { messageId: log.messageId } })
-                            : null;
-
-                        let chatMsg;
-                        if (existingChatMsg) {
-                            // Update in-place — correct status from 'failed'/'retry_pending' → 'sent'
-                            existingChatMsg.status = 'sent';
-                            existingChatMsg.messageId = sentMessageId || existingChatMsg.messageId;
-                            existingChatMsg.timestamp = nowTs;
-                            await existingChatMsg.save();
-                            chatMsg = existingChatMsg;
-                            console.log(`[RETRY INBOX] Updated existing ChatMessage ${existingChatMsg.id} for phone: ${phone}`);
-                        } else {
-                            // No existing ChatMessage — safe to create one (original inbox sync must have failed)
-                            chatMsg = await ChatMessage.create({
-                                conversationId: conversation.id,
-                                messageId: sentMessageId,
-                                direction: 'OUTBOUND',
-                                type: 'template',
-                                body: fullBody,
-                                templateData: { name: template.name, language: template.language, components: richComponents },
-                                status: 'sent',
-                                timestamp: nowTs
-                            });
-                            console.log(`[RETRY INBOX] Created new ChatMessage for phone: ${phone} (no existing found)`);
-                        }
+                        // ── OPTION A: Always create a fresh ChatMessage on retry success ──────────
+                        // Under Option A, campaignProcessor never writes to the inbox, so there
+                        // is never an existing ChatMessage to update. We always create one here.
+                        const chatMsg = await ChatMessage.create({
+                            conversationId: conversation.id,
+                            messageId: sentMessageId,
+                            direction: 'OUTBOUND',
+                            type: 'template',
+                            body: fullBody,
+                            templateData: { name: template.name, language: template.language, components: richComponents },
+                            status: 'sent',
+                            timestamp: nowTs
+                        });
+                        console.log(`[RETRY INBOX] Created ChatMessage for phone: ${phone} after successful retry.`);
 
                         // Real-time socket push
                         try {

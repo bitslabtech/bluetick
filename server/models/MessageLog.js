@@ -57,6 +57,15 @@ const MessageLog = sequelize.define('MessageLog', {
     errorCode: {
         type: DataTypes.INTEGER,
         allowNull: true
+    },
+    // ── OPTION A: Inbox Payload Cache ────────────────────────────────────────
+    // Stores a JSON snapshot of the rich template data (fullBody, richComponents,
+    // contactName, templateName, templateLanguage) written by campaignProcessor.js
+    // at send-time. webhook.js reads this when creating the ChatMessage on first
+    // 'delivered' confirmation, so we don't need to reload the template at that point.
+    inboxPayload: {
+        type: DataTypes.TEXT,
+        allowNull: true
     }
 }, {
     timestamps: true,

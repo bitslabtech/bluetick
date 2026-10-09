@@ -1387,7 +1387,7 @@ const WhatsAppInbox = () => {
                                                     };
                                                     return (
                                                         <div className="relative group/vid mb-1 rounded-xl overflow-hidden cursor-pointer" onClick={openLightbox}>
-                                                            <video src={src} className="rounded-xl max-w-full max-h-60 object-cover w-full block" muted playsInline />
+                                                            <video src={`${src}#t=0.001`} className="rounded-xl max-w-full max-h-60 object-cover w-full block pointer-events-none" preload="metadata" muted playsInline />
                                                             {/* Play overlay */}
                                                             <div className="absolute inset-0 bg-black/30 group-hover/vid:bg-black/50 transition-all flex items-center justify-center">
                                                                 <div className="bg-black/50 backdrop-blur-sm rounded-full p-3 group-hover/vid:scale-110 transition-transform">

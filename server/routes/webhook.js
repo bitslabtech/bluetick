@@ -394,15 +394,15 @@ router.post('/:userId', (req, res, next) => {
                             console.error('[WEBHOOK ERROR] Failed to update MessageLog:', err.message);
                         }
 
-                        // --- Update Inbox ChatMessage ---
+                        // --- Update/Create Inbox ChatMessage ---
                         try {
                             const chatMsg = await ChatMessage.findOne({ where: { messageId: metaMessageId } });
                             if (chatMsg) {
+                                // Message already in inbox (e.g. inbound reply, or manual send)
                                 console.log(`[WEBHOOK] Found ChatMessage (inbox): ${chatMsg.id} | Updating status: ${chatMsg.status} → ${rawStatus}`);
-                                chatMsg.status = rawStatus; // Inbox uses lowercase: 'sent', 'delivered', 'read'
+                                chatMsg.status = rawStatus;
                                 await chatMsg.save();
 
-                                // Emit to frontend for real-time tick update
                                 try {
                                     getIo().to(userId).emit('message_status_update', {
                                         messageId: metaMessageId,
@@ -413,8 +413,75 @@ router.post('/:userId', (req, res, next) => {
                                 } catch (socketErr) {
                                     console.error('[WEBHOOK ERROR] Socket emit failed:', socketErr.message);
                                 }
+                            } else if (rawStatus === 'delivered') {
+                                // ── OPTION A: First delivery confirmation for a campaign message ──
+                                // No ChatMessage exists yet — create it now from the cached inboxPayload.
+                                console.log(`[WEBHOOK] No ChatMessage found for ${metaMessageId} and status=delivered. Creating inbox entry (Option A).`);
+                                try {
+                                    const log = await MessageLog.findOne({ where: { messageId: metaMessageId } });
+                                    if (log) {
+                                        // Find or create the Conversation
+                                        const logPhone = log.phone;
+                                        let conv = await Conversation.findOne({ where: { phoneNumber: logPhone, userId } });
+                                        if (!conv) {
+                                            conv = await Conversation.create({
+                                                phoneNumber: logPhone,
+                                                contactName: 'Unknown',
+                                                userId,
+                                                lastMessage: '',
+                                                lastMessageAt: new Date(),
+                                                unreadCount: 0
+                                            });
+                                        }
+
+                                        // Decode cached rich payload (written by campaignProcessor)
+                                        let fullBody = `Campaign message`;
+                                        let templateName = '';
+                                        let templateLanguage = 'en';
+                                        let richComponents = [];
+                                        if (log.inboxPayload) {
+                                            try {
+                                                const cached = JSON.parse(log.inboxPayload);
+                                                fullBody         = cached.fullBody         || fullBody;
+                                                templateName     = cached.templateName     || templateName;
+                                                templateLanguage = cached.templateLanguage || templateLanguage;
+                                                richComponents   = cached.richComponents   || richComponents;
+                                                if (cached.contactName && conv.contactName === 'Unknown') {
+                                                    conv.contactName = cached.contactName;
+                                                }
+                                            } catch (_) { /* use defaults */ }
+                                        }
+
+                                        conv.lastMessage   = fullBody;
+                                        conv.lastMessageAt = new Date();
+                                        await conv.save();
+
+                                        const newChatMsg = await ChatMessage.create({
+                                            conversationId: conv.id,
+                                            messageId: metaMessageId,
+                                            direction: 'OUTBOUND',
+                                            type: 'template',
+                                            body: fullBody,
+                                            templateData: {
+                                                name: templateName,
+                                                language: templateLanguage,
+                                                components: richComponents
+                                            },
+                                            status: 'delivered',
+                                            timestamp: new Date()
+                                        });
+
+                                        try {
+                                            getIo().to(userId).emit('new_message', { conversation: conv, message: newChatMsg });
+                                        } catch (_se) { /* socket optional */ }
+
+                                        console.log(`[WEBHOOK OPTION-A] ChatMessage created for delivered campaign msg ${metaMessageId}`);
+                                    }
+                                } catch (createErr) {
+                                    console.error('[WEBHOOK OPTION-A] Failed to create ChatMessage on delivery:', createErr.message);
+                                }
                             } else {
-                                console.log(`[WEBHOOK] No ChatMessage found for messageId: ${metaMessageId}`);
+                                console.log(`[WEBHOOK] No ChatMessage found for messageId: ${metaMessageId} (status=${rawStatus}) — skipping inbox update.`);
                             }
                         } catch (err) {
                             console.error('[WEBHOOK ERROR] Failed to update ChatMessage:', err.message);
@@ -447,27 +514,9 @@ router.post('/:userId', (req, res, next) => {
                                             });
                                             console.log(`[WEBHOOK 131049] Scheduled retry ${nextRetryCount}/${MAX_RETRIES} for msgId ${metaMessageId} at ${retryAfter.toISOString()} (+${delayHours}h)`);
 
-                                            // Bug #11 FIX: Update ChatMessage status to 'retry_pending' instead
-                                            // of leaving it as 'failed' in the inbox. When the retry succeeds,
-                                            // retryProcessor will flip it to 'sent' and emit a socket update.
-                                            try {
-                                                const chatMsg131049 = await ChatMessage.findOne({ where: { messageId: metaMessageId } });
-                                                if (chatMsg131049) {
-                                                    chatMsg131049.status = 'retry_pending';
-                                                    await chatMsg131049.save();
-                                                    // Notify inbox UI of the status change
-                                                    try {
-                                                        getIo().to(userId).emit('message_status_update', {
-                                                            messageId: metaMessageId,
-                                                            conversationId: chatMsg131049.conversationId,
-                                                            status: 'retry_pending'
-                                                        });
-                                                    } catch (_se) { /* socket optional */ }
-                                                    console.log(`[WEBHOOK 131049] ChatMessage ${chatMsg131049.id} set to retry_pending`);
-                                                }
-                                            } catch (chatErr) {
-                                                console.error('[WEBHOOK 131049] Failed to update ChatMessage to retry_pending:', chatErr.message);
-                                            }
+                                            // OPTION A: No ChatMessage is created at send time.
+                                            // The inbox shows the message only when Meta confirms
+                                            // delivery after a successful retry (retryProcessor.js).
 
                                         } else {
                                             // All retries exhausted — permanently fail
