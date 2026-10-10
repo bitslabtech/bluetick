@@ -290,8 +290,28 @@ router.put('/:id', async (req, res) => {
                             modified = true;
                         }
                     }
+                    
+                    // Reorder otherFeatures to match the newFeatures order
+                    const sortedOtherFeatures = [];
+                    for (let newFeatName of newFeatures) {
+                        const existing = otherFeatures.find(f => f.name === newFeatName);
+                        if (existing) {
+                            sortedOtherFeatures.push(existing);
+                        }
+                    }
+                    // Append any remaining old features not present in newFeatures
+                    for (let oldFeat of otherFeatures) {
+                        if (!newFeatures.includes(oldFeat.name)) {
+                            sortedOtherFeatures.push(oldFeat);
+                        }
+                    }
+                    
+                    if (!modified && JSON.stringify(otherFeatures) !== JSON.stringify(sortedOtherFeatures)) {
+                        modified = true;
+                    }
+
                     if (modified) {
-                        await otherPlan.update({ coreFeatures: otherFeatures });
+                        await otherPlan.update({ coreFeatures: sortedOtherFeatures });
                     }
                 }
             }

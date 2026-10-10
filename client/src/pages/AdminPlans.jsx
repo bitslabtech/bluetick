@@ -812,6 +812,121 @@ const SortableReviewRow = ({ id, label, included, qty }) => {
 };
 
 // ════════════════════════════════════════════
+//  SORTABLE MARKETING ROW
+// ════════════════════════════════════════════
+const SortableMarketingRow = ({ id, idx, feature, onChange, onRemove, isRemovable }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.45 : 1,
+        zIndex: isDragging ? 20 : 'auto',
+    };
+    return (
+        <div ref={setNodeRef} style={style} className={`flex gap-3 items-center group ${isDragging ? 'bg-slate-50 dark:bg-white/5 rounded-xl' : ''}`}>
+            <button type="button" {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-2">
+                <GripVertical className="w-5 h-5" />
+            </button>
+            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 shrink-0 border border-slate-200 dark:border-white/10">
+                {idx + 1}
+            </div>
+            <input
+                value={feature}
+                onChange={e => onChange(e.target.value)}
+                className="modern-input flex-1"
+                placeholder="e.g. Dedicated Account Manager"
+            />
+            {isRemovable && (
+                <button
+                    type="button"
+                    onClick={onRemove}
+                    className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
+                >
+                    <Trash2 className="w-5 h-5" />
+                </button>
+            )}
+        </div>
+    );
+};
+
+// ════════════════════════════════════════════
+//  SORTABLE CORE FEATURE ROW
+// ════════════════════════════════════════════
+const SortableCoreFeatureRow = ({ id, feat, isMaster, isCrossed, isIncluded, toggleOn, handleCoreFeatureChange, removeCoreFeature }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        zIndex: isDragging ? 20 : 'auto',
+    };
+    return (
+        <div ref={setNodeRef} style={style} className={`flex gap-2 items-center w-full ${isDragging ? 'bg-white dark:bg-slate-800 rounded-xl shadow-xl ring-2 ring-[#0088cc]/30' : ''}`}>
+            <button type="button" {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 dark:hover:text-slate-400 shrink-0 p-1 rounded">
+                <GripVertical className="w-4 h-4" />
+            </button>
+            {isMaster ? (
+                // Master row UI
+                <div className={`flex flex-1 items-center gap-3 p-3 rounded-xl border transition-colors ${
+                    isCrossed ? 'bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-500/10' : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5'
+                }`}>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (isCrossed) {
+                                handleCoreFeatureChange(feat._id, 'qty', '');
+                            } else {
+                                handleCoreFeatureChange(feat._id, 'qty', isIncluded ? '' : '✓');
+                            }
+                        }}
+                        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none ${
+                            isCrossed ? 'bg-red-500' : isIncluded ? toggleOn : 'bg-slate-300 dark:bg-slate-600'
+                        }`}
+                        title={isCrossed ? 'Explicitly excluded — click to clear' : isIncluded ? 'Included — click to remove' : 'Not included — click to add'}
+                    >
+                        <span className={`${isIncluded || isCrossed ? 'translate-x-4' : 'translate-x-1'} inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm`} />
+                    </button>
+                    <span style={{ flex: 5 }} className={`text-sm font-medium ${isCrossed ? 'text-red-400 line-through' : isIncluded ? 'text-slate-800 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`}>
+                        {feat.name}
+                    </span>
+                    {(isIncluded || isCrossed) && (
+                        <div style={{ flex: 5 }} className="flex items-center gap-1 min-w-0">
+                            <input
+                                type="text"
+                                style={{ flex: 2 }}
+                                value={['✓','✗'].includes(feat.qty) ? '' : (feat.qty || '')}
+                                onChange={e => handleCoreFeatureChange(feat._id, 'qty', e.target.value)}
+                                className={`modern-input text-center text-sm py-1.5 min-w-0 ${isCrossed ? 'placeholder:text-red-400' : feat.qty === '✓' ? 'placeholder:text-emerald-500' : ''}`}
+                                placeholder={isCrossed ? 'Not included' : feat.qty === '✓' ? 'Included' : 'e.g. 100 / Unlimited'}
+                                disabled={isCrossed || feat.qty === '✓'}
+                            />
+                            <button type="button" onClick={() => handleCoreFeatureChange(feat._id, 'qty', '✓')} className={`shrink-0 w-8 h-8 rounded-lg text-sm font-bold transition-all border ${feat.qty === '✓' ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' : 'bg-white dark:bg-white/5 text-slate-500 border-slate-200 dark:border-white/10 hover:border-emerald-400 hover:text-emerald-500'}`}>✓</button>
+                            <button type="button" onClick={() => handleCoreFeatureChange(feat._id, 'qty', '✗')} className={`shrink-0 w-8 h-8 rounded-lg text-sm font-bold transition-all border ${feat.qty === '✗' ? 'bg-red-500 text-white border-red-500 shadow-sm' : 'bg-white dark:bg-white/5 text-slate-500 border-slate-200 dark:border-white/10 hover:border-red-400 hover:text-red-500'}`}>✗</button>
+                        </div>
+                    )}
+                    <button type="button" onClick={() => removeCoreFeature(feat._id)} className={`p-2.5 rounded-xl transition-all shrink-0 ml-1 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10`} title="Remove feature from this plan">
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                </div>
+            ) : (
+                // Local row UI
+                <div className="flex flex-1 gap-3 items-center w-full pl-1">
+                    <input style={{ flex: 7 }} value={feat.name || ''} onChange={e => handleCoreFeatureChange(feat._id, 'name', e.target.value)} className="modern-input min-w-0" placeholder="e.g. WhatsApp Broadcasts" />
+                    <div style={{ flex: 3 }} className="flex items-center gap-1 min-w-0">
+                        <input type="text" style={{ flex: 1 }} value={['✓','✗'].includes(feat.qty) ? '' : (feat.qty || '')} onChange={e => handleCoreFeatureChange(feat._id, 'qty', e.target.value)} className="modern-input text-center min-w-0 py-1.5 text-sm" placeholder="e.g. 100 / Unlimited" />
+                        <button type="button" onClick={() => handleCoreFeatureChange(feat._id, 'qty', '✓')} className={`shrink-0 w-8 h-8 rounded-lg text-sm font-bold transition-all border ${feat.qty === '✓' ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' : 'bg-white dark:bg-white/5 text-slate-500 border-slate-200 dark:border-white/10 hover:border-emerald-400 hover:text-emerald-500'}`}>✓</button>
+                        <button type="button" onClick={() => handleCoreFeatureChange(feat._id, 'qty', '✗')} className={`shrink-0 w-8 h-8 rounded-lg text-sm font-bold transition-all border ${feat.qty === '✗' ? 'bg-red-500 text-white border-red-500 shadow-sm' : 'bg-white dark:bg-white/5 text-slate-500 border-slate-200 dark:border-white/10 hover:border-red-400 hover:text-red-500'}`}>✗</button>
+                    </div>
+                    <button type="button" onClick={() => removeCoreFeature(feat._id)} className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all" title="Delete this feature">
+                        <Trash2 className="w-5 h-5" />
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ════════════════════════════════════════════
 //  PLAN MODAL
 // ════════════════════════════════════════════
 const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClose, onSave }) => {
@@ -1034,6 +1149,52 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                 return { ...fd, coreFeatures: newCoreOrder, featureOrder: updated };
             });
             return updated;
+        });
+    };
+
+    const handleMarketingDragEnd = (event) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+        setFormData(prev => {
+            const oldIndex = parseInt(active.id);
+            const newIndex = parseInt(over.id);
+            return {
+                ...prev,
+                features: arrayMove(prev.features, oldIndex, newIndex)
+            };
+        });
+    };
+
+    const handleCoreDragEnd = (event, category) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+        setFormData(prev => {
+            const catItems = prev.coreFeatures.filter(f => (f.category || 'whatsapp') === category);
+            const others = prev.coreFeatures.filter(f => (f.category || 'whatsapp') !== category);
+            
+            const oldIndex = catItems.findIndex(f => f._id === active.id);
+            const newIndex = catItems.findIndex(f => f._id === over.id);
+            
+            if (oldIndex === -1 || newIndex === -1) return prev;
+            
+            const reorderedCatItems = arrayMove(catItems, oldIndex, newIndex);
+            
+            // Recompute featureOrder for Review Tab immediately so they stay synced
+            const updatedFeatureOrder = { ...(prev.featureOrder || {}) };
+            const currentCatOrder = updatedFeatureOrder[category] || [];
+            
+            // Extract core feature IDs in the new order
+            const newCoreFeatIds = reorderedCatItems.map(f => f._id);
+            // Replace the old core feature IDs in the featureOrder with the new ones, keeping static items intact
+            const nextCatOrder = currentCatOrder.filter(id => !newCoreFeatIds.includes(id));
+            nextCatOrder.push(...newCoreFeatIds); // Simplest way to sync: append at end (they are sorted among themselves)
+            updatedFeatureOrder[category] = nextCatOrder;
+
+            return {
+                ...prev,
+                coreFeatures: [...others, ...reorderedCatItems],
+                featureOrder: updatedFeatureOrder
+            };
         });
     };
 
@@ -1371,38 +1532,31 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                     <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Marketing Features</h4>
                                     <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">These bullets will be displayed prominently on the pricing card.</p>
 
-                                    <div className="space-y-3">
-                                        {formData.features.map((feature, idx) => (
-                                            <div key={idx} className="flex gap-3 items-center group">
-                                                <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 shrink-0 border border-slate-200 dark:border-white/10">
-                                                    {idx + 1}
-                                                </div>
-                                                <input
-                                                    value={feature}
-                                                    onChange={(e) => handleFeatureChange(idx, e.target.value)}
-                                                    className="modern-input flex-1"
-                                                    placeholder="e.g. Dedicated Account Manager"
-                                                />
-                                                {formData.features.length > 1 && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeFeature(idx)}
-                                                        className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
-                                                    >
-                                                        <Trash2 className="w-5 h-5" />
-                                                    </button>
-                                                )}
-                                            </div>
-                                        ))}
+                                    <DndContext sensors={reviewSensors} collisionDetection={closestCenter} onDragEnd={handleMarketingDragEnd}>
+                                        <SortableContext items={formData.features.map((_, i) => i.toString())} strategy={verticalListSortingStrategy}>
+                                            <div className="space-y-3">
+                                                {formData.features.map((feature, idx) => (
+                                                    <SortableMarketingRow
+                                                        key={idx}
+                                                        id={idx.toString()}
+                                                        idx={idx}
+                                                        feature={feature}
+                                                        onChange={(val) => handleFeatureChange(idx, val)}
+                                                        onRemove={() => removeFeature(idx)}
+                                                        isRemovable={formData.features.length > 1}
+                                                    />
+                                                ))}
 
-                                        <button
-                                            type="button"
-                                            onClick={addFeature}
-                                            className="mt-4 flex items-center gap-2 px-4 py-2.5 bg-slate-50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 text-[#0088cc] dark:text-[#33aadd] font-bold rounded-xl border border-dashed border-slate-300 dark:border-white/20 transition-all w-full justify-center"
-                                        >
-                                            <Plus className="w-5 h-5" /> Add Another Feature
-                                        </button>
-                                    </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={addFeature}
+                                                    className="mt-4 flex items-center gap-2 px-4 py-2.5 bg-slate-50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 text-[#0088cc] dark:text-[#33aadd] font-bold rounded-xl border border-dashed border-slate-300 dark:border-white/20 transition-all w-full justify-center"
+                                                >
+                                                    <Plus className="w-5 h-5" /> Add Another Feature
+                                                </button>
+                                            </div>
+                                        </SortableContext>
+                                    </DndContext>
                                 </div>
 
                                 <div className="mt-8 pt-8 border-t border-slate-200 dark:border-white/10 space-y-5">
@@ -1417,12 +1571,8 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                         { category: 'ads', label: 'Meta Digital Marketing', Icon: Activity, border: 'border-rose-200 dark:border-rose-800/50', headerBg: 'bg-rose-50 dark:bg-rose-900/20', iconBg: 'bg-rose-100 dark:bg-rose-900/50', iconColor: 'text-rose-600 dark:text-rose-400', titleColor: 'text-rose-800 dark:text-rose-200', btnClass: 'bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/20 dark:hover:bg-rose-900/40 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800', toggleOn: 'bg-rose-500' },
                                         { category: 'vcard', label: 'VeCards – Digital Business Card', Icon: CreditCard, border: 'border-cyan-200 dark:border-cyan-800/50', headerBg: 'bg-cyan-50 dark:bg-cyan-900/20', iconBg: 'bg-cyan-100 dark:bg-cyan-900/50', iconColor: 'text-cyan-600 dark:text-cyan-400', titleColor: 'text-cyan-800 dark:text-cyan-200', btnClass: 'bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-900/20 dark:hover:bg-cyan-900/40 text-cyan-600 dark:text-cyan-400 border-cyan-200 dark:border-cyan-800', toggleOn: 'bg-cyan-500' },
                                     ].map(({ category, label, Icon, border, headerBg, iconBg, iconColor, titleColor, btnClass, toggleOn }) => {
-                                        // Master features for this category (from all plans)
-                                        const masterInCat = masterCoreFeatures.filter(f => (f.category || 'whatsapp') === category);
-                                        // This plan's features for this category
-                                        const planFeatsCat = formData.coreFeatures.filter(f => (f.category || 'whatsapp') === category);
-                                        // Features only defined in this plan (not yet in master)
-                                        const localOnly = planFeatsCat.filter(pf => !masterCoreFeatures.find(m => m.name === pf.name));
+                                        // Features for this category
+                                        const planFeatsCat = formData.coreFeatures.filter(f => (f.category || 'whatsapp') === category && !deletedFeatureNames.includes(f.name));
 
                                         return (
                                             <div key={category} className={`border ${border} rounded-2xl overflow-hidden`}>
@@ -1435,151 +1585,34 @@ const PlanModal = ({ plan, availableAddons = [], masterCoreFeatures = [], onClos
                                                 </div>
 
                                                 <div className="p-5 space-y-3">
-                                                    {/* Master features — appear across all plans */}
-                                                    {masterInCat.filter(mf => !deletedFeatureNames.includes(mf.name)).map(mf => {
-                                                        const planFeat = formData.coreFeatures.find(f => f.name === mf.name);
-                                                        const isCrossed = planFeat?.qty === '✗';
-                                                        const isIncluded = planFeat && planFeat.qty && planFeat.qty !== '0' && planFeat.qty !== '✗';
-
-                                                        return (
-                                                            <div key={mf.name} className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${
-                                                                isCrossed
-                                                                    ? 'bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-500/10'
-                                                                    : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5'
-                                                            }`}>
-                                                                {/* Toggle — green=on, red=crossed, grey=off */}
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        if (isCrossed) {
-                                                                            // Un-cross: reset to off (empty)
-                                                                            handleCoreFeatureChange(planFeat._id, 'qty', '');
-                                                                        } else if (planFeat) {
-                                                                            handleCoreFeatureChange(planFeat._id, 'qty', isIncluded ? '' : '✓');
-                                                                        } else {
-                                                                            setFormData(prev => ({ ...prev, coreFeatures: [...prev.coreFeatures, { _id: genId(), name: mf.name, qty: '✓', category }] }));
-                                                                        }
-                                                                    }}
-                                                                    className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none ${
-                                                                        isCrossed ? 'bg-red-500' : isIncluded ? toggleOn : 'bg-slate-300 dark:bg-slate-600'
-                                                                    }`}
-                                                                    title={isCrossed ? 'Explicitly excluded — click to clear' : isIncluded ? 'Included — click to remove' : 'Not included — click to add'}
-                                                                >
-                                                                    <span className={`${isIncluded || isCrossed ? 'translate-x-4' : 'translate-x-1'} inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm`} />
-                                                                </button>
-
-                                                                <span 
-                                                                    style={{ flex: 5 }}
-                                                                    className={`text-sm font-medium ${
-                                                                        isCrossed ? 'text-red-400 line-through' : isIncluded ? 'text-slate-800 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'
-                                                                    }`}
-                                                                >
-                                                                    {mf.name}
-                                                                </span>
-
-                                                                {/* Value picker — shown when included OR crossed so user can always switch state */}
-                                                                {(isIncluded || isCrossed) && (
-                                                                    <div style={{ flex: 5 }} className="flex items-center gap-1 min-w-0">
-                                                                        <input
-                                                                            type="text"
-                                                                            style={{ flex: 2 }}
-                                                                            value={['✓','✗'].includes(planFeat?.qty) ? '' : (planFeat?.qty || '')}
-                                                                            onChange={e => planFeat && handleCoreFeatureChange(planFeat._id, 'qty', e.target.value)}
-                                                                            className={`modern-input text-center text-sm py-1.5 min-w-0 ${
-                                                                                isCrossed ? 'placeholder:text-red-400' : planFeat?.qty === '✓' ? 'placeholder:text-emerald-500' : ''
-                                                                            }`}
-                                                                            placeholder={isCrossed ? 'Not included' : planFeat?.qty === '✓' ? 'Included' : 'e.g. 100 / Unlimited'}
-                                                                            title={isCrossed ? 'Marked as not included' : planFeat?.qty === '✓' ? 'Shown as included (✓) — type a value to override' : 'Enter any value'}
-                                                                            disabled={isCrossed || planFeat?.qty === '✓'}
-                                                                        />
-                                                                        <button type="button" onClick={() => planFeat && handleCoreFeatureChange(planFeat._id, 'qty', '✓')}
-                                                                            className={`shrink-0 w-8 h-8 rounded-lg text-sm font-bold transition-all border ${
-                                                                                planFeat?.qty === '✓' ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' : 'bg-white dark:bg-white/5 text-slate-500 border-slate-200 dark:border-white/10 hover:border-emerald-400 hover:text-emerald-500'
-                                                                            }`} title="Set to Checkmark / Included (✓)">
-                                                                            ✓
-                                                                        </button>
-                                                                        <button type="button" onClick={() => planFeat && handleCoreFeatureChange(planFeat._id, 'qty', '✗')}
-                                                                            className={`shrink-0 w-8 h-8 rounded-lg text-sm font-bold transition-all border ${
-                                                                                planFeat?.qty === '✗' ? 'bg-red-500 text-white border-red-500 shadow-sm' : 'bg-white dark:bg-white/5 text-slate-500 border-slate-200 dark:border-white/10 hover:border-red-400 hover:text-red-500'
-                                                                            }`} title="Mark as excluded (✗)">
-                                                                            ✗
-                                                                        </button>
-                                                                    </div>
+                                                    <DndContext sensors={reviewSensors} collisionDetection={closestCenter} onDragEnd={(e) => handleCoreDragEnd(e, category)}>
+                                                        <SortableContext items={planFeatsCat.map(f => f._id)} strategy={verticalListSortingStrategy}>
+                                                            <div className="space-y-3">
+                                                                {planFeatsCat.length === 0 && (
+                                                                    <p className="text-sm text-slate-400 dark:text-slate-500 italic text-center py-1">No features yet — click the button below to add one.</p>
                                                                 )}
-
-
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        if (planFeat) removeCoreFeature(planFeat._id);
-                                                                    }}
-                                                                    className={`p-2.5 rounded-xl transition-all shrink-0 ml-1 ${planFeat ? 'text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10' : 'opacity-0 cursor-default'}`}
-                                                                    title={planFeat ? "Remove feature from this plan" : ""}
-                                                                    disabled={!planFeat}
-                                                                >
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </button>
+                                                                {planFeatsCat.map(feat => {
+                                                                    const isMaster = !!masterCoreFeatures.find(m => m.name === feat.name);
+                                                                    const isCrossed = feat.qty === '✗';
+                                                                    const isIncluded = feat.qty && feat.qty !== '0' && feat.qty !== '✗';
+                                                                    
+                                                                    return (
+                                                                        <SortableCoreFeatureRow
+                                                                            key={feat._id}
+                                                                            id={feat._id}
+                                                                            feat={feat}
+                                                                            isMaster={isMaster}
+                                                                            isCrossed={isCrossed}
+                                                                            isIncluded={isIncluded}
+                                                                            toggleOn={toggleOn}
+                                                                            handleCoreFeatureChange={handleCoreFeatureChange}
+                                                                            removeCoreFeature={removeCoreFeature}
+                                                                        />
+                                                                    );
+                                                                })}
                                                             </div>
-                                                        );
-                                                    })}
-
-
-                                                    {/* Local-only features (defined in this plan, not in master yet) */}
-                                                    {/* Each row is keyed and identified by stable _id — fixes the state-leakage bug */}
-                                                    {localOnly.length > 0 && (
-                                                        <div className="flex gap-3 items-center px-1 mb-1">
-                                                            <span className="flex-[7] text-[10px] font-bold text-slate-400 uppercase tracking-wider">Feature Name</span>
-                                                            <span className="flex-[3] text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">Display Value</span>
-                                                            <span className="w-11 shrink-0" />
-                                                        </div>
-                                                    )}
-                                                    {localOnly.map(feat => (
-                                                        <div key={feat._id} className="flex gap-3 items-center w-full">
-                                                            <input
-                                                                style={{ flex: 7 }}
-                                                                value={feat.name || ''}
-                                                                onChange={e => handleCoreFeatureChange(feat._id, 'name', e.target.value)}
-                                                                className="modern-input min-w-0"
-                                                                placeholder="e.g. WhatsApp Broadcasts"
-                                                            />
-                                                            {/* Value picker: number input + ✓ + ✗ */}
-                                                            <div style={{ flex: 3 }} className="flex items-center gap-1 min-w-0">
-                                                                <input
-                                                                    type="text"
-                                                                    style={{ flex: 1 }}
-                                                                    value={['✓','✗'].includes(feat.qty) ? '' : (feat.qty || '')}
-                                                                    onChange={e => handleCoreFeatureChange(feat._id, 'qty', e.target.value)}
-                                                                    className="modern-input text-center min-w-0 py-1.5 text-sm"
-                                                                    placeholder="e.g. 100 / Unlimited"
-                                                                    title="Enter any value — number, text, or symbol"
-                                                                />
-                                                                <button type="button" onClick={() => handleCoreFeatureChange(feat._id, 'qty', '✓')}
-                                                                    className={`shrink-0 w-8 h-8 rounded-lg text-sm font-bold transition-all border ${
-                                                                        feat.qty === '✓' ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' : 'bg-white dark:bg-white/5 text-slate-500 border-slate-200 dark:border-white/10 hover:border-emerald-400 hover:text-emerald-500'
-                                                                    }`} title="Set to Checkmark (✓)">
-                                                                    ✓
-                                                                </button>
-                                                                <button type="button" onClick={() => handleCoreFeatureChange(feat._id, 'qty', '✗')}
-                                                                    className={`shrink-0 w-8 h-8 rounded-lg text-sm font-bold transition-all border ${
-                                                                        feat.qty === '✗' ? 'bg-red-500 text-white border-red-500 shadow-sm' : 'bg-white dark:bg-white/5 text-slate-500 border-slate-200 dark:border-white/10 hover:border-red-400 hover:text-red-500'
-                                                                    }`} title="Set to Cross (✗)">
-                                                                    ✗
-                                                                </button>
-                                                            </div>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => removeCoreFeature(feat._id)}
-                                                                className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
-                                                                title="Delete this feature"
-                                                            >
-                                                                <Trash2 className="w-5 h-5" />
-                                                            </button>
-                                                        </div>
-                                                    ))}
-
-                                                    {masterInCat.length === 0 && localOnly.length === 0 && (
-                                                        <p className="text-sm text-slate-400 dark:text-slate-500 italic text-center py-1">No features yet — click the button below to add one.</p>
-                                                    )}
+                                                        </SortableContext>
+                                                    </DndContext>
 
                                                     {/* Add feature button — passes a stable _id so every new row is uniquely tracked */}
                                                     <button
