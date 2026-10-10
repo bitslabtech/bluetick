@@ -898,7 +898,7 @@ const SortableCoreFeatureRow = ({ id, feat, isMaster, isCrossed, isIncluded, tog
                                 onChange={e => handleCoreFeatureChange(feat._id, 'qty', e.target.value)}
                                 className={`modern-input text-center text-sm py-1.5 min-w-0 ${isCrossed ? 'placeholder:text-red-400' : feat.qty === '✓' ? 'placeholder:text-emerald-500' : ''}`}
                                 placeholder={isCrossed ? 'Not included' : feat.qty === '✓' ? 'Included' : 'e.g. 100 / Unlimited'}
-                                disabled={isCrossed || feat.qty === '✓'}
+                                disabled={isCrossed}
                             />
                             <button type="button" onClick={() => handleCoreFeatureChange(feat._id, 'qty', '✓')} className={`shrink-0 w-8 h-8 rounded-lg text-sm font-bold transition-all border ${feat.qty === '✓' ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' : 'bg-white dark:bg-white/5 text-slate-500 border-slate-200 dark:border-white/10 hover:border-emerald-400 hover:text-emerald-500'}`}>✓</button>
                             <button type="button" onClick={() => handleCoreFeatureChange(feat._id, 'qty', '✗')} className={`shrink-0 w-8 h-8 rounded-lg text-sm font-bold transition-all border ${feat.qty === '✗' ? 'bg-red-500 text-white border-red-500 shadow-sm' : 'bg-white dark:bg-white/5 text-slate-500 border-slate-200 dark:border-white/10 hover:border-red-400 hover:text-red-500'}`}>✗</button>
