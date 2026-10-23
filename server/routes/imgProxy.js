@@ -15,7 +15,7 @@
  * LCP image cache BEFORE serving the HTML — eliminating the cold-path delay
  * even for the very first Lighthouse request.
  *
- * Security: Only images from cdn.bluetick.cloud are proxied.
+ * Security: Only images from the configured CDN host (CDN_HOST env var) are proxied.
  * Abuse prevention: Width capped at 2000px.
  */
 
@@ -27,7 +27,26 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const CDN_HOST = 'cdn.bluetick.cloud';
+// CDN host is driven by the CDN_HOST environment variable.
+// Falls back to extracting the hostname from FRONTEND_URL (e.g. "onedash.cloud")
+// and prepending "cdn." — so the only thing you ever change is your .env.
+// Examples:
+//   CDN_HOST=cdn.onedash.cloud          → uses that exactly
+//   FRONTEND_URL=https://onedash.cloud  → derives "cdn.onedash.cloud" automatically
+function deriveCdnHost() {
+    if (process.env.CDN_HOST) return process.env.CDN_HOST;
+    try {
+        const frontendUrl = process.env.FRONTEND_URL || '';
+        const u = new URL(frontendUrl);
+        const parts = u.hostname.split('.');
+        // Get root domain (last 2 segments): "app.onedash.cloud" → "onedash.cloud"
+        const rootDomain = parts.length >= 2 ? parts.slice(-2).join('.') : u.hostname;
+        return `cdn.${rootDomain}`;
+    } catch {
+        return 'cdn.onedash.cloud'; // safe fallback
+    }
+}
+const CDN_HOST = deriveCdnHost();
 const ALLOWED_FORMATS = ['webp', 'avif', 'jpeg', 'png'];
 const MAX_WIDTH = 2000;
 const MIN_WIDTH = 10;
@@ -109,7 +128,7 @@ async function resizeImage(url, width, quality, format, fit) {
         responseType: 'arraybuffer',
         timeout: FETCH_TIMEOUT_MS,
         maxContentLength: 20 * 1024 * 1024,
-        headers: { 'User-Agent': 'Bluetick-ImgProxy/1.0' }
+        headers: { 'User-Agent': 'OneDash-ImgProxy/1.0' }
     });
 
     const pipeline = sharp(Buffer.from(response.data))
@@ -144,7 +163,7 @@ async function resizeImage(url, width, quality, format, fit) {
  * Fire-and-forget: intentionally does NOT block the HTML response.
  * The warm operation runs concurrently with HTML delivery.
  *
- * @param {string} url - CDN image URL (must be cdn.bluetick.cloud)
+ * @param {string} url - CDN image URL (must match CDN_HOST env var)
  * @param {object} [opts] - Same options as cdnImg()
  */
 async function warmCache(url, { width = 800, quality = 92, format = 'webp', fit = 'contain' } = {}) {

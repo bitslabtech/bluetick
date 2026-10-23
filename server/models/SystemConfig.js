@@ -141,6 +141,16 @@ const SystemConfig = sequelize.define('SystemConfig', {
                 addon_installed: { enabled: true, templateName: "admin_alert_addon_installed" }
             },
             adminNotificationNumbers: [],
+            inactivityNotification: {
+                enabled: false,
+                days: 7,
+                targetType: 'all', // 'all' | 'plans'
+                targetPlans: [],   // e.g. ['Free', 'Basic', 'Pro']
+                templateName: '',
+                languageCode: 'en_US',
+                lastRunAt: null,
+                totalSent: 0
+            },
 
             // ─── Invoice & GST Configuration ─────────────────────────────────────
             invoiceConfig: {

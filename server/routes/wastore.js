@@ -252,7 +252,13 @@ router.get('/public/:slug', async (req, res) => {
         // SEC-1: Strip server-only / payment-secret fields from the public storefront response.
         // paymentConfig contains Razorpay/PhonePe secret keys — must never reach the browser.
         delete responseData.paymentConfig;
-        delete responseData.taxConfig;
+        // TAX-FIX-1: Expose only the display-safe subset of taxConfig.
+        // Strips seller PAN, GSTIN and legal name (confidential) but retains fields needed
+        // for the checkout modal to calculate and show tax correctly.
+        if (responseData.taxConfig) {
+            const { sellerPan, sellerGstin, sellerLegalName, sellerAddress, sellerState, sellerStateCode, ...publicTaxConfig } = responseData.taxConfig;
+            responseData.taxConfig = publicTaxConfig;
+        }
         delete responseData.notificationTemplates;
         delete responseData.abandonedCartConfig;
 
@@ -354,6 +360,16 @@ router.get('/public/domain/:domain', async (req, res) => {
 
         const responseData = store.toJSON();
         delete responseData.User; // Hide user obj
+        // SEC-1 (domain): Same sanitization as /public/:slug — strip payment secrets.
+        delete responseData.paymentConfig;
+        // TAX-FIX-1 (domain): Expose safe taxConfig subset so custom-domain storefronts
+        // also receive tax settings needed for checkout modal calculations.
+        if (responseData.taxConfig) {
+            const { sellerPan, sellerGstin, sellerLegalName, sellerAddress, sellerState, sellerStateCode, ...publicTaxConfig } = responseData.taxConfig;
+            responseData.taxConfig = publicTaxConfig;
+        }
+        delete responseData.notificationTemplates;
+        delete responseData.abandonedCartConfig;
 
         // DATA-1 FIX: Strip internal fields from products (same as /public/:slug)
         const safeProducts2 = (products || []).map(p => {
@@ -373,7 +389,7 @@ router.get('/public/domain/:domain', async (req, res) => {
 // POST /api/wastore/orders  — Public: record a new order (called from storefront before WhatsApp redirect)
 router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate limited
     try {
-        const { storeId, customerName, customerPhone, customerEmail, customerAddress, customerNote, customerGstin, customerCompany, items, subtotal, originalTotal, discountAmount, couponCode, currency, taxAmount, taxRate, taxName, total, storeCustomerId } = req.body;
+        const { storeId, customerName, customerPhone, customerEmail, customerAddress, customerNote, customerGstin, customerCompany, items, subtotal, originalTotal, discountAmount, couponCode, currency, taxAmount, taxRate, taxName, total, shippingCost, storeCustomerId } = req.body;
 
         if (!storeId || !items || !Array.isArray(items) || items.length === 0 || subtotal === undefined || subtotal === null) {
             return res.status(400).json({ error: 'Missing required order fields' });
@@ -412,6 +428,10 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
             }
         }
 
+        // TAX-FIX-7: Declare validatedCustomerId in outer scope so it's accessible
+        // after the transaction (used in notification dispatchers below).
+        let validatedCustomerId = null;
+
         const order = await sequelize.transaction({ isolationLevel: 'SERIALIZABLE' }, async (t) => {
             // Re-generate order number inside the transaction so the COUNT is consistent
             const txCount = await WaOrder.count({ where: { storeId, source: 'online' }, transaction: t });
@@ -439,7 +459,7 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
                 });
                 
                 if (cust) {
-                    validatedCustomerId = cust.id;
+                    validatedCustomerId = cust.id; // also updates outer-scope variable
                     
                     // Save the address to customer profile if provided
                     const incomingAddress = req.body.addressDetails || null;
@@ -486,6 +506,7 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
                 taxRate: parseFloat(taxRate) || 0,
                 taxName: taxName || null,
                 total: parseFloat(total) || subtotal,
+                shippingCost: parseFloat(shippingCost) || 0,
                 status: 'pending',
                 storeCustomerId: validatedCustomerId,
             }, { transaction: t });
@@ -641,6 +662,13 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
                 sendOrderNotification('order_placed', store, storeUser, order).catch(() => {});
                 sendOwnerOrderAlert(store, storeUser, order).catch(() => {});
                 dispatchInAppNotifications(store, storeUser, order, validatedCustomerId).catch(() => {});
+                // TAX-FIX-2: Auto-send invoice PDF via WhatsApp for non-gateway checkout
+                // (gateway orders are handled after payment verification in verify-payment endpoint)
+                if (store.checkoutMode !== 'gateway' && store.taxConfig?.autoSendWhatsApp) {
+                    sendWhatsAppInvoiceHelper(store, storeUser, order, order.customerName, order.customerPhone).catch(err => {
+                        console.error('[Invoice] Failed to auto-send invoice for WhatsApp order:', err.message);
+                    });
+                }
             }
         }).catch(() => {});
 
@@ -687,6 +715,7 @@ async function sendWhatsAppInvoiceHelper(store, user, order, customerName, custo
                 taxAmount: order.taxAmount,
                 taxRate: order.taxRate,
                 taxName: order.taxName,
+                shippingCost: order.shippingCost || 0,
                 total: order.total
             },
             {
@@ -702,7 +731,16 @@ async function sendWhatsAppInvoiceHelper(store, user, order, customerName, custo
                 address: order.customerAddress || '',
                 company: order.customerCompany || '',
                 gstin: order.customerGstin || '',
-                state: (order.customerAddress || '').split(',').slice(-2, -1)[0]?.trim() || ''
+                // TAX-FIX-3: Correctly extract the State for CGST/SGST vs IGST determination.
+                // Address format stored is: "Street/Area, City, State - Pincode"
+                // The old slice(-2,-1) was grabbing the city, not the state.
+                state: (() => {
+                    const addr = order.customerAddress || '';
+                    // Split on " - " to isolate the "..., State" portion (before pincode)
+                    const beforePincode = addr.split(' - ')[0];
+                    const parts = beforePincode.split(',');
+                    return parts[parts.length - 1]?.trim() || '';
+                })()
             },
             filePath
         );
@@ -1026,6 +1064,24 @@ router.post('/:storeId/orders/pos', auth, async (req, res) => {
                     const deduction = item.qty || 1;
                     const newQty = (product.stockQuantity || 0) - deduction;
                     product.stockQuantity = newQty;
+
+                    // If variant combo exists, also update variant-level stock
+                    if (item.selectedVariants && Array.isArray(product.variants) && product.variants.length > 0) {
+                        let updatedVariants = [...product.variants];
+                        let matched = false;
+                        for (let v of updatedVariants) {
+                            if (v.combo && Object.entries(item.selectedVariants).every(([k, val]) => v.combo[k] === val)) {
+                                if (v.stock !== null && v.stock !== undefined) {
+                                    v.stock = Math.max(0, (parseInt(v.stock) || 0) - deduction);
+                                    matched = true;
+                                }
+                            }
+                        }
+                        if (matched) {
+                            product.variants = updatedVariants;
+                        }
+                    }
+
                     if (store.inventoryConfig?.autoOutOfStock && newQty <= 0) {
                         product.inStock = false;
                     }
@@ -1204,6 +1260,19 @@ router.post('/public/:slug/phonepe-callback', phonepeCbLimiter, async (req, res)
         if (order && decoded.code === 'PAYMENT_SUCCESS') {
             order.status = 'confirmed';
             await order.save();
+
+            // TAX-FIX-8: Trigger autoSendWhatsApp invoice for PhonePe S2S callback
+            // (was missing — only Razorpay and phonepe-check paths had this)
+            const storeUser = await User.findByPk(store.userId);
+            if (storeUser && store.taxConfig?.autoSendWhatsApp) {
+                sendWhatsAppInvoiceHelper(store, storeUser, order, order.customerName, order.customerPhone).catch(err => {
+                    console.error('[Invoice] PhonePe S2S invoice send failed:', err.message);
+                });
+            }
+            if (storeUser) {
+                sendOrderNotification('payment_received', store, storeUser, order).catch(() => {});
+            }
+            fireCAPIPurchase(store, order).catch(() => {});
         }
         res.send('OK');
     } catch (error) {
@@ -2410,8 +2479,14 @@ router.post('/:storeId/products', auth, async (req, res) => {
             payload.subCategories = [];
         }
 
+        if (payload.taxRate !== undefined && payload.taxRate !== null && payload.taxRate !== '' && !isNaN(parseFloat(payload.taxRate))) {
+            payload.taxRate = parseFloat(payload.taxRate);
+        } else {
+            payload.taxRate = null;
+        }
+
         if (store.taxConfig && store.taxConfig.enabled) {
-            if (payload.taxRate === null || payload.taxRate === undefined || payload.taxRate === '') {
+            if (payload.taxRate === null || payload.taxRate === undefined || isNaN(payload.taxRate)) {
                 return res.status(400).json({ error: 'Please select a Tax Slab for this product.' });
             }
         }
@@ -2450,8 +2525,14 @@ router.put('/products/:productId', auth, async (req, res) => {
             payload.subCategories = [];
         }
 
+        if (payload.taxRate !== undefined && payload.taxRate !== null && payload.taxRate !== '' && !isNaN(parseFloat(payload.taxRate))) {
+            payload.taxRate = parseFloat(payload.taxRate);
+        } else if (payload.taxRate !== undefined) {
+            payload.taxRate = null;
+        }
+
         if (store.taxConfig && store.taxConfig.enabled) {
-            if (payload.taxRate === null || payload.taxRate === undefined || payload.taxRate === '') {
+            if (payload.taxRate === null || payload.taxRate === undefined || isNaN(payload.taxRate)) {
                 return res.status(400).json({ error: 'Please select a Tax Slab for this product.' });
             }
         }

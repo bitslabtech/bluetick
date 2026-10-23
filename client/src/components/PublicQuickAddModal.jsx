@@ -36,7 +36,7 @@ export default function PublicQuickAddModal({
     }, [isOpen]);
 
     // Reset options when product changes
-    const [selectedOptions, setSelectedOptions] = useState({});
+    const [selectedVariants, setSelectedVariants] = useState({});
     useEffect(() => {
         if (product && product !== prevProductRef.current) {
             prevProductRef.current = product;
@@ -48,23 +48,23 @@ export default function PublicQuickAddModal({
                     }
                 });
             }
-            setSelectedOptions(initial);
+            setSelectedVariants(initial);
         }
     }, [product]);
 
     const handleOptionSelect = (optName, val) => {
-        setSelectedOptions(prev => ({ ...prev, [optName]: val }));
+        setSelectedVariants(prev => ({ ...prev, [optName]: val }));
     };
 
     const matchedVariant = useMemo(() => {
         if (!product?.variants) return null;
         return product.variants.find(v => {
             if (!v.combo) return false;
-            return Object.keys(selectedOptions).every(
-                key => v.combo[key] === selectedOptions[key]
+            return Object.keys(selectedVariants).every(
+                key => v.combo[key] === selectedVariants[key]
             );
         });
-    }, [selectedOptions, product]);
+    }, [selectedVariants, product]);
 
     const currentPrice = product
         ? (matchedVariant?.price != null ? parseFloat(matchedVariant.price) : parseFloat(product.price))
@@ -76,15 +76,17 @@ export default function PublicQuickAddModal({
     const isOutOfStock = product?.trackQuantity ? stockQuantity <= 0 : !product?.inStock;
     const preventAdd = store?.inventoryConfig?.preventCartAdd && isOutOfStock;
 
+    // Align cartItemId with PublicWaProduct: sort values and join with '-'
+    const variantString = Object.values(selectedVariants).sort().join('-');
     const cartItemId = product
-        ? product.id + (Object.keys(selectedOptions).length > 0 ? '-' + JSON.stringify(selectedOptions) : '')
+        ? (variantString ? `${product.id}-${variantString}` : String(product.id))
         : '';
     const cartItem = cart.find(item => (item.cartItemId || item.id) === cartItemId);
     const qtyInCart = cartItem ? cartItem.qty : 0;
 
     const handleAdd = () => {
         if (preventAdd || !product) return;
-        addToCart({ ...product, cartItemId, selectedOptions, price: currentPrice }, 1, true);
+        addToCart({ ...product, cartItemId, selectedVariants, price: currentPrice }, 1, true);
     };
 
     // The outer wrapper is always in DOM but pointer-events-none when closed
@@ -178,11 +180,11 @@ export default function PublicQuickAddModal({
                                         <div key={i}>
                                             <div className="flex items-center justify-between mb-3">
                                                 <h4 className="font-bold text-gray-900 text-[15px]">Select {opt.name}</h4>
-                                                <span className="text-xs font-medium text-gray-400">{selectedOptions[opt.name]}</span>
+                                                <span className="text-xs font-medium text-gray-400">{selectedVariants[opt.name]}</span>
                                             </div>
                                             <div className="flex flex-wrap gap-2.5">
                                                 {(opt.values || []).map(val => {
-                                                    const isSelected = selectedOptions[opt.name] === val;
+                                                    const isSelected = selectedVariants[opt.name] === val;
                                                     return (
                                                         <button
                                                             key={val}

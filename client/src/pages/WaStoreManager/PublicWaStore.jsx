@@ -289,7 +289,7 @@ export default function PublicWaStore() {
                     {/* Logo & Store Name */}
                     <div className="flex items-center gap-3">
                         {store.logo && (
-                            <img src={imgUrl(store.logo)} alt={store.name} className="w-10 h-10 object-contain rounded-md" onError={e => e.target.style.display = 'none'} />
+                            <img src={imgUrl(store.logo)} alt={store.name} className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 object-contain rounded-md" onError={e => e.target.style.display = 'none'} />
                         )}
                         <span className="font-semibold text-xl tracking-tight text-black">{store.name}</span>
                     </div>

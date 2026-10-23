@@ -2,6 +2,19 @@ import { jsPDF } from 'jspdf';
 import JsBarcode from 'jsbarcode';
 import QRCode from 'qrcode';
 
+// Derive platform host from VITE_API_URL so no domain is hardcoded here.
+// e.g. VITE_API_URL=https://api.onedash.cloud → PLATFORM_HOST="onedash.cloud"
+const PLATFORM_HOST = (() => {
+    try {
+        const url = new URL(import.meta.env.VITE_API_URL || window.location.origin);
+        const parts = url.hostname.split('.');
+        return parts.length >= 2 ? parts.slice(-2).join('.') : url.hostname;
+    } catch {
+        return window.location.hostname;
+    }
+})();
+
+
 // ─── Helpers: Currency & Formatting ──────────────────────────────────────────
 const CURRENCY_SYMBOLS = { USD: '$', EUR: '€', GBP: '£', INR: '₹', AED: 'AED', SGD: 'S$', AUD: 'A$', CAD: 'C$' };
 export const getCurrencySymbol = (code) => CURRENCY_SYMBOLS[code || 'INR'] || code || '₹';
@@ -393,7 +406,7 @@ function renderPortraitLabel({ doc, order, store, currency, isCod, payableAmount
     const storeSlug = store?.slug || (store?.name ? store.name.toLowerCase().replace(/[^a-z0-9-]+/g, '-') : '');
     const footerBrand = store?.customDomain
         ? store.customDomain.replace(/^https?:\/\//i, '')
-        : (storeSlug ? `bluetick.cloud/store/${storeSlug}` : 'bluetick.cloud');
+        : (storeSlug ? `${PLATFORM_HOST}/store/${storeSlug}` : PLATFORM_HOST);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(sF(6));
     doc.setTextColor(100, 100, 100);
@@ -539,7 +552,7 @@ function renderLandscapeLabel({ doc, order, store, currency, isCod, payableAmoun
     const storeSlug = store?.slug || (store?.name ? store.name.toLowerCase().replace(/[^a-z0-9-]+/g, '-') : '');
     const footerBrand = store?.customDomain
         ? store.customDomain.replace(/^https?:\/\//i, '')
-        : (storeSlug ? `bluetick.cloud/store/${storeSlug}` : 'bluetick.cloud');
+        : (storeSlug ? `${PLATFORM_HOST}/store/${storeSlug}` : PLATFORM_HOST);
     doc.line(sX(4) + margin, sY(86), splitX, sY(86));
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(sF(6));

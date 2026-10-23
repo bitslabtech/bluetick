@@ -124,7 +124,8 @@ const Settings = () => {
                 expiryAlert: { templateName: 'expiry_alert_v1', languageCode: 'en_US', enabled: true },
                 quotaLimit: { templateName: 'quota_alert_v1', languageCode: 'en_US', enabled: true },
                 systemUpdate: { templateName: 'system_update_v1', languageCode: 'en_US', enabled: false },
-                features: { templateName: 'feature_announcement_v1', languageCode: 'en_US', enabled: false }
+                features: { templateName: 'feature_announcement_v1', languageCode: 'en_US', enabled: false },
+                inactivityAlert: { templateName: 'user_inactivity_reminder', languageCode: 'en_US', enabled: false, days: 7, buttonUrl: 'login' }
             }
         },
         // Security — safe defaults to prevent crashes before API fetch completes
@@ -1111,6 +1112,13 @@ const Settings = () => {
             icon: Zap,
             description: 'Sent when new features are added to the platform.',
             variables: ['{name}', '{feature_name}', '{feature_details}', '{link}']
+        },
+        {
+            id: 'inactivityAlert',
+            label: 'User Inactivity Alert (Last Login)',
+            icon: Clock,
+            description: 'Triggered when a user has not logged in for the configured number of days.',
+            variables: ['{name}', '{days_inactive}']
         }
     ];
 
@@ -1737,6 +1745,90 @@ const Settings = () => {
                                                                         </div>
                                                                     );
                                                                 })}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Custom configurations for Inactivity Alert */}
+                                                    {cat.id === 'inactivityAlert' && (
+                                                        <div className="bg-indigo-50/70 dark:bg-indigo-950/20 p-5 rounded-2xl border border-indigo-200 dark:border-indigo-900/40 space-y-4">
+                                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-100 dark:border-indigo-900/30 pb-3">
+                                                                <div>
+                                                                    <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                                                        <Clock className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                                                                        Inactivity Trigger Days Threshold
+                                                                    </h4>
+                                                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                                                        Specify how many days a user must be inactive since their last login before triggering this alert.
+                                                                    </p>
+                                                                </div>
+                                                                <a
+                                                                    href="/notifications"
+                                                                    className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 shrink-0 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-800 shadow-sm"
+                                                                >
+                                                                    <Zap className="w-3.5 h-3.5 text-amber-500" /> Open Automation Dashboard →
+                                                                </a>
+                                                            </div>
+
+                                                            {/* Number of Days Editbox + Presets */}
+                                                            <div className="space-y-2">
+                                                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
+                                                                    Number of Days Inactive (Editbox):
+                                                                </label>
+                                                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                                                                    <div className="relative flex-1">
+                                                                        <input
+                                                                            type="number"
+                                                                            min="1"
+                                                                            max="365"
+                                                                            value={formData.notificationTemplates.whatsapp?.inactivityAlert?.days ?? 7}
+                                                                            onChange={(e) => handleTemplateChange('whatsapp', 'inactivityAlert', 'days', Math.max(1, parseInt(e.target.value) || 1))}
+                                                                            className="w-full bg-white dark:bg-surface-dark border-2 border-indigo-500/40 focus:border-indigo-600 rounded-xl px-4 py-3 text-lg font-black text-slate-900 dark:text-white focus:outline-none"
+                                                                            placeholder="7"
+                                                                        />
+                                                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black uppercase text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2.5 py-1 rounded-md border border-indigo-200 dark:border-indigo-800">
+                                                                            Days
+                                                                        </span>
+                                                                    </div>
+
+                                                                    {/* Quick Presets */}
+                                                                    <div className="flex flex-wrap gap-1.5 shrink-0">
+                                                                        {[3, 7, 14, 21, 30, 60].map(d => (
+                                                                            <button
+                                                                                key={d}
+                                                                                type="button"
+                                                                                onClick={() => handleTemplateChange('whatsapp', 'inactivityAlert', 'days', d)}
+                                                                                className={`px-3 py-2.5 rounded-xl text-xs font-bold transition-all border ${
+                                                                                    (formData.notificationTemplates.whatsapp?.inactivityAlert?.days ?? 7) === d
+                                                                                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                                                                                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                                                                                }`}
+                                                                            >
+                                                                                {d}d
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                                                    If you enter <strong className="text-slate-800 dark:text-slate-200">7</strong>, users who haven't logged in for 7+ days trigger the template. If you enter <strong className="text-slate-800 dark:text-slate-200">14</strong>, it triggers after 14+ days.
+                                                                </p>
+                                                            </div>
+
+                                                            {/* Button Dynamic URL */}
+                                                            <div className="space-y-1.5 pt-2 border-t border-indigo-100 dark:border-indigo-900/30">
+                                                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
+                                                                    Button Dynamic URL Variable (Button {'{{1}}'}):
+                                                                </label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={formData.notificationTemplates.whatsapp?.inactivityAlert?.buttonUrl || 'login'}
+                                                                    onChange={(e) => handleTemplateChange('whatsapp', 'inactivityAlert', 'buttonUrl', e.target.value)}
+                                                                    placeholder="e.g. login or https://app.bluetick.com/login"
+                                                                    className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm font-mono text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                                                />
+                                                                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                                                    Injected as the dynamic URL parameter into your Meta WhatsApp template button variable <code>{'{{1}}'}</code>.
+                                                                </p>
                                                             </div>
                                                         </div>
                                                     )}

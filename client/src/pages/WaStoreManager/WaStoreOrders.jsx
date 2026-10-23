@@ -40,12 +40,142 @@ function formatDate(dateStr) {
     return new Date(dateStr).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
+// Simple amount to words converter (Indian Numbering System)
+const taxInWords = (amount) => {
+    const n = Math.round(Number(amount) || 0);
+    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+        'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+    if (n === 0) return 'Zero';
+    const toWords = (num) => {
+        if (num < 20) return ones[num];
+        if (num < 100) return tens[Math.floor(num / 10)] + (num % 10 ? ' ' + ones[num % 10] : '');
+        if (num < 1000) return ones[Math.floor(num / 100)] + ' Hundred' + (num % 100 ? ' ' + toWords(num % 100) : '');
+        if (num < 100000) return toWords(Math.floor(num / 1000)) + ' Thousand' + (num % 1000 ? ' ' + toWords(num % 1000) : '');
+        if (num < 10000000) return toWords(Math.floor(num / 100000)) + ' Lakh' + (num % 100000 ? ' ' + toWords(num % 100000) : '');
+        return toWords(Math.floor(num / 10000000)) + ' Crore' + (num % 10000000 ? ' ' + toWords(num % 10000000) : '');
+    };
+    return `Rupees ${toWords(n)}`;
+};
+
+/**
+ * Computes GST tax analysis grouped by slab rate.
+ * Handles inclusive/exclusive tax, proportional coupon discount, and intra vs inter-state tax splits.
+ */
+const computeGstBreakdown = (items, tc, discountAmount, orderTaxRate, orderTaxAmount, isInterState) => {
+    const isInclusive = !!tc.taxInclusive;
+    let totalGross = 0;
+
+    const processedItems = (items || []).map(item => {
+        const qty = parseInt(item.qty) || 1;
+        const price = parseFloat(item.price) || 0;
+        const gross = price * qty;
+        totalGross += gross;
+
+        let rate = 0;
+        if (item.taxRate !== null && item.taxRate !== undefined && item.taxRate !== '' && !isNaN(parseFloat(item.taxRate))) {
+            rate = parseFloat(item.taxRate);
+        } else if (orderTaxRate !== null && orderTaxRate !== undefined && orderTaxRate !== '' && !isNaN(parseFloat(orderTaxRate))) {
+            rate = parseFloat(orderTaxRate);
+        } else if (tc.rate !== null && tc.rate !== undefined && tc.rate !== '' && !isNaN(parseFloat(tc.rate))) {
+            rate = parseFloat(tc.rate);
+        }
+        return { item, qty, price, gross, rate };
+    });
+
+    const discAmt = parseFloat(discountAmount) || 0;
+    const discountRatio = (totalGross > 0 && discAmt > 0) ? Math.min(1, discAmt / totalGross) : 0;
+
+    const slabMap = {};
+
+    processedItems.forEach(({ gross, rate }) => {
+        let taxable = 0;
+        let tax = 0;
+        if (isInclusive) {
+            taxable = gross / (1 + rate / 100);
+            tax = gross - taxable;
+        } else {
+            taxable = gross;
+            tax = gross * (rate / 100);
+        }
+
+        if (discountRatio > 0) {
+            taxable = taxable * (1 - discountRatio);
+            tax = tax * (1 - discountRatio);
+        }
+
+        const rateKey = rate.toFixed(2);
+        if (!slabMap[rateKey]) {
+            slabMap[rateKey] = {
+                rate,
+                rateKey,
+                taxableAmount: 0,
+                taxAmount: 0
+            };
+        }
+        slabMap[rateKey].taxableAmount += taxable;
+        slabMap[rateKey].taxAmount += tax;
+    });
+
+    let slabs = Object.values(slabMap).sort((a, b) => a.rate - b.rate).map(s => {
+        let cgst = 0, sgst = 0, igst = 0;
+        if (isInterState) {
+            igst = s.taxAmount;
+        } else {
+            cgst = s.taxAmount / 2;
+            sgst = s.taxAmount / 2;
+        }
+        return {
+            rate: s.rate,
+            rateStr: `${s.rate}%`,
+            taxableAmount: s.taxableAmount,
+            taxAmount: s.taxAmount,
+            cgst,
+            sgst,
+            igst
+        };
+    });
+
+    // Fallback if no item had rate recorded but order had positive taxAmount
+    if ((slabs.length === 0 || slabs.every(s => s.taxAmount === 0)) && parseFloat(orderTaxAmount) > 0) {
+        const rate = parseFloat(orderTaxRate) || 0;
+        const taxAmt = parseFloat(orderTaxAmount) || 0;
+        const taxable = isInclusive ? (totalGross > 0 ? Math.max(0, totalGross - taxAmt) : 0) : (rate > 0 ? (taxAmt / (rate / 100)) : totalGross);
+        const cgst = isInterState ? 0 : taxAmt / 2;
+        const sgst = isInterState ? 0 : taxAmt / 2;
+        const igst = isInterState ? taxAmt : 0;
+        slabs = [{
+            rate,
+            rateStr: `${rate}%`,
+            taxableAmount: taxable,
+            taxAmount: taxAmt,
+            cgst,
+            sgst,
+            igst
+        }];
+    }
+
+    const totalTaxable = slabs.reduce((sum, s) => sum + s.taxableAmount, 0);
+    const totalTax = slabs.reduce((sum, s) => sum + s.taxAmount, 0);
+    const totalCgst = slabs.reduce((sum, s) => sum + s.cgst, 0);
+    const totalSgst = slabs.reduce((sum, s) => sum + s.sgst, 0);
+    const totalIgst = slabs.reduce((sum, s) => sum + s.igst, 0);
+
+    return {
+        slabs,
+        totalTaxable,
+        totalTax,
+        totalCgst,
+        totalSgst,
+        totalIgst
+    };
+};
+
 // ─── Order PDF Generator ──────────────────────────────────────────────────────
 export function downloadOrderReceiptPdf(order, store) {
     try {
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
-        const pageHeight = doc.internal.pageSize.getHeight();
 
         const getPdfCurrency = (code) => {
             const map = { USD: '$', EUR: '€', GBP: '£', INR: 'Rs.', AED: 'AED', SGD: 'S$', AUD: 'A$', CAD: 'C$' };
@@ -53,65 +183,137 @@ export function downloadOrderReceiptPdf(order, store) {
         };
         const cSym = getPdfCurrency(order.currency);
 
-        // 1. Header Background & Title
+        // ─── Tax / GST Helpers ───────────────────────────────────────────────────
+        const tc = store?.taxConfig || {};
+        const isGst = tc.type === 'gst' && tc.enabled;
+        const taxAmount = Number(order.taxAmount || order.taxTotal || 0);
+        const taxRate = Number(order.taxRate || 0);
+
+        // CGST/SGST vs IGST: compare seller state (from taxConfig) with buyer state
+        const sellerState = (tc.sellerState || '').toLowerCase().trim();
+        const buyerState = (() => {
+            const addr = order.customerAddress || '';
+            const beforePincode = addr.split(' - ')[0];
+            const parts = beforePincode.split(',');
+            return (parts[parts.length - 1]?.trim() || '').toLowerCase();
+        })();
+        const isInterState = isGst && sellerState && buyerState && sellerState !== buyerState;
+
+        // ─── Invoice type label ───────────────────────────────────────────────────
+        const invoiceLabel = isGst ? 'TAX INVOICE' : 'ORDER DETAILS';
+
+        // 1. Header Background & Store Details
         doc.setFillColor(79, 70, 229); // Indigo-600
-        doc.rect(0, 0, pageWidth, 45, 'F');
+        const sellerName = tc.sellerLegalName || store?.name || "Order Details";
+        let headerExtraLines = 0;
+        if (tc.sellerAddress) headerExtraLines += 1;
+        if (tc.sellerGstin || tc.sellerState || tc.sellerPan) headerExtraLines += 1;
+        const headerHeight = 24 + (headerExtraLines * 4);
+        doc.rect(0, 0, pageWidth, headerHeight, 'F');
 
         doc.setTextColor(255, 255, 255);
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(24);
-        doc.text(store?.name || "Order Details", 14, 28);
+        doc.setFontSize(13);
+        doc.text(sellerName, 14, 12);
 
-        doc.setFontSize(14);
         doc.setFont("helvetica", "normal");
-        doc.text("ORDER DETAILS", pageWidth - 14, 28, { align: "right" });
-
-        // 2. Info Sections
-        let currentY = 55;
-        doc.setTextColor(60, 60, 60);
-        doc.setFontSize(10);
-
-        // Left: Customer Details
-        doc.setFont("helvetica", "bold");
-        doc.text("Billed To:", 14, currentY);
-        doc.setFont("helvetica", "normal");
-        let leftY = currentY + 6;
-        if (order.customerName) { doc.text(order.customerName, 14, leftY); leftY += 5; }
-        if (order.customerPhone) { doc.text(`Phone: ${order.customerPhone}`, 14, leftY); leftY += 5; }
-        if (order.customerEmail) { doc.text(`Email: ${order.customerEmail}`, 14, leftY); leftY += 5; }
-        if (order.customerAddress) {
-            const splitAddress = doc.splitTextToSize(order.customerAddress, 85);
-            doc.text(splitAddress, 14, leftY);
-            leftY += (splitAddress.length * 5);
+        doc.setFontSize(7.5);
+        let hdrY = 17;
+        if (tc.sellerAddress) {
+            const splitHdrAddr = doc.splitTextToSize(tc.sellerAddress, pageWidth * 0.55);
+            doc.text(splitHdrAddr, 14, hdrY);
+            hdrY += (splitHdrAddr.length * 3.2);
         }
-        if (order.customerGstin) { doc.text(`GSTIN: ${order.customerGstin}`, 14, leftY); leftY += 5; }
+        let sellerMeta = [];
+        if (tc.sellerState) sellerMeta.push(tc.sellerState + (tc.sellerStateCode ? ` (${tc.sellerStateCode})` : ''));
+        if (tc.sellerGstin) sellerMeta.push(`GSTIN: ${tc.sellerGstin}`);
+        if (tc.sellerPan) sellerMeta.push(`PAN: ${tc.sellerPan}`);
+        if (sellerMeta.length > 0) {
+            doc.text(sellerMeta.join('  |  '), 14, hdrY);
+            hdrY += 3.2;
+        }
+
+        // Top-Right Header Title
+        doc.setFontSize(13);
+        doc.setFont("helvetica", "bold");
+        doc.text(invoiceLabel, pageWidth - 14, 13, { align: "right" });
+        if (isGst) {
+            doc.setFontSize(6.5);
+            doc.setFont("helvetica", "normal");
+            doc.text("ORIGINAL FOR RECIPIENT", pageWidth - 14, 18, { align: "right" });
+        }
+
+        // 2. Info Sections below header
+        let currentY = headerHeight + 5;
+        doc.setTextColor(60, 60, 60);
+        doc.setFontSize(8);
+
+        // Left: Customer / Billed To
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(79, 70, 229);
+        doc.text("BILL TO (BUYER DETAILS):", 14, currentY);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(60, 60, 60);
+        let leftY = currentY + 4;
+        if (order.customerName) { doc.setFont("helvetica", "bold"); doc.text(order.customerName, 14, leftY); doc.setFont("helvetica", "normal"); leftY += 3.8; }
+        if (order.customerCompany) { doc.text(order.customerCompany, 14, leftY); leftY += 3.5; }
+        if (order.customerAddress) {
+            const splitAddress = doc.splitTextToSize(order.customerAddress, pageWidth * 0.5 - 20);
+            doc.text(splitAddress, 14, leftY);
+            leftY += (splitAddress.length * 3.5);
+        }
+        if (order.customerGstin) { doc.setFont("helvetica", "bold"); doc.text(`GSTIN: ${order.customerGstin}`, 14, leftY); doc.setFont("helvetica", "normal"); leftY += 3.5; }
+        if (order.customerPhone || order.customerEmail) {
+            const contactParts = [];
+            if (order.customerPhone) contactParts.push(`Phone: ${order.customerPhone}`);
+            if (order.customerEmail) contactParts.push(`Email: ${order.customerEmail}`);
+            doc.text(contactParts.join('  |  '), 14, leftY);
+            leftY += 3.5;
+        }
 
         // Right: Order Details
         doc.setFont("helvetica", "bold");
-        doc.text("Order Details:", pageWidth - 90, currentY);
+        doc.setTextColor(79, 70, 229);
+        doc.text("INVOICE DETAILS:", pageWidth - 80, currentY);
         doc.setFont("helvetica", "normal");
-        let rightY = currentY + 6;
-        doc.text(`Order No: ${order.orderNumber}`, pageWidth - 90, rightY); rightY += 5;
-        doc.text(`Date: ${new Date(order.createdAt).toLocaleDateString()}`, pageWidth - 90, rightY); rightY += 5;
-        doc.text(`Status: ${order.status.charAt(0).toUpperCase() + order.status.slice(1)}`, pageWidth - 90, rightY); rightY += 5;
+        doc.setTextColor(60, 60, 60);
+        let rightY = currentY + 4;
+        doc.text(`Order No: ${order.orderNumber}`, pageWidth - 80, rightY); rightY += 3.6;
+        doc.text(`Date: ${new Date(order.createdAt).toLocaleDateString('en-IN')}`, pageWidth - 80, rightY); rightY += 3.6;
+        doc.text(`Status: ${order.status.charAt(0).toUpperCase() + order.status.slice(1)}`, pageWidth - 80, rightY); rightY += 3.6;
         if (order.paymentStatus) {
-            doc.text(`Payment: ${order.paymentStatus.toUpperCase()}`, pageWidth - 90, rightY); rightY += 5;
+            doc.text(`Payment: ${order.paymentStatus.toUpperCase()}`, pageWidth - 80, rightY); rightY += 3.6;
+        }
+        if (isGst) {
+            doc.text(`Place of Supply: ${buyerState || tc.sellerState || 'N/A'}`, pageWidth - 80, rightY); rightY += 3.6;
+            doc.text(`Type: ${isInterState ? 'Inter-State (IGST)' : 'Intra-State (CGST+SGST)'}`, pageWidth - 80, rightY); rightY += 3.6;
         }
         if (order.source) {
-            doc.text(`Source: ${order.source.toUpperCase()}`, pageWidth - 90, rightY); rightY += 5;
+            doc.text(`Source: ${order.source.toUpperCase()}`, pageWidth - 80, rightY); rightY += 3.6;
         }
 
-        currentY = Math.max(leftY, rightY) + 10;
+        currentY = Math.max(leftY, rightY) + 5;
 
         // 3. Items Table
-        const tableColumn = ["Item Description", "Qty", "Price", "Total"];
+        const tableColumn = ["#", "Item Description", isGst ? "GST %" : "Tax %", "Qty", "Price", "Total"];
         const tableRows = [];
 
-        (order.items || []).forEach(item => {
-            const itemTotal = parseFloat(item.price) * parseInt(item.qty);
+        (order.items || []).forEach((item, i) => {
+            const itemTotal = parseFloat(item.price) * parseInt(item.qty || 1);
+            let itemDesc = item.name;
+            if (item.selectedVariants && typeof item.selectedVariants === 'object') {
+                const vStr = Object.entries(item.selectedVariants).map(([k, v]) => `${k}: ${v}`).join(' | ');
+                if (vStr) itemDesc += `\n(${vStr})`;
+            }
+            const itemRate = (item.taxRate !== null && item.taxRate !== undefined && item.taxRate !== '' && !isNaN(parseFloat(item.taxRate)))
+                ? parseFloat(item.taxRate)
+                : (parseFloat(order.taxRate) || parseFloat(tc.rate) || 0);
+
             tableRows.push([
-                item.name,
-                item.qty.toString(),
+                String(i + 1),
+                itemDesc,
+                `${itemRate}%`,
+                (item.qty || 1).toString(),
                 `${cSym} ${Number(item.price).toFixed(2)}`,
                 `${cSym} ${itemTotal.toFixed(2)}`
             ]);
@@ -121,51 +323,142 @@ export function downloadOrderReceiptPdf(order, store) {
             startY: currentY,
             head: [tableColumn],
             body: tableRows,
+            showHead: 'everyPage',
             theme: 'striped',
-            headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold' },
-            styles: { fontSize: 10, cellPadding: 6 },
+            headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold', fontSize: 8, cellPadding: { top: 2, bottom: 2, left: 2.5, right: 2.5 } },
+            styles: { fontSize: 7.5, cellPadding: { top: 1.8, bottom: 1.8, left: 2.5, right: 2.5 } },
             columnStyles: {
-                0: { cellWidth: 'auto' },
-                1: { cellWidth: 20, halign: 'center' },
-                2: { cellWidth: 35, halign: 'right' },
-                3: { cellWidth: 35, halign: 'right' },
+                0: { cellWidth: 10, halign: 'center' },
+                1: { cellWidth: 'auto' },
+                2: { cellWidth: 16, halign: 'center' },
+                3: { cellWidth: 14, halign: 'center' },
+                4: { cellWidth: 26, halign: 'right' },
+                5: { cellWidth: 26, halign: 'right' },
             }
         });
 
-        let finalY = doc.lastAutoTable.finalY + 15;
+        let finalY = doc.lastAutoTable.finalY + 6;
 
-        // 4. Totals Summary Box
-        const boxWidth = 90;
-        const boxX = pageWidth - boxWidth - 14;
+        // 4. Multi-Slab GST Analysis (Left Side) & Totals Summary Box (Right Side)
+        const gstAnalysis = computeGstBreakdown(
+            order.items,
+            tc,
+            order.discountAmount,
+            taxRate,
+            taxAmount,
+            isInterState
+        );
 
-        const taxAmount = Number(order.taxAmount || order.taxTotal || 0);
-        let shippingCost = Number(order.total) - Number(order.subtotal);
-        if (shippingCost < 0 || isNaN(shippingCost)) shippingCost = 0;
+        const finalTotalTax = (gstAnalysis && gstAnalysis.totalTax > 0)
+            ? gstAnalysis.totalTax
+            : taxAmount;
 
-        // Calculate height for totals box
+        let shippingCost = Number(order.shippingCost || 0);
+        if (!shippingCost) {
+            shippingCost = Number(order.total) - Number(order.subtotal) - taxAmount;
+            if (shippingCost < 0 || isNaN(shippingCost)) shippingCost = 0;
+        }
+
         let numTotalLines = 1; // subtotal
         if (order.couponCode && parseFloat(order.discountAmount) > 0) numTotalLines++;
-        if (taxAmount > 0) numTotalLines++;
+        numTotalLines++; // Total GST / Tax line
         if (shippingCost > 0) numTotalLines++;
 
-        const boxHeight = (numTotalLines * 8) + 18;
+        const boxWidth = 72;
+        const boxX = pageWidth - boxWidth - 14;
+        const boxHeight = (numTotalLines * 5.2) + 16;
+        const neededBottomHeight = Math.max((isGst && gstAnalysis.slabs.length > 0 ? (16 + gstAnalysis.slabs.length * 4) : 0), boxHeight) + 18;
 
-        // Draw Box
-        doc.setFillColor(248, 250, 252); // slate-50
-        doc.setDrawColor(226, 232, 240); // slate-200
-        doc.roundedRect(boxX, finalY - 6, boxWidth, boxHeight, 3, 3, 'FD');
+        if (finalY + neededBottomHeight > 275) {
+            doc.addPage();
+            finalY = 16;
+            // Continuation header on Page 2
+            doc.setFillColor(79, 70, 229);
+            doc.rect(0, 0, pageWidth, 9, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(8);
+            doc.setFont("helvetica", "bold");
+            doc.text(`${sellerName} — ${invoiceLabel} #${order.orderNumber} (Continued)`, 14, 6.2);
+            finalY = 16;
+        }
+
+        let gstTableFinalY = finalY;
+
+        // Render Left Side: GST Analysis Table (if GST is enabled and slabs exist)
+        if (isGst && gstAnalysis.slabs.length > 0) {
+            doc.setFontSize(7.5);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(79, 70, 229);
+            doc.text("TAX ANALYSIS / GST BREAKDOWN", 14, finalY + 3.5);
+
+            const gstTableHead = isInterState
+                ? [["GST Rate", "Taxable Val", "IGST Amt", "Total Tax"]]
+                : [["GST Rate", "Taxable Val", "CGST", "SGST", "Total Tax"]];
+
+            const gstTableRows = gstAnalysis.slabs.map(s => (
+                isInterState
+                    ? [s.rateStr, `${cSym} ${s.taxableAmount.toFixed(2)}`, `${cSym} ${s.igst.toFixed(2)}`, `${cSym} ${s.taxAmount.toFixed(2)}`]
+                    : [s.rateStr, `${cSym} ${s.taxableAmount.toFixed(2)}`, `${cSym} ${s.cgst.toFixed(2)}`, `${cSym} ${s.sgst.toFixed(2)}`, `${cSym} ${s.taxAmount.toFixed(2)}`]
+            ));
+
+            // Total row
+            gstTableRows.push(
+                isInterState
+                    ? ["Total", `${cSym} ${gstAnalysis.totalTaxable.toFixed(2)}`, `${cSym} ${gstAnalysis.totalIgst.toFixed(2)}`, `${cSym} ${gstAnalysis.totalTax.toFixed(2)}`]
+                    : ["Total", `${cSym} ${gstAnalysis.totalTaxable.toFixed(2)}`, `${cSym} ${gstAnalysis.totalCgst.toFixed(2)}`, `${cSym} ${gstAnalysis.totalSgst.toFixed(2)}`, `${cSym} ${gstAnalysis.totalTax.toFixed(2)}`]
+            );
+
+            autoTable(doc, {
+                startY: finalY + 5,
+                margin: { left: 14 },
+                tableWidth: 104,
+                head: gstTableHead,
+                body: gstTableRows,
+                theme: 'grid',
+                headStyles: { fillColor: [241, 245, 249], textColor: [30, 41, 59], fontStyle: 'bold', fontSize: 6.8, cellPadding: { top: 1.5, bottom: 1.5, left: 2, right: 2 } },
+                styles: { fontSize: 6.8, cellPadding: { top: 1.5, bottom: 1.5, left: 2, right: 2 }, textColor: [30, 41, 59] },
+                columnStyles: isInterState ? {
+                    0: { halign: 'center', cellWidth: 20 },
+                    1: { halign: 'right', cellWidth: 28 },
+                    2: { halign: 'right', cellWidth: 28 },
+                    3: { halign: 'right', cellWidth: 28 }
+                } : {
+                    0: { halign: 'center', cellWidth: 18 },
+                    1: { halign: 'right', cellWidth: 23 },
+                    2: { halign: 'right', cellWidth: 21 },
+                    3: { halign: 'right', cellWidth: 21 },
+                    4: { halign: 'right', cellWidth: 21 }
+                },
+                didParseCell: (data) => {
+                    // Make last total row bold
+                    if (data.row.index === gstTableRows.length - 1) {
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.fillColor = [241, 245, 249];
+                    }
+                }
+            });
+
+            gstTableFinalY = doc.lastAutoTable.finalY;
+        }
+
+        // Render Right Side: Totals Summary Box
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(226, 232, 240);
+        doc.roundedRect(boxX, finalY, boxWidth, boxHeight, 2, 2, 'FD');
 
         doc.setTextColor(60, 60, 60);
         doc.setFont("helvetica", "normal");
+        doc.setFontSize(7.5);
 
-        const rightAlignX = boxX + boxWidth - 6;
-        const leftAlignX = boxX + 6;
-        let currentBoxY = finalY + 2;
+        const rightAlignX = boxX + boxWidth - 4;
+        const leftAlignX = boxX + 4;
+        let currentBoxY = finalY + 4.5;
 
         // Subtotal
-        doc.text("Subtotal:", leftAlignX, currentBoxY);
+        const subtotalLabel = tc.taxInclusive ? "Subtotal (Incl. Tax):" : "Subtotal:";
+        doc.text(subtotalLabel, leftAlignX, currentBoxY);
         doc.text(`${cSym} ${Number(order.originalTotal || order.subtotal).toFixed(2)}`, rightAlignX, currentBoxY, { align: "right" });
-        currentBoxY += 8;
+        currentBoxY += 5.2;
 
         // Discount
         if (order.couponCode && parseFloat(order.discountAmount) > 0) {
@@ -173,55 +466,100 @@ export function downloadOrderReceiptPdf(order, store) {
             doc.text(`Discount (${order.couponCode}):`, leftAlignX, currentBoxY);
             doc.text(`-${cSym} ${Number(order.discountAmount).toFixed(2)}`, rightAlignX, currentBoxY, { align: "right" });
             doc.setTextColor(60, 60, 60);
-            currentBoxY += 8;
+            currentBoxY += 5.2;
         }
 
-        // Tax
-        if (taxAmount > 0) {
-            doc.text(`Tax (${order.taxName || 'Est.'}):`, leftAlignX, currentBoxY);
-            doc.text(`${cSym} ${taxAmount.toFixed(2)}`, rightAlignX, currentBoxY, { align: "right" });
-            currentBoxY += 8;
+        // Total GST (Right side total GST across all slabs)
+        if (finalTotalTax > 0) {
+            const taxLabel = isGst ? (tc.taxInclusive ? "Total GST (Incl.):" : "Total GST:") : (order.taxName || "Tax:");
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(30, 41, 59);
+            doc.text(taxLabel, leftAlignX, currentBoxY);
+            doc.text(`${cSym} ${finalTotalTax.toFixed(2)}`, rightAlignX, currentBoxY, { align: "right" });
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(60, 60, 60);
+            currentBoxY += 5.2;
+        } else {
+            doc.text("Tax:", leftAlignX, currentBoxY);
+            doc.text("N/A", rightAlignX, currentBoxY, { align: "right" });
+            currentBoxY += 5.2;
         }
 
         // Shipping
         if (shippingCost > 0) {
             doc.text("Shipping:", leftAlignX, currentBoxY);
             doc.text(`${cSym} ${shippingCost.toFixed(2)}`, rightAlignX, currentBoxY, { align: "right" });
-            currentBoxY += 8;
+            currentBoxY += 5.2;
         }
 
         // Divider
-        doc.setDrawColor(203, 213, 225); // slate-300
-        doc.line(leftAlignX, currentBoxY - 3, rightAlignX, currentBoxY - 3);
+        doc.setDrawColor(203, 213, 225);
+        doc.line(leftAlignX, currentBoxY - 1.5, rightAlignX, currentBoxY - 1.5);
 
         // Grand Total
-        doc.setFontSize(12);
+        doc.setFontSize(9.5);
         doc.setFont("helvetica", "bold");
-        doc.setTextColor(15, 23, 42); // slate-900
-        doc.text("Total:", leftAlignX, currentBoxY + 5);
-        doc.setTextColor(79, 70, 229); // Indigo-600
-        doc.text(`${cSym} ${Number(order.total).toFixed(2)}`, rightAlignX, currentBoxY + 5, { align: "right" });
+        doc.setTextColor(15, 23, 42);
+        doc.text("Total:", leftAlignX, currentBoxY + 3.8);
+        doc.setTextColor(79, 70, 229);
+        doc.text(`${cSym} ${Number(order.total).toFixed(2)}`, rightAlignX, currentBoxY + 3.8, { align: "right" });
 
-        // 5. Notes & Footer
-        let afterBoxY = finalY + boxHeight + 10;
+        const totalsBoxFinalY = currentBoxY + 7;
+        let afterBoxY = Math.max(gstTableFinalY, totalsBoxFinalY) + 5;
+
+        // 5. In Words & GST Declaration
+        if (finalTotalTax > 0) {
+            doc.setFontSize(7.5);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(51, 65, 85);
+            doc.text(`Amount Chargeable (in words): ${taxInWords(order.total)} Only`, 14, afterBoxY);
+            afterBoxY += 3.8;
+            doc.setFont("helvetica", "italic");
+            doc.setTextColor(100, 116, 139);
+            doc.text(`Tax Amount (in words): ${taxInWords(finalTotalTax)} Only`, 14, afterBoxY);
+            afterBoxY += 3.8;
+        } else {
+            doc.setFontSize(7.5);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(51, 65, 85);
+            doc.text(`Amount Chargeable (in words): ${taxInWords(order.total)} Only`, 14, afterBoxY);
+            afterBoxY += 3.8;
+        }
+
+        // 6. Notes (if any)
         if (order.customerNote) {
-            doc.setFontSize(10);
+            doc.setFontSize(7.5);
             doc.setFont("helvetica", "bold");
             doc.setTextColor(60, 60, 60);
             doc.text("Customer Note:", 14, afterBoxY);
             doc.setFont("helvetica", "italic");
             const splitNotes = doc.splitTextToSize(order.customerNote, pageWidth - 28);
-            doc.text(splitNotes, 14, afterBoxY + 6);
+            doc.text(splitNotes, 14, afterBoxY + 3.8);
+            afterBoxY += (splitNotes.length * 3.5) + 2;
         }
 
-        doc.save(`Order_${order.orderNumber}.pdf`);
+        // 7. Multi-page Running Footer on ALL pages
+        const totalPages = doc.internal.getNumberOfPages();
+        for (let p = 1; p <= totalPages; p++) {
+            doc.setPage(p);
+            doc.setDrawColor(226, 232, 240);
+            doc.line(14, 287, pageWidth - 14, 287);
+            doc.setFontSize(7);
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(148, 163, 184);
+            doc.text("This is a computer-generated tax invoice and does not require a signature.", 14, 291);
+            doc.text(`Page ${p} of ${totalPages}`, pageWidth - 14, 291, { align: "right" });
+        }
+
+        doc.save(`Invoice_${order.orderNumber}.pdf`);
         return true;
     } catch (error) {
         console.error("PDF Generation Error:", error);
-        toast.error("Failed to generate Order PDF");
+        toast.error("Failed to generate Invoice PDF");
         return false;
     }
 }
+
 
 // ─── Order Detail Modal ───────────────────────────────────────────────────────
 function OrderDetailModal({ order, storeId, store, onClose, onUpdate }) {
@@ -334,7 +672,7 @@ function OrderDetailModal({ order, storeId, store, onClose, onUpdate }) {
                             <Printer className="w-4 h-4" /> <span className="hidden sm:inline">Shipping Label</span><span className="sm:hidden">Label</span>
                         </button>
                         <button onClick={downloadOrderPDF} className="px-3 py-1.5 sm:px-4 sm:py-2 text-sm font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors flex items-center gap-1.5 sm:gap-2 shadow-sm whitespace-nowrap">
-                            <Download className="w-4 h-4" /> <span className="hidden sm:inline">Order Receipt</span><span className="sm:hidden">Receipt</span>
+                            <Download className="w-4 h-4" /> <span className="hidden sm:inline">{store?.taxConfig?.type === 'gst' && store?.taxConfig?.enabled ? 'Tax Invoice' : 'Order Receipt'}</span><span className="sm:hidden">Invoice</span>
                         </button>
                         <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors ml-1" title="Close">
                             <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
@@ -411,7 +749,19 @@ function OrderDetailModal({ order, storeId, store, onClose, onUpdate }) {
                                             )}
                                             <div className="flex-1 min-w-0">
                                                 <p className="font-bold text-base text-slate-900 dark:text-white truncate">{item.name}</p>
-                                                <p className="text-sm text-slate-500">{sym(order.currency)} {Number(item.price).toFixed(2)}</p>
+                                                {item.selectedVariants && typeof item.selectedVariants === 'object' && (
+                                                    <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium mt-0.5">
+                                                        {Object.entries(item.selectedVariants).map(([k, v]) => `${k}: ${v}`).join(' | ')}
+                                                    </p>
+                                                )}
+                                                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                                    <p className="text-sm text-slate-500">{sym(order.currency)} {Number(item.price).toFixed(2)}</p>
+                                                    {item.taxRate !== undefined && item.taxRate !== null && item.taxRate !== '' && (
+                                                        <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                                            GST {parseFloat(item.taxRate)}%
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                             <div className="text-center px-4 border-l border-r border-slate-100 dark:border-white/10">
                                                 <p className="text-xs text-slate-400">Qty</p>
@@ -436,18 +786,79 @@ function OrderDetailModal({ order, storeId, store, onClose, onUpdate }) {
                                             <span>− {sym(order.currency)} {Number(order.discountAmount).toFixed(2)}</span>
                                         </div>
                                     )}
-                                    {Number(order.taxAmount) > 0 && (
-                                        <div className="flex justify-between items-center text-sm text-slate-500">
-                                            <span>Tax ({order.taxName || 'Estimated'}):</span>
-                                            <span>{sym(order.currency)} {Number(order.taxAmount).toFixed(2)}</span>
-                                        </div>
-                                    )}
-                                    {(Number(order.total) || Number(order.subtotal)) > Number(order.subtotal) && (
-                                        <div className="flex justify-between items-center text-sm text-slate-500">
-                                            <span>Shipping:</span>
-                                            <span>{sym(order.currency)} {((Number(order.total) || Number(order.subtotal)) - Number(order.subtotal)).toFixed(2)}</span>
-                                        </div>
-                                    )}
+                                    {/* GST-compliant tax display: show multi-slab or single breakdown */}
+                                    {Number(order.taxAmount) > 0 && (() => {
+                                        const isGstOrder = store?.taxConfig?.type === 'gst' && store?.taxConfig?.enabled;
+                                        const taxAmt = Number(order.taxAmount);
+                                        const sellerSt = (store?.taxConfig?.sellerState || '').toLowerCase();
+                                        const addr = order.customerAddress || '';
+                                        const buyerSt = (addr.split(' - ')[0].split(',').pop()?.trim() || '').toLowerCase();
+                                        const interState = sellerSt && buyerSt && sellerSt !== buyerSt;
+
+                                        if (isGstOrder) {
+                                            const modalGst = computeGstBreakdown(order.items, store?.taxConfig || {}, order.discountAmount, order.taxRate, taxAmt, interState);
+                                            if (modalGst.slabs.length > 1) {
+                                                return (
+                                                    <div className="space-y-1.5 py-1">
+                                                        <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">GST Breakdown by Tax Slab:</p>
+                                                        {modalGst.slabs.map(s => (
+                                                            <div key={s.rateStr} className="flex justify-between items-center text-xs text-slate-600 dark:text-slate-400 pl-2 border-l-2 border-indigo-300 dark:border-indigo-700">
+                                                                <span>GST @ {s.rateStr} (Taxable: {sym(order.currency)} {s.taxableAmount.toFixed(2)}):</span>
+                                                                <span>
+                                                                    {interState
+                                                                        ? `IGST: ${sym(order.currency)} ${s.igst.toFixed(2)}`
+                                                                        : `CGST: ${sym(order.currency)} ${s.cgst.toFixed(2)} + SGST: ${sym(order.currency)} ${s.sgst.toFixed(2)}`}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                        <div className="flex justify-between items-center text-sm font-semibold text-slate-700 dark:text-slate-300 pt-1 border-t border-slate-200/60 dark:border-white/5">
+                                                            <span>Total GST:</span>
+                                                            <span>{sym(order.currency)} {modalGst.totalTax.toFixed(2)}</span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            } else if (modalGst.slabs.length === 1) {
+                                                const s = modalGst.slabs[0];
+                                                if (interState) {
+                                                    return (
+                                                        <div className="flex justify-between items-center text-sm text-slate-500">
+                                                            <span>IGST ({s.rateStr}):</span>
+                                                            <span>{sym(order.currency)} {s.igst.toFixed(2)}</span>
+                                                        </div>
+                                                    );
+                                                } else {
+                                                    return (
+                                                        <>
+                                                            <div className="flex justify-between items-center text-sm text-slate-500">
+                                                                <span>CGST ({s.rate / 2}%):</span>
+                                                                <span>{sym(order.currency)} {s.cgst.toFixed(2)}</span>
+                                                            </div>
+                                                            <div className="flex justify-between items-center text-sm text-slate-500">
+                                                                <span>SGST ({s.rate / 2}%):</span>
+                                                                <span>{sym(order.currency)} {s.sgst.toFixed(2)}</span>
+                                                            </div>
+                                                        </>
+                                                    );
+                                                }
+                                            }
+                                        }
+                                        return (
+                                            <div className="flex justify-between items-center text-sm text-slate-500">
+                                                <span>Tax ({order.taxName || 'Estimated'}):</span>
+                                                <span>{sym(order.currency)} {taxAmt.toFixed(2)}</span>
+                                            </div>
+                                        );
+                                    })()}
+                                    {/* Shipping: total - subtotal - taxAmount */}
+                                    {(() => {
+                                        const shipping = Number(order.total || order.subtotal) - Number(order.subtotal) - Number(order.taxAmount || 0);
+                                        return shipping > 0.01 ? (
+                                            <div className="flex justify-between items-center text-sm text-slate-500">
+                                                <span>Shipping:</span>
+                                                <span>{sym(order.currency)} {shipping.toFixed(2)}</span>
+                                            </div>
+                                        ) : null;
+                                    })()}
                                     <div className="flex justify-between items-center pt-2 mt-2 border-t border-slate-200 dark:border-white/10">
                                         <span className="font-bold text-slate-700 dark:text-slate-300">Order Total:</span>
                                         <span className="font-black text-xl text-indigo-600 dark:text-indigo-400">{sym(order.currency)} {Number(order.total || order.subtotal).toFixed(2)}</span>

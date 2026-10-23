@@ -212,11 +212,11 @@ export default function WaStoreHeader({
                             <div className={`flex items-center ${headerDisplayMode === 'both' ? 'gap-3' : ''}`}>
                                 {showLogo && (
                                     <img
-                                        src={cdnImg(imgUrl(store.logo), { width: 268 })}
-                                        srcSet={`${cdnImg(imgUrl(store.logo), { width: 180 })} 180w, ${cdnImg(imgUrl(store.logo), { width: 268 })} 268w`}
-                                        sizes="(max-width: 640px) 180px, 268px"
+                                        src={cdnImg(imgUrl(store.logo), { width: 400 })}
+                                        srcSet={`${cdnImg(imgUrl(store.logo), { width: 240 })} 240w, ${cdnImg(imgUrl(store.logo), { width: 480 })} 480w`}
+                                        sizes="(max-width: 640px) 240px, 480px"
                                         alt={store.name}
-                                        className="h-12 max-w-[180px] object-contain"
+                                        className="h-12 sm:h-14 md:h-16 max-w-[200px] sm:max-w-[240px] md:max-w-[280px] object-contain"
                                         onError={e => e.target.style.display = 'none'}
                                     />
                                 )}
@@ -280,11 +280,11 @@ export default function WaStoreHeader({
                             <div className={`flex items-center ${headerDisplayMode === 'both' ? 'gap-3' : ''} cursor-pointer`} onClick={() => navigate(getStoreRoute(slug))}>
                                 {showLogo && (
                                     <img
-                                        src={cdnImg(imgUrl(store.logo), { width: 268 })}
-                                        srcSet={`${cdnImg(imgUrl(store.logo), { width: 180 })} 180w, ${cdnImg(imgUrl(store.logo), { width: 268 })} 268w`}
-                                        sizes="(max-width: 640px) 180px, 268px"
+                                        src={cdnImg(imgUrl(store.logo), { width: 400 })}
+                                        srcSet={`${cdnImg(imgUrl(store.logo), { width: 240 })} 240w, ${cdnImg(imgUrl(store.logo), { width: 480 })} 480w`}
+                                        sizes="(max-width: 640px) 240px, 480px"
                                         alt={store.name}
-                                        className="w-auto h-10 md:h-12 object-contain"
+                                        className="w-auto h-12 sm:h-14 md:h-16 max-w-[200px] sm:max-w-[240px] md:max-w-[280px] object-contain"
                                         onError={e => e.target.style.display = 'none'}
                                     />
                                 )}
@@ -431,11 +431,11 @@ export default function WaStoreHeader({
                             <div className={`flex items-center ${headerDisplayMode === 'both' ? 'gap-3' : ''} cursor-pointer group`} onClick={() => navigate(getStoreRoute(slug))}>
                                 {showLogo && (
                                     <img
-                                        src={cdnImg(imgUrl(store.logo), { width: 268 })}
-                                        srcSet={`${cdnImg(imgUrl(store.logo), { width: 180 })} 180w, ${cdnImg(imgUrl(store.logo), { width: 268 })} 268w`}
-                                        sizes="(max-width: 640px) 180px, 268px"
+                                        src={cdnImg(imgUrl(store.logo), { width: 400 })}
+                                        srcSet={`${cdnImg(imgUrl(store.logo), { width: 240 })} 240w, ${cdnImg(imgUrl(store.logo), { width: 480 })} 480w`}
+                                        sizes="(max-width: 640px) 240px, 480px"
                                         alt={store.name}
-                                        className="w-auto h-10 sm:h-12 md:h-14 object-contain rounded-lg"
+                                        className="w-auto h-12 sm:h-14 md:h-16 max-w-[200px] sm:max-w-[240px] md:max-w-[280px] object-contain rounded-lg"
                                         onError={e => e.target.style.display = 'none'}
                                     />
                                 )}
@@ -535,11 +535,11 @@ export default function WaStoreHeader({
                             <div className={`flex items-center ${headerDisplayMode === 'both' ? 'gap-3' : ''} cursor-pointer`} onClick={() => navigate(getStoreRoute(slug))}>
                                 {showLogo && (
                                     <img
-                                        src={cdnImg(imgUrl(store.logo), { width: 268 })}
-                                        srcSet={`${cdnImg(imgUrl(store.logo), { width: 180 })} 180w, ${cdnImg(imgUrl(store.logo), { width: 268 })} 268w`}
-                                        sizes="(max-width: 640px) 180px, 268px"
+                                        src={cdnImg(imgUrl(store.logo), { width: 400 })}
+                                        srcSet={`${cdnImg(imgUrl(store.logo), { width: 240 })} 240w, ${cdnImg(imgUrl(store.logo), { width: 480 })} 480w`}
+                                        sizes="(max-width: 640px) 240px, 480px"
                                         alt={store.name}
-                                        className="w-auto h-10 md:h-12 object-contain rounded-md"
+                                        className="w-auto h-12 sm:h-14 md:h-16 max-w-[200px] sm:max-w-[240px] md:max-w-[280px] object-contain rounded-md"
                                         onError={e => e.target.style.display = 'none'}
                                     />
                                 )}
@@ -780,7 +780,7 @@ export default function WaStoreHeader({
                                 <div className="flex-1"></div>
                                 <div className="flex flex-col items-center text-center shrink-0">
                                     {showLogo && (
-                                        <img src={imgUrl(store.logo)} alt={store.name} className="h-10 max-w-[150px] object-contain mb-0.5" />
+                                        <img src={imgUrl(store.logo)} alt={store.name} className="h-12 sm:h-14 max-w-[200px] object-contain mb-1" />
                                     )}
                                     {showName && (
                                         <span className={`font-bold text-lg tracking-tight ${theme.headerLogo?.replace('hidden', '')}`}>{store.name}</span>

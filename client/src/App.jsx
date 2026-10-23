@@ -12,6 +12,7 @@ import { SocketProvider } from './context/SocketContext';
 import Layout from './components/Layout';
 import { PaymentRedirectHandler } from './components/PaymentRedirectHandler';
 import { StoreCustomerProvider } from './context/StoreCustomerContext';
+import { isPlatformDomain } from './utils/platformDomain';
 
 // ── Code-Split Pages (React.lazy) ──────────────────────────────────────────
 // Each page loads as a separate JS chunk (~20-150KB) only when navigated to.
@@ -338,8 +339,10 @@ function CustomDomainRouter({ children }) {
 
     useEffect(() => {
         const hostname = window.location.hostname;
-        // Ignore local development domains and the main SaaS platform domain
-        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === 'whatsapp-cloud.com' || hostname === 'bluetick.cloud' || hostname === 'www.bluetick.cloud' || hostname.includes('ngrok.io')) {
+        // Detect platform domains dynamically from VITE_API_URL — no hardcoded names.
+        // isPlatformDomain() returns true for: localhost, raw IPs, any subdomain of your
+        // root domain (derived from VITE_API_URL), ngrok, railway, and coolify previews.
+        if (isPlatformDomain(hostname)) {
             setLoading(false);
             return;
         }

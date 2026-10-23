@@ -597,6 +597,23 @@ function initScheduler() {
             console.error('[SCHEDULER] Retry processor error:', err.message);
         }
     }, 30 * 60 * 1000); // Every 30 minutes
+
+    // ==========================================
+    // ⏰ USER INACTIVITY NOTIFICATIONS (Runs every 1 hour)
+    // Checks users whose last login (or createdAt) is older than set days,
+    // and sends the configured WhatsApp template message.
+    // ==========================================
+    setInterval(async () => {
+        try {
+            const { processInactivityNotifications } = require('./inactivityNotifier');
+            const res = await processInactivityNotifications({ force: false });
+            if (res && res.sentCount > 0) {
+                console.log(`[INACTIVITY] Sent ${res.sentCount} inactivity template alert(s).`);
+            }
+        } catch (err) {
+            console.error('[INACTIVITY] Scheduler error:', err.message);
+        }
+    }, 60 * 60 * 1000); // Every 1 hour
 }
 
 module.exports = { initScheduler };

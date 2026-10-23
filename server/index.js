@@ -293,6 +293,10 @@ app.use('/api/auto-tag-rules', require('./routes/autoTagRules')); // Auto-Taggin
 // Webhook for Meta WhatsApp pushes
 app.use('/api/webhook', require('./routes/webhook')); // NEW
 
+// Swagger Interactive API Documentation
+app.use('/swagger', require('./routes/swagger'));
+app.use('/api/swagger', require('./routes/swagger'));
+
 // Public pages (Privacy Policy, Terms) — no auth required, for Meta App Live Mode
 app.use('/', require('./routes/privacy'));
 
@@ -751,6 +755,8 @@ const startServer = async () => {
         try { await sequelize.query(`ALTER TABLE "WaProducts" ADD COLUMN IF NOT EXISTS "subCategories" JSON DEFAULT '[]';`); } catch(e) { /* already exists — ignore */ }
         try { await sequelize.query(`ALTER TABLE "WaProducts" ADD COLUMN IF NOT EXISTS "isTrending" BOOLEAN DEFAULT false;`); } catch(e) { /* already exists — ignore */ }
         try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN IF NOT EXISTS "shoppableVideosAutoSlide" BOOLEAN DEFAULT false;`); } catch(e) { /* already exists — ignore */ }
+        try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN IF NOT EXISTS "pincode" VARCHAR(255) DEFAULT NULL;`); } catch(e) { /* already exists — ignore */ }
+        try { await sequelize.query(`ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "lastInactivityAlertSentAt" TIMESTAMP WITH TIME ZONE DEFAULT NULL;`); } catch(e) { /* already exists — ignore */ }
 
         await sequelize.sync({ alter: { drop: false } }); // Sync models — never drop constraints/columns
         console.log('Database synced.');

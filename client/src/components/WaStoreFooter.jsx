@@ -74,6 +74,7 @@ export default function WaStoreFooter({ store, theme }) {
                                     {store.address}
                                     {store.city && `, ${store.city}`}
                                     {store.state && `, ${store.state}`}
+                                    {store.pincode && ` - ${store.pincode}`}
                                     {store.country && `, ${store.country}`}
                                 </p>
                             </div>

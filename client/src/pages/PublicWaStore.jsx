@@ -1041,8 +1041,8 @@ export default function PublicWaStore({ customSlug }) {
                                             </div>
                                             <div className="relative z-10 max-w-4xl mx-auto space-y-4">
                                                 {store.logo && (
-                                                    <div className="inline-block p-1 rounded-2xl bg-white/80 dark:bg-zinc-800/80 shadow-md backdrop-blur-md mb-2">
-                                                        <img src={imgUrl(store.logo)} alt={store.name} className="w-16 h-16 rounded-xl object-contain" />
+                                                    <div className="inline-block p-1.5 rounded-2xl bg-white/80 dark:bg-zinc-800/80 shadow-md backdrop-blur-md mb-2">
+                                                        <img src={imgUrl(store.logo)} alt={store.name} className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-2xl object-contain" />
                                                     </div>
                                                 )}
                                                 <h1 className={`text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight ${theme.headerLogo}`}>{store.name}</h1>
@@ -1466,10 +1466,17 @@ export default function PublicWaStore({ customSlug }) {
                                             </span>
                                         </div>
                                     )}
-                                    {store?.taxConfig?.enabled && store.taxConfig.taxInclusive === false && estimatedTax > 0 && (
+                                    {store?.taxConfig?.enabled && store.taxConfig.taxInclusive === false && (
                                         <div className="flex justify-between items-center mb-2">
-                                            <span className={theme.textMuted}>Estimated Tax</span>
-                                            <span className={`text-lg font-bold ${theme.text}`}>{getCurrencySymbol(store.currency)}{estimatedTax.toFixed(2)}</span>
+                                            <span className={theme.textMuted}>
+                                                {store.taxConfig.type === 'gst' ? 'GST' : store.taxConfig.type === 'vat' ? 'VAT' : 'Tax'}
+                                                {store.taxConfig.rate ? ` (${store.taxConfig.rate}%)` : ''}
+                                            </span>
+                                            {estimatedTax > 0 ? (
+                                                <span className={`text-lg font-bold ${theme.text}`}>{getCurrencySymbol(store.currency)}{estimatedTax.toFixed(2)}</span>
+                                            ) : (
+                                                <span className="text-sm text-amber-600 dark:text-amber-400 font-medium">Added at checkout</span>
+                                            )}
                                         </div>
                                     )}
                                     <div className="flex justify-between items-center mb-6 pt-2 border-t border-black/5 dark:border-white/10">

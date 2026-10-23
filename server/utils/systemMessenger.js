@@ -34,10 +34,16 @@ const EVENT_VARIABLE_MAP = {
 async function sendSystemMessage(toPhone, type, content) {
     try {
         const config = await SystemConfig.getCachedConfig();
-        const linkedAdminId = config?.settings?.linkedAdminUserId;
+        let linkedAdminId = config?.settings?.linkedAdminUserId;
 
         if (!linkedAdminId) {
-            console.warn('[SystemMessenger] No linkedAdminUserId configured. Cannot send system message.');
+            const User = require('../models/User');
+            const adminUser = await User.findOne({ where: { isAdmin: true } });
+            linkedAdminId = adminUser?.id;
+        }
+
+        if (!linkedAdminId) {
+            console.warn('[SystemMessenger] No linkedAdminUserId or admin user found. Cannot send system message.');
             return false;
         }
 

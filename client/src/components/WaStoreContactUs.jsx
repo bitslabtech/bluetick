@@ -33,6 +33,7 @@ export default function WaStoreContactUs({ store, theme }) {
     let fullAddress = store.address || '';
     if (store.city) fullAddress += (fullAddress ? ', ' : '') + store.city;
     if (store.state) fullAddress += (fullAddress ? ', ' : '') + store.state;
+    if (store.pincode) fullAddress += (fullAddress ? ' - ' : '') + store.pincode;
     if (store.country) fullAddress += (fullAddress ? ', ' : '') + store.country;
 
     const hasAnyContact = store.whatsappNumber || store.phone || store.email || fullAddress;

@@ -194,8 +194,19 @@ router.get('/', async (req, res) => {
             if (jsonRes.storage.r2?.accessKeyId) {
                 jsonRes.storage.r2.accessKeyId = maskSecret(jsonRes.storage.r2.accessKeyId);
             }
-            if (jsonRes.storage.r2?.secretAccessKey) {
-                jsonRes.storage.r2.secretAccessKey = maskSecret(jsonRes.storage.r2.secretAccessKey);
+            // Merge system-level inactivity alert configuration
+            const inact = sysConfig.settings?.inactivityNotification;
+            if (inact) {
+                if (!jsonRes.notificationTemplates) jsonRes.notificationTemplates = {};
+                if (!jsonRes.notificationTemplates.whatsapp) jsonRes.notificationTemplates.whatsapp = {};
+                jsonRes.notificationTemplates.whatsapp.inactivityAlert = {
+                    templateName: inact.templateName || '',
+                    languageCode: inact.languageCode || 'en_US',
+                    enabled: inact.enabled === true,
+                    days: inact.days || 7,
+                    buttonUrl: inact.buttonUrl || 'login',
+                    ...(jsonRes.notificationTemplates.whatsapp.inactivityAlert || {})
+                };
             }
         }
         
@@ -303,6 +314,31 @@ router.post('/', async (req, res) => {
 
             if (notificationTemplates) {
                 settings.notificationTemplates = notificationTemplates;
+
+                // Sync inactivityAlert to SystemConfig for scheduler and notifications engine
+                if (req.user.isAdmin && notificationTemplates.whatsapp?.inactivityAlert) {
+                    try {
+                        const SystemConfig = require('../models/SystemConfig');
+                        const sysConf = await SystemConfig.getConfig();
+                        const existingInactivity = sysConf.settings?.inactivityNotification || {};
+                        const inactUpdate = notificationTemplates.whatsapp.inactivityAlert;
+                        sysConf.settings = {
+                            ...(sysConf.settings || {}),
+                            inactivityNotification: {
+                                ...existingInactivity,
+                                enabled: inactUpdate.enabled !== undefined ? inactUpdate.enabled : existingInactivity.enabled,
+                                templateName: inactUpdate.templateName !== undefined ? String(inactUpdate.templateName).trim() : existingInactivity.templateName,
+                                languageCode: inactUpdate.languageCode !== undefined ? String(inactUpdate.languageCode).trim() : existingInactivity.languageCode,
+                                days: inactUpdate.days !== undefined ? (Math.max(1, parseInt(inactUpdate.days) || 7)) : (existingInactivity.days || 7),
+                                buttonUrl: inactUpdate.buttonUrl !== undefined ? String(inactUpdate.buttonUrl).trim() : (existingInactivity.buttonUrl || 'login')
+                            }
+                        };
+                        sysConf.changed('settings', true);
+                        await sysConf.save();
+                    } catch (syncErr) {
+                        console.error('Failed to sync inactivityNotification to SystemConfig:', syncErr);
+                    }
+                }
             }
             if (paymentGateways) {
                 // Preserve existing secrets if client sent back masked values

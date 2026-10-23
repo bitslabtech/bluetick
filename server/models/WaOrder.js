@@ -86,6 +86,12 @@ const WaOrder = sequelize.define('WaOrder', {
         allowNull: true,
         defaultValue: 0
     },
+    shippingCost: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true,
+        defaultValue: 0,
+        comment: 'Shipping charge applied to this order. Stored explicitly for reliable PDF/display use.'
+    },
     source: {
         type: DataTypes.ENUM('online', 'pos'),
         defaultValue: 'online'

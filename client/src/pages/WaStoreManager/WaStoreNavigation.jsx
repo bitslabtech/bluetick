@@ -307,7 +307,7 @@ export default function WaStoreNavigation() {
                             </div>
                             <div className="flex items-center justify-center">
                                 {store.logo ? (
-                                    <img src={imgUrl(store.logo)} alt={store.name} className="h-12 max-w-[180px] object-contain" />
+                                    <img src={imgUrl(store.logo)} alt={store.name} className="h-12 sm:h-14 md:h-16 max-w-[200px] sm:max-w-[240px] md:max-w-[280px] object-contain" />
                                 ) : (
                                     <span className="text-xl tracking-[0.25em] uppercase text-black font-normal">{store.name}</span>
                                 )}
@@ -324,7 +324,7 @@ export default function WaStoreNavigation() {
                             <div className="flex items-center gap-3">
                                 <MenuIcon className="md:hidden w-6 h-6 text-[#261A14]" />
                                 {store.logo ? (
-                                    <img src={imgUrl(store.logo)} alt={store.name} className="h-10 sm:h-12 object-contain" />
+                                    <img src={imgUrl(store.logo)} alt={store.name} className="h-12 sm:h-14 md:h-16 max-w-[200px] sm:max-w-[240px] md:max-w-[280px] object-contain" />
                                 ) : (
                                     <span className="font-bold text-xl sm:text-2xl text-[#261A14] tracking-tight">{store.name}</span>
                                 )}
@@ -343,7 +343,7 @@ export default function WaStoreNavigation() {
                             <div className={`flex items-center gap-3 ${theme.logoWrapper || ''}`}>
                                 <MenuIcon className={`md:hidden w-6 h-6 ${theme.textMuted}`} />
                                 {store.logo && (
-                                    <img src={imgUrl(store.logo)} alt={store.name} className="w-12 h-12 object-contain rounded-md" />
+                                    <img src={imgUrl(store.logo)} alt={store.name} className="w-auto h-12 sm:h-14 md:h-16 max-w-[200px] sm:max-w-[240px] md:max-w-[280px] object-contain rounded-md" />
                                 )}
                                 <span className={`font-semibold text-xl tracking-tight ${theme.headerLogo}`}>{store.name}</span>
                             </div>

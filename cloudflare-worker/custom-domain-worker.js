@@ -1,27 +1,28 @@
 /**
- * Bluetick - Custom Domain Cloudflare Worker
- * ============================================
+ * OneDash - Custom Domain Cloudflare Worker
+ * ==========================================
  * Architecture: Long-Term Custom Domain Solution
  *
  * HOW IT WORKS:
  * 1. A customer visits https://www.amardryfruits.in (the store owner's domain)
  * 2. DNS for amardryfruits.in is proxied through Cloudflare (orange cloud)
  * 3. This Worker intercepts the request BEFORE it reaches any server
- * 4. The Worker rewrites the Host header to api.bluetick.cloud (bypasses Coolify/Traefik host matching)
+ * 4. The Worker rewrites the Host header to your frontend origin (bypasses Coolify/Traefik host matching)
  * 5. The Worker adds X-Forwarded-Host: www.amardryfruits.in (so our Node.js app knows the real domain)
  * 6. Node.js reads X-Forwarded-Host, looks up the store, and serves SSR HTML
  *
  * SETUP INSTRUCTIONS:
  * -----------------------------------------------------------------
  * STEP 1 - Create the Worker
- *   1. Go to dash.cloudflare.com - Workers and Pages - Create Application - Create Worker
- *   2. Name it: "bluetick-custom-domain-router"
+ *   1. Go to dash.cloudflare.com → Workers and Pages → Create Application → Create Worker
+ *   2. Name it: "onedash-custom-domain-router"
  *   3. Replace the default code with this file's contents
  *   4. Click Deploy
  *
- * STEP 2 - Add Environment Variable
- *   - Workers - Your Worker - Settings - Variables
- *   - Add: BACKEND_URL = https://bluetick.cloud  (your FRONTEND URL, NOT the API URL)
+ * STEP 2 - Add Environment Variables
+ *   Workers → Your Worker → Settings → Variables
+ *   - BACKEND_URL    = https://onedash.cloud   (your FRONTEND URL, NOT the API URL)
+ *   - PLATFORM_DOMAIN = onedash.cloud          (your root domain — subdomains are auto-bypassed)
  *
  * STEP 3 - Assign Custom Domains to the Worker
  *   Option A (Recommended - "Cloudflare for SaaS"):
@@ -30,12 +31,12 @@
  *     - Docs: https://developers.cloudflare.com/cloudflare-for-platforms/cloudflare-for-saas/
  *
  *   Option B (Manual - for testing):
- *     - Workers - Your Worker - Settings - Domains and Routes - Add Route
+ *     - Workers → Your Worker → Settings → Domains and Routes → Add Route
  *     - Route pattern: *.amardryfruits.in/* (customer's domain)
  *     - Zone: amardryfruits.in
  *
  * STEP 4 - For each customer domain:
- *   - Customer adds CNAME at their registrar: www to bluetick.cloud
+ *   - Customer adds CNAME at their registrar: www to router.onedash.cloud
  *   - Or with Cloudflare for SaaS: automated via API
  * -----------------------------------------------------------------
  */
@@ -45,17 +46,20 @@ export default {
     const url = new URL(request.url);
     const originalHost = url.hostname; // e.g., "www.amardryfruits.in"
 
-    // IMPORTANT: Bypass the worker for our main system domains!
+    // IMPORTANT: Bypass the worker for our main platform domains!
     // If we don't do this, the worker will intercept requests to the backend
     // and cause an infinite loop (Error 522 or 1000).
-    if (originalHost.endsWith('bluetick.cloud')) {
+    // PLATFORM_DOMAIN is set as a Worker env var (e.g. "onedash.cloud").
+    // Subdomains (api.onedash.cloud, cdn.onedash.cloud, etc.) are automatically bypassed.
+    const platformDomain = env.PLATFORM_DOMAIN || 'onedash.cloud';
+    if (originalHost === platformDomain || originalHost.endsWith(`.${platformDomain}`)) {
       return fetch(request);
     }
 
     // Target Backend - set via Worker environment variable BACKEND_URL
-    // IMPORTANT: This MUST point to your FRONTEND URL (e.g., https://bluetick.cloud) 
+    // IMPORTANT: This MUST point to your FRONTEND URL (e.g., https://onedash.cloud)
     // where your React app is hosted, NOT your API backend!
-    const backendUrl = env.BACKEND_URL || 'https://bluetick.cloud';
+    const backendUrl = env.BACKEND_URL || 'https://onedash.cloud';
     const backendHostname = new URL(backendUrl).hostname;
 
     // Rewrite the target URL

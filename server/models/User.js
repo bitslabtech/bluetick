@@ -81,6 +81,11 @@ const User = sequelize.define('User', {
         type: DataTypes.DATE,
         allowNull: true
     },
+    lastInactivityAlertSentAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: 'Timestamp when the last inactivity WhatsApp template alert was sent'
+    },
     purchasedAddons: {
         type: DataTypes.JSON, // Stores array of module identifiers
         defaultValue: []

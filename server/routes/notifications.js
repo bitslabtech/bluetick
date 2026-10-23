@@ -100,4 +100,104 @@ router.delete('/:id', [auth, admin], async (req, res) => {
     }
 });
 
+// ── Inactivity Notification Management (Admin Only) ─────────────────────────
+const {
+    getInactivityConfig,
+    updateInactivityConfig,
+    previewInactiveUsers,
+    processInactivityNotifications,
+    getInactivityLogs
+} = require('../utils/inactivityNotifier');
+
+// 4. GET /api/notifications/inactivity/config
+router.get('/inactivity/config', [auth, admin], async (req, res) => {
+    try {
+        const config = await getInactivityConfig();
+        const inactiveUsers = await previewInactiveUsers();
+        res.json({
+            config,
+            currentInactiveCount: inactiveUsers.length,
+            alreadyAlertedCount: inactiveUsers.filter(u => u.alreadyAlerted).length,
+            pendingAlertCount: inactiveUsers.filter(u => !u.alreadyAlerted).length
+        });
+    } catch (err) {
+        console.error("Get Inactivity Config Error:", err);
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
+// 5. PUT /api/notifications/inactivity/config
+router.put('/inactivity/config', [auth, admin], async (req, res) => {
+    try {
+        const updated = await updateInactivityConfig(req.body);
+        res.json({ message: 'Inactivity notification configuration updated', config: updated });
+    } catch (err) {
+        console.error("Update Inactivity Config Error:", err);
+        res.status(500).json({ error: 'Failed to update inactivity configuration' });
+    }
+});
+
+// 6. GET /api/notifications/inactivity/preview
+router.get('/inactivity/preview', [auth, admin], async (req, res) => {
+    try {
+        const { days, targetType, targetPlans } = req.query;
+        let parsedPlans = [];
+        if (targetPlans) {
+            try {
+                parsedPlans = Array.isArray(targetPlans) ? targetPlans : JSON.parse(targetPlans);
+            } catch {
+                parsedPlans = String(targetPlans).split(',').map(s => s.trim()).filter(Boolean);
+            }
+        }
+
+        const users = await previewInactiveUsers({
+            days: days ? parseInt(days) : undefined,
+            targetType: targetType || undefined,
+            targetPlans: parsedPlans.length > 0 ? parsedPlans : undefined
+        });
+
+        res.json({
+            count: users.length,
+            users
+        });
+    } catch (err) {
+        console.error("Preview Inactive Users Error:", err);
+        res.status(500).json({ error: 'Failed to preview inactive users' });
+    }
+});
+
+// 7. POST /api/notifications/inactivity/trigger — Trigger Check & Send Now (Manual)
+router.post('/inactivity/trigger', [auth, admin], async (req, res) => {
+    try {
+        const { force, days, targetType, targetPlans, templateName, languageCode, hasButtonUrl, buttonUrl } = req.body;
+        const result = await processInactivityNotifications({
+            force: force !== undefined ? Boolean(force) : true,
+            days: days ? parseInt(days) : undefined,
+            targetType: targetType || undefined,
+            targetPlans: targetPlans || undefined,
+            templateName: templateName || undefined,
+            languageCode: languageCode || undefined,
+            hasButtonUrl: hasButtonUrl !== undefined ? Boolean(hasButtonUrl) : undefined,
+            buttonUrl: buttonUrl !== undefined ? String(buttonUrl).trim() : undefined
+        });
+
+        res.json(result);
+    } catch (err) {
+        console.error("Trigger Inactivity Notifications Error:", err);
+        res.status(500).json({ error: err.message || 'Failed to trigger notifications' });
+    }
+});
+
+// 8. GET /api/notifications/inactivity/logs
+router.get('/inactivity/logs', [auth, admin], async (req, res) => {
+    try {
+        const logs = await getInactivityLogs(req.query.limit || 50);
+        res.json(logs);
+    } catch (err) {
+        console.error("Get Inactivity Logs Error:", err);
+        res.status(500).json({ error: 'Failed to fetch logs' });
+    }
+});
+
 module.exports = router;
+

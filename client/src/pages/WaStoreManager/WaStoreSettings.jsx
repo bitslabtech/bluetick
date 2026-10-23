@@ -4,6 +4,20 @@ import axios from 'axios';
 import { Settings, Trash2, AlertTriangle, AlertCircle, BarChart2, Eye, Globe, Info, ChevronDown, ChevronUp, LayoutGrid, Smartphone, Monitor, ShoppingBag, FileText, ClipboardList, Sparkles, CheckCircle, XCircle, Copy, ExternalLink, RefreshCw, Shield, Zap, ArrowRight, Clock, HelpCircle, Link2, Unlink, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+// Derive the router CNAME target from VITE_API_URL so this never needs
+// to be changed manually when rebranding. e.g.:
+//   VITE_API_URL=https://api.onedash.cloud  →  CNAME_TARGET="router.onedash.cloud"
+const CNAME_TARGET = (() => {
+    try {
+        const url = new URL(import.meta.env.VITE_API_URL || window.location.origin);
+        const parts = url.hostname.split('.');
+        const rootDomain = parts.length >= 2 ? parts.slice(-2).join('.') : url.hostname;
+        return `router.${rootDomain}`;
+    } catch {
+        return 'router.onedash.cloud';
+    }
+})();
+
 const INDIAN_STATES = [
     { code: "01", name: "Jammu and Kashmir" },
     { code: "02", name: "Himachal Pradesh" },
@@ -578,11 +592,11 @@ export default function WaStoreSettings() {
                                                                                 </p>
                                                                             </td>
                                                                             <td className="px-4 py-3">
-                                                                                <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">router.bluetick.cloud</span>
-                                                                                <p className="text-[10px] text-slate-400 mt-0.5">If your registrar says invalid, try: <span className="font-mono font-bold">router.bluetick.cloud.</span></p>
+                                                                                <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">{CNAME_TARGET}</span>
+                                                                                <p className="text-[10px] text-slate-400 mt-0.5">If your registrar says invalid, try: <span className="font-mono font-bold">{CNAME_TARGET}.</span></p>
                                                                             </td>
                                                                             <td className="px-4 py-3">
-                                                                                <button onClick={() => copyToClipboard('router.bluetick.cloud', 'cname')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" title="Copy value">
+                                                                                <button onClick={() => copyToClipboard(CNAME_TARGET, 'cname')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" title="Copy value">
                                                                                     {copiedField === 'cname' ? <CheckCircle className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-slate-400" />}
                                                                                 </button>
                                                                             </td>
@@ -622,10 +636,10 @@ export default function WaStoreSettings() {
                                                                 </summary>
                                                                 <div className="mt-3 space-y-3">
                                                                     {[
-                                                                        { name: 'GoDaddy', steps: ['Log in → My Products → DNS', 'Click "Add" → Select Type: CNAME', 'Name: www, Value: router.bluetick.cloud', 'Save'] },
-                                                                        { name: 'Namecheap', steps: ['Log in → Domain List → Manage → Advanced DNS', 'Click "Add New Record" → CNAME Record', 'Host: www, Value: router.bluetick.cloud', 'Save all changes'] },
-                                                                        { name: 'Hostinger', steps: ['Log in → Domains → DNS / Nameservers', 'Add Record → Type: CNAME', 'Name: www, Target: router.bluetick.cloud', 'Save'] },
-                                                                        { name: 'Cloudflare', steps: ['Log in → Select your domain → DNS', 'Add record → Type: CNAME', 'Name: www, Target: router.bluetick.cloud, Proxy: OFF (Grey cloud)', 'Save'] },
+                                                                        { name: 'GoDaddy', steps: ['Log in → My Products → DNS', 'Click "Add" → Select Type: CNAME', `Name: www, Value: ${CNAME_TARGET}`, 'Save'] },
+                                                                        { name: 'Namecheap', steps: ['Log in → Domain List → Manage → Advanced DNS', 'Click "Add New Record" → CNAME Record', `Host: www, Value: ${CNAME_TARGET}`, 'Save all changes'] },
+                                                                        { name: 'Hostinger', steps: ['Log in → Domains → DNS / Nameservers', 'Add Record → Type: CNAME', `Name: www, Target: ${CNAME_TARGET}`, 'Save'] },
+                                                                        { name: 'Cloudflare', steps: ['Log in → Select your domain → DNS', 'Add record → Type: CNAME', `Name: www, Target: ${CNAME_TARGET}, Proxy: OFF (Grey cloud)`, 'Save'] },
                                                                     ].map(reg => (
                                                                         <details key={reg.name} className="bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                                                                             <summary className="cursor-pointer px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400">{reg.name}</summary>

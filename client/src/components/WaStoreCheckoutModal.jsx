@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, ShoppingBag, ArrowRight, Tag, Loader2, Check, UserCircle2 } from 'lucide-react';
+import { X, ShoppingBag, ArrowRight, Tag, Loader2, Check, UserCircle2, ChevronDown, ChevronUp } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useStoreCustomerOptional } from '../context/StoreCustomerContext';
@@ -62,6 +62,7 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
     const [selectedAddressIdx, setSelectedAddressIdx] = useState(defaultIdx);
     const [saveNewAddress, setSaveNewAddress] = useState(false);
     const [newAddressLabel, setNewAddressLabel] = useState('Home');
+    const [showOrderSummary, setShowOrderSummary] = useState(false);
 
     // Pre-fill form when logged-in customer or selected address changes
     useEffect(() => {
@@ -277,11 +278,31 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
         }
 
 
-        if (showGstSection && gstDetails.gstin) {
-            const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-            if (gstDetails.gstin.length !== 15 || !gstinRegex.test(gstDetails.gstin)) {
-                toast.error("Please enter a valid 15-character GSTIN (e.g., 22AAAAA0000A1Z5).");
-                return;
+        if (showGstSection) {
+            const hasCompany = gstDetails.company?.trim().length > 0;
+            const hasGstin = gstDetails.gstin?.trim().length > 0;
+
+            // If EITHER field is filled → BOTH become mandatory
+            if (hasCompany || hasGstin) {
+                if (!hasCompany) {
+                    toast.error("Business Name is required when a GSTIN is entered.");
+                    return;
+                }
+                if (!hasGstin) {
+                    toast.error("GSTIN is required when a Business Name is entered.");
+                    return;
+                }
+
+                // Validate GSTIN format + length
+                const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+                if (gstDetails.gstin.length !== 15) {
+                    toast.error("GSTIN must be exactly 15 characters long.");
+                    return;
+                }
+                if (!gstinRegex.test(gstDetails.gstin)) {
+                    toast.error("Invalid GSTIN format. Example: 22AAAAA0000A1Z5");
+                    return;
+                }
             }
         }
 
@@ -307,7 +328,15 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                 },
                 customerNote: formData.notes,
                 items: cart.map(item => ({
-                    id: item.id, name: item.name, price: getItemPrice(item), qty: item.qty, imageUrls: item.imageUrls
+                    id: item.id,
+                    name: item.name,
+                    price: getItemPrice(item),
+                    qty: item.qty,
+                    imageUrls: item.imageUrls,
+                    selectedVariants: item.selectedVariants || null,
+                    taxRate: item.taxRate !== null && item.taxRate !== undefined && item.taxRate !== '' && !isNaN(parseFloat(item.taxRate))
+                        ? parseFloat(item.taxRate)
+                        : (parseFloat(store?.taxConfig?.rate) || 0)
                 })),
                 subtotal: finalTotal, // discounted subtotal
                 shippingCost: shippingCost,
@@ -464,7 +493,7 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm cursor-pointer" onClick={onClose} />
             <div className="w-full max-w-lg bg-white h-full relative z-10 flex flex-col shadow-2xl animate-in slide-in-from-right duration-300">
                 
-                <div className="px-4 md:px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-20">
+                <div className="px-4 md:px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-20 shrink-0">
                     <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                         <ShoppingBag className="w-6 h-6" /> Secure Checkout
                     </h2>
@@ -486,8 +515,88 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                     </div>
                 ) : (
                     <>
-                        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-8">
+                        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 min-h-0">
                     
+                    {/* ── Order Items Summary (Dropdown / Collapsible) ───────────────── */}
+                    <div className="bg-slate-50 border border-slate-200/80 rounded-2xl overflow-hidden transition-all">
+                        <button
+                            type="button"
+                            onClick={() => setShowOrderSummary(prev => !prev)}
+                            className="w-full flex items-center justify-between p-4 text-left hover:bg-slate-100/70 transition-colors cursor-pointer select-none"
+                        >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
+                                    <ShoppingBag className="w-4 h-4 text-indigo-600" />
+                                </div>
+                                <div className="truncate">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-bold text-slate-800">Order Summary</span>
+                                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-200/70 text-slate-600">
+                                            {cart.length} item{cart.length !== 1 ? 's' : ''}
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-slate-400 mt-0.5">
+                                        {showOrderSummary ? 'Click to hide items' : 'Click to view items & variations'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0 ml-3">
+                                <span className="text-sm font-bold text-slate-900">
+                                    {getCurrencySymbol(store.currency)}{cartSubtotal.toFixed(2)}
+                                </span>
+                                <div className="w-6 h-6 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 shadow-xs">
+                                    {showOrderSummary ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                                </div>
+                            </div>
+                        </button>
+
+                        {showOrderSummary && (
+                            <div className="border-t border-slate-200/80 px-4 py-2 divide-y divide-slate-200/60 max-h-64 overflow-y-auto">
+                                {cart.map((item) => {
+                                    const hasVariants = item.selectedVariants && Object.keys(item.selectedVariants).length > 0;
+                                    const itemPrice = getItemPrice(item);
+                                    return (
+                                        <div key={item.cartItemId || item.id} className="flex items-start justify-between gap-3 py-3">
+                                            {item.imageUrls?.[0] && (
+                                                <img
+                                                    src={item.imageUrls[0]}
+                                                    alt={item.name}
+                                                    className="w-12 h-12 rounded-lg object-cover bg-white border border-slate-200 shrink-0"
+                                                />
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-semibold text-slate-800 truncate">{item.name}</p>
+                                                {hasVariants && (
+                                                    <div className="flex flex-wrap gap-1 mt-1">
+                                                        {Object.entries(item.selectedVariants).map(([k, v]) => (
+                                                            <span key={k} className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                                                {k}: {v}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                                    <p className="text-xs text-slate-500">
+                                                        Qty: {item.qty} × {getCurrencySymbol(store.currency)}{itemPrice.toFixed(2)}
+                                                    </p>
+                                                    {taxEnabled && (
+                                                        <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                                            {taxName} {item.taxRate !== null && item.taxRate !== undefined && item.taxRate !== '' && !isNaN(parseFloat(item.taxRate)) ? `${parseFloat(item.taxRate)}%` : `${parseFloat(store?.taxConfig?.rate) || 0}%`}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="text-sm font-bold text-slate-900 whitespace-nowrap pt-0.5">
+                                                {getCurrencySymbol(store.currency)}{(itemPrice * item.qty).toFixed(2)}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+
                     {/* Delivery Information */}
                     <div>
                         <h3 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">Delivery Details</h3>
@@ -633,37 +742,92 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                                 <span>🏢 GST / Business Details <span className="font-normal text-indigo-500">(Optional — for B2B purchases)</span></span>
                                 <span className="text-lg">{showGstSection ? '▲' : '▼'}</span>
                             </button>
-                            {showGstSection && (
-                                <div className="mt-3 space-y-3 p-4 border border-indigo-100 rounded-lg bg-indigo-50/50">
-                                    <p className="text-xs text-indigo-600">Fill in your business details to receive a GST-compliant invoice and claim Input Tax Credit (ITC).</p>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Business / Company Name</label>
-                                        <input
-                                            type="text"
-                                            value={gstDetails.company}
-                                            onChange={e => setGstDetails(d => ({ ...d, company: e.target.value }))}
-                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                                            placeholder="Your Registered Business Name"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">GSTIN</label>
-                                        <input
-                                            type="text"
-                                            value={gstDetails.gstin}
-                                            onChange={e => setGstDetails(d => ({ ...d, gstin: e.target.value.toUpperCase() }))}
-                                            maxLength={15}
-                                            pattern="^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$"
-                                            title="Please enter a valid GSTIN (e.g., 22AAAAA0000A1Z5)"
-                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none uppercase"
-                                            placeholder="22AAAAA0000A1Z5"
-                                        />
-                                        {gstDetails.gstin && (!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(gstDetails.gstin)) && (
-                                            <p className="text-xs text-red-500 mt-1">Please enter a valid GSTIN</p>
+                            {showGstSection && (() => {
+                                const hasCompany = gstDetails.company?.trim().length > 0;
+                                const hasGstin = gstDetails.gstin?.trim().length > 0;
+                                const eitherFilled = hasCompany || hasGstin;
+                                const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+                                const gstinLengthOk = gstDetails.gstin.length === 15;
+                                const gstinFormatOk = gstinRegex.test(gstDetails.gstin);
+
+                                return (
+                                    <div className="mt-3 space-y-3 p-4 border border-indigo-100 rounded-lg bg-indigo-50/50">
+                                        <p className="text-xs text-indigo-600">Fill in your business details to receive a GST-compliant invoice and claim Input Tax Credit (ITC).</p>
+
+                                        {/* Mutual-mandatory warning banner */}
+                                        {eitherFilled && (
+                                            <p className="text-xs text-amber-700 font-medium bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                                                ⚠️ Both Business Name and GSTIN are required together.
+                                            </p>
                                         )}
+
+                                        {/* Business Name */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Business / Company Name
+                                                {eitherFilled && <span className="text-red-500 ml-0.5">*</span>}
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={gstDetails.company}
+                                                onChange={e => setGstDetails(d => ({ ...d, company: e.target.value }))}
+                                                className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none ${
+                                                    eitherFilled && !hasCompany
+                                                        ? 'border-red-400 bg-red-50 focus:border-red-500'
+                                                        : hasCompany
+                                                            ? 'border-green-400 bg-green-50 focus:border-green-500'
+                                                            : 'border-gray-300 focus:border-indigo-500'
+                                                }`}
+                                                placeholder="Your Registered Business Name"
+                                            />
+                                            {eitherFilled && !hasCompany && (
+                                                <p className="text-xs text-red-500 mt-1">Business Name is required when GSTIN is entered.</p>
+                                            )}
+                                        </div>
+
+                                        {/* GSTIN */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                                                GSTIN
+                                                {eitherFilled && <span className="text-red-500">*</span>}
+                                                {hasGstin && (
+                                                    <span className={`ml-1 text-xs font-mono ${gstinLengthOk && gstinFormatOk ? 'text-green-600' : 'text-red-500'}`}>
+                                                        {gstDetails.gstin.length}/15{gstinLengthOk && gstinFormatOk ? ' ✓' : ''}
+                                                    </span>
+                                                )}
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={gstDetails.gstin}
+                                                onChange={e => setGstDetails(d => ({ ...d, gstin: e.target.value.toUpperCase() }))}
+                                                maxLength={15}
+                                                className={`w-full border rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 outline-none uppercase ${
+                                                    hasGstin
+                                                        ? gstinLengthOk && gstinFormatOk
+                                                            ? 'border-green-400 bg-green-50 focus:ring-green-500 focus:border-green-500'
+                                                            : 'border-red-400 bg-red-50 focus:ring-red-500 focus:border-red-500'
+                                                        : eitherFilled && !hasGstin
+                                                            ? 'border-red-400 bg-red-50 focus:ring-red-500'
+                                                            : 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500'
+                                                }`}
+                                                placeholder="22AAAAA0000A1Z5"
+                                            />
+                                            {eitherFilled && !hasGstin && (
+                                                <p className="text-xs text-red-500 mt-1">GSTIN is required when a Business Name is entered.</p>
+                                            )}
+                                            {hasGstin && !gstinLengthOk && (
+                                                <p className="text-xs text-red-500 mt-1">GSTIN must be exactly 15 characters (currently {gstDetails.gstin.length}).</p>
+                                            )}
+                                            {hasGstin && gstinLengthOk && !gstinFormatOk && (
+                                                <p className="text-xs text-red-500 mt-1">Invalid GSTIN format. Example: 22AAAAA0000A1Z5</p>
+                                            )}
+                                            {hasGstin && gstinLengthOk && gstinFormatOk && (
+                                                <p className="text-xs text-green-600 mt-1">✓ Valid GSTIN</p>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                );
+                            })()}
                         </div>
                     )}
 
@@ -704,10 +868,11 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                     </div>
                 </div>
 
-                <div className="p-4 md:p-6 bg-gray-50 border-t border-gray-200">
+                <div className="p-4 md:p-5 bg-gray-50 border-t border-gray-200 shrink-0">
+
                     <div className="space-y-3 mb-6 text-sm font-medium">
                         <div className="flex justify-between text-gray-500">
-                            <span>Subtotal ({cart.length} items)</span>
+                            <span>Subtotal</span>
                             <span>{getCurrencySymbol(store.currency)}{cartSubtotal.toFixed(2)}</span>
                         </div>
                         {appliedCoupon && (

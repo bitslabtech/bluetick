@@ -12,8 +12,22 @@ import {
 
 // Build the /api/img proxy URL for a CDN image.
 // The server fetches it server-to-server (no CORS), caches it at Cloudflare edge,
-// and returns it from your own origin — so the browser never touches cdn.bluetick.cloud directly.
+// and returns it from your own origin — so the browser never touches the CDN directly.
 const API_BASE = import.meta.env.VITE_API_URL || '';
+
+// Derive platform host from VITE_API_URL so no domain is hardcoded here.
+// e.g. VITE_API_URL=https://api.onedash.cloud → PLATFORM_HOST="onedash.cloud"
+const PLATFORM_HOST = (() => {
+    try {
+        const url = new URL(import.meta.env.VITE_API_URL || window.location.origin);
+        const parts = url.hostname.split('.');
+        return parts.length >= 2 ? parts.slice(-2).join('.') : url.hostname;
+    } catch {
+        return window.location.hostname;
+    }
+})();
+// CDN subdomain is always cdn.{rootDomain}
+const CDN_HOST = `cdn.${PLATFORM_HOST}`;
 function toProxyUrl(url) {
     if (!url || !url.startsWith('http')) return url;
     return `${API_BASE}/api/img?url=${encodeURIComponent(url)}&w=400&q=95&f=webp`;
@@ -59,7 +73,7 @@ async function toDataUrl(url) {
 
     // Attempt 3: Route through our /api/img server-side proxy.
     // The server fetches the image without any browser CORS restriction.
-    // This is the guaranteed fallback for strict CDNs like cdn.bluetick.cloud.
+    // This is the guaranteed fallback for strict CDNs.
     try {
         const proxyUrl = toProxyUrl(url);
         if (proxyUrl && proxyUrl !== url) {
@@ -168,11 +182,11 @@ export default function ShippingLabelModal({ order: initialOrder, orders, store,
     const storeLinkText = (
         store?.customDomain
             ? store.customDomain.replace(/^https?:\/\//i, '')
-            : (storeSlug ? `bluetick.cloud/store/${storeSlug}` : 'bluetick.cloud')
+            : (storeSlug ? `${PLATFORM_HOST}/store/${storeSlug}` : PLATFORM_HOST)
     ).toUpperCase();
 
     // Pre-fetch logo as base64 to avoid CORS issues during capture.
-    // For cdn.bluetick.cloud logos, we route through /api/img (our server-side proxy)
+    // CDN logos are routed through /api/img (our server-side proxy)
     // so the browser never touches the CDN directly — bypassing its strict CORS policy.
     const rawLogoSrc = store?.logo
         ? (() => {
@@ -180,7 +194,7 @@ export default function ShippingLabelModal({ order: initialOrder, orders, store,
                 ? store.logo
                 : `${import.meta.env.VITE_API_URL}${store.logo.startsWith('/') ? '' : '/'}${store.logo}`;
             // Route CDN URLs through our server-side proxy so CORS is never an issue
-            if (src.startsWith('http') && src.includes('cdn.bluetick.cloud')) {
+            if (src.startsWith('http') && src.includes(CDN_HOST)) {
                 return toProxyUrl(src);
             }
             return src;

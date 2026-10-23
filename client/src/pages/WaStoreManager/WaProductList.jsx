@@ -192,7 +192,7 @@ export default function WaProductList() {
     const [currency, setCurrency] = useState('USD');
     const [storeCategories, setStoreCategories] = useState([]);
     const [storeSubcategories, setStoreSubcategories] = useState({});
-    const [storeTaxConfig, setStoreTaxConfig] = useState(null);
+    const [storeTaxConfig, setStoreTaxConfig] = useState(store?.taxConfig || null);
     const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
     const [isVariationsOpen, setIsVariationsOpen] = useState(false);
     const [isSeoOpen, setIsSeoOpen] = useState(false);
@@ -229,8 +229,8 @@ export default function WaProductList() {
     
     const openAddModal = () => {
         let initialTax = '';
-        if (storeTaxConfig?.enabled && storeTaxConfig?.enableGlobalRate) {
-            initialTax = storeTaxConfig.rate || '';
+        if (storeTaxConfig?.enabled && storeTaxConfig?.enableGlobalRate && storeTaxConfig.rate !== null && storeTaxConfig.rate !== undefined && storeTaxConfig.rate !== '' && !isNaN(parseFloat(storeTaxConfig.rate))) {
+            initialTax = parseFloat(storeTaxConfig.rate);
         }
         setEditingProduct(null);
         setForm({ ...defaultForm, subCategories: [], taxRate: initialTax });
@@ -371,7 +371,9 @@ export default function WaProductList() {
         e.preventDefault();
         try {
             const payload = { ...form };
-            payload.taxRate = payload.taxRate === '' ? null : payload.taxRate;
+            payload.taxRate = (payload.taxRate !== '' && payload.taxRate !== null && payload.taxRate !== undefined && !isNaN(parseFloat(payload.taxRate)))
+                ? parseFloat(payload.taxRate)
+                : null;
 
             // WooCommerce-style price mapping:
             // regularPrice = MRP shown to customer
@@ -391,7 +393,7 @@ export default function WaProductList() {
             delete payload.salePrice;
 
             if (storeTaxConfig?.enabled) {
-                if (payload.taxRate === null || payload.taxRate === undefined || payload.taxRate === '') {
+                if (payload.taxRate === null || payload.taxRate === undefined || isNaN(payload.taxRate)) {
                     toast.error("Please select a Tax Slab for this product.");
                     return;
                 }
@@ -502,7 +504,9 @@ export default function WaProductList() {
             inStock: product.inStock,
             options: savedOptions,
             variants: loadedVariants,
-            taxRate: product.taxRate !== null && product.taxRate !== undefined ? product.taxRate : '',
+            taxRate: product.taxRate !== null && product.taxRate !== undefined && product.taxRate !== '' && !isNaN(parseFloat(product.taxRate))
+                ? parseFloat(product.taxRate)
+                : '',
             metaTitle: product.metaTitle || '',
             metaDescription: product.metaDescription || '',
             slug: product.slug || '',
@@ -727,7 +731,7 @@ export default function WaProductList() {
                     <Package className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">No products found</h3>
                     <p className="text-slate-500 mb-6 max-w-sm mx-auto">Start adding items to your store to start selling on WhatsApp.</p>
-                    <button onClick={() => { setEditingProduct(null); setForm(defaultForm); setIsAddingNewCategory(false); setShowModal(true); }} className="px-4 md:px-6 py-2 bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400 font-medium rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors inline-flex items-center gap-2">
+                    <button onClick={openAddModal} className="px-4 md:px-6 py-2 bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400 font-medium rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors inline-flex items-center gap-2">
                         <Plus className="w-4 h-4" /> Add First Product
                     </button>
                 </div>
@@ -794,6 +798,13 @@ export default function WaProductList() {
                                             <span className="font-medium text-slate-900 dark:text-white">{getCurrencySymbol(currency)}{product.price}</span>
                                             {product.compareAtPrice && <span className="ml-2 text-xs text-slate-500 line-through">{getCurrencySymbol(currency)}{product.compareAtPrice}</span>}
                                         </div>
+                                        {storeTaxConfig?.enabled && (
+                                            <div className="mt-0.5">
+                                                <span className="inline-flex items-center text-[10px] font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                                                    Tax: {product.taxRate !== null && product.taxRate !== undefined && product.taxRate !== '' ? `${parseFloat(product.taxRate)}%` : 'None'}
+                                                </span>
+                                            </div>
+                                        )}
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex flex-col gap-1 items-start">
@@ -1501,15 +1512,32 @@ export default function WaProductList() {
                                                             Tax Slab {storeTaxConfig?.enabled && <span className="text-red-500">*</span>}
                                                         </label>
                                                         <select
-                                                            value={form.taxRate === null ? '' : form.taxRate}
+                                                            value={form.taxRate !== null && form.taxRate !== undefined && form.taxRate !== '' && !isNaN(parseFloat(form.taxRate)) ? String(parseFloat(form.taxRate)) : ''}
                                                             onChange={e => setForm({ ...form, taxRate: e.target.value === '' ? '' : parseFloat(e.target.value) })}
                                                             className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm shadow-sm"
                                                         >
                                                             <option value="">{storeTaxConfig?.enabled ? 'Select Tax Slab' : `Store Default (${storeTaxConfig?.rate || 0}%)`}</option>
-                                                            {(storeTaxConfig?.slabs || []).map((slab, idx) => (
-                                                                <option key={idx} value={slab.rate}>{slab.name} ({slab.rate}%)</option>
-                                                            ))}
-                                                            <option value="0">No Tax (0%)</option>
+                                                            {(storeTaxConfig?.slabs || []).map((slab, idx) => {
+                                                                const slabRateVal = slab.rate !== null && slab.rate !== undefined && slab.rate !== '' && !isNaN(parseFloat(slab.rate))
+                                                                    ? parseFloat(slab.rate)
+                                                                    : slab.rate;
+                                                                return (
+                                                                    <option key={idx} value={String(slabRateVal)}>
+                                                                        {slab.name} ({slabRateVal}%)
+                                                                    </option>
+                                                                );
+                                                            })}
+                                                            {!(storeTaxConfig?.slabs || []).some(s => parseFloat(s.rate) === 0) && (
+                                                                <option value="0">No Tax (0%)</option>
+                                                            )}
+                                                            {form.taxRate !== '' && form.taxRate !== null && form.taxRate !== undefined &&
+                                                             !isNaN(parseFloat(form.taxRate)) &&
+                                                             parseFloat(form.taxRate) !== 0 &&
+                                                             !(storeTaxConfig?.slabs || []).some(s => parseFloat(s.rate) === parseFloat(form.taxRate)) && (
+                                                                <option value={String(parseFloat(form.taxRate))}>
+                                                                    Custom Tax Slab ({parseFloat(form.taxRate)}%)
+                                                                </option>
+                                                            )}
                                                         </select>
                                                     </div>
                                                 </div>
