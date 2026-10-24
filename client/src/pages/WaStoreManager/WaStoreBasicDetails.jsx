@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
 import {
     Store, Globe, Phone, Mail, MapPin, Image as ImageIcon,
     Save, ExternalLink, Copy, Upload, X, CheckCircle, AlertCircle, Loader2,
-    Search, ChevronDown, FolderOpen, Camera
+    Search, ChevronDown, FolderOpen, Camera, Building2, Landmark, Hash, Check
 } from 'lucide-react';
+import { Country, State, City } from 'country-state-city';
 import toast from 'react-hot-toast';
 import MediaPickerModal from '../../components/MediaPickerModal';
 
@@ -72,7 +73,19 @@ function ImageUploader({ label, hint, currentUrl, onUploaded, objectFit = 'cover
 }
 
 // ─── Searchable Select Component ─────────────────────────────────────────────
-function SearchableSelect({ options, value, onChange, placeholder }) {
+function SearchableSelect({
+    options = [],
+    value,
+    onChange,
+    placeholder = 'Select an option',
+    searchPlaceholder = 'Search...',
+    disabled = false,
+    disabledHint = '',
+    allowCustom = false,
+    customLabel = 'Use custom',
+    icon: Icon,
+    clearable = false
+}) {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const wrapperRef = useRef(null);
@@ -86,18 +99,55 @@ function SearchableSelect({ options, value, onChange, placeholder }) {
             }
         }
         document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [wrapperRef]);
+        document.addEventListener("touchstart", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+            document.removeEventListener("touchstart", handleClickOutside);
+        };
+    }, []);
 
-    const filteredOptions = options.filter(opt => opt.label.toLowerCase().includes(searchTerm.toLowerCase()));
-    const selectedOption = options.find(opt => opt.value === value);
+    const selectedOption = options.find(opt => opt.value === value || opt.label === value);
 
-    const displayValue = isOpen ? searchTerm : (selectedOption ? selectedOption.label : '');
+    const filteredOptions = useMemo(() => {
+        if (!searchTerm) return options;
+        const term = searchTerm.toLowerCase().trim();
+        return options.filter(opt =>
+            (opt.label && opt.label.toLowerCase().includes(term)) ||
+            (opt.value && String(opt.value).toLowerCase().includes(term))
+        );
+    }, [options, searchTerm]);
+
+    const displayValue = isOpen ? searchTerm : (selectedOption ? selectedOption.label : (value || ''));
+
+    const handleClear = (e) => {
+        e.stopPropagation();
+        onChange('');
+        setSearchTerm('');
+        setIsOpen(false);
+    };
+
+    if (disabled) {
+        return (
+            <div className="relative flex items-center px-3.5 py-2.5 bg-slate-100/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 rounded-xl cursor-not-allowed opacity-60">
+                {Icon && <Icon className="w-4 h-4 text-slate-400 mr-2 shrink-0" />}
+                <span className="text-sm text-slate-400 truncate">
+                    {disabledHint || placeholder}
+                </span>
+            </div>
+        );
+    }
+
+    const hasExactMatch = filteredOptions.some(opt =>
+        opt.label.toLowerCase() === searchTerm.trim().toLowerCase() ||
+        String(opt.value).toLowerCase() === searchTerm.trim().toLowerCase()
+    );
 
     return (
         <div className="relative" ref={wrapperRef}>
             <div className="relative flex items-center">
-                <Search className="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
+                {Icon && (
+                    <Icon className="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none shrink-0" />
+                )}
                 <input
                     ref={inputRef}
                     type="text"
@@ -106,34 +156,94 @@ function SearchableSelect({ options, value, onChange, placeholder }) {
                     onFocus={() => setIsOpen(true)}
                     onChange={e => {
                         setSearchTerm(e.target.value);
-                        setIsOpen(true);
+                        if (!isOpen) setIsOpen(true);
                     }}
-                    className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl cursor-text text-sm outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-slate-500 focus:placeholder-slate-300 dark:focus:placeholder-slate-600"
+                    onKeyDown={e => {
+                        if (e.key === 'Escape') {
+                            setIsOpen(false);
+                            setSearchTerm('');
+                            inputRef.current?.blur();
+                        } else if (e.key === 'Enter' && allowCustom && searchTerm.trim() && !hasExactMatch) {
+                            e.preventDefault();
+                            onChange(searchTerm.trim());
+                            setIsOpen(false);
+                            setSearchTerm('');
+                            inputRef.current?.blur();
+                        }
+                    }}
+                    className={`w-full ${Icon ? 'pl-10' : 'pl-3.5'} pr-12 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl cursor-text text-sm outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white placeholder-slate-400 transition-all`}
                 />
-                <ChevronDown className={`absolute right-4 w-4 h-4 text-slate-400 pointer-events-none transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                <div className="absolute right-2.5 flex items-center gap-1">
+                    {clearable && value && !isOpen && (
+                        <button
+                            type="button"
+                            onClick={handleClear}
+                            className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-md transition-colors"
+                            title="Clear"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                        </button>
+                    )}
+                    <ChevronDown
+                        className={`w-4 h-4 text-slate-400 pointer-events-none transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                    />
+                </div>
             </div>
 
             {isOpen && (
-                <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-60 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute z-50 w-full mt-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl max-h-60 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-100">
                     <div className="overflow-y-auto overflow-x-hidden custom-scrollbar p-1">
-                        {filteredOptions.length === 0 ? (
-                            <div className="p-3 text-center text-xs text-slate-500">No results found.</div>
+                        {allowCustom && searchTerm.trim() && !hasExactMatch && (
+                            <div
+                                onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    onChange(searchTerm.trim());
+                                    setIsOpen(false);
+                                    setSearchTerm('');
+                                    inputRef.current?.blur();
+                                }}
+                                className="px-3 py-2 mb-1 text-sm rounded-lg cursor-pointer bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 font-medium flex items-center justify-between"
+                            >
+                                <span className="truncate">
+                                    + {customLabel}: <strong>"{searchTerm.trim()}"</strong>
+                                </span>
+                                <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-indigo-200/60 dark:bg-indigo-800 text-indigo-700 dark:text-indigo-200 shrink-0 ml-2">
+                                    Custom
+                                </span>
+                            </div>
+                        )}
+
+                        {filteredOptions.length === 0 && (!allowCustom || !searchTerm.trim()) ? (
+                            <div className="p-3 text-center text-xs text-slate-400">No results found.</div>
                         ) : (
-                            filteredOptions.map(opt => (
-                                <div
-                                    key={opt.value}
-                                    onMouseDown={(e) => {
-                                        e.preventDefault();
-                                        onChange(opt.value);
-                                        setIsOpen(false);
-                                        setSearchTerm('');
-                                        inputRef.current?.blur();
-                                    }}
-                                    className={`px-3 py-2 text-sm rounded-lg cursor-pointer transition-colors truncate ${value === opt.value ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-medium' : 'hover:bg-slate-100 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-300'}`}
-                                >
-                                    {opt.label}
-                                </div>
-                            ))
+                            filteredOptions.slice(0, 100).map((opt, idx) => {
+                                const isSelected = value === opt.value || value === opt.label;
+                                return (
+                                    <div
+                                        key={opt.value ? `${opt.value}-${idx}` : idx}
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            onChange(opt.value);
+                                            setIsOpen(false);
+                                            setSearchTerm('');
+                                            inputRef.current?.blur();
+                                        }}
+                                        className={`px-3 py-2 text-sm rounded-lg cursor-pointer transition-colors flex items-center justify-between ${
+                                            isSelected
+                                                ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-medium'
+                                                : 'hover:bg-slate-100 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-300'
+                                        }`}
+                                    >
+                                        <span className="truncate">{opt.label}</span>
+                                        {isSelected && <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 ml-2" />}
+                                    </div>
+                                );
+                            })
+                        )}
+                        {filteredOptions.length > 100 && (
+                            <div className="p-2 text-center text-[11px] text-slate-400 border-t border-slate-100 dark:border-slate-700/50">
+                                Showing 100 of {filteredOptions.length} matches. Type to filter more.
+                            </div>
                         )}
                     </div>
                 </div>
@@ -206,8 +316,114 @@ export default function WaStoreBasicDetails() {
         fetchStore();
     }, [storeId]);
 
+    // ── Location Options (Country -> State -> City) ──────────────────────────
+    const allCountries = useMemo(() => {
+        try {
+            const raw = Country.getAllCountries();
+            // Pin India to the top for convenience while keeping alphabetical order for others
+            const india = raw.find(c => c.isoCode === 'IN');
+            const others = raw.filter(c => c.isoCode !== 'IN').sort((a, b) => a.name.localeCompare(b.name));
+            const list = india ? [india, ...others] : others;
+            return list.map(c => ({
+                value: c.name,
+                label: `${c.flag ? c.flag + ' ' : ''}${c.name}`,
+                rawName: c.name,
+                isoCode: c.isoCode
+            }));
+        } catch (e) {
+            console.error('Failed to load countries', e);
+            return [];
+        }
+    }, []);
+
+    const selectedCountryObj = useMemo(() => {
+        if (!store?.country) return null;
+        const cName = String(store.country).trim().toLowerCase();
+        return allCountries.find(c => c.rawName.toLowerCase() === cName || c.isoCode.toLowerCase() === cName) || null;
+    }, [store?.country, allCountries]);
+
+    const isIndia = (store?.country || '').trim().toLowerCase() === 'india' || selectedCountryObj?.isoCode === 'IN';
+
+    const stateOptions = useMemo(() => {
+        if (!selectedCountryObj) return [];
+        try {
+            const rawStates = State.getStatesOfCountry(selectedCountryObj.isoCode);
+            return (rawStates || []).map(s => ({
+                value: s.name,
+                label: s.name,
+                rawName: s.name,
+                isoCode: s.isoCode
+            }));
+        } catch (e) {
+            console.error('Failed to load states', e);
+            return [];
+        }
+    }, [selectedCountryObj]);
+
+    const selectedStateObj = useMemo(() => {
+        if (!store?.state || !stateOptions.length) return null;
+        const sName = String(store.state).trim().toLowerCase();
+        return stateOptions.find(s => s.rawName.toLowerCase() === sName || s.isoCode.toLowerCase() === sName) || null;
+    }, [store?.state, stateOptions]);
+
+    const cityOptions = useMemo(() => {
+        if (!selectedCountryObj || !selectedStateObj) return [];
+        try {
+            const rawCities = City.getCitiesOfState(selectedCountryObj.isoCode, selectedStateObj.isoCode);
+            const uniqueNames = Array.from(new Set((rawCities || []).map(c => c.name))).sort((a, b) => a.localeCompare(b));
+            return uniqueNames.map(name => ({
+                value: name,
+                label: name
+            }));
+        } catch (e) {
+            console.error('Failed to load cities', e);
+            return [];
+        }
+    }, [selectedCountryObj, selectedStateObj]);
+
+    const handleCountryChange = (countryName) => {
+        setStore(prev => ({
+            ...prev,
+            country: countryName || '',
+            state: '',
+            city: '',
+        }));
+    };
+
+    const handleStateChange = (stateName) => {
+        setStore(prev => ({
+            ...prev,
+            state: stateName || '',
+            city: '',
+        }));
+    };
+
+    const handleCityChange = (cityName) => {
+        setStore(prev => ({
+            ...prev,
+            city: cityName || ''
+        }));
+    };
+
+    const pincodeError = useMemo(() => {
+        if (!store?.pincode) return null;
+        const pin = String(store.pincode).trim();
+        if (isIndia) {
+            if (!/^\d{6}$/.test(pin)) {
+                return 'Indian PIN code must be exactly 6 digits (e.g. 400001)';
+            }
+        } else if (pin.length < 2 || pin.length > 10) {
+            return 'Please enter a valid postal code (2-10 characters)';
+        }
+        return null;
+    }, [store?.pincode, isIndia]);
+
     const handleSave = async (e) => {
         e.preventDefault();
+        if (pincodeError) {
+            toast.error(pincodeError);
+            return;
+        }
         setSaving(true);
         try {
             await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, store);
@@ -590,18 +806,153 @@ export default function WaStoreBasicDetails() {
                     </SectionCard>
 
                     {/* ── Store Address ─────────────────────────────────────── */}
-                    <SectionCard title="Store Address" description="Physical location (optional — helps build customer trust)">
+                    <SectionCard title="Store Address" description="Physical location & regional address (optional — helps build customer trust and displays on storefront & invoices)">
                         <InputField label="Street Address" icon={MapPin} type="text"
-                            placeholder="123, Main Street" value={store.address || ''}
-                            onChange={e => set('address', e.target.value)} />
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                            <InputField label="City" type="text" placeholder="Mumbai" value={store.city || ''}
-                                onChange={e => set('city', e.target.value)} />
-                            <InputField label="State / Province" type="text" placeholder="Maharashtra" value={store.state || ''}
-                                onChange={e => set('state', e.target.value)} />
-                            <InputField label="Country" type="text" placeholder="India" value={store.country || ''}
-                                onChange={e => set('country', e.target.value)} />
+                            placeholder="e.g. Shop 12, Phoenix Marketcity, Kurla" value={store.address || ''}
+                            onChange={e => set('address', e.target.value)}
+                            hint="Street name, shop/suite number, landmark" />
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-1">
+                            {/* Country Dropdown */}
+                            <div className="space-y-1.5">
+                                <label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                    <Globe className="w-4 h-4 text-indigo-400" />
+                                    Country
+                                </label>
+                                <SearchableSelect
+                                    options={allCountries}
+                                    value={store.country || ''}
+                                    onChange={handleCountryChange}
+                                    placeholder="Select Country"
+                                    icon={Globe}
+                                    clearable
+                                />
+                                <p className="text-[11px] text-slate-400">
+                                    Choose country to filter states
+                                </p>
+                            </div>
+
+                            {/* State Dropdown */}
+                            <div className="space-y-1.5">
+                                <label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                    <Landmark className="w-4 h-4 text-indigo-400" />
+                                    State / Province
+                                </label>
+                                {stateOptions.length > 0 ? (
+                                    <SearchableSelect
+                                        options={stateOptions}
+                                        value={store.state || ''}
+                                        onChange={handleStateChange}
+                                        placeholder={store.country ? "Select State" : "Select country first"}
+                                        disabled={!store.country}
+                                        disabledHint="Select a country first"
+                                        icon={Landmark}
+                                        clearable
+                                    />
+                                ) : (
+                                    <input
+                                        type="text"
+                                        placeholder={store.country ? "Enter state / province" : "Select country first"}
+                                        value={store.state || ''}
+                                        disabled={!store.country}
+                                        onChange={e => handleStateChange(e.target.value)}
+                                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white placeholder-slate-400 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                    />
+                                )}
+                                <p className="text-[11px] text-slate-400">
+                                    {store.country ? `${stateOptions.length} state(s) available` : 'Select country first'}
+                                </p>
+                            </div>
+
+                            {/* City Dropdown */}
+                            <div className="space-y-1.5">
+                                <label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                    <Building2 className="w-4 h-4 text-indigo-400" />
+                                    City
+                                </label>
+                                {cityOptions.length > 0 ? (
+                                    <SearchableSelect
+                                        options={cityOptions}
+                                        value={store.city || ''}
+                                        onChange={handleCityChange}
+                                        placeholder={store.state ? "Select City" : "Select state first"}
+                                        disabled={!store.state}
+                                        disabledHint="Select a state first"
+                                        allowCustom={true}
+                                        customLabel="Use custom city"
+                                        icon={Building2}
+                                        clearable
+                                    />
+                                ) : (
+                                    <input
+                                        type="text"
+                                        placeholder={store.state ? "Enter city" : "Select state first"}
+                                        value={store.city || ''}
+                                        disabled={!store.state}
+                                        onChange={e => handleCityChange(e.target.value)}
+                                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-900 dark:text-white placeholder-slate-400 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                    />
+                                )}
+                                <p className="text-[11px] text-slate-400">
+                                    {store.state ? `${cityOptions.length} cities available (or type custom)` : 'Select state first'}
+                                </p>
+                            </div>
+
+                            {/* Pincode / Postal Code */}
+                            <div className="space-y-1.5">
+                                <label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                    <Hash className="w-4 h-4 text-indigo-400" />
+                                    {isIndia ? 'PIN Code' : 'Postal / PIN Code'}
+                                </label>
+                                <div className="relative flex items-center">
+                                    <input
+                                        type="text"
+                                        maxLength={isIndia ? 6 : 10}
+                                        placeholder={isIndia ? "e.g. 400001" : "e.g. 10001"}
+                                        value={store.pincode || ''}
+                                        onChange={e => {
+                                            let val = e.target.value;
+                                            if (isIndia) {
+                                                val = val.replace(/\D/g, '').slice(0, 6);
+                                            }
+                                            set('pincode', val);
+                                        }}
+                                        className={`w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border ${
+                                            pincodeError ? 'border-rose-400 dark:border-rose-500 ring-1 ring-rose-400' : 'border-slate-200 dark:border-slate-700'
+                                        } rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-900 dark:text-white placeholder-slate-400 text-sm`}
+                                    />
+                                    {store.pincode && isIndia && store.pincode.length === 6 && (
+                                        <Check className="w-4 h-4 text-emerald-500 absolute right-3 pointer-events-none" />
+                                    )}
+                                </div>
+                                {pincodeError ? (
+                                    <p className="text-[11px] text-rose-500 flex items-center gap-1 font-medium">
+                                        <AlertCircle className="w-3 h-3 shrink-0" /> {pincodeError}
+                                    </p>
+                                ) : (
+                                    <p className="text-[11px] text-slate-400">
+                                        {isIndia ? '6-digit Indian PIN code' : 'Area postal / zip code'}
+                                    </p>
+                                )}
+                            </div>
                         </div>
+
+                        {/* Formatted Address Preview */}
+                        {(store.address || store.city || store.state || store.pincode || store.country) && (
+                            <div className="mt-2 p-3.5 bg-slate-50 dark:bg-white/[0.02] border border-slate-200/80 dark:border-white/5 rounded-xl flex items-start gap-2.5">
+                                <MapPin className="w-4 h-4 text-indigo-500 mt-0.5 shrink-0" />
+                                <div className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                                    <span className="font-semibold text-slate-700 dark:text-slate-200">Address Preview: </span>
+                                    {[
+                                        store.address,
+                                        store.city,
+                                        store.state,
+                                        store.pincode ? (isIndia ? `PIN - ${store.pincode}` : store.pincode) : null,
+                                        store.country
+                                    ].filter(Boolean).join(', ')}
+                                </div>
+                            </div>
+                        )}
                     </SectionCard>
 
                     {/* ── Storefront Visibility ─────────────────────────────────────── */}
