@@ -405,9 +405,22 @@ export default function WaStoreBasicDetails() {
         }));
     };
 
+    const isPincodeRequired = useMemo(() => {
+        return Boolean(
+            String(store?.country || '').trim() &&
+            String(store?.state || '').trim() &&
+            String(store?.city || '').trim()
+        );
+    }, [store?.country, store?.state, store?.city]);
+
     const pincodeError = useMemo(() => {
-        if (!store?.pincode) return null;
-        const pin = String(store.pincode).trim();
+        const pin = String(store?.pincode || '').trim();
+        if (isPincodeRequired && !pin) {
+            return isIndia
+                ? 'PIN code is mandatory when Country, State, and City are selected'
+                : 'Postal code is mandatory when Country, State, and City are selected';
+        }
+        if (!pin) return null;
         if (isIndia) {
             if (!/^\d{6}$/.test(pin)) {
                 return 'Indian PIN code must be exactly 6 digits (e.g. 400001)';
@@ -416,7 +429,7 @@ export default function WaStoreBasicDetails() {
             return 'Please enter a valid postal code (2-10 characters)';
         }
         return null;
-    }, [store?.pincode, isIndia]);
+    }, [store?.pincode, isIndia, isPincodeRequired]);
 
     const handleSave = async (e) => {
         e.preventDefault();
@@ -902,7 +915,8 @@ export default function WaStoreBasicDetails() {
                             <div className="space-y-1.5">
                                 <label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-300">
                                     <Hash className="w-4 h-4 text-indigo-400" />
-                                    {isIndia ? 'PIN Code' : 'Postal / PIN Code'}
+                                    <span>{isIndia ? 'PIN Code' : 'Postal / PIN Code'}</span>
+                                    {isPincodeRequired && <span className="text-rose-500 font-bold" title="Required">*</span>}
                                 </label>
                                 <div className="relative flex items-center">
                                     <input
@@ -931,7 +945,9 @@ export default function WaStoreBasicDetails() {
                                     </p>
                                 ) : (
                                     <p className="text-[11px] text-slate-400">
-                                        {isIndia ? '6-digit Indian PIN code' : 'Area postal / zip code'}
+                                        {isPincodeRequired
+                                            ? (isIndia ? 'Required: 6-digit Indian PIN code' : 'Required: Area postal / zip code')
+                                            : (isIndia ? '6-digit Indian PIN code' : 'Area postal / zip code')}
                                     </p>
                                 )}
                             </div>

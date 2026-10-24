@@ -230,6 +230,9 @@ const openApiSpec = {
                     200: {
                         description: 'Store updated successfully'
                     },
+                    400: {
+                        description: 'Validation error (e.g. invalid slug, taken custom domain, or missing PIN / postal code when Country, State, and City are selected)'
+                    },
                     404: {
                         description: 'Store not found'
                     }
