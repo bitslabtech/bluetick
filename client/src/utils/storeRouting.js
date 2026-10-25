@@ -6,20 +6,21 @@
  */
 export function getStoreRoute(slug, path = '') {
     const hostname = window.location.hostname;
-    
+
     // Check if we are on a custom domain or platform domain
     // Add any staging/testing domains here if needed
-    const isPlatform = 
-        hostname === 'localhost' || 
-        hostname === '127.0.0.1' || 
-        hostname.includes('bluetick.cloud') || 
-        hostname.includes('whatsapp-cloud.com') || 
+    const isPlatform =
+        hostname === 'localhost' ||
+        hostname === '127.0.0.1' ||
+        hostname.includes('bluetick.cloud') ||
+        hostname.includes('whatsapp-cloud.com') ||
         hostname.includes('ngrok.io') ||
+        hostname.includes('sslip.io') ||
         hostname.includes('railway.app');
-    
+
     // Ensure path starts with a slash if provided
     const normalizedPath = path && !path.startsWith('/') && !path.startsWith('?') ? `/${path}` : path;
-    
+
     if (isPlatform) {
         return `/store/${slug}${normalizedPath}`;
     } else {
