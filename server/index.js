@@ -4,12 +4,12 @@ require('dotenv').config();
 process.on('uncaughtException', (err) => {
     const msg = `[UNCAUGHT EXCEPTION] ${err.message}\n${err.stack}`;
     console.error(msg);
-    try { require('fs').appendFileSync('crash.log', `${new Date().toISOString()} ${msg}\n`); } catch(e) {}
+    try { require('fs').appendFileSync('crash.log', `${new Date().toISOString()} ${msg}\n`); } catch (e) { }
 });
 process.on('unhandledRejection', (reason, promise) => {
     const msg = `[UNHANDLED REJECTION] ${reason?.message || reason}\n${reason?.stack || ''}`;
     console.error(msg);
-    try { require('fs').appendFileSync('crash.log', `${new Date().toISOString()} ${msg}\n`); } catch(e) {}
+    try { require('fs').appendFileSync('crash.log', `${new Date().toISOString()} ${msg}\n`); } catch (e) { }
 });
 
 require('./utils/winston'); // Wire up file logging (captures all console.log/error/warn)
@@ -153,7 +153,7 @@ app.use(cors({
         try {
             const allowed = await _getAllowedOrigins();
             if (allowed.has(origin)) return callback(null, true);
-        } catch (e) {}
+        } catch (e) { }
 
         // Not in the allowed list
         callback(new Error(`Not allowed by CORS: ${origin}`));
@@ -169,7 +169,7 @@ app.use(cookieParser());
 app.use('/api', globalLimiter);
 
 // Parse JSON payloads strictly up to 5MB to prevent memory exhaustion
-app.use(express.json({ 
+app.use(express.json({
     limit: '5mb',
     verify: (req, res, buf) => {
         req.rawBody = buf;
@@ -311,7 +311,7 @@ app.get('/api/health', (req, res) => {
 const _sysErrCooldown = new Map();
 app.use(async (err, req, res, next) => {
     console.error('[GLOBAL ERROR HANDLER]', err.message, err.stack);
-    
+
     // Fire WA admin alert (rate-limited per error message, 5 min cooldown)
     try {
         const errKey = err.message?.substring(0, 80) || 'unknown';
@@ -321,7 +321,7 @@ app.use(async (err, req, res, next) => {
             _sysErrCooldown.set(errKey, Date.now());
             const { sendAdminAlert } = require('./services/systemMessenger');
             const AdminNotification = require('./models/AdminNotification');
-            
+
             await AdminNotification.create({
                 type: 'SYSTEM_ERROR',
                 message: `Server error on ${req.method} ${req.path}`,
@@ -356,7 +356,7 @@ if (fs.existsSync(distIndex)) {
     // cutting the LCP "resource load delay" from ~2,600ms to ~100ms on mobile.
     app.get('/store/:slug', async (req, res) => {
         try {
-            const WaStore   = require('./models/WaStore');
+            const WaStore = require('./models/WaStore');
             const WaProduct = require('./models/WaProduct');
             // warmCache is exported from imgProxy — used to pre-warm the LCP image
             // cache BEFORE the browser even receives the HTML.
@@ -384,7 +384,7 @@ if (fs.existsSync(distIndex)) {
                         limit: 24
                     }),
                     // Fire-and-forget warm — does NOT block HTML if it fails or is slow
-                    lcpImageUrl ? warmCache(lcpImageUrl, { width: 800, quality: 92, format: 'webp', fit: 'contain' }).catch(() => {}) : Promise.resolve()
+                    lcpImageUrl ? warmCache(lcpImageUrl, { width: 800, quality: 92, format: 'webp', fit: 'contain' }).catch(() => { }) : Promise.resolve()
                 ]);
 
                 const injections = [];
@@ -412,12 +412,12 @@ if (fs.existsSync(distIndex)) {
                         const proxyOrigin = new URL(preloadUrl).origin;
                         injections.push(`<link rel="preconnect" href="${proxyOrigin}" crossorigin>`);
                         injections.push(`<link rel="dns-prefetch" href="${proxyOrigin}">`);
-                    } catch (e) {}
+                    } catch (e) { }
                 }
 
                 // OG / SEO meta tags for social sharing & search engines
                 const title = store.name ? `${store.name} | Shop Online` : 'Online Store';
-                const desc  = store.description || `Shop at ${store.name || 'our store'} — fast checkout via WhatsApp.`;
+                const desc = store.description || `Shop at ${store.name || 'our store'} — fast checkout via WhatsApp.`;
                 const ogImg = store.logo || lcpImageUrl || '';
 
                 injections.push(`<title>${title}</title>`);
@@ -485,7 +485,7 @@ img{display:block;vertical-align:middle}
                     (match, href) => {
                         // Only replace if it's actually the stylesheet link
                         if (!match.includes('rel="stylesheet"')) return match;
-                        
+
                         return [
                             CRITICAL_STORE_CSS,
                             // media="print" makes browser treat it as non-render-blocking;
@@ -552,7 +552,7 @@ img{display:block;vertical-align:middle}
         const hostname = (req.headers['x-forwarded-host'] || req.hostname || req.headers.host || '').split(':')[0].toLowerCase();
 
         // Skip platform domains and local development
-        if (PLATFORM_HOSTS.has(hostname) || hostname.includes('ngrok.io') || hostname.includes('railway.app')) {
+        if (PLATFORM_HOSTS.has(hostname) || hostname.includes('ngrok.io') || hostname.includes('railway.app') || hostname.includes('sslip.io')) {
             return next();
         }
 
@@ -594,7 +594,7 @@ img{display:block;vertical-align:middle}
                     order: [['createdAt', 'DESC']],
                     limit: 24
                 }),
-                lcpImageUrl ? warmCache(lcpImageUrl, { width: 800, quality: 92, format: 'webp', fit: 'contain' }).catch(() => {}) : Promise.resolve()
+                lcpImageUrl ? warmCache(lcpImageUrl, { width: 800, quality: 92, format: 'webp', fit: 'contain' }).catch(() => { }) : Promise.resolve()
             ]);
 
             const injections = [];
@@ -605,7 +605,7 @@ img{display:block;vertical-align:middle}
                     const proxyOrigin = new URL(lcpImageUrl).origin;
                     injections.push(`<link rel="preconnect" href="${proxyOrigin}" crossorigin>`);
                     injections.push(`<link rel="dns-prefetch" href="${proxyOrigin}">`);
-                } catch (e) {}
+                } catch (e) { }
             }
 
             // OG / SEO meta tags — use custom domain as canonical
@@ -679,7 +679,7 @@ async function backfillMediaTypes() {
             const mime = (mimeType || '').toLowerCase();
             const u = (url || '').toLowerCase();
             if (mime.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif|svg|bmp|avif)(\?|$)/.test(u)) return 'image';
-            if (mime.startsWith('video/') || /\.(mp4|webm|3gp|ogg|mov|avi)(\?|$)/.test(u))           return 'video';
+            if (mime.startsWith('video/') || /\.(mp4|webm|3gp|ogg|mov|avi)(\?|$)/.test(u)) return 'video';
             if (
                 mime === 'application/pdf' || mime.startsWith('text/') ||
                 mime.includes('document') || mime.includes('spreadsheet') ||
@@ -699,7 +699,7 @@ async function backfillMediaTypes() {
         await Promise.all(rows.map(async (row) => {
             const derived = deriveMediaType(row.mimeType, row.url);
             if (derived !== row.mediaType) {
-                await row.update({ mediaType: derived }).catch(() => {});
+                await row.update({ mediaType: derived }).catch(() => { });
                 updated++;
             }
         }));
@@ -721,7 +721,7 @@ const startServer = async () => {
 
         require('./models/WaStoreCoupon'); // Ensure WaStoreCoupon is loaded before sync
         require('./models/MediaFile');     // Ensure MediaFile is loaded before sync
-        
+
         // Ensure SYSTEM_ALERT is added to the enum for Postgres databases
         // since sequelize.sync({ alter: true }) often fails to update ENUMs dynamically
         try {
@@ -735,7 +735,7 @@ const startServer = async () => {
                 try {
                     await sequelize.query(`ALTER TYPE "enum_AdminNotifications_type" ADD VALUE 'SYSTEM_ALERT';`);
                     console.log('Added SYSTEM_ALERT to AdminNotifications type enum (legacy fallback).');
-                } catch (err) {}
+                } catch (err) { }
             }
         }
 
@@ -744,13 +744,13 @@ const startServer = async () => {
         // exist and does NOT try to generate its own broken ENUM ALTER SQL.
         // Each statement has its own try-catch so errors (column/type already exists)
         // are silently ignored.
-        try { await sequelize.query(`CREATE TYPE "enum_WaStores_domainStatus" AS ENUM('pending', 'verified', 'failed');`); } catch(e) { /* already exists — ignore */ }
-        try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN "domainStatus" "enum_WaStores_domainStatus" DEFAULT NULL;`); } catch(e) { /* already exists — ignore */ }
-        try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN "domainVerifiedAt" TIMESTAMP WITH TIME ZONE DEFAULT NULL;`); } catch(e) { /* already exists — ignore */ }
-        try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN IF NOT EXISTS "subcategories" JSON DEFAULT '{}';`); } catch(e) { /* already exists — ignore */ }
-        try { await sequelize.query(`ALTER TABLE "WaProducts" ADD COLUMN IF NOT EXISTS "subCategories" JSON DEFAULT '[]';`); } catch(e) { /* already exists — ignore */ }
-        try { await sequelize.query(`ALTER TABLE "WaProducts" ADD COLUMN IF NOT EXISTS "isTrending" BOOLEAN DEFAULT false;`); } catch(e) { /* already exists — ignore */ }
-        try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN IF NOT EXISTS "shoppableVideosAutoSlide" BOOLEAN DEFAULT false;`); } catch(e) { /* already exists — ignore */ }
+        try { await sequelize.query(`CREATE TYPE "enum_WaStores_domainStatus" AS ENUM('pending', 'verified', 'failed');`); } catch (e) { /* already exists — ignore */ }
+        try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN "domainStatus" "enum_WaStores_domainStatus" DEFAULT NULL;`); } catch (e) { /* already exists — ignore */ }
+        try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN "domainVerifiedAt" TIMESTAMP WITH TIME ZONE DEFAULT NULL;`); } catch (e) { /* already exists — ignore */ }
+        try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN IF NOT EXISTS "subcategories" JSON DEFAULT '{}';`); } catch (e) { /* already exists — ignore */ }
+        try { await sequelize.query(`ALTER TABLE "WaProducts" ADD COLUMN IF NOT EXISTS "subCategories" JSON DEFAULT '[]';`); } catch (e) { /* already exists — ignore */ }
+        try { await sequelize.query(`ALTER TABLE "WaProducts" ADD COLUMN IF NOT EXISTS "isTrending" BOOLEAN DEFAULT false;`); } catch (e) { /* already exists — ignore */ }
+        try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN IF NOT EXISTS "shoppableVideosAutoSlide" BOOLEAN DEFAULT false;`); } catch (e) { /* already exists — ignore */ }
 
         await sequelize.sync({ alter: { drop: false } }); // Sync models — never drop constraints/columns
         console.log('Database synced.');
