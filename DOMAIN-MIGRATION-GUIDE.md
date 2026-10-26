@@ -66,10 +66,15 @@ REDIS_URL=redis://default:Vg1TMc9HCOPLTF0o4etvm83H86wjK3TxwUgEf4CKc2bfriDWNggAdm
 # Cloudflare for SaaS (UPDATE ZONE ID FOR ONEDASH)
 CLOUDFLARE_ZONE_ID=<new_zone_id_of_onedash_from_cloudflare>
 CLOUDFLARE_API_TOKEN=cfut_3MQ
+
+# (Optional: Dual-Domain Migration) Keep bluetick.cloud running while launching onedash.cloud:
+# Leave FRONTEND_URL=https://bluetick.cloud and add:
+# EXTRA_PLATFORM_DOMAINS=onedash.cloud
 ```
 
 > **Summary of Backend Changes:**
 > - `FRONTEND_URL` updated to `https://onedash.cloud` (Used for CORS whitelist, store buyer redirects, and email links).
+>   *(Tip: If keeping `bluetick.cloud` active during migration, keep `FRONTEND_URL=https://bluetick.cloud` and set `EXTRA_PLATFORM_DOMAINS=onedash.cloud`).*
 > - `VITE_API_URL=https://api.onedash.cloud` added to backend env (Used for PhonePe server callbacks, storage, and self-referencing APIs).
 > - **`APP_URL` is no longer required** — the code now automatically uses `FRONTEND_URL` for storefront links and `VITE_API_URL` for server callbacks. *(Existing `APP_URL` values are still supported in code as a fallback so nothing breaks).*
 > - `PLATFORM_DOMAIN=onedash.cloud` added (used for CORS and domain detection).

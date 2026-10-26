@@ -140,6 +140,22 @@ const _getAllowedOrigins = async () => {
 // so you never need to update CORS config when adding a subdomain.
 const _platformDomainCors = (process.env.PLATFORM_DOMAIN || '').toLowerCase();
 
+// EXTRA_CORS_ORIGINS: comma-separated list of additional allowed origins.
+// Use during domain migration to allow a new domain alongside the primary one.
+// Example: EXTRA_CORS_ORIGINS=https://onedash.cloud,https://staging.onedash.cloud
+const _extraCorsOrigins = (process.env.EXTRA_CORS_ORIGINS || '')
+    .split(',')
+    .map(o => o.trim().toLowerCase())
+    .filter(Boolean);
+
+// EXTRA_PLATFORM_DOMAINS: comma-separated additional platform domains.
+// Each domain and ALL its subdomains will be allowed (same logic as PLATFORM_DOMAIN).
+// Example: EXTRA_PLATFORM_DOMAINS=onedash.cloud
+const _extraPlatformDomains = (process.env.EXTRA_PLATFORM_DOMAINS || '')
+    .split(',')
+    .map(d => d.trim().toLowerCase())
+    .filter(Boolean);
+
 function _isPlatformOrigin(origin) {
     if (!origin) return true;
     try {
@@ -148,7 +164,7 @@ function _isPlatformOrigin(origin) {
         // Always allow localhost / 127.0.0.1
         if (h === 'localhost' || h === '127.0.0.1') return true;
         // Direct IP address access
-        if (/^(\d{1,3}\.){3}\d{1,3}$/.test(h)) return true;
+        if (/(\d{1,3}\.){3}\d{1,3}$/.test(h)) return true;
         // PaaS / Dynamic DNS domains (Coolify, sslip.io, nip.io, traefik.me, etc.)
         const paasPatterns = ['sslip.io', 'nip.io', 'traefik.me', 'ngrok.io', 'ngrok-free.app', 'railway.app', 'onrender.com', 'vercel.app', 'netlify.app'];
         if (paasPatterns.some(p => h.includes(p))) return true;
@@ -157,9 +173,15 @@ function _isPlatformOrigin(origin) {
         if (primary && origin === primary) return true;
         // Allow root domain + all subdomains of PLATFORM_DOMAIN
         if (_platformDomainCors && (h === _platformDomainCors || h.endsWith(`.${_platformDomainCors}`))) return true;
+        // Allow extra origins (exact match) — migration period
+        const originLower = origin.toLowerCase();
+        if (_extraCorsOrigins.some(o => o === originLower)) return true;
+        // Allow extra platform domains + all their subdomains — migration period
+        if (_extraPlatformDomains.some(d => h === d || h.endsWith(`.${d}`))) return true;
     } catch { }
     return false;
 }
+
 
 app.use(cors({
     origin: async (origin, callback) => {
