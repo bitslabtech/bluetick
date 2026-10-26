@@ -137,7 +137,7 @@ const fireCAPICheckout = async (store, order) => {
             pixelId,
             accessToken,
             eventName: 'InitiateCheckout',
-            sourceUrl: `${process.env.APP_URL || ''}/store/${store.slug}`,
+            sourceUrl: `${process.env.FRONTEND_URL || process.env.APP_URL || ''}/store/${store.slug}`,
             userData: { phone: order.customerPhone, email: order.customerEmail },
             testEventCode: storeOwner.capiConfig?.testEventCode,
             eventData: {
@@ -164,7 +164,7 @@ const fireCAPIPurchase = async (store, order) => {
             pixelId,
             accessToken,
             eventName: 'Purchase',
-            sourceUrl: `${process.env.APP_URL || ''}/store/${store.slug}`,
+            sourceUrl: `${process.env.FRONTEND_URL || process.env.APP_URL || ''}/store/${store.slug}`,
             userData: { phone: order.customerPhone, email: order.customerEmail },
             testEventCode: storeOwner.capiConfig?.testEventCode,
             eventData: {
@@ -616,10 +616,11 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
                     // SEC-H2 FIX: Use order.total (includes tax), not order.subtotal (pre-tax).
                     // Previously PhonePe charged customers the pre-tax amount — store owners lost GST revenue.
                     amount: Math.round((order.total || order.subtotal) * 100),
-                    // Redirect back to the store
-                    redirectUrl: `${process.env.APP_URL || 'http://localhost:5173'}/store/${store.slug}/verify?order=${order.orderNumber}`,
+                    // Redirect back to the store (frontend)
+                    redirectUrl: `${process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:5173'}/store/${store.slug}/verify?order=${order.orderNumber}`,
                     redirectMode: "POST",
-                    callbackUrl: `${process.env.APP_URL || 'http://localhost:5000'}/api/wastore/public/${store.slug}/phonepe-callback`,
+                    // PhonePe server-to-server webhook (backend API)
+                    callbackUrl: `${process.env.VITE_API_URL || process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:5000'}/api/wastore/public/${store.slug}/phonepe-callback`,
                     mobileNumber: customerPhone.replace(/\D/g, ''),
                     paymentInstrument: {
                         type: "PAY_PAGE"
@@ -1796,8 +1797,9 @@ router.put('/:id', async (req, res) => {
                     return res.status(400).json({ error: 'Invalid domain format. Please enter a valid domain like "www.example.com" or "shop.example.com".' });
                 }
 
-                // Block platform domains
-                const blockedDomains = ['bluetick.cloud', 'www.bluetick.cloud', 'localhost'];
+                // Block platform domains from being used as custom store domains
+                const _pd = (process.env.PLATFORM_DOMAIN || 'bluetick.cloud').toLowerCase();
+                const blockedDomains = [_pd, `www.${_pd}`, 'localhost'];
                 if (blockedDomains.includes(domain)) {
                     return res.status(400).json({ error: 'This domain cannot be used as a custom domain.' });
                 }
@@ -1870,12 +1872,14 @@ router.post('/:id/verify-domain', auth, async (req, res) => {
         if (!store.customDomain) return res.status(400).json({ error: 'No custom domain configured for this store.' });
 
         const domain = store.customDomain;
-        const validTargets = ['router.bluetick.cloud'];
-        const displayTarget = 'router.bluetick.cloud';
+        const routerHostname = (process.env.ROUTER_HOSTNAME || `router.${process.env.PLATFORM_DOMAIN || 'bluetick.cloud'}`).toLowerCase();
+        const validTargets = [routerHostname];
+        const displayTarget = routerHostname;
         // Resolve target IPs dynamically — never hardcoded so IP changes don't break verification
-        let targetIPs = ['187.127.171.15']; // Always accept the direct server IP
+        let targetIPs = [];
+        if (process.env.SERVER_IP) targetIPs.push(process.env.SERVER_IP);
         try { 
-            const resolvedIps = await dns.resolve4('router.bluetick.cloud').catch(() => []);
+            const resolvedIps = await dns.resolve4(routerHostname).catch(() => []);
             targetIPs = [...targetIPs, ...resolvedIps]; 
         } catch(e) { }
         let verified = false;

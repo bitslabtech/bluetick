@@ -42,7 +42,7 @@ const fireCAPIEvent = async ({ pixelId, accessToken, eventName, eventData, userD
                 event_name: eventName,
                 event_time: eventTime,
                 action_source: 'website',
-                event_source_url: sourceUrl || process.env.APP_URL || 'https://app.example.com',
+                event_source_url: sourceUrl || process.env.FRONTEND_URL || process.env.APP_URL || 'https://app.example.com',
 
                 // PII — always SHA-256 hashed (Meta requirement)
                 user_data: {

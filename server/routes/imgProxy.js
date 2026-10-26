@@ -27,7 +27,10 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const CDN_HOST = 'cdn.bluetick.cloud';
+// CDN_HOST is configured via CDN_HOST env var (e.g. "cdn.myapp.com").
+// Falls back to cdn.bluetick.cloud for backwards compatibility.
+// Change only the env var when moving to a new domain — no code change needed.
+const CDN_HOST = process.env.CDN_HOST || 'cdn.bluetick.cloud';
 const ALLOWED_FORMATS = ['webp', 'avif', 'jpeg', 'png'];
 const MAX_WIDTH = 2000;
 const MIN_WIDTH = 10;

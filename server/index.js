@@ -135,21 +135,41 @@ const _getAllowedOrigins = async () => {
     return _corsCache.domains;
 };
 
+// Build the set of always-allowed platform origins from PLATFORM_DOMAIN.
+// This covers the root domain + ALL subdomains (www, staging, api, etc.)
+// so you never need to update CORS config when adding a subdomain.
+const _platformDomainCors = (process.env.PLATFORM_DOMAIN || '').toLowerCase();
+
+function _isPlatformOrigin(origin) {
+    if (!origin) return true;
+    try {
+        const { hostname } = new URL(origin);
+        const h = hostname.toLowerCase();
+        // Always allow localhost / 127.0.0.1
+        if (h === 'localhost' || h === '127.0.0.1') return true;
+        // Allow primary FRONTEND_URL (exact)
+        const primary = process.env.FRONTEND_URL || '';
+        if (primary && origin === primary) return true;
+        // Allow root domain + all subdomains of PLATFORM_DOMAIN
+        if (_platformDomainCors && (h === _platformDomainCors || h.endsWith(`.${_platformDomainCors}`))) return true;
+    } catch { }
+    return false;
+}
+
 app.use(cors({
     origin: async (origin, callback) => {
         // Allow server-to-server calls (no Origin header) and same-origin requests
         if (!origin) return callback(null, true);
 
-        // Always allow the primary frontend
-        const primaryOrigin = process.env.FRONTEND_URL || 'http://localhost:5173';
-        if (origin === primaryOrigin) return callback(null, true);
+        // Allow localhost and all subdomains of PLATFORM_DOMAIN (covers staging automatically)
+        if (_isPlatformOrigin(origin)) return callback(null, true);
 
-        // Allow local development
+        // Allow local development (http variants)
         if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
             return callback(null, true);
         }
 
-        // Check against verified custom domains (cache refreshed every 60s)
+        // Check against verified merchant custom domains (cache refreshed every 60s)
         try {
             const allowed = await _getAllowedOrigins();
             if (allowed.has(origin)) return callback(null, true);
@@ -397,8 +417,8 @@ if (fs.existsSync(distIndex)) {
                     //   ${VITE_API_URL}/api/img?url=${encoded}&w=800&q=82&f=webp&fit=contain
                     //
                     // We replicate that here on the server side.
-                    const CDN_HOST = 'cdn.bluetick.cloud';
-                    const apiBase = process.env.VITE_API_URL || process.env.APP_URL || 'http://localhost:5000';
+                    const CDN_HOST = process.env.CDN_HOST || 'cdn.bluetick.cloud';
+                    const apiBase = process.env.VITE_API_URL || process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:5000';
 
                     let preloadUrl = lcpImageUrl;
                     // Escape to prevent HTML parser breakage
@@ -536,9 +556,25 @@ img{display:block;vertical-align:middle}
     // middleware resolves the domain → store mapping and serves the same
     // SSR-optimized HTML (LCP preload, OG meta, embedded data) as /store/:slug.
     // MUST come before the generic SPA catch-all.
-    const PLATFORM_HOSTS = new Set([
-        'localhost', '127.0.0.1', 'bluetick.cloud', 'www.bluetick.cloud'
-    ]);
+    // Platform domain is configured via PLATFORM_DOMAIN env var (e.g. "bluetick.cloud" or "myapp.com").
+    // Subdomains (staging.myapp.com, www.myapp.com) are matched automatically.
+    // Changing domains requires only updating the env var — no code change needed.
+    const _platformDomain = (process.env.PLATFORM_DOMAIN || 'bluetick.cloud').toLowerCase();
+
+    const PLATFORM_HOSTS = new Set(['localhost', '127.0.0.1']);
+
+    function isPlatformHost(hostname) {
+        if (!hostname) return true;
+        if (PLATFORM_HOSTS.has(hostname)) return true;
+        // Direct IP access (e.g. Coolify raw IP or sslip.io)
+        if (/^(\d{1,3}\.){3}\d{1,3}$/.test(hostname)) return true;
+        // PaaS / Dynamic DNS domains — never a merchant's custom domain
+        const paas = ['sslip.io', 'nip.io', 'traefik.me', 'ngrok.io', 'ngrok-free.app', 'railway.app', 'onrender.com', 'vercel.app'];
+        if (paas.some(p => hostname.includes(p))) return true;
+        // PLATFORM_DOMAIN env var: matches exact domain and all its subdomains
+        if (hostname === _platformDomain || hostname.endsWith(`.${_platformDomain}`)) return true;
+        return false;
+    }
 
     app.get(/.*/, async (req, res, next) => {
         // Skip API routes — they're handled by their own routers
@@ -547,12 +583,12 @@ img{display:block;vertical-align:middle}
         }
 
         // x-forwarded-host is set by our Cloudflare Worker, which rewrites custom domain
-        // traffic to api.bluetick.cloud while preserving the original domain in this header.
+        // traffic to api.PLATFORM_DOMAIN while preserving the original domain in this header.
         // Fallback to req.hostname for direct traffic (e.g. testing without the Worker).
         const hostname = (req.headers['x-forwarded-host'] || req.hostname || req.headers.host || '').split(':')[0].toLowerCase();
 
-        // Skip platform domains and local development
-        if (PLATFORM_HOSTS.has(hostname) || hostname.includes('ngrok.io') || hostname.includes('railway.app') || hostname.includes('sslip.io')) {
+        // Skip platform domains and local development (reads PLATFORM_DOMAIN env var)
+        if (isPlatformHost(hostname)) {
             return next();
         }
 

@@ -12,6 +12,7 @@ import { SocketProvider } from './context/SocketContext';
 import Layout from './components/Layout';
 import { PaymentRedirectHandler } from './components/PaymentRedirectHandler';
 import { StoreCustomerProvider } from './context/StoreCustomerContext';
+import { isPlatformDomain } from './utils/storeRouting';
 
 // ── Code-Split Pages (React.lazy) ──────────────────────────────────────────
 // Each page loads as a separate JS chunk (~20-150KB) only when navigated to.
@@ -338,8 +339,9 @@ function CustomDomainRouter({ children }) {
 
     useEffect(() => {
         const hostname = window.location.hostname;
-        // Ignore local development domains and the main SaaS platform domain
-        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === 'whatsapp-cloud.com' || hostname === 'bluetick.cloud' || hostname === 'www.bluetick.cloud' || hostname.includes('ngrok.io')) {
+        // Ignore platform domains (localhost, IP, sslip.io, VITE_PLATFORM_DOMAIN, etc.)
+        // isPlatformDomain reads VITE_PLATFORM_DOMAIN — change only the env var, never the code.
+        if (isPlatformDomain(hostname)) {
             setLoading(false);
             return;
         }

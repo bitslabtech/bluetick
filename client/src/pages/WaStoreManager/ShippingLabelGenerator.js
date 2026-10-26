@@ -391,9 +391,10 @@ function renderPortraitLabel({ doc, order, store, currency, isCod, payableAmount
 
     // ── SECTION 7: FOOTER ──
     const storeSlug = store?.slug || (store?.name ? store.name.toLowerCase().replace(/[^a-z0-9-]+/g, '-') : '');
+    const _platformDomain = (import.meta.env.VITE_PLATFORM_DOMAIN || 'bluetick.cloud');
     const footerBrand = store?.customDomain
         ? store.customDomain.replace(/^https?:\/\//i, '')
-        : (storeSlug ? `bluetick.cloud/store/${storeSlug}` : 'bluetick.cloud');
+        : (storeSlug ? `${_platformDomain}/store/${storeSlug}` : _platformDomain);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(sF(6));
     doc.setTextColor(100, 100, 100);
@@ -537,9 +538,10 @@ function renderLandscapeLabel({ doc, order, store, currency, isCod, payableAmoun
 
     // Left Footer
     const storeSlug = store?.slug || (store?.name ? store.name.toLowerCase().replace(/[^a-z0-9-]+/g, '-') : '');
+    const _platformDomainB = (import.meta.env.VITE_PLATFORM_DOMAIN || 'bluetick.cloud');
     const footerBrand = store?.customDomain
         ? store.customDomain.replace(/^https?:\/\//i, '')
-        : (storeSlug ? `bluetick.cloud/store/${storeSlug}` : 'bluetick.cloud');
+        : (storeSlug ? `${_platformDomainB}/store/${storeSlug}` : _platformDomainB);
     doc.line(sX(4) + margin, sY(86), splitX, sY(86));
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(sF(6));
