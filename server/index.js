@@ -147,6 +147,11 @@ function _isPlatformOrigin(origin) {
         const h = hostname.toLowerCase();
         // Always allow localhost / 127.0.0.1
         if (h === 'localhost' || h === '127.0.0.1') return true;
+        // Direct IP address access
+        if (/^(\d{1,3}\.){3}\d{1,3}$/.test(h)) return true;
+        // PaaS / Dynamic DNS domains (Coolify, sslip.io, nip.io, traefik.me, etc.)
+        const paasPatterns = ['sslip.io', 'nip.io', 'traefik.me', 'ngrok.io', 'ngrok-free.app', 'railway.app', 'onrender.com', 'vercel.app', 'netlify.app'];
+        if (paasPatterns.some(p => h.includes(p))) return true;
         // Allow primary FRONTEND_URL (exact)
         const primary = process.env.FRONTEND_URL || '';
         if (primary && origin === primary) return true;
