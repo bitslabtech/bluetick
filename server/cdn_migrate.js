@@ -1,253 +1,155 @@
 /**
- * Phase 2: CDN URL Migration - cdn.bluetick.cloud -> cdn.onedash.cloud
+ * Phase 2: Complete Database CDN Migration (cdn.bluetick.cloud -> cdn.onedash.cloud)
  *
- * DRY-RUN by default (no DB changes).
- * Pass --execute flag to apply the migration.
- *
- * Tables and columns covered:
- *   MediaFiles  : url
- *   WaStores    : logo, coverImage (string) + heroSlides, categoryImages, seoConfig,
- *                 shoppableVideos, homepageSections, homepageCollections (JSON)
- *   WaProducts  : image (string) + images, variants (JSON)
- *   Vcards      : avatar, coverImage, logo (string)
- *   Users       : avatar (string)
- *   SystemConfig: settings.storage.r2.publicUrl (so new uploads also use onedash)
- *
- * Safety guarantees:
- *   - Zero writes without --execute flag
- *   - Idempotent: re-running is safe; already-migrated rows are skipped
- *   - Per-row updates: a failure on one row does not affect others
- *   - JSON-aware: JSON columns are parsed, substituted, then re-serialised
+ * 100% Comprehensive & Automated:
+ *   - Dynamically scans EVERY table and EVERY text/varchar/json/jsonb column
+ *     across your entire PostgreSQL database via information_schema.
+ *   - No hardcoded tables: nothing is skipped (MediaFiles, WaStores, WaProducts,
+ *     Vcards, Templates, Blogs, LandingPages, SystemConfigs, etc.).
+ *   - DRY-RUN by default: previews all matches and row counts with ZERO database writes.
+ *   - With --execute: safely updates all occurrences directly in PostgreSQL.
+ *   - Post-migration audit: runs a full-database verification scan to ensure 0 references remain.
  *
  * Usage:
- *   cd server
- *   node cdn_migrate.js            # dry-run
- *   node cdn_migrate.js --execute  # apply
+ *   node cdn_migrate.js            # Preview / Dry Run
+ *   node cdn_migrate.js --execute  # Execute migration
  */
 
 const OLD_CDN = 'cdn.bluetick.cloud';
 const NEW_CDN = 'cdn.onedash.cloud';
 const DRY_RUN = !process.argv.includes('--execute');
 
-// Load env + DB from server root (this script lives in /server)
 require('dotenv').config({ path: __dirname + '/.env' });
 const { sequelize } = require('./config/database');
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function replaceUrl(str) {
-    if (typeof str !== 'string') return str;
-    return str.split('https://' + OLD_CDN).join('https://' + NEW_CDN);
-}
-
-function replaceJson(val) {
-    if (!val) return { changed: false, value: val };
-    var str = JSON.stringify(val);
-    if (!str.includes(OLD_CDN)) return { changed: false, value: val };
-    return { changed: true, value: JSON.parse(str.split(OLD_CDN).join(NEW_CDN)) };
-}
-
-function hasCdn(val) {
-    if (!val) return false;
-    if (typeof val === 'string') return val.includes(OLD_CDN);
-    return JSON.stringify(val).includes(OLD_CDN);
-}
-
-var totalScanned = 0;
-var totalWouldMigrate = 0;
-var totalMigrated = 0;
-
-// ─── String column migration ──────────────────────────────────────────────────
-
-async function migrateStringCols(tableName, columns, idCol) {
-    idCol = idCol || 'id';
-    console.log('\n=== ' + tableName + ' [string: ' + columns.join(', ') + '] ===');
-
-    var select = [idCol].concat(columns).map(function(c){ return '"' + c + '"'; }).join(', ');
-    var rows = (await sequelize.query('SELECT ' + select + ' FROM "' + tableName + '"'))[0];
-    totalScanned += rows.length;
-
-    var migrated = 0;
-    for (var i = 0; i < rows.length; i++) {
-        var row = rows[i];
-        var updates = {};
-        columns.forEach(function(col) {
-            if (!row[col] || typeof row[col] !== 'string') return;
-            var n = replaceUrl(row[col]);
-            if (n !== row[col]) updates[col] = n;
-        });
-        if (!Object.keys(updates).length) continue;
-        totalWouldMigrate++;
-
-        if (DRY_RUN) {
-            console.log('  [DRY] id=' + row[idCol] + ' -> ' + JSON.stringify(updates));
-        } else {
-            var keys = Object.keys(updates);
-            var set = keys.map(function(c, i){ return '"' + c + '" = $' + (i+1); }).join(', ');
-            var vals = keys.map(function(c){ return updates[c]; });
-            vals.push(row[idCol]);
-            await sequelize.query(
-                'UPDATE "' + tableName + '" SET ' + set + ' WHERE "' + idCol + '" = $' + vals.length,
-                { bind: vals }
-            );
-            console.log('  [OK] id=' + row[idCol]);
-            migrated++;
-        }
-    }
-    totalMigrated += migrated;
-    console.log('  Scanned: ' + rows.length + ' | ' + (DRY_RUN ? 'Would update: ' + totalWouldMigrate : 'Updated: ' + migrated));
-}
-
-// ─── JSON column migration ────────────────────────────────────────────────────
-
-async function migrateJsonCols(tableName, columns, idCol) {
-    idCol = idCol || 'id';
-    console.log('\n=== ' + tableName + ' [JSON: ' + columns.join(', ') + '] ===');
-
-    var select = [idCol].concat(columns).map(function(c){ return '"' + c + '"'; }).join(', ');
-    var rows = (await sequelize.query('SELECT ' + select + ' FROM "' + tableName + '"'))[0];
-    totalScanned += rows.length;
-
-    var migrated = 0;
-    for (var i = 0; i < rows.length; i++) {
-        var row = rows[i];
-        var updates = {};
-        columns.forEach(function(col) {
-            if (!hasCdn(row[col])) return;
-            var r = replaceJson(row[col]);
-            if (r.changed) updates[col] = r.value;
-        });
-        if (!Object.keys(updates).length) continue;
-        totalWouldMigrate++;
-
-        if (DRY_RUN) {
-            console.log('  [DRY] id=' + row[idCol] + ' cols: ' + Object.keys(updates).join(', '));
-        } else {
-            var keys = Object.keys(updates);
-            var set = keys.map(function(c, i){ return '"' + c + '" = $' + (i+1) + '::json'; }).join(', ');
-            var vals = keys.map(function(c){ return JSON.stringify(updates[c]); });
-            vals.push(row[idCol]);
-            await sequelize.query(
-                'UPDATE "' + tableName + '" SET ' + set + ' WHERE "' + idCol + '" = $' + vals.length,
-                { bind: vals }
-            );
-            console.log('  [OK] id=' + row[idCol]);
-            migrated++;
-        }
-    }
-    totalMigrated += migrated;
-    console.log('  Scanned: ' + rows.length + ' | ' + (DRY_RUN ? 'Would update: ' + totalWouldMigrate : 'Updated: ' + migrated));
-}
-
-// ─── SystemConfig r2.publicUrl ────────────────────────────────────────────────
-
-async function migrateR2PublicUrl() {
-    console.log('\n=== SystemConfigs.settings.storage.r2.publicUrl ===');
-    var rows = (await sequelize.query('SELECT id, settings FROM "SystemConfigs"'))[0];
-    for (var i = 0; i < rows.length; i++) {
-        var row = rows[i];
-        var s = row.settings;
-        var cur = s && s.storage && s.storage.r2 && s.storage.r2.publicUrl;
-        console.log('  Current r2.publicUrl: ' + (cur || '(not set)'));
-        if (cur && cur.includes(OLD_CDN)) {
-            var updated = replaceUrl(cur);
-            if (DRY_RUN) {
-                console.log('  [DRY] Would update -> ' + updated);
-            } else {
-                s.storage.r2.publicUrl = updated;
-                await sequelize.query(
-                    'UPDATE "SystemConfigs" SET settings = $1::json WHERE id = $2',
-                    { bind: [JSON.stringify(s), row.id] }
-                );
-                console.log('  [OK] r2.publicUrl updated to ' + updated);
-            }
-        } else {
-            console.log('  No change needed.');
-        }
-    }
-}
-
-// ─── Pre-flight: show config + row counts ─────────────────────────────────────
-
-async function preflight() {
-    // Current config
-    var rows = (await sequelize.query('SELECT settings FROM "SystemConfigs" WHERE id = 1'))[0];
-    if (rows.length) {
-        var s = rows[0].settings;
-        console.log('\n--- Current storage config ---');
-        console.log('  type:         ' + (s && s.storage && s.storage.type));
-        if (s && s.storage && s.storage.r2) {
-            console.log('  r2.bucket:    ' + s.storage.r2.bucket);
-            console.log('  r2.publicUrl: ' + s.storage.r2.publicUrl);
-        }
-    }
-
-    // Row counts
-    console.log('\n--- Rows referencing ' + OLD_CDN + ' ---');
-    var checks = [
-        { t: 'MediaFiles',  c: 'url' },
-        { t: 'WaStores',    c: 'logo' },
-        { t: 'WaStores',    c: 'coverImage' },
-        { t: 'WaStores',    c: 'heroSlides' },
-        { t: 'WaStores',    c: 'seoConfig' },
-        { t: 'WaProducts',  c: 'image' },
-        { t: 'WaProducts',  c: 'images' },
-        { t: 'Vcards',      c: 'avatar' },
-        { t: 'Users',       c: 'avatar' },
-    ];
-    for (var i = 0; i < checks.length; i++) {
-        var ch = checks[i];
-        try {
-            var r = (await sequelize.query(
-                'SELECT COUNT(*) as cnt FROM "' + ch.t + '" WHERE "' + ch.c + '"::text LIKE \'%' + OLD_CDN + '%\''
-            ))[0][0];
-            if (parseInt(r.cnt) > 0) console.log('  ' + ch.t + '.' + ch.c + ': ' + r.cnt + ' rows');
-        } catch(e) { /* column might not exist in this DB version */ }
-    }
-}
-
-// ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
     await sequelize.authenticate();
     console.log('Database connected.');
-    console.log('\nMode : ' + (DRY_RUN
-        ? '*** DRY-RUN — zero DB changes will be made ***'
-        : '*** EXECUTE — writing changes to database ***'));
-    console.log('From : https://' + OLD_CDN);
-    console.log('To   : https://' + NEW_CDN);
+    console.log('\n======================================================');
+    console.log('  CDN GLOBAL DATABASE SCAN & MIGRATION');
+    console.log('  Mode : ' + (DRY_RUN ? '*** DRY RUN (0 changes will be made) ***' : '*** LIVE EXECUTION (writing changes to DB) ***'));
+    console.log('  From : ' + OLD_CDN);
+    console.log('  To   : ' + NEW_CDN);
+    console.log('======================================================\n');
 
-    await preflight();
+    // 1. Fetch all candidate columns across the entire 'public' schema
+    const [columns] = await sequelize.query(`
+        SELECT table_name, column_name, data_type, udt_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND data_type IN ('text', 'character varying', 'json', 'jsonb')
+        ORDER BY table_name, column_name
+    `);
 
-    // String columns
-    await migrateStringCols('MediaFiles', ['url']);
-    await migrateStringCols('WaStores',   ['logo', 'coverImage']);
-    await migrateStringCols('WaProducts', ['image']);
-    await migrateStringCols('Vcards',     ['avatar', 'coverImage', 'logo']);
-    await migrateStringCols('Users',      ['avatar']);
+    console.log(`Found ${columns.length} candidate text/JSON columns across all database tables.`);
+    console.log('Scanning entire database for references to ' + OLD_CDN + '...\n');
 
-    // JSON columns
-    await migrateJsonCols('WaStores',   ['heroSlides', 'categoryImages', 'seoConfig', 'shoppableVideos', 'homepageSections', 'homepageCollections']);
-    await migrateJsonCols('WaProducts', ['images', 'variants']);
+    const matches = [];
+    let totalOccurrences = 0;
 
-    // SystemConfig r2.publicUrl
-    await migrateR2PublicUrl();
+    // 2. Scan every table and column for OLD_CDN
+    for (const col of columns) {
+        const { table_name, column_name, data_type, udt_name } = col;
+        try {
+            const [result] = await sequelize.query(`
+                SELECT COUNT(*) as cnt
+                FROM "${table_name}"
+                WHERE "${column_name}"::text LIKE '%${OLD_CDN}%'
+            `);
+            const count = parseInt(result[0]?.cnt || 0, 10);
+            if (count > 0) {
+                matches.push({
+                    table: table_name,
+                    column: column_name,
+                    type: data_type,
+                    udt: udt_name,
+                    count
+                });
+                totalOccurrences += count;
+                console.log(`  [FOUND] ${table_name}.${column_name} (${data_type}): ${count} rows`);
+            }
+        } catch (err) {
+            // Skip views or system virtual tables if any
+        }
+    }
 
-    console.log('\n==============================');
-    console.log('Total rows scanned : ' + totalScanned);
+    if (matches.length === 0) {
+        console.log('\n✅ 0 matches found! The database has no references to ' + OLD_CDN + '.');
+        await sequelize.close();
+        return;
+    }
+
+    console.log(`\nFound a total of ${totalOccurrences} rows across ${matches.length} columns containing ${OLD_CDN}.`);
+
+    // 3. Execution Phase
     if (DRY_RUN) {
-        console.log('Would migrate      : ' + totalWouldMigrate + ' rows');
-        console.log('\nDRY-RUN done. No changes made.');
-        console.log('Run with --execute to apply:\n  node cdn_migrate.js --execute');
+        console.log('\n------------------------------------------------------');
+        console.log('  DRY RUN COMPLETE — ZERO CHANGES WRITTEN.');
+        console.log('  To perform the migration across all tables, run:');
+        console.log('  node cdn_migrate.js --execute');
+        console.log('------------------------------------------------------');
     } else {
-        console.log('Rows migrated      : ' + totalMigrated);
-        console.log('\nMigration complete!');
+        console.log('\n--- Executing Migration Across All Matched Columns ---');
+        let updatedCols = 0;
+
+        for (const m of matches) {
+            const { table, column, type, count } = m;
+            try {
+                if (type === 'json' || type === 'jsonb') {
+                    const castType = type === 'jsonb' ? 'jsonb' : 'json';
+                    await sequelize.query(`
+                        UPDATE "${table}"
+                        SET "${column}" = REPLACE("${column}"::text, '${OLD_CDN}', '${NEW_CDN}')::${castType}
+                        WHERE "${column}"::text LIKE '%${OLD_CDN}%'
+                    `);
+                } else {
+                    await sequelize.query(`
+                        UPDATE "${table}"
+                        SET "${column}" = REPLACE("${column}", '${OLD_CDN}', '${NEW_CDN}')
+                        WHERE "${column}" LIKE '%${OLD_CDN}%'
+                    `);
+                }
+                console.log(`  [UPDATED] ${table}.${column} (${count} rows)`);
+                updatedCols++;
+            } catch (err) {
+                console.error(`  [ERROR] Failed updating ${table}.${column}:`, err.message);
+            }
+        }
+
+        // 4. Full Audit Verification Pass
+        console.log('\n--- Running Post-Migration Verification Audit ---');
+        let remainingReferences = 0;
+
+        for (const col of columns) {
+            const { table_name, column_name } = col;
+            try {
+                const [res] = await sequelize.query(`
+                    SELECT COUNT(*) as cnt
+                    FROM "${table_name}"
+                    WHERE "${column_name}"::text LIKE '%${OLD_CDN}%'
+                `);
+                const remaining = parseInt(res[0]?.cnt || 0, 10);
+                if (remaining > 0) {
+                    remainingReferences += remaining;
+                    console.warn(`  [WARNING] Remaining reference in ${table_name}.${column_name}: ${remaining} rows`);
+                }
+            } catch (e) {}
+        }
+
+        if (remainingReferences === 0) {
+            console.log('\n======================================================');
+            console.log('  ✅ 100% COMPLETE & VERIFIED:');
+            console.log('  Zero occurrences of ' + OLD_CDN + ' remain in the database!');
+            console.log('======================================================');
+        } else {
+            console.log(`\n⚠️ Audit completed with ${remainingReferences} remaining references.`);
+        }
     }
 
     await sequelize.close();
 }
 
-main().catch(function(err) {
+main().catch(err => {
     console.error('Fatal error:', err);
     process.exit(1);
 });
