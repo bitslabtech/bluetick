@@ -74,7 +74,8 @@ export function isPlatformDomain(hostname = window.location.hostname) {
         hostname.includes('ngrok.io') ||
         hostname.includes('ngrok-free.app') ||
         hostname.includes('railway.app') ||
-        hostname.includes('coolify')
+        hostname.includes('coolify') ||
+        hostname.includes('bluetick.cloud')
     ) return true;
 
     return false;
