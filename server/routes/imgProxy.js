@@ -15,7 +15,8 @@
  * LCP image cache BEFORE serving the HTML — eliminating the cold-path delay
  * even for the very first Lighthouse request.
  *
- * Security: Only images from cdn.bluetick.cloud are proxied.
+ * Security: Only images from allowed CDN hosts are proxied.
+ * Primary host: CDN_HOST env var. Legacy hosts: LEGACY_CDN_HOSTS (comma-separated).
  * Abuse prevention: Width capped at 2000px.
  */
 
@@ -27,10 +28,21 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-// CDN_HOST is configured via CDN_HOST env var (e.g. "cdn.myapp.com").
-// Falls back to cdn.bluetick.cloud for backwards compatibility.
-// Change only the env var when moving to a new domain — no code change needed.
+// Primary CDN host — used for new uploads and as the primary allowed proxy source.
+// Change only CDN_HOST env var when migrating to a new domain.
 const CDN_HOST = process.env.CDN_HOST || 'cdn.bluetick.cloud';
+
+// LEGACY_CDN_HOSTS: comma-separated list of OLD CDN hostnames that must remain
+// accessible via the image proxy even after migrating to a new CDN_HOST.
+// Existing database URLs pointing to old domains will continue to work.
+// Example: LEGACY_CDN_HOSTS=cdn.bluetick.cloud
+const _legacyHosts = (process.env.LEGACY_CDN_HOSTS || '')
+    .split(',')
+    .map(h => h.trim().toLowerCase())
+    .filter(Boolean);
+
+// Combined set of all allowed CDN hostnames (primary + legacy)
+const ALLOWED_CDN_HOSTS = new Set([CDN_HOST.toLowerCase(), ..._legacyHosts]);
 const ALLOWED_FORMATS = ['webp', 'avif', 'jpeg', 'png'];
 const MAX_WIDTH = 2000;
 const MIN_WIDTH = 10;
@@ -147,13 +159,13 @@ async function resizeImage(url, width, quality, format, fit) {
  * Fire-and-forget: intentionally does NOT block the HTML response.
  * The warm operation runs concurrently with HTML delivery.
  *
- * @param {string} url - CDN image URL (must be cdn.bluetick.cloud)
+ * @param {string} url - CDN image URL (must be an allowed CDN host)
  * @param {object} [opts] - Same options as cdnImg()
  */
 async function warmCache(url, { width = 800, quality = 92, format = 'webp', fit = 'contain' } = {}) {
     try {
         const parsed = new URL(url);
-        if (parsed.hostname !== CDN_HOST) return;
+        if (!ALLOWED_CDN_HOSTS.has(parsed.hostname.toLowerCase())) return;
 
         const w   = Math.min(Math.max(parseInt(width),   MIN_WIDTH), MAX_WIDTH);
         const q   = Math.min(100, Math.max(1, parseInt(quality) || 82));
@@ -206,8 +218,8 @@ router.get('/', async (req, res) => {
         return res.status(400).json({ error: 'Invalid URL format' });
     }
 
-    if (parsedUrl.hostname !== CDN_HOST) {
-        return res.status(403).json({ error: `Only images from ${CDN_HOST} are allowed` });
+    if (!ALLOWED_CDN_HOSTS.has(parsedUrl.hostname.toLowerCase())) {
+        return res.status(403).json({ error: `Only images from allowed CDN domains are proxied. Allowed: ${[...ALLOWED_CDN_HOSTS].join(', ')}` });
     }
 
     if (parsedUrl.pathname.includes('..')) {

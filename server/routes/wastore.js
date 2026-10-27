@@ -1758,23 +1758,35 @@ router.put('/:id', async (req, res) => {
         }
 
         // ── Store address validation ──────────────────────────────────────────
-        // Pincode is mandatory when Country, State, and City are all selected
-        const updatedCountry = req.body.country !== undefined ? req.body.country : store.country;
-        const updatedState = req.body.state !== undefined ? req.body.state : store.state;
-        const updatedCity = req.body.city !== undefined ? req.body.city : store.city;
-        const updatedPincode = req.body.pincode !== undefined ? req.body.pincode : store.pincode;
-
-        const hasFullLocation = Boolean(
-            String(updatedCountry || '').trim() &&
-            String(updatedState || '').trim() &&
-            String(updatedCity || '').trim()
+        // Pincode is mandatory when Country, State, and City are all selected.
+        // IMPORTANT: Only enforce this rule when the current request is actually
+        // updating address fields. Saves from other settings pages (themes, SEO,
+        // shipping, etc.) do NOT send address fields and must never be blocked by
+        // this rule — even if the store's existing DB record already has
+        // country/state/city filled in without a pincode (legacy data).
+        const addressFieldsInRequest = ['country', 'state', 'city', 'pincode'].some(
+            f => f in req.body
         );
 
-        if (hasFullLocation && !String(updatedPincode || '').trim()) {
-            return res.status(400).json({
-                error: 'PIN / postal code is required when Country, State, and City are selected.'
-            });
+        if (addressFieldsInRequest) {
+            const updatedCountry = req.body.country !== undefined ? req.body.country : store.country;
+            const updatedState   = req.body.state   !== undefined ? req.body.state   : store.state;
+            const updatedCity    = req.body.city     !== undefined ? req.body.city    : store.city;
+            const updatedPincode = req.body.pincode  !== undefined ? req.body.pincode : store.pincode;
+
+            const hasFullLocation = Boolean(
+                String(updatedCountry || '').trim() &&
+                String(updatedState   || '').trim() &&
+                String(updatedCity    || '').trim()
+            );
+
+            if (hasFullLocation && !String(updatedPincode || '').trim()) {
+                return res.status(400).json({
+                    error: 'PIN / postal code is required when Country, State, and City are selected.'
+                });
+            }
         }
+
 
         // ── Custom domain sanitization & validation ──────────────────────────
         // Capture old domain BEFORE any changes so we can clean up Cloudflare
