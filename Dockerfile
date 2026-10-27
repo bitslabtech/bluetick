@@ -16,6 +16,9 @@ COPY client/ ./
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
 
+ARG VITE_TURNSTILE_SITE_KEY
+ENV VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY
+
 RUN npm run build
 
 # ─────────────────────────────────────────────────────────────────────────────
