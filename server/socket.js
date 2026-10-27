@@ -9,10 +9,61 @@ const onlineUsers = new Map();
 // Track user's team room (usually their parentUserId or their own id)
 const userRooms = new Map();
 
+// ── Socket.IO CORS origin resolver ───────────────────────────────────────────
+// Mirrors the same multi-origin allowlist used by Express cors() in index.js.
+// Socket.IO manages its own CORS layer independently of Express middleware,
+// so we must replicate the logic here to support multiple platform domains
+// (e.g. bluetick.cloud AND onedash.cloud) and custom merchant domains.
+function _isSocketOriginAllowed(origin) {
+    if (!origin) return true; // server-to-server / no-origin — always allow
+
+    try {
+        const { hostname } = new URL(origin);
+        const h = hostname.toLowerCase();
+
+        // Always allow localhost / 127.0.0.1
+        if (h === 'localhost' || h === '127.0.0.1') return true;
+
+        // Direct IP address access
+        if (/(\d{1,3}\.){3}\d{1,3}$/.test(h)) return true;
+
+        // PaaS / Dynamic DNS domains
+        const paasPatterns = ['sslip.io', 'nip.io', 'traefik.me', 'ngrok.io', 'ngrok-free.app', 'railway.app', 'onrender.com', 'vercel.app', 'netlify.app'];
+        if (paasPatterns.some(p => h.includes(p))) return true;
+
+        // Allow primary FRONTEND_URL (exact match)
+        const primary = (process.env.FRONTEND_URL || '').toLowerCase();
+        if (primary && origin.toLowerCase() === primary) return true;
+
+        // Allow root domain + all subdomains of PLATFORM_DOMAIN
+        const platformDomain = (process.env.PLATFORM_DOMAIN || '').toLowerCase();
+        if (platformDomain && (h === platformDomain || h.endsWith(`.${platformDomain}`))) return true;
+
+        // EXTRA_CORS_ORIGINS: comma-separated list of additional exact-match origins
+        const extraOrigins = (process.env.EXTRA_CORS_ORIGINS || '')
+            .split(',').map(o => o.trim().toLowerCase()).filter(Boolean);
+        if (extraOrigins.some(o => o === origin.toLowerCase())) return true;
+
+        // EXTRA_PLATFORM_DOMAINS: comma-separated additional platform domains (+ all subdomains)
+        const extraDomains = (process.env.EXTRA_PLATFORM_DOMAINS || '')
+            .split(',').map(d => d.trim().toLowerCase()).filter(Boolean);
+        if (extraDomains.some(d => h === d || h.endsWith(`.${d}`))) return true;
+    } catch { }
+
+    return false;
+}
+
 const initSocket = (server) => {
     io = socketIo(server, {
         cors: {
-            origin: process.env.FRONTEND_URL || 'http://localhost:5173', // allow frontend
+            // Dynamic origin function — supports multiple platform domains,
+            // EXTRA_CORS_ORIGINS, EXTRA_PLATFORM_DOMAINS, and localhost.
+            origin: (origin, callback) => {
+                if (_isSocketOriginAllowed(origin)) {
+                    return callback(null, true);
+                }
+                callback(new Error(`Socket.IO CORS: origin not allowed: ${origin}`));
+            },
             methods: ["GET", "POST"],
             credentials: true
         }
