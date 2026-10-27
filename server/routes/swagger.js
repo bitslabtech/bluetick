@@ -236,6 +236,7 @@ const openApiSpec = {
                 }
             }
         }
+    }
 };
 
 // Return OpenAPI JSON spec
