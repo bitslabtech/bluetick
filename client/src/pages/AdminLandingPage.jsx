@@ -230,17 +230,37 @@ const AdminLandingPage = () => {
         }
     };
 
+    const [generatingSitemap, setGeneratingSitemap] = useState(false);
+
     const handleGenerateSitemap = async () => {
+        setGeneratingSitemap(true);
         try {
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/sitemap.xml/generate`, {}, {
-                headers: { Authorization: `Bearer ${user?.token}` }
+            const token = user?.token || localStorage.getItem('token');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const apiUrl = import.meta.env.VITE_API_URL || '';
+            const res = await axios.post(`${apiUrl}/sitemap.xml/generate`, {}, {
+                headers,
+                withCredentials: true
             });
             if (res.data.success) {
-                showToast({ type: 'success', title: 'Sitemap Generated', message: 'Sitemap generated successfully.' });
+                showToast({ 
+                    type: 'success', 
+                    title: 'Sitemap Generated', 
+                    message: res.data.message || 'Sitemap generated successfully.' 
+                });
+            } else {
+                showToast({ 
+                    type: 'error', 
+                    title: 'Generation Failed', 
+                    message: res.data.message || 'Failed to generate sitemap.' 
+                });
             }
         } catch (err) {
-            console.error(err);
-            showToast({ type: 'error', title: 'Generation Failed', message: 'Failed to generate sitemap.' });
+            console.error('Sitemap Generation Error:', err);
+            const errMsg = err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to generate sitemap.';
+            showToast({ type: 'error', title: 'Generation Failed', message: errMsg });
+        } finally {
+            setGeneratingSitemap(false);
         }
     };
 
@@ -1962,22 +1982,24 @@ const AdminLandingPage = () => {
                                     </div>
                                 </div>
 
-                                <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-xl flex justify-between items-center border border-slate-100 dark:border-white/5">
+                                <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-xl flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 border border-slate-100 dark:border-white/5">
                                     <div>
-                                        <div className="font-bold text-slate-900 dark:text-white text-sm">Sitemap URL</div>
-                                        <div className="text-xs text-slate-500 mb-3">Submit this to Google Search Console</div>
+                                        <div className="font-bold text-slate-900 dark:text-white text-sm">Sitemap XML</div>
+                                        <div className="text-xs text-slate-500 mb-3">Dynamically indexes landing pages, blogs, and all active store products. Submit to Google Search Console.</div>
                                         <button 
                                             onClick={handleGenerateSitemap}
-                                            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
+                                            disabled={generatingSitemap}
+                                            className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-2 shadow-sm"
                                         >
-                                            <RefreshCw className="w-3.5 h-3.5" /> Generate Latest Sitemap
+                                            <RefreshCw className={`w-3.5 h-3.5 ${generatingSitemap ? 'animate-spin' : ''}`} /> 
+                                            {generatingSitemap ? 'Generating Sitemap...' : 'Generate Latest Sitemap'}
                                         </button>
                                     </div>
                                     <a
-                                        href={`${import.meta.env.VITE_API_URL}/sitemap.xml`}
+                                        href={`${import.meta.env.VITE_API_URL || ''}/sitemap.xml`}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="text-indigo-600 dark:text-indigo-400 text-sm font-mono underline hover:text-indigo-500"
+                                        className="text-indigo-600 dark:text-indigo-400 text-sm font-mono underline hover:text-indigo-500 flex items-center gap-1 self-start sm:self-auto"
                                     >
                                         /sitemap.xml
                                     </a>

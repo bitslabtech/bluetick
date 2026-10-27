@@ -108,3 +108,5 @@ scripts/
 
 # Dynamically generated sitemap
 client/public/sitemap.xml
+server/public/sitemap.xml
+server/public/dist/sitemap.xml

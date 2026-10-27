@@ -239,6 +239,56 @@ const openApiSpec = {
                     }
                 }
             }
+        },
+        '/sitemap.xml': {
+            get: {
+                tags: ['SEO & Sitemap'],
+                summary: 'Get Dynamic XML Sitemap',
+                description: 'Generates and serves a live standard XML sitemap indexing landing pages, public company pages, published blogs, and active merchant stores with products.',
+                responses: {
+                    200: {
+                        description: 'XML Sitemap',
+                        content: {
+                            'application/xml': {
+                                schema: { type: 'string', example: '<?xml version="1.0" encoding="UTF-8"?><urlset>...</urlset>' }
+                            }
+                        }
+                    },
+                    500: {
+                        description: 'Error generating sitemap'
+                    }
+                }
+            }
+        },
+        '/sitemap.xml/generate': {
+            post: {
+                tags: ['SEO & Sitemap'],
+                summary: 'Generate and Save Latest Sitemap',
+                description: 'Superadmin action that triggers sitemap generation and writes physical sitemap.xml files to persistent static public directories for CDN/static serving.',
+                security: [{ bearerAuth: [] }],
+                responses: {
+                    200: {
+                        description: 'Sitemap generated and saved successfully',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        success: { type: 'boolean', example: true },
+                                        totalUrls: { type: 'integer', example: 45 },
+                                        storeCount: { type: 'integer', example: 12 },
+                                        savedLocations: { type: 'integer', example: 2 },
+                                        message: { type: 'string', example: 'Sitemap generated with 45 URLs (~12 store URLs) successfully.' }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    401: { description: 'Unauthorized' },
+                    403: { description: 'Forbidden (Admin privileges required)' },
+                    500: { description: 'Server Error generating sitemap' }
+                }
+            }
         }
     }
 };
