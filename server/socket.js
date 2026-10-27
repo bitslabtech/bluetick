@@ -46,8 +46,12 @@ function _isSocketOriginAllowed(origin) {
 
         // EXTRA_PLATFORM_DOMAINS: comma-separated additional platform domains (+ all subdomains)
         const extraDomains = (process.env.EXTRA_PLATFORM_DOMAINS || '')
-            .split(',').map(d => d.trim().toLowerCase()).filter(Boolean);
+            .split(',').map(d => d.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '')).filter(Boolean);
         if (extraDomains.some(d => h === d || h.endsWith(`.${d}`))) return true;
+
+        // Built-in dual-domain support (both bluetick.cloud and onedash.cloud)
+        if (h === 'bluetick.cloud' || h.endsWith('.bluetick.cloud')) return true;
+        if (h === 'onedash.cloud' || h.endsWith('.onedash.cloud')) return true;
     } catch { }
 
     return false;

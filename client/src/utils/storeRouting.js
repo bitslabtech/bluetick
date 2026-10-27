@@ -44,8 +44,8 @@ export function isPlatformDomain(hostname = (typeof window !== 'undefined' ? win
         }
     }
 
-    // 5. Legacy defaults (removed once you set VITE_PLATFORM_DOMAIN in Coolify)
-    if (host.includes('bluetick.cloud') || host.includes('whatsapp-cloud.com')) {
+    // 5. Dual-domain & legacy defaults (bluetick.cloud and onedash.cloud)
+    if (host.includes('bluetick.cloud') || host.includes('onedash.cloud') || host.includes('whatsapp-cloud.com')) {
         return true;
     }
 

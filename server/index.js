@@ -153,7 +153,7 @@ const _extraCorsOrigins = (process.env.EXTRA_CORS_ORIGINS || '')
 // Example: EXTRA_PLATFORM_DOMAINS=onedash.cloud
 const _extraPlatformDomains = (process.env.EXTRA_PLATFORM_DOMAINS || '')
     .split(',')
-    .map(d => d.trim().toLowerCase())
+    .map(d => d.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, ''))
     .filter(Boolean);
 
 function _isPlatformOrigin(origin) {
@@ -178,6 +178,9 @@ function _isPlatformOrigin(origin) {
         if (_extraCorsOrigins.some(o => o === originLower)) return true;
         // Allow extra platform domains + all their subdomains — migration period
         if (_extraPlatformDomains.some(d => h === d || h.endsWith(`.${d}`))) return true;
+        // Built-in dual-domain support (both bluetick.cloud and onedash.cloud)
+        if (h === 'bluetick.cloud' || h.endsWith('.bluetick.cloud')) return true;
+        if (h === 'onedash.cloud' || h.endsWith('.onedash.cloud')) return true;
     } catch { }
     return false;
 }
@@ -600,6 +603,11 @@ img{display:block;vertical-align:middle}
         if (paas.some(p => hostname.includes(p))) return true;
         // PLATFORM_DOMAIN env var: matches exact domain and all its subdomains
         if (hostname === _platformDomain || hostname.endsWith(`.${_platformDomain}`)) return true;
+        // Check extra platform domains (EXTRA_PLATFORM_DOMAINS env var)
+        if (_extraPlatformDomains.some(d => hostname === d || hostname.endsWith(`.${d}`))) return true;
+        // Built-in dual-domain support (both bluetick.cloud and onedash.cloud are platform domains)
+        if (hostname === 'bluetick.cloud' || hostname.endsWith('.bluetick.cloud') || hostname.includes('bluetick.cloud')) return true;
+        if (hostname === 'onedash.cloud' || hostname.endsWith('.onedash.cloud') || hostname.includes('onedash.cloud')) return true;
         return false;
     }
 
