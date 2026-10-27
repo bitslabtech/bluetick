@@ -1759,16 +1759,17 @@ router.put('/:id', async (req, res) => {
 
         // ── Store address validation ──────────────────────────────────────────
         // Pincode is mandatory when Country, State, and City are all selected.
-        // IMPORTANT: Only enforce this rule when the current request is actually
-        // updating address fields. Saves from other settings pages (themes, SEO,
-        // shipping, etc.) do NOT send address fields and must never be blocked by
-        // this rule — even if the store's existing DB record already has
-        // country/state/city filled in without a pincode (legacy data).
-        const addressFieldsInRequest = ['country', 'state', 'city', 'pincode'].some(
-            f => f in req.body
+        // Enforced ONLY when saving from the Basic Details page in settings.
+        // Saving visual designer, themes, SEO, shipping, etc. must NEVER be blocked
+        // even if country/state/city are filled without a pincode.
+        const isBasicDetailsRequest = Boolean(
+            req.body.isBasicDetails ||
+            req.body._isBasicDetails ||
+            req.body.isBasicDetailsPage ||
+            req.body._source === 'basic_details'
         );
 
-        if (addressFieldsInRequest) {
+        if (isBasicDetailsRequest) {
             const updatedCountry = req.body.country !== undefined ? req.body.country : store.country;
             const updatedState   = req.body.state   !== undefined ? req.body.state   : store.state;
             const updatedCity    = req.body.city     !== undefined ? req.body.city    : store.city;
@@ -1839,6 +1840,10 @@ router.put('/:id', async (req, res) => {
         delete updates.userId;
         delete updates.createdAt;
         delete updates.updatedAt;
+        delete updates.isBasicDetails;
+        delete updates._isBasicDetails;
+        delete updates.isBasicDetailsPage;
+        delete updates._source;
 
         // NOTE: Images are NOT deleted from cloud storage when a store field is updated.
         // Physical file deletion happens only from the Media Manager (DELETE /api/media/:id).

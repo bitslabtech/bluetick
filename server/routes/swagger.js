@@ -220,7 +220,8 @@ const openApiSpec = {
                                     city: { type: 'string', example: 'Mumbai' },
                                     pincode: { type: 'string', example: '400070' },
                                     phone: { type: 'string', example: '+91 9876543210' },
-                                    email: { type: 'string', example: 'store@example.com' }
+                                    email: { type: 'string', example: 'store@example.com' },
+                                    isBasicDetails: { type: 'boolean', description: 'Flag indicating save originates from basic details page. PIN / postal code validation is only enforced when this flag is true.', example: true }
                                 }
                             }
                         }

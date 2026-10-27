@@ -814,6 +814,7 @@ const startServer = async () => {
         try { await sequelize.query(`ALTER TABLE "WaProducts" ADD COLUMN IF NOT EXISTS "subCategories" JSON DEFAULT '[]';`); } catch (e) { /* already exists — ignore */ }
         try { await sequelize.query(`ALTER TABLE "WaProducts" ADD COLUMN IF NOT EXISTS "isTrending" BOOLEAN DEFAULT false;`); } catch (e) { /* already exists — ignore */ }
         try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN IF NOT EXISTS "shoppableVideosAutoSlide" BOOLEAN DEFAULT false;`); } catch (e) { /* already exists — ignore */ }
+        try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN IF NOT EXISTS "pincode" VARCHAR(255) DEFAULT NULL;`); } catch (e) { /* already exists — ignore */ }
 
         await sequelize.sync({ alter: { drop: false } }); // Sync models — never drop constraints/columns
         console.log('Database synced.');

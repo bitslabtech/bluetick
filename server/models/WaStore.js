@@ -119,6 +119,10 @@ const WaStore = sequelize.define('WaStore', {
     country: {
         type: DataTypes.STRING
     },
+    pincode: {
+        type: DataTypes.STRING,
+        comment: 'Store location PIN or postal code'
+    },
     currency: {
         type: DataTypes.STRING,
         defaultValue: 'INR'

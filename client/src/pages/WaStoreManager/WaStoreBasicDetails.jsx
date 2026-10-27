@@ -439,8 +439,16 @@ export default function WaStoreBasicDetails() {
         }
         setSaving(true);
         try {
-            await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, store);
-            if (setParentStore) setParentStore(store);
+            const res = await axios.put(`${import.meta.env.VITE_API_URL}/api/wastore/${storeId}`, {
+                ...store,
+                isBasicDetails: true
+            });
+            if (res.data) {
+                setStore(res.data);
+                if (setParentStore) setParentStore(res.data);
+            } else if (setParentStore) {
+                setParentStore(store);
+            }
             toast.success('Basic details saved successfully!');
         } catch (error) {
             toast.error(error.response?.data?.error || 'Failed to save details');
