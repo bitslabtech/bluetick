@@ -238,7 +238,9 @@ const AdminLandingPage = () => {
             const token = user?.token || localStorage.getItem('token');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
             const apiUrl = import.meta.env.VITE_API_URL || '';
-            const res = await axios.post(`${apiUrl}/sitemap.xml/generate`, {}, {
+            const res = await axios.post(`${apiUrl}/sitemap.xml/generate`, {
+                baseUrl: config?.seo?.canonicalUrl
+            }, {
                 headers,
                 withCredentials: true
             });

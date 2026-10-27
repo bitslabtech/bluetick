@@ -31,22 +31,51 @@ function urlEntry(loc, { lastmod, changefreq, priority }) {
 }
 
 // ─── Helper: resolve base URL ─────────────────────────────────────────────────
-function resolveBaseUrl(req) {
-    if (process.env.FRONTEND_URL) {
-        return process.env.FRONTEND_URL.replace(/\/+$/, '');
+async function resolveBaseUrl(req) {
+    // 1. Explicit baseUrl passed in request body (e.g. from UI input)
+    if (req?.body?.baseUrl && typeof req.body.baseUrl === 'string') {
+        const customUrl = req.body.baseUrl.trim();
+        if (customUrl && !customUrl.includes('localhost') && !customUrl.includes('127.0.0.1')) {
+            const formatted = customUrl.startsWith('http') ? customUrl : `https://${customUrl}`;
+            return formatted.replace(/\/+$/, '');
+        }
     }
-    if (process.env.BASE_URL) {
-        return process.env.BASE_URL.replace(/\/+$/, '');
+
+    // 2. Canonical URL configured by admin in Superadmin -> SEO & Social
+    try {
+        const LandingPage = require('../models/LandingPage');
+        const landing = await LandingPage.findOne({ attributes: ['seo'] });
+        const canonical = landing?.seo?.canonicalUrl?.trim();
+        if (canonical && !canonical.includes('localhost') && !canonical.includes('127.0.0.1')) {
+            const formatted = canonical.startsWith('http') ? canonical : `https://${canonical}`;
+            return formatted.replace(/\/+$/, '');
+        }
+    } catch (_) {}
+
+    // 3. Primary PLATFORM_DOMAIN (from .env, e.g. bluetick.cloud or onedash.cloud)
+    if (process.env.PLATFORM_DOMAIN && !process.env.PLATFORM_DOMAIN.includes('localhost')) {
+        const domain = process.env.PLATFORM_DOMAIN.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+        return `https://${domain}`;
     }
-    if (process.env.PLATFORM_DOMAIN) {
-        return `https://${process.env.PLATFORM_DOMAIN.replace(/^https?:\/\//, '').replace(/\/+$/, '')}`;
+
+    // 4. Production FRONTEND_URL or BASE_URL (only if non-localhost)
+    for (const envUrl of [process.env.FRONTEND_URL, process.env.BASE_URL]) {
+        if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+            return envUrl.replace(/\/+$/, '');
+        }
     }
+
+    // 5. Check incoming request host if it's a real domain (not localhost)
     if (req) {
-        const proto = req.headers['x-forwarded-proto'] || req.protocol || 'http';
-        const host = req.headers['x-forwarded-host'] || req.get('host');
-        if (host) return `${proto}://${host}`;
+        const host = (req.headers['x-forwarded-host'] || req.get('host') || '').toLowerCase();
+        if (host && !host.includes('localhost') && !host.includes('127.0.0.1')) {
+            const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+            return `${proto}://${host}`;
+        }
     }
-    return 'http://localhost:5173';
+
+    // 6. Absolute last fallback (pure offline development without any domain)
+    return process.env.FRONTEND_URL || 'http://localhost:5173';
 }
 
 // ─── Helper: generate the full sitemap XML ────────────────────────────────────
@@ -190,7 +219,7 @@ async function buildSitemapXml(baseUrl) {
 // @desc    Generate and serve dynamic XML sitemap
 router.get('/', async (req, res) => {
     try {
-        const baseUrl = resolveBaseUrl(req);
+        const baseUrl = await resolveBaseUrl(req);
         const xml = await buildSitemapXml(baseUrl);
         res.header('Content-Type', 'application/xml; charset=utf-8');
         res.header('Cache-Control', 'public, max-age=3600'); // cache 1 hour
@@ -205,7 +234,7 @@ router.get('/', async (req, res) => {
 // @desc    Generate sitemap and save it as a physical file (for static hosting)
 router.post('/generate', [auth, admin], async (req, res) => {
     try {
-        const baseUrl = resolveBaseUrl(req);
+        const baseUrl = await resolveBaseUrl(req);
         const xml = await buildSitemapXml(baseUrl);
 
         // Target locations to persist sitemap.xml:
