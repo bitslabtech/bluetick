@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
-import { Store, Zap, MessageSquare, Users, UserPlus, Loader, CheckCircle, Shield } from 'lucide-react';
+import { Store, Zap, MessageSquare, Users, UserPlus, FileText, Loader, CheckCircle, Shield } from 'lucide-react';
 import { useUI } from '../context/UIContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -185,6 +185,36 @@ const StorePage = () => {
                                 </div>
                             </section>
                         )}
+
+                        {/* Templates Section */}
+                        {groupedItems['templates'] && (
+                            <section>
+                                <div className="flex items-center gap-3 mb-6 pb-2 border-b border-slate-200 dark:border-white/10">
+                                    <div className="p-2 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-lg"><FileText className="w-6 h-6" /></div>
+                                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Extra Templates</h2>
+                                </div>
+                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+                                    {groupedItems['templates'].map(item => (
+                                        <StoreCard key={item.id} item={item} processingId={processingId} onPurchase={() => handlePurchase(item)} />
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+
+                        {/* Other Custom Top-ups (Fallback so no item is ever invisible) */}
+                        {Object.keys(groupedItems).filter(type => !['ai_tokens', 'messages', 'contacts', 'team_members', 'templates'].includes(type)).map(type => (
+                            <section key={type}>
+                                <div className="flex items-center gap-3 mb-6 pb-2 border-b border-slate-200 dark:border-white/10">
+                                    <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 rounded-lg"><Zap className="w-6 h-6" /></div>
+                                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white capitalize">{type.replace(/_/g, ' ')}</h2>
+                                </div>
+                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+                                    {groupedItems[type].map(item => (
+                                        <StoreCard key={item.id} item={item} processingId={processingId} onPurchase={() => handlePurchase(item)} />
+                                    ))}
+                                </div>
+                            </section>
+                        ))}
                     </div>
                 )}
             </main>
