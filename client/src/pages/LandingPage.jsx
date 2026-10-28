@@ -17,6 +17,7 @@ import {
 import PublicHeader from '../components/landing/PublicHeader';
 import FloatingChatbot from '../components/landing/FloatingChatbot';
 import HeroShowcase from '../components/landing/HeroShowcase';
+import { applyPlatformSeo } from '../utils/platformSeo';
 
 
 // Icon Map for dynamic rendering
@@ -1751,20 +1752,13 @@ export default function LandingPage() {
         fetchMetaRates();
     }, []);
 
-    // Update SEO Meta
+    // Update SEO Meta, Search Console, OpenGraph, Structured Data & Tracking
     useEffect(() => {
         if (config?.seo) {
-            document.title = config.seo.title || publicSettings?.appName || config?.brand?.name || 'Bluetick';
-            let metaDesc = document.querySelector("meta[name='description']");
-            if (!metaDesc) {
-                metaDesc = document.createElement('meta');
-                metaDesc.name = "description";
-                document.head.appendChild(metaDesc);
-            }
-            metaDesc.content = config.seo.description || '';
+            applyPlatformSeo(config.seo, config.brand, publicSettings);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [config]);
+    }, [config, publicSettings]);
 
     if (error) return (
         <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50 text-slate-800 gap-4">

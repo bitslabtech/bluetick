@@ -1,2 +1,10 @@
 User-agent: *
 Allow: /
+
+# Disallow internal API and admin control panels from crawling
+Disallow: /api/
+Disallow: /admin/
+Disallow: /checkout
+
+# Sitemap index
+Sitemap: https://bluetick.cloud/sitemap.xml

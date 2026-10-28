@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
 
-import { Save, RefreshCw, LayoutTemplate, MessageSquare, BarChart, Users, Type, Image as ImageIcon, Plus, Trash2, CheckCircle, Smartphone, Globe, Monitor, Target, Zap, Tag, DollarSign, Percent, Calendar, FileText, Palette, Key, Server, Edit, X, Phone, Upload, ChevronUp, ChevronDown } from 'lucide-react';
+import { Save, RefreshCw, LayoutTemplate, MessageSquare, BarChart, Users, Type, Image as ImageIcon, Plus, Trash2, CheckCircle, CheckCircle2, Smartphone, Globe, Monitor, Target, Zap, Tag, DollarSign, Percent, Calendar, FileText, Palette, Key, Server, Edit, X, Phone, Upload, ChevronUp, ChevronDown, Search, ArrowUpRight, ExternalLink, Activity, Eye, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
 import AdminHeader from '../components/AdminHeader';
@@ -1889,122 +1889,310 @@ const AdminLandingPage = () => {
                 {mainTab === 'seo' && (
                     <div className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm overflow-y-auto" style={{ height: '680px' }}>
                         <div className="p-4 md:p-8 w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            {/* Intro Header */}
                             <div className="flex items-start gap-4 p-4 bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-500/20 rounded-xl text-indigo-700 dark:text-indigo-300">
                                 <Monitor className="w-6 h-6 shrink-0 mt-1" />
                                 <div>
-                                    <div className="font-bold mb-1">Search Engine Optimization</div>
-                                    <p className="text-sm opacity-80">Configure how your site appears in Google searches and when shared on social media (Facebook, Twitter, WhatsApp).</p>
+                                    <div className="font-bold mb-1">Search Engine Optimization & Webmaster Tracking</div>
+                                    <p className="text-sm opacity-80">
+                                        Configure Google Search Console, Google Analytics 4, live meta tags, and indexing directives. Ensure your platform ranks high and tracks user conversions without sacrificing site performance.
+                                    </p>
                                 </div>
                             </div>
 
+                            {/* ── GOOGLE SEARCH CONSOLE & SITE VERIFICATION ── */}
+                            <div className="p-5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 space-y-5">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/70 dark:border-white/10">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
+                                            <Search className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                                Google Search Console
+                                                {config.seo?.googleSiteVerification ? (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
+                                                        <CheckCircle2 className="w-3 h-3" /> Verification Active
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400">
+                                                        Not Connected
+                                                    </span>
+                                                )}
+                                            </h3>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                                Verify domain ownership to index pages and monitor Google Search performance.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <a
+                                        href="https://search.google.com/search-console"
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-white dark:bg-white/10 text-slate-700 dark:text-white border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/20 transition-colors shadow-sm self-start sm:self-auto"
+                                    >
+                                        Open Search Console <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                                    </a>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    <div>
+                                        <InputGroup
+                                            label="Google Verification Token / HTML Tag"
+                                            value={config.seo?.googleSiteVerification || ''}
+                                            onChange={v => setConfig({ ...config, seo: { ...config.seo, googleSiteVerification: v } })}
+                                            placeholder="Paste verification token or <meta name='google-site-verification' content='...' />"
+                                        />
+                                        <p className="text-[11px] text-slate-500 mt-1.5">
+                                            Copy the <strong>HTML Tag</strong> code in Search Console. Both raw tokens and full <code>&lt;meta&gt;</code> tags are automatically parsed.
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <InputGroup
+                                            label="Bing Webmaster Verification Code (Optional)"
+                                            value={config.seo?.bingSiteVerification || ''}
+                                            onChange={v => setConfig({ ...config, seo: { ...config.seo, bingSiteVerification: v } })}
+                                            placeholder="e.g. msvalidate.01 token"
+                                        />
+                                        <p className="text-[11px] text-slate-500 mt-1.5">
+                                            For indexing on Bing, Yahoo, and DuckDuckGo search results.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* ── GOOGLE ANALYTICS 4 & SITE TRAFFIC STATS ── */}
+                            <div className="p-5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 space-y-5">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/70 dark:border-white/10">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                                            <Activity className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                                Google Analytics 4 & Site Stats
+                                                {config.seo?.googleAnalyticsId ? (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
+                                                        <CheckCircle2 className="w-3 h-3" /> Tracking Active
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-200 text-slate-600 dark:bg-white/10 dark:text-slate-400">
+                                                        Optional
+                                                    </span>
+                                                )}
+                                            </h3>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                                Tracks real-time visitors, bounce rates, and organic search queries via Search Console Insights.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <a
+                                        href="https://analytics.google.com/"
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-white dark:bg-white/10 text-slate-700 dark:text-white border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/20 transition-colors shadow-sm self-start sm:self-auto"
+                                    >
+                                        Open Analytics <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                                    </a>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    <div>
+                                        <InputGroup
+                                            label="GA4 Measurement ID"
+                                            value={config.seo?.googleAnalyticsId || ''}
+                                            onChange={v => setConfig({ ...config, seo: { ...config.seo, googleAnalyticsId: v } })}
+                                            placeholder="G-XXXXXXXXXX"
+                                        />
+                                        <p className="text-[11px] text-slate-500 mt-1.5">
+                                            Found in GA4 Property Settings &gt; Data Streams &gt; Measurement ID. Loaded asynchronously with zero impact on Lighthouse speed.
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <InputGroup
+                                            label="Google Tag Manager (GTM) ID (Optional)"
+                                            value={config.seo?.googleTagManagerId || ''}
+                                            onChange={v => setConfig({ ...config, seo: { ...config.seo, googleTagManagerId: v } })}
+                                            placeholder="GTM-XXXXXXX"
+                                        />
+                                        <p className="text-[11px] text-slate-500 mt-1.5">
+                                            Optional container for advanced conversion pixels (Meta Pixel, LinkedIn Insight, TikTok Ads).
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* ── GOOGLE SEARCH SERP PREVIEW ── */}
+                            <div className="p-5 rounded-2xl bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs font-bold uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
+                                        <Eye className="w-3.5 h-3.5 text-indigo-500" /> Google Search Preview
+                                    </span>
+                                    <span className="text-[11px] text-slate-400 font-mono">
+                                        {(config.seo?.title || '').length} / 60 chars • {(config.seo?.description || '').length} / 160 chars
+                                    </span>
+                                </div>
+                                <div className="p-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 rounded-xl space-y-1">
+                                    <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                                        <div className="w-4 h-4 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold">
+                                            {config.brand?.name?.charAt(0) || 'O'}
+                                        </div>
+                                        <span className="font-medium text-slate-800 dark:text-slate-200">{config.brand?.name || 'OneDash'}</span>
+                                        <span className="text-slate-400">•</span>
+                                        <span className="truncate text-slate-500 font-mono">{config.seo?.canonicalUrl || 'https://bluetick.cloud'}</span>
+                                    </div>
+                                    <h4 className="text-lg font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer line-clamp-1">
+                                        {config.seo?.title || `${config.brand?.name || 'OneDash'} - All-In-One Ecommerce, WhatsApp Automation & CRM Platform`}
+                                    </h4>
+                                    <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                                        {config.seo?.description || 'All-In-One Ecommerce Platform, WhatsApp Marketing Automation, CRM & Digital Business Cards.'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* ── PRIMARY METADATA ── */}
                             <InputGroup
-                                label="Meta Title"
+                                label="Meta Title (Recommended 50–60 characters)"
                                 value={config.seo?.title || ''}
                                 onChange={v => setConfig({ ...config, seo: { ...config.seo, title: v } })}
-                                placeholder="e.g. Bluetick - Best Bulk Sender"
+                                placeholder="e.g. OneDash - All-In-One Ecommerce & WhatsApp Automation Platform"
                             />
 
                             <InputGroup
-                                label="Meta Description"
+                                label="Meta Description (Recommended 140–160 characters)"
                                 type="textarea"
                                 value={config.seo?.description || ''}
                                 onChange={v => setConfig({ ...config, seo: { ...config.seo, description: v } })}
-                                placeholder="A brief summary of your page..."
+                                placeholder="A concise, benefit-driven summary for Google searchers and social previews..."
                             />
 
                             <InputGroup
                                 label="Keywords (Comma separated)"
                                 value={config.seo?.keywords || ''}
                                 onChange={v => setConfig({ ...config, seo: { ...config.seo, keywords: v } })}
-                                placeholder="e.g. marketing, automation, whatsapp api"
+                                placeholder="e.g. ecommerce store, whatsapp marketing, bulk sender, automation, crm, vcards"
                             />
 
                             <InputGroup
-                                label="Social Share Image URL (OG:Image)"
+                                label="Social Share Image URL (OG:Image - 1200x630 recommended)"
                                 value={config.seo?.ogImage || ''}
                                 onChange={v => setConfig({ ...config, seo: { ...config.seo, ogImage: v } })}
                                 placeholder="https://example.com/share-image.jpg"
                             />
 
+                            {/* ── ADVANCED CRAWL & DIRECTIVES ── */}
                             <div className="pt-8 border-t border-slate-100 dark:border-white/5 space-y-6">
                                 <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                    <Zap className="w-4 h-4 text-amber-500" /> Advanced SEO
+                                    <Zap className="w-4 h-4 text-amber-500" /> Crawl & Indexing Directives
                                 </h3>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <InputGroup
-                                        label="Canonical URL"
+                                        label="Canonical Domain URL"
                                         value={config.seo?.canonicalUrl || ''}
                                         onChange={v => setConfig({ ...config, seo: { ...config.seo, canonicalUrl: v } })}
-                                        placeholder="https://yourdomain.com/"
+                                        placeholder="https://bluetick.cloud"
                                     />
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold uppercase text-slate-400 tracking-wider">Robots Meta</label>
+                                        <label className="text-xs font-bold uppercase text-slate-400 tracking-wider">Robots Indexing</label>
                                         <select
                                             value={config.seo?.robots || 'index, follow'}
                                             onChange={e => setConfig({ ...config, seo: { ...config.seo, robots: e.target.value } })}
                                             className="w-full px-4 py-3 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white"
                                         >
-                                            <option value="index, follow">Index, Follow (Recommended)</option>
-                                            <option value="noindex, follow">NoIndex, Follow</option>
-                                            <option value="index, nofollow">Index, NoFollow</option>
-                                            <option value="noindex, nofollow">NoIndex, NoFollow (Private)</option>
+                                            <option value="index, follow">Index, Follow (Standard - Recommended)</option>
+                                            <option value="noindex, follow">NoIndex, Follow (Exclude Landing from Google)</option>
+                                            <option value="index, nofollow">Index, NoFollow (Do not follow outbound links)</option>
+                                            <option value="noindex, nofollow">NoIndex, NoFollow (Strictly Private)</option>
                                         </select>
                                     </div>
                                 </div>
 
                                 {/* Social Profiles */}
                                 <div className="space-y-4">
-                                    <label className="text-xs font-bold uppercase text-slate-400 tracking-wider block">Social Profiles (for Knowledge Graph)</label>
+                                    <label className="text-xs font-bold uppercase text-slate-400 tracking-wider block">
+                                        Social Profiles (Injected into Google Knowledge Graph Schema)
+                                    </label>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <input
                                             className="w-full px-4 py-3 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white"
-                                            placeholder="Facebook URL"
+                                            placeholder="Facebook Page URL"
                                             value={config.seo?.socialLinks?.facebook || ''}
                                             onChange={e => setConfig({ ...config, seo: { ...config.seo, socialLinks: { ...config.seo.socialLinks, facebook: e.target.value } } })}
                                         />
                                         <input
                                             className="w-full px-4 py-3 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white"
-                                            placeholder="Twitter URL"
+                                            placeholder="Twitter / X Profile URL"
                                             value={config.seo?.socialLinks?.twitter || ''}
                                             onChange={e => setConfig({ ...config, seo: { ...config.seo, socialLinks: { ...config.seo.socialLinks, twitter: e.target.value } } })}
                                         />
                                         <input
                                             className="w-full px-4 py-3 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white"
-                                            placeholder="Instagram URL"
+                                            placeholder="Instagram Profile URL"
                                             value={config.seo?.socialLinks?.instagram || ''}
                                             onChange={e => setConfig({ ...config, seo: { ...config.seo, socialLinks: { ...config.seo.socialLinks, instagram: e.target.value } } })}
                                         />
                                         <input
                                             className="w-full px-4 py-3 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white"
-                                            placeholder="LinkedIn URL"
+                                            placeholder="LinkedIn Company URL"
                                             value={config.seo?.socialLinks?.linkedin || ''}
                                             onChange={e => setConfig({ ...config, seo: { ...config.seo, socialLinks: { ...config.seo.socialLinks, linkedin: e.target.value } } })}
                                         />
                                     </div>
                                 </div>
 
-                                <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-xl flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 border border-slate-100 dark:border-white/5">
-                                    <div>
-                                        <div className="font-bold text-slate-900 dark:text-white text-sm">Sitemap XML</div>
-                                        <div className="text-xs text-slate-500 mb-3">Dynamically indexes landing pages, blogs, and all active store products. Submit to Google Search Console.</div>
+                                {/* Crawl Endpoints: Sitemap & Robots.txt */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* Sitemap Card */}
+                                    <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5 flex flex-col justify-between gap-3">
+                                        <div>
+                                            <div className="font-bold text-slate-900 dark:text-white text-sm flex items-center justify-between">
+                                                <span>XML Sitemap</span>
+                                                <a
+                                                    href={`${import.meta.env.VITE_API_URL || ''}/sitemap.xml`}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="text-indigo-600 dark:text-indigo-400 text-xs font-mono underline hover:text-indigo-500"
+                                                >
+                                                    /sitemap.xml
+                                                </a>
+                                            </div>
+                                            <div className="text-xs text-slate-500 mt-1">
+                                                Indexes landing page, public legal pages, published blogs, and all active store products. Submit this URL in Google Search Console.
+                                            </div>
+                                        </div>
                                         <button 
                                             onClick={handleGenerateSitemap}
                                             disabled={generatingSitemap}
-                                            className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-2 shadow-sm"
+                                            className="w-full sm:w-auto px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm"
                                         >
                                             <RefreshCw className={`w-3.5 h-3.5 ${generatingSitemap ? 'animate-spin' : ''}`} /> 
                                             {generatingSitemap ? 'Generating Sitemap...' : 'Generate Latest Sitemap'}
                                         </button>
                                     </div>
-                                    <a
-                                        href={`${import.meta.env.VITE_API_URL || ''}/sitemap.xml`}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="text-indigo-600 dark:text-indigo-400 text-sm font-mono underline hover:text-indigo-500 flex items-center gap-1 self-start sm:self-auto"
-                                    >
-                                        /sitemap.xml
-                                    </a>
+
+                                    {/* Robots.txt Card */}
+                                    <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5 flex flex-col justify-between gap-3">
+                                        <div>
+                                            <div className="font-bold text-slate-900 dark:text-white text-sm flex items-center justify-between">
+                                                <span>Robots.txt Directives</span>
+                                                <a
+                                                    href={`${import.meta.env.VITE_API_URL || ''}/robots.txt`}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="text-indigo-600 dark:text-indigo-400 text-xs font-mono underline hover:text-indigo-500"
+                                                >
+                                                    /robots.txt
+                                                </a>
+                                            </div>
+                                            <div className="text-xs text-slate-500 mt-1">
+                                                Instructs Googlebot and search crawlers which paths to index while safeguarding private admin and API routes.
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                                            <CheckCircle2 className="w-4 h-4" /> Live &amp; Linked to Sitemap
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

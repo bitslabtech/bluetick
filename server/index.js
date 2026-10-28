@@ -246,6 +246,10 @@ app.use('/uploads', (req, res, next) => {
     next();
 }, express.static(path.join(__dirname, 'public/uploads')));
 
+// Serve dynamic SEO endpoints before static dist fallback
+app.use('/sitemap.xml', require('./routes/sitemap'));
+app.use('/robots.txt', require('./routes/robots'));
+
 // Serve built React frontend (only if dist exists — i.e. in Docker/production build)
 const distPath = path.join(__dirname, 'public/dist');
 const distIndex = path.join(distPath, 'index.html');
@@ -308,7 +312,6 @@ app.use('/api/admin-notifications', require('./routes/adminNotifications')); // 
 app.use('/api/support', supportRoute); // NEW
 app.use('/api/landing', require('./routes/landing'));
 app.use('/api/checkout', require('./routes/checkout'));
-app.use('/sitemap.xml', require('./routes/sitemap'));
 app.use('/api/system', require('./routes/system')); // NEW // NEW
 app.use('/api/billing', require('./routes/billing')); // NEW
 app.use('/api/invoices', require('./routes/invoices')); // Invoice management & downloads
@@ -823,6 +826,24 @@ const startServer = async () => {
         try { await sequelize.query(`ALTER TABLE "WaProducts" ADD COLUMN IF NOT EXISTS "isTrending" BOOLEAN DEFAULT false;`); } catch (e) { /* already exists — ignore */ }
         try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN IF NOT EXISTS "shoppableVideosAutoSlide" BOOLEAN DEFAULT false;`); } catch (e) { /* already exists — ignore */ }
         try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN IF NOT EXISTS "pincode" VARCHAR(255) DEFAULT NULL;`); } catch (e) { /* already exists — ignore */ }
+
+        // ── StoreItem enum & column type migration ──────────────────────────────
+        // In PostgreSQL, StoreItems.itemType was initially created as an ENUM ('ai_tokens', 'messages', 'contacts', 'templates').
+        // Add 'team_members' to the enum if type exists, and safely alter column to VARCHAR(50)
+        // so it matches DataTypes.STRING(30) in StoreItem.js and never blocks any new top-up type.
+        try {
+            await sequelize.query(`ALTER TYPE "enum_StoreItems_itemType" ADD VALUE IF NOT EXISTS 'team_members';`);
+        } catch (e) {
+            if (e.message && !e.message.includes('already exists') && !e.message.includes('syntax error')) {
+                try {
+                    await sequelize.query(`ALTER TYPE "enum_StoreItems_itemType" ADD VALUE 'team_members';`);
+                } catch (err) { /* ignore fallback */ }
+            }
+        }
+        try { await sequelize.query(`ALTER TABLE "StoreItems" ALTER COLUMN "itemType" TYPE VARCHAR(50) USING "itemType"::text;`); } catch (e) { /* ignore if table not created yet */ }
+        try { await sequelize.query(`ALTER TABLE "StoreItems" ADD COLUMN IF NOT EXISTS "validityMonths" INTEGER DEFAULT 12;`); } catch (e) { /* ignore */ }
+        try { await sequelize.query(`ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "extraTopupTeamMembers" INTEGER DEFAULT 0;`); } catch (e) { /* ignore */ }
+        try { await sequelize.query(`ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "teamMemberTopupExpiry" TIMESTAMP WITH TIME ZONE DEFAULT NULL;`); } catch (e) { /* ignore */ }
 
         await sequelize.sync({ alter: { drop: false } }); // Sync models — never drop constraints/columns
         console.log('Database synced.');

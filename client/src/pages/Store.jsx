@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
-import { Store, Zap, MessageSquare, Users, Loader, CheckCircle, Shield } from 'lucide-react';
+import { Store, Zap, MessageSquare, Users, UserPlus, Loader, CheckCircle, Shield } from 'lucide-react';
 import { useUI } from '../context/UIContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -167,6 +167,24 @@ const StorePage = () => {
                                 </div>
                             </section>
                         )}
+
+                        {/* Team Member Seats Section */}
+                        {groupedItems['team_members'] && (
+                            <section>
+                                <div className="flex items-center gap-3 mb-6 pb-2 border-b border-slate-200 dark:border-white/10">
+                                    <div className="p-2 bg-violet-100 dark:bg-violet-900/30 text-violet-600 rounded-lg"><UserPlus className="w-6 h-6" /></div>
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Team Member Seats</h2>
+                                        <p className="text-xs sm:text-sm text-slate-500">Expand your workspace collaboration limit with extra team seats.</p>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+                                    {groupedItems['team_members'].map(item => (
+                                        <StoreCard key={item.id} item={item} processingId={processingId} onPurchase={() => handlePurchase(item)} />
+                                    ))}
+                                </div>
+                            </section>
+                        )}
                     </div>
                 )}
             </main>
@@ -191,11 +209,12 @@ const StoreCard = ({ item, processingId, onPurchase }) => {
     const themeColors = {
         blue: { bg: 'bg-blue-600 hover:bg-blue-700', text: 'text-blue-600', light: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-200', btnText: 'text-white' },
         indigo: { bg: 'bg-indigo-600 hover:bg-indigo-700', text: 'text-indigo-600', light: 'bg-indigo-50 dark:bg-indigo-900/20', border: 'border-indigo-200', btnText: 'text-white' },
+        violet: { bg: 'bg-violet-600 hover:bg-violet-700', text: 'text-violet-600', light: 'bg-violet-50 dark:bg-violet-900/20', border: 'border-violet-200', btnText: 'text-white' },
         emerald: { bg: 'bg-emerald-600 hover:bg-emerald-700', text: 'text-emerald-600', light: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-200', btnText: 'text-white' },
         amber: { bg: 'bg-amber-500 hover:bg-amber-600', text: 'text-amber-600', light: 'bg-amber-50 dark:bg-amber-900/20', border: 'border-amber-200', btnText: 'text-indigo-900' },
         rose: { bg: 'bg-rose-500 hover:bg-rose-600', text: 'text-rose-600', light: 'bg-rose-50 dark:bg-rose-900/20', border: 'border-rose-200', btnText: 'text-white' },
     };
-    const theme = themeColors[item.color] || themeColors.indigo;
+    const theme = themeColors[item.color] || (item.itemType === 'team_members' ? themeColors.violet : themeColors.indigo);
 
     return (
         <div className="bg-white dark:bg-surface-dark rounded-2xl p-3 sm:p-4 md:p-6 border border-slate-200 dark:border-white/5 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col hover:-translate-y-1 relative overflow-hidden group">
@@ -206,8 +225,15 @@ const StoreCard = ({ item, processingId, onPurchase }) => {
                 <h3 className="text-base sm:text-xl font-bold text-slate-900 dark:text-white capitalize mb-1 truncate">{item.name}</h3>
                 {item.description && <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-2 sm:mb-4 line-clamp-2">{item.description}</p>}
                 
-                <div className={`mt-auto inline-flex items-center self-start gap-1 sm:gap-1.5 px-2 sm:px-3 py-0.5 sm:py-1 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 rounded-lg font-semibold text-[10px] sm:text-sm mb-4 sm:mb-6`}>
-                    +{item.amount.toLocaleString()} <span className="hidden sm:inline">Units</span>
+                <div className="mt-auto flex flex-wrap items-center gap-1.5 mb-4 sm:mb-6">
+                    <span className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-0.5 sm:py-1 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 rounded-lg font-semibold text-[10px] sm:text-sm`}>
+                        +{item.amount.toLocaleString()} <span>{item.itemType === 'team_members' ? `Seat${item.amount !== 1 ? 's' : ''}` : 'Units'}</span>
+                    </span>
+                    {item.itemType === 'team_members' && item.validityMonths && (
+                        <span className="inline-flex items-center px-2 py-0.5 bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-300 rounded-lg font-medium text-[10px] sm:text-xs">
+                            {item.validityMonths === 1 ? '1 mo' : item.validityMonths === 3 ? '3 mos' : item.validityMonths === 6 ? '6 mos' : '1 yr'} validity
+                        </span>
+                    )}
                 </div>
 
                 <div className="flex items-end justify-between mb-3 sm:mb-4 mt-auto pt-3 sm:pt-4 border-t border-slate-100 dark:border-white/10">

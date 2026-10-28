@@ -289,6 +289,23 @@ const openApiSpec = {
                     500: { description: 'Server Error generating sitemap' }
                 }
             }
+        },
+        '/robots.txt': {
+            get: {
+                tags: ['SEO & Sitemap'],
+                summary: 'Get Robots.txt Directives',
+                description: 'Returns standard robots.txt directives for search engine crawlers (Googlebot, Bingbot), specifying allowed/disallowed paths and the live sitemap URL.',
+                responses: {
+                    200: {
+                        description: 'Plain text robots.txt file',
+                        content: {
+                            'text/plain': {
+                                schema: { type: 'string', example: 'User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /api/\n\nSitemap: https://bluetick.cloud/sitemap.xml\n' }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 };
