@@ -49,6 +49,8 @@ function csrfProtection(req, res, next) {
         '/api/wastore/public',
         '/api/wastore/verify-payment',
         '/api/store-customer',
+        // ── Sitemap generation (protected by [auth, admin]) ─────────────────────
+        '/sitemap.xml',
     ];
     const isExcluded = excludedPaths.some(p => req.path.startsWith(p));
 

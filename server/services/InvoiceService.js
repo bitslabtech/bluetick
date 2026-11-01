@@ -875,7 +875,7 @@ async function sendTestInvoice(adminPhone, ic) {
 
     const pdfBuffer = await generatePdf(sampleInvoice, ic);
     const { pdfPath, filename } = savePdf(pdfBuffer, 'TEST-INV-0001');
-    const appBaseUrl = process.env.FRONTEND_URL || 'http://localhost:5000';
+    const appBaseUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:5000';
     const backendUrl = appBaseUrl.replace(':5173', ':5000');
     const pdfPublicUrl = `${backendUrl}/uploads/invoices/${filename}`;
 

@@ -4,12 +4,12 @@ require('dotenv').config();
 process.on('uncaughtException', (err) => {
     const msg = `[UNCAUGHT EXCEPTION] ${err.message}\n${err.stack}`;
     console.error(msg);
-    try { require('fs').appendFileSync('crash.log', `${new Date().toISOString()} ${msg}\n`); } catch(e) {}
+    try { require('fs').appendFileSync('crash.log', `${new Date().toISOString()} ${msg}\n`); } catch (e) { }
 });
 process.on('unhandledRejection', (reason, promise) => {
     const msg = `[UNHANDLED REJECTION] ${reason?.message || reason}\n${reason?.stack || ''}`;
     console.error(msg);
-    try { require('fs').appendFileSync('crash.log', `${new Date().toISOString()} ${msg}\n`); } catch(e) {}
+    try { require('fs').appendFileSync('crash.log', `${new Date().toISOString()} ${msg}\n`); } catch (e) { }
 });
 
 require('./utils/winston'); // Wire up file logging (captures all console.log/error/warn)
@@ -135,25 +135,75 @@ const _getAllowedOrigins = async () => {
     return _corsCache.domains;
 };
 
+// Build the set of always-allowed platform origins from PLATFORM_DOMAIN.
+// This covers the root domain + ALL subdomains (www, staging, api, etc.)
+// so you never need to update CORS config when adding a subdomain.
+const _platformDomainCors = (process.env.PLATFORM_DOMAIN || '').toLowerCase();
+
+// EXTRA_CORS_ORIGINS: comma-separated list of additional allowed origins.
+// Use during domain migration to allow a new domain alongside the primary one.
+// Example: EXTRA_CORS_ORIGINS=https://onedash.cloud,https://staging.onedash.cloud
+const _extraCorsOrigins = (process.env.EXTRA_CORS_ORIGINS || '')
+    .split(',')
+    .map(o => o.trim().toLowerCase())
+    .filter(Boolean);
+
+// EXTRA_PLATFORM_DOMAINS: comma-separated additional platform domains.
+// Each domain and ALL its subdomains will be allowed (same logic as PLATFORM_DOMAIN).
+// Example: EXTRA_PLATFORM_DOMAINS=onedash.cloud
+const _extraPlatformDomains = (process.env.EXTRA_PLATFORM_DOMAINS || '')
+    .split(',')
+    .map(d => d.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, ''))
+    .filter(Boolean);
+
+function _isPlatformOrigin(origin) {
+    if (!origin) return true;
+    try {
+        const { hostname } = new URL(origin);
+        const h = hostname.toLowerCase();
+        // Always allow localhost / 127.0.0.1
+        if (h === 'localhost' || h === '127.0.0.1') return true;
+        // Direct IP address access
+        if (/(\d{1,3}\.){3}\d{1,3}$/.test(h)) return true;
+        // PaaS / Dynamic DNS domains (Coolify, sslip.io, nip.io, traefik.me, etc.)
+        const paasPatterns = ['sslip.io', 'nip.io', 'traefik.me', 'ngrok.io', 'ngrok-free.app', 'railway.app', 'onrender.com', 'vercel.app', 'netlify.app'];
+        if (paasPatterns.some(p => h.includes(p))) return true;
+        // Allow primary FRONTEND_URL (exact)
+        const primary = process.env.FRONTEND_URL || '';
+        if (primary && origin === primary) return true;
+        // Allow root domain + all subdomains of PLATFORM_DOMAIN
+        if (_platformDomainCors && (h === _platformDomainCors || h.endsWith(`.${_platformDomainCors}`))) return true;
+        // Allow extra origins (exact match) — migration period
+        const originLower = origin.toLowerCase();
+        if (_extraCorsOrigins.some(o => o === originLower)) return true;
+        // Allow extra platform domains + all their subdomains — migration period
+        if (_extraPlatformDomains.some(d => h === d || h.endsWith(`.${d}`))) return true;
+        // Built-in dual-domain support (both bluetick.cloud and onedash.cloud)
+        if (h === 'bluetick.cloud' || h.endsWith('.bluetick.cloud')) return true;
+        if (h === 'onedash.cloud' || h.endsWith('.onedash.cloud')) return true;
+    } catch { }
+    return false;
+}
+
+
 app.use(cors({
     origin: async (origin, callback) => {
         // Allow server-to-server calls (no Origin header) and same-origin requests
         if (!origin) return callback(null, true);
 
-        // Always allow the primary frontend
-        const primaryOrigin = process.env.FRONTEND_URL || 'http://localhost:5173';
-        if (origin === primaryOrigin) return callback(null, true);
+        // Allow localhost and all subdomains of PLATFORM_DOMAIN (covers staging automatically)
+        if (_isPlatformOrigin(origin)) return callback(null, true);
 
-        // Allow local development
+        // Allow local development (http variants)
         if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
             return callback(null, true);
         }
 
-        // Check against verified custom domains (cache refreshed every 60s)
+        // Check against verified merchant custom domains (cache refreshed every 60s)
         try {
             const allowed = await _getAllowedOrigins();
             if (allowed.has(origin)) return callback(null, true);
-        } catch (e) {}
+        } catch (e) { }
 
         // Not in the allowed list
         callback(new Error(`Not allowed by CORS: ${origin}`));
@@ -169,7 +219,7 @@ app.use(cookieParser());
 app.use('/api', globalLimiter);
 
 // Parse JSON payloads strictly up to 5MB to prevent memory exhaustion
-app.use(express.json({ 
+app.use(express.json({
     limit: '5mb',
     verify: (req, res, buf) => {
         req.rawBody = buf;
@@ -195,6 +245,10 @@ app.use('/uploads', (req, res, next) => {
     res.set('Cache-Control', 'public, max-age=31536000, immutable');
     next();
 }, express.static(path.join(__dirname, 'public/uploads')));
+
+// Serve dynamic SEO endpoints before static dist fallback
+app.use('/sitemap.xml', require('./routes/sitemap'));
+app.use('/robots.txt', require('./routes/robots'));
 
 // Serve built React frontend (only if dist exists — i.e. in Docker/production build)
 const distPath = path.join(__dirname, 'public/dist');
@@ -258,35 +312,6 @@ app.use('/api/admin-notifications', require('./routes/adminNotifications')); // 
 app.use('/api/support', supportRoute); // NEW
 app.use('/api/landing', require('./routes/landing'));
 app.use('/api/checkout', require('./routes/checkout'));
-app.use('/sitemap.xml', require('./routes/sitemap'));
-
-// Dynamic robots.txt — keeps Sitemap URL in sync with BASE_URL
-app.get('/robots.txt', (req, res) => {
-    const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
-    res.type('text/plain');
-    res.send(`User-agent: *
-Allow: /
-
-# Private app routes — do not crawl
-Disallow: /dashboard
-Disallow: /settings
-Disallow: /admin
-Disallow: /api/
-Disallow: /wastore-manager
-Disallow: /vcard-manager
-Disallow: /campaigns
-Disallow: /contacts
-Disallow: /flows
-Disallow: /integrations
-Disallow: /team
-Disallow: /billing
-Disallow: /inbox
-
-# Sitemap
-Sitemap: ${baseUrl}/sitemap.xml
-`);
-});
-
 // Google Search Console HTML verification file — served dynamically from DB
 // Google verifies by fetching: https://yourdomain.com/<token>.html
 // The token stored in LandingPage.seo.googleVerificationToken is used as both the filename and content
@@ -296,7 +321,7 @@ app.get('/:token.html', async (req, res, next) => {
         if (!token || token.length < 15) return next();
         const LandingPage = require('./models/LandingPage');
         const settings = await LandingPage.getSettings();
-        const storedToken = settings?.seo?.googleVerificationToken;
+        const storedToken = settings?.seo?.googleVerificationToken || settings?.seo?.googleSiteVerification;
         if (storedToken && token === storedToken) {
             res.type('text/html');
             return res.send(storedToken);
@@ -358,7 +383,7 @@ app.get('/api/health', (req, res) => {
 const _sysErrCooldown = new Map();
 app.use(async (err, req, res, next) => {
     console.error('[GLOBAL ERROR HANDLER]', err.message, err.stack);
-    
+
     // Fire WA admin alert (rate-limited per error message, 5 min cooldown)
     try {
         const errKey = err.message?.substring(0, 80) || 'unknown';
@@ -368,7 +393,7 @@ app.use(async (err, req, res, next) => {
             _sysErrCooldown.set(errKey, Date.now());
             const { sendAdminAlert } = require('./services/systemMessenger');
             const AdminNotification = require('./models/AdminNotification');
-            
+
             await AdminNotification.create({
                 type: 'SYSTEM_ERROR',
                 message: `Server error on ${req.method} ${req.path}`,
@@ -403,7 +428,7 @@ if (fs.existsSync(distIndex)) {
     // cutting the LCP "resource load delay" from ~2,600ms to ~100ms on mobile.
     app.get('/store/:slug', async (req, res) => {
         try {
-            const WaStore   = require('./models/WaStore');
+            const WaStore = require('./models/WaStore');
             const WaProduct = require('./models/WaProduct');
             // warmCache is exported from imgProxy — used to pre-warm the LCP image
             // cache BEFORE the browser even receives the HTML.
@@ -431,7 +456,7 @@ if (fs.existsSync(distIndex)) {
                         limit: 24
                     }),
                     // Fire-and-forget warm — does NOT block HTML if it fails or is slow
-                    lcpImageUrl ? warmCache(lcpImageUrl, { width: 800, quality: 92, format: 'webp', fit: 'contain' }).catch(() => {}) : Promise.resolve()
+                    lcpImageUrl ? warmCache(lcpImageUrl, { width: 800, quality: 92, format: 'webp', fit: 'contain' }).catch(() => { }) : Promise.resolve()
                 ]);
 
                 const injections = [];
@@ -444,8 +469,8 @@ if (fs.existsSync(distIndex)) {
                     //   ${VITE_API_URL}/api/img?url=${encoded}&w=800&q=82&f=webp&fit=contain
                     //
                     // We replicate that here on the server side.
-                    const CDN_HOST = 'cdn.bluetick.cloud';
-                    const apiBase = process.env.VITE_API_URL || process.env.APP_URL || 'http://localhost:5000';
+                    const CDN_HOST = process.env.CDN_HOST || 'cdn.bluetick.cloud';
+                    const apiBase = process.env.VITE_API_URL || process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:5000';
 
                     let preloadUrl = lcpImageUrl;
                     // Escape to prevent HTML parser breakage
@@ -459,12 +484,12 @@ if (fs.existsSync(distIndex)) {
                         const proxyOrigin = new URL(preloadUrl).origin;
                         injections.push(`<link rel="preconnect" href="${proxyOrigin}" crossorigin>`);
                         injections.push(`<link rel="dns-prefetch" href="${proxyOrigin}">`);
-                    } catch (e) {}
+                    } catch (e) { }
                 }
 
                 // OG / SEO meta tags for social sharing & search engines
                 const title = store.name ? `${store.name} | Shop Online` : 'Online Store';
-                const desc  = store.description || `Shop at ${store.name || 'our store'} — fast checkout via WhatsApp.`;
+                const desc = store.description || `Shop at ${store.name || 'our store'} — fast checkout via WhatsApp.`;
                 const ogImg = store.logo || lcpImageUrl || '';
 
                 injections.push(`<title>${title}</title>`);
@@ -532,7 +557,7 @@ img{display:block;vertical-align:middle}
                     (match, href) => {
                         // Only replace if it's actually the stylesheet link
                         if (!match.includes('rel="stylesheet"')) return match;
-                        
+
                         return [
                             CRITICAL_STORE_CSS,
                             // media="print" makes browser treat it as non-render-blocking;
@@ -736,9 +761,30 @@ img{display:block;vertical-align:middle}
     // middleware resolves the domain → store mapping and serves the same
     // SSR-optimized HTML (LCP preload, OG meta, embedded data) as /store/:slug.
     // MUST come before the generic SPA catch-all.
-    const PLATFORM_HOSTS = new Set([
-        'localhost', '127.0.0.1', 'bluetick.cloud', 'www.bluetick.cloud'
-    ]);
+    // Platform domain is configured via PLATFORM_DOMAIN env var (e.g. "bluetick.cloud" or "myapp.com").
+    // Subdomains (staging.myapp.com, www.myapp.com) are matched automatically.
+    // Changing domains requires only updating the env var — no code change needed.
+    const _platformDomain = (process.env.PLATFORM_DOMAIN || 'bluetick.cloud').toLowerCase();
+
+    const PLATFORM_HOSTS = new Set(['localhost', '127.0.0.1']);
+
+    function isPlatformHost(hostname) {
+        if (!hostname) return true;
+        if (PLATFORM_HOSTS.has(hostname)) return true;
+        // Direct IP access (e.g. Coolify raw IP or sslip.io)
+        if (/^(\d{1,3}\.){3}\d{1,3}$/.test(hostname)) return true;
+        // PaaS / Dynamic DNS domains — never a merchant's custom domain
+        const paas = ['sslip.io', 'nip.io', 'traefik.me', 'ngrok.io', 'ngrok-free.app', 'railway.app', 'onrender.com', 'vercel.app'];
+        if (paas.some(p => hostname.includes(p))) return true;
+        // PLATFORM_DOMAIN env var: matches exact domain and all its subdomains
+        if (hostname === _platformDomain || hostname.endsWith(`.${_platformDomain}`)) return true;
+        // Check extra platform domains (EXTRA_PLATFORM_DOMAINS env var)
+        if (_extraPlatformDomains.some(d => hostname === d || hostname.endsWith(`.${d}`))) return true;
+        // Built-in dual-domain support (both bluetick.cloud and onedash.cloud are platform domains)
+        if (hostname === 'bluetick.cloud' || hostname.endsWith('.bluetick.cloud') || hostname.includes('bluetick.cloud')) return true;
+        if (hostname === 'onedash.cloud' || hostname.endsWith('.onedash.cloud') || hostname.includes('onedash.cloud')) return true;
+        return false;
+    }
 
     app.get(/.*/, async (req, res, next) => {
         // Skip API routes — they're handled by their own routers
@@ -747,12 +793,12 @@ img{display:block;vertical-align:middle}
         }
 
         // x-forwarded-host is set by our Cloudflare Worker, which rewrites custom domain
-        // traffic to api.bluetick.cloud while preserving the original domain in this header.
+        // traffic to api.PLATFORM_DOMAIN while preserving the original domain in this header.
         // Fallback to req.hostname for direct traffic (e.g. testing without the Worker).
         const hostname = (req.headers['x-forwarded-host'] || req.hostname || req.headers.host || '').split(':')[0].toLowerCase();
 
-        // Skip platform domains and local development
-        if (PLATFORM_HOSTS.has(hostname) || hostname.includes('ngrok.io') || hostname.includes('railway.app')) {
+        // Skip platform domains and local development (reads PLATFORM_DOMAIN env var)
+        if (isPlatformHost(hostname)) {
             return next();
         }
 
@@ -794,7 +840,7 @@ img{display:block;vertical-align:middle}
                     order: [['createdAt', 'DESC']],
                     limit: 24
                 }),
-                lcpImageUrl ? warmCache(lcpImageUrl, { width: 800, quality: 92, format: 'webp', fit: 'contain' }).catch(() => {}) : Promise.resolve()
+                lcpImageUrl ? warmCache(lcpImageUrl, { width: 800, quality: 92, format: 'webp', fit: 'contain' }).catch(() => { }) : Promise.resolve()
             ]);
 
             const injections = [];
@@ -805,7 +851,7 @@ img{display:block;vertical-align:middle}
                     const proxyOrigin = new URL(lcpImageUrl).origin;
                     injections.push(`<link rel="preconnect" href="${proxyOrigin}" crossorigin>`);
                     injections.push(`<link rel="dns-prefetch" href="${proxyOrigin}">`);
-                } catch (e) {}
+                } catch (e) { }
             }
 
             // OG / SEO meta tags — use custom domain as canonical
@@ -879,7 +925,7 @@ async function backfillMediaTypes() {
             const mime = (mimeType || '').toLowerCase();
             const u = (url || '').toLowerCase();
             if (mime.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif|svg|bmp|avif)(\?|$)/.test(u)) return 'image';
-            if (mime.startsWith('video/') || /\.(mp4|webm|3gp|ogg|mov|avi)(\?|$)/.test(u))           return 'video';
+            if (mime.startsWith('video/') || /\.(mp4|webm|3gp|ogg|mov|avi)(\?|$)/.test(u)) return 'video';
             if (
                 mime === 'application/pdf' || mime.startsWith('text/') ||
                 mime.includes('document') || mime.includes('spreadsheet') ||
@@ -899,7 +945,7 @@ async function backfillMediaTypes() {
         await Promise.all(rows.map(async (row) => {
             const derived = deriveMediaType(row.mimeType, row.url);
             if (derived !== row.mediaType) {
-                await row.update({ mediaType: derived }).catch(() => {});
+                await row.update({ mediaType: derived }).catch(() => { });
                 updated++;
             }
         }));
@@ -921,7 +967,7 @@ const startServer = async () => {
 
         require('./models/WaStoreCoupon'); // Ensure WaStoreCoupon is loaded before sync
         require('./models/MediaFile');     // Ensure MediaFile is loaded before sync
-        
+
         // Ensure SYSTEM_ALERT is added to the enum for Postgres databases
         // since sequelize.sync({ alter: true }) often fails to update ENUMs dynamically
         try {
@@ -935,7 +981,7 @@ const startServer = async () => {
                 try {
                     await sequelize.query(`ALTER TYPE "enum_AdminNotifications_type" ADD VALUE 'SYSTEM_ALERT';`);
                     console.log('Added SYSTEM_ALERT to AdminNotifications type enum (legacy fallback).');
-                } catch (err) {}
+                } catch (err) { }
             }
         }
 
@@ -944,13 +990,32 @@ const startServer = async () => {
         // exist and does NOT try to generate its own broken ENUM ALTER SQL.
         // Each statement has its own try-catch so errors (column/type already exists)
         // are silently ignored.
-        try { await sequelize.query(`CREATE TYPE "enum_WaStores_domainStatus" AS ENUM('pending', 'verified', 'failed');`); } catch(e) { /* already exists — ignore */ }
-        try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN "domainStatus" "enum_WaStores_domainStatus" DEFAULT NULL;`); } catch(e) { /* already exists — ignore */ }
-        try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN "domainVerifiedAt" TIMESTAMP WITH TIME ZONE DEFAULT NULL;`); } catch(e) { /* already exists — ignore */ }
-        try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN IF NOT EXISTS "subcategories" JSON DEFAULT '{}';`); } catch(e) { /* already exists — ignore */ }
-        try { await sequelize.query(`ALTER TABLE "WaProducts" ADD COLUMN IF NOT EXISTS "subCategories" JSON DEFAULT '[]';`); } catch(e) { /* already exists — ignore */ }
-        try { await sequelize.query(`ALTER TABLE "WaProducts" ADD COLUMN IF NOT EXISTS "isTrending" BOOLEAN DEFAULT false;`); } catch(e) { /* already exists — ignore */ }
-        try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN IF NOT EXISTS "shoppableVideosAutoSlide" BOOLEAN DEFAULT false;`); } catch(e) { /* already exists — ignore */ }
+        try { await sequelize.query(`CREATE TYPE "enum_WaStores_domainStatus" AS ENUM('pending', 'verified', 'failed');`); } catch (e) { /* already exists — ignore */ }
+        try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN "domainStatus" "enum_WaStores_domainStatus" DEFAULT NULL;`); } catch (e) { /* already exists — ignore */ }
+        try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN "domainVerifiedAt" TIMESTAMP WITH TIME ZONE DEFAULT NULL;`); } catch (e) { /* already exists — ignore */ }
+        try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN IF NOT EXISTS "subcategories" JSON DEFAULT '{}';`); } catch (e) { /* already exists — ignore */ }
+        try { await sequelize.query(`ALTER TABLE "WaProducts" ADD COLUMN IF NOT EXISTS "subCategories" JSON DEFAULT '[]';`); } catch (e) { /* already exists — ignore */ }
+        try { await sequelize.query(`ALTER TABLE "WaProducts" ADD COLUMN IF NOT EXISTS "isTrending" BOOLEAN DEFAULT false;`); } catch (e) { /* already exists — ignore */ }
+        try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN IF NOT EXISTS "shoppableVideosAutoSlide" BOOLEAN DEFAULT false;`); } catch (e) { /* already exists — ignore */ }
+        try { await sequelize.query(`ALTER TABLE "WaStores" ADD COLUMN IF NOT EXISTS "pincode" VARCHAR(255) DEFAULT NULL;`); } catch (e) { /* already exists — ignore */ }
+
+        // ── StoreItem enum & column type migration ──────────────────────────────
+        // In PostgreSQL, StoreItems.itemType was initially created as an ENUM ('ai_tokens', 'messages', 'contacts', 'templates').
+        // Add 'team_members' to the enum if type exists, and safely alter column to VARCHAR(50)
+        // so it matches DataTypes.STRING(30) in StoreItem.js and never blocks any new top-up type.
+        try {
+            await sequelize.query(`ALTER TYPE "enum_StoreItems_itemType" ADD VALUE IF NOT EXISTS 'team_members';`);
+        } catch (e) {
+            if (e.message && !e.message.includes('already exists') && !e.message.includes('syntax error')) {
+                try {
+                    await sequelize.query(`ALTER TYPE "enum_StoreItems_itemType" ADD VALUE 'team_members';`);
+                } catch (err) { /* ignore fallback */ }
+            }
+        }
+        try { await sequelize.query(`ALTER TABLE "StoreItems" ALTER COLUMN "itemType" TYPE VARCHAR(50) USING "itemType"::text;`); } catch (e) { /* ignore if table not created yet */ }
+        try { await sequelize.query(`ALTER TABLE "StoreItems" ADD COLUMN IF NOT EXISTS "validityMonths" INTEGER DEFAULT 12;`); } catch (e) { /* ignore */ }
+        try { await sequelize.query(`ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "extraTopupTeamMembers" INTEGER DEFAULT 0;`); } catch (e) { /* ignore */ }
+        try { await sequelize.query(`ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "teamMemberTopupExpiry" TIMESTAMP WITH TIME ZONE DEFAULT NULL;`); } catch (e) { /* ignore */ }
 
         await sequelize.sync({ alter: { drop: false } }); // Sync models — never drop constraints/columns
         console.log('Database synced.');

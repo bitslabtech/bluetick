@@ -18,6 +18,7 @@ import PublicHeader from '../components/landing/PublicHeader';
 import FloatingChatbot from '../components/landing/FloatingChatbot';
 import HeroShowcase from '../components/landing/HeroShowcase';
 import { trackLead } from '../utils/analytics';
+import { applyPlatformSeo } from '../utils/platformSeo';
 
 
 // Icon Map for dynamic rendering
@@ -1752,107 +1753,11 @@ export default function LandingPage() {
         fetchMetaRates();
     }, []);
 
-    // ── Full SEO Meta Injection ──────────────────────────────────────────────
+    // Update SEO Meta, Search Console, OpenGraph, Structured Data & Tracking
     useEffect(() => {
-        if (!config?.seo) return;
-        const seo = config.seo;
-        const siteUrl = window.location.origin;
-        const pageUrl = seo.canonicalUrl || siteUrl;
-        const appName = publicSettings?.appName || config?.brand?.name || 'Bluetick';
-
-        // ── Helper: set or create a meta tag ────────────────────────────────
-        const setMeta = (attr, name, content) => {
-            if (!content) return;
-            let el = document.querySelector(`meta[${attr}="${name}"]`);
-            if (!el) {
-                el = document.createElement('meta');
-                el.setAttribute(attr, name);
-                el.setAttribute('data-landing-seo', 'true');
-                document.head.appendChild(el);
-            }
-            el.setAttribute('content', content);
-        };
-
-        // ── Helper: set or create a link tag ────────────────────────────────
-        const setLink = (rel, href) => {
-            if (!href) return;
-            let el = document.querySelector(`link[rel="${rel}"]`);
-            if (!el) {
-                el = document.createElement('link');
-                el.setAttribute('rel', rel);
-                el.setAttribute('data-landing-seo', 'true');
-                document.head.appendChild(el);
-            }
-            el.setAttribute('href', href);
-        };
-
-        // ── Helper: set or replace a JSON-LD script ──────────────────────────
-        const setJsonLd = (id, data) => {
-            let el = document.querySelector(`script[type="application/ld+json"][data-landing-id="${id}"]`);
-            if (!el) {
-                el = document.createElement('script');
-                el.setAttribute('type', 'application/ld+json');
-                el.setAttribute('data-landing-id', id);
-                el.setAttribute('data-landing-seo', 'true');
-                document.head.appendChild(el);
-            }
-            el.textContent = JSON.stringify(data);
-        };
-
-        // ── Title ─────────────────────────────────────────────────────────────
-        document.title = seo.title || appName;
-
-        // ── Standard Meta ─────────────────────────────────────────────────────
-        setMeta('name', 'description', seo.description);
-        setMeta('name', 'keywords', seo.keywords);
-        setMeta('name', 'robots', seo.robots || 'index, follow');
-
-        // ── Google Site Verification ──────────────────────────────────────────
-        if (seo.googleVerificationToken) {
-            setMeta('name', 'google-site-verification', seo.googleVerificationToken);
+        if (config?.seo) {
+            applyPlatformSeo(config.seo, config.brand, publicSettings);
         }
-
-        // ── Canonical ────────────────────────────────────────────────────────
-        setLink('canonical', pageUrl);
-
-        // ── Open Graph (Facebook, WhatsApp, LinkedIn share cards) ────────────
-        setMeta('property', 'og:type', 'website');
-        setMeta('property', 'og:site_name', appName);
-        setMeta('property', 'og:title', seo.socialTitle || seo.title || appName);
-        setMeta('property', 'og:description', seo.socialDescription || seo.description);
-        setMeta('property', 'og:image', seo.ogImage);
-        setMeta('property', 'og:url', pageUrl);
-
-        // ── Twitter Card ─────────────────────────────────────────────────────
-        setMeta('name', 'twitter:card', seo.twitterCard || 'summary_large_image');
-        setMeta('name', 'twitter:title', seo.socialTitle || seo.title || appName);
-        setMeta('name', 'twitter:description', seo.socialDescription || seo.description);
-        setMeta('name', 'twitter:image', seo.ogImage);
-
-        // ── JSON-LD: Organization (Knowledge Graph + social profiles) ─────────
-        const orgSchema = {
-            '@context': 'https://schema.org',
-            '@type': 'Organization',
-            name: appName,
-            url: siteUrl,
-            logo: publicSettings?.logoUrl || config?.brand?.logo || '',
-            description: seo.description || '',
-            sameAs: Object.values(seo.socialLinks || {}).filter(Boolean),
-        };
-        setJsonLd('organization', orgSchema);
-
-        // ── JSON-LD: WebSite (enables Google Sitelinks Search Box) ───────────
-        setJsonLd('website', {
-            '@context': 'https://schema.org',
-            '@type': 'WebSite',
-            name: appName,
-            url: siteUrl,
-        });
-
-        // ── Cleanup on unmount ────────────────────────────────────────────────
-        return () => {
-            document.querySelectorAll('[data-landing-seo="true"]').forEach(el => el.remove());
-        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [config, publicSettings]);
 

@@ -12,9 +12,12 @@ RUN npm ci --prefer-offline
 # Copy source and build
 COPY client/ ./
 
-# VITE_API_URL must be set as an environment variable in Railway
+# Frontend build arguments
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
+
+ARG VITE_TURNSTILE_SITE_KEY
+ENV VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY
 
 RUN npm run build
 

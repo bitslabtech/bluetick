@@ -137,7 +137,7 @@ const fireCAPICheckout = async (store, order) => {
             pixelId,
             accessToken,
             eventName: 'InitiateCheckout',
-            sourceUrl: `${process.env.APP_URL || ''}/store/${store.slug}`,
+            sourceUrl: `${process.env.FRONTEND_URL || process.env.APP_URL || ''}/store/${store.slug}`,
             userData: { phone: order.customerPhone, email: order.customerEmail },
             testEventCode: storeOwner.capiConfig?.testEventCode,
             eventData: {
@@ -164,7 +164,7 @@ const fireCAPIPurchase = async (store, order) => {
             pixelId,
             accessToken,
             eventName: 'Purchase',
-            sourceUrl: `${process.env.APP_URL || ''}/store/${store.slug}`,
+            sourceUrl: `${process.env.FRONTEND_URL || process.env.APP_URL || ''}/store/${store.slug}`,
             userData: { phone: order.customerPhone, email: order.customerEmail },
             testEventCode: storeOwner.capiConfig?.testEventCode,
             eventData: {
@@ -252,7 +252,13 @@ router.get('/public/:slug', async (req, res) => {
         // SEC-1: Strip server-only / payment-secret fields from the public storefront response.
         // paymentConfig contains Razorpay/PhonePe secret keys — must never reach the browser.
         delete responseData.paymentConfig;
-        delete responseData.taxConfig;
+        // TAX-FIX-1: Expose only the display-safe subset of taxConfig.
+        // Strips seller PAN, GSTIN and legal name (confidential) but retains fields needed
+        // for the checkout modal to calculate and show tax correctly.
+        if (responseData.taxConfig) {
+            const { sellerPan, sellerGstin, sellerLegalName, sellerAddress, sellerState, sellerStateCode, ...publicTaxConfig } = responseData.taxConfig;
+            responseData.taxConfig = publicTaxConfig;
+        }
         delete responseData.notificationTemplates;
         delete responseData.abandonedCartConfig;
 
@@ -354,6 +360,16 @@ router.get('/public/domain/:domain', async (req, res) => {
 
         const responseData = store.toJSON();
         delete responseData.User; // Hide user obj
+        // SEC-1 (domain): Same sanitization as /public/:slug — strip payment secrets.
+        delete responseData.paymentConfig;
+        // TAX-FIX-1 (domain): Expose safe taxConfig subset so custom-domain storefronts
+        // also receive tax settings needed for checkout modal calculations.
+        if (responseData.taxConfig) {
+            const { sellerPan, sellerGstin, sellerLegalName, sellerAddress, sellerState, sellerStateCode, ...publicTaxConfig } = responseData.taxConfig;
+            responseData.taxConfig = publicTaxConfig;
+        }
+        delete responseData.notificationTemplates;
+        delete responseData.abandonedCartConfig;
 
         // DATA-1 FIX: Strip internal fields from products (same as /public/:slug)
         const safeProducts2 = (products || []).map(p => {
@@ -373,7 +389,7 @@ router.get('/public/domain/:domain', async (req, res) => {
 // POST /api/wastore/orders  — Public: record a new order (called from storefront before WhatsApp redirect)
 router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate limited
     try {
-        const { storeId, customerName, customerPhone, customerEmail, customerAddress, customerNote, customerGstin, customerCompany, items, subtotal, originalTotal, discountAmount, couponCode, currency, taxAmount, taxRate, taxName, total, storeCustomerId } = req.body;
+        const { storeId, customerName, customerPhone, customerEmail, customerAddress, customerNote, customerGstin, customerCompany, items, subtotal, originalTotal, discountAmount, couponCode, currency, taxAmount, taxRate, taxName, total, shippingCost, storeCustomerId } = req.body;
 
         if (!storeId || !items || !Array.isArray(items) || items.length === 0 || subtotal === undefined || subtotal === null) {
             return res.status(400).json({ error: 'Missing required order fields' });
@@ -412,6 +428,10 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
             }
         }
 
+        // TAX-FIX-7: Declare validatedCustomerId in outer scope so it's accessible
+        // after the transaction (used in notification dispatchers below).
+        let validatedCustomerId = null;
+
         const order = await sequelize.transaction({ isolationLevel: 'SERIALIZABLE' }, async (t) => {
             // Re-generate order number inside the transaction so the COUNT is consistent
             const txCount = await WaOrder.count({ where: { storeId, source: 'online' }, transaction: t });
@@ -439,7 +459,7 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
                 });
                 
                 if (cust) {
-                    validatedCustomerId = cust.id;
+                    validatedCustomerId = cust.id; // also updates outer-scope variable
                     
                     // Save the address to customer profile if provided
                     const incomingAddress = req.body.addressDetails || null;
@@ -486,6 +506,7 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
                 taxRate: parseFloat(taxRate) || 0,
                 taxName: taxName || null,
                 total: parseFloat(total) || subtotal,
+                shippingCost: parseFloat(shippingCost) || 0,
                 status: 'pending',
                 storeCustomerId: validatedCustomerId,
             }, { transaction: t });
@@ -595,10 +616,11 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
                     // SEC-H2 FIX: Use order.total (includes tax), not order.subtotal (pre-tax).
                     // Previously PhonePe charged customers the pre-tax amount — store owners lost GST revenue.
                     amount: Math.round((order.total || order.subtotal) * 100),
-                    // Redirect back to the store
-                    redirectUrl: `${process.env.APP_URL || 'http://localhost:5173'}/store/${store.slug}/verify?order=${order.orderNumber}`,
+                    // Redirect back to the store (frontend)
+                    redirectUrl: `${process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:5173'}/store/${store.slug}/verify?order=${order.orderNumber}`,
                     redirectMode: "POST",
-                    callbackUrl: `${process.env.APP_URL || 'http://localhost:5000'}/api/wastore/public/${store.slug}/phonepe-callback`,
+                    // PhonePe server-to-server webhook (backend API)
+                    callbackUrl: `${process.env.VITE_API_URL || process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:5000'}/api/wastore/public/${store.slug}/phonepe-callback`,
                     mobileNumber: customerPhone.replace(/\D/g, ''),
                     paymentInstrument: {
                         type: "PAY_PAGE"
@@ -641,6 +663,13 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
                 sendOrderNotification('order_placed', store, storeUser, order).catch(() => {});
                 sendOwnerOrderAlert(store, storeUser, order).catch(() => {});
                 dispatchInAppNotifications(store, storeUser, order, validatedCustomerId).catch(() => {});
+                // TAX-FIX-2: Auto-send invoice PDF via WhatsApp for non-gateway checkout
+                // (gateway orders are handled after payment verification in verify-payment endpoint)
+                if (store.checkoutMode !== 'gateway' && store.taxConfig?.autoSendWhatsApp) {
+                    sendWhatsAppInvoiceHelper(store, storeUser, order, order.customerName, order.customerPhone).catch(err => {
+                        console.error('[Invoice] Failed to auto-send invoice for WhatsApp order:', err.message);
+                    });
+                }
             }
         }).catch(() => {});
 
@@ -687,6 +716,7 @@ async function sendWhatsAppInvoiceHelper(store, user, order, customerName, custo
                 taxAmount: order.taxAmount,
                 taxRate: order.taxRate,
                 taxName: order.taxName,
+                shippingCost: order.shippingCost || 0,
                 total: order.total
             },
             {
@@ -702,7 +732,16 @@ async function sendWhatsAppInvoiceHelper(store, user, order, customerName, custo
                 address: order.customerAddress || '',
                 company: order.customerCompany || '',
                 gstin: order.customerGstin || '',
-                state: (order.customerAddress || '').split(',').slice(-2, -1)[0]?.trim() || ''
+                // TAX-FIX-3: Correctly extract the State for CGST/SGST vs IGST determination.
+                // Address format stored is: "Street/Area, City, State - Pincode"
+                // The old slice(-2,-1) was grabbing the city, not the state.
+                state: (() => {
+                    const addr = order.customerAddress || '';
+                    // Split on " - " to isolate the "..., State" portion (before pincode)
+                    const beforePincode = addr.split(' - ')[0];
+                    const parts = beforePincode.split(',');
+                    return parts[parts.length - 1]?.trim() || '';
+                })()
             },
             filePath
         );
@@ -1026,6 +1065,24 @@ router.post('/:storeId/orders/pos', auth, async (req, res) => {
                     const deduction = item.qty || 1;
                     const newQty = (product.stockQuantity || 0) - deduction;
                     product.stockQuantity = newQty;
+
+                    // If variant combo exists, also update variant-level stock
+                    if (item.selectedVariants && Array.isArray(product.variants) && product.variants.length > 0) {
+                        let updatedVariants = [...product.variants];
+                        let matched = false;
+                        for (let v of updatedVariants) {
+                            if (v.combo && Object.entries(item.selectedVariants).every(([k, val]) => v.combo[k] === val)) {
+                                if (v.stock !== null && v.stock !== undefined) {
+                                    v.stock = Math.max(0, (parseInt(v.stock) || 0) - deduction);
+                                    matched = true;
+                                }
+                            }
+                        }
+                        if (matched) {
+                            product.variants = updatedVariants;
+                        }
+                    }
+
                     if (store.inventoryConfig?.autoOutOfStock && newQty <= 0) {
                         product.inStock = false;
                     }
@@ -1204,6 +1261,19 @@ router.post('/public/:slug/phonepe-callback', phonepeCbLimiter, async (req, res)
         if (order && decoded.code === 'PAYMENT_SUCCESS') {
             order.status = 'confirmed';
             await order.save();
+
+            // TAX-FIX-8: Trigger autoSendWhatsApp invoice for PhonePe S2S callback
+            // (was missing — only Razorpay and phonepe-check paths had this)
+            const storeUser = await User.findByPk(store.userId);
+            if (storeUser && store.taxConfig?.autoSendWhatsApp) {
+                sendWhatsAppInvoiceHelper(store, storeUser, order, order.customerName, order.customerPhone).catch(err => {
+                    console.error('[Invoice] PhonePe S2S invoice send failed:', err.message);
+                });
+            }
+            if (storeUser) {
+                sendOrderNotification('payment_received', store, storeUser, order).catch(() => {});
+            }
+            fireCAPIPurchase(store, order).catch(() => {});
         }
         res.send('OK');
     } catch (error) {
@@ -1687,6 +1757,38 @@ router.put('/:id', async (req, res) => {
             }
         }
 
+        // ── Store address validation ──────────────────────────────────────────
+        // Pincode is mandatory when Country, State, and City are all selected.
+        // Enforced ONLY when saving from the Basic Details page in settings.
+        // Saving visual designer, themes, SEO, shipping, etc. must NEVER be blocked
+        // even if country/state/city are filled without a pincode.
+        const isBasicDetailsRequest = Boolean(
+            req.body.isBasicDetails ||
+            req.body._isBasicDetails ||
+            req.body.isBasicDetailsPage ||
+            req.body._source === 'basic_details'
+        );
+
+        if (isBasicDetailsRequest) {
+            const updatedCountry = req.body.country !== undefined ? req.body.country : store.country;
+            const updatedState   = req.body.state   !== undefined ? req.body.state   : store.state;
+            const updatedCity    = req.body.city     !== undefined ? req.body.city    : store.city;
+            const updatedPincode = req.body.pincode  !== undefined ? req.body.pincode : store.pincode;
+
+            const hasFullLocation = Boolean(
+                String(updatedCountry || '').trim() &&
+                String(updatedState   || '').trim() &&
+                String(updatedCity    || '').trim()
+            );
+
+            if (hasFullLocation && !String(updatedPincode || '').trim()) {
+                return res.status(400).json({
+                    error: 'PIN / postal code is required when Country, State, and City are selected.'
+                });
+            }
+        }
+
+
         // ── Custom domain sanitization & validation ──────────────────────────
         // Capture old domain BEFORE any changes so we can clean up Cloudflare
         const _oldCustomDomain = store.customDomain || null;
@@ -1708,8 +1810,9 @@ router.put('/:id', async (req, res) => {
                     return res.status(400).json({ error: 'Invalid domain format. Please enter a valid domain like "www.example.com" or "shop.example.com".' });
                 }
 
-                // Block platform domains
-                const blockedDomains = ['bluetick.cloud', 'www.bluetick.cloud', 'localhost'];
+                // Block platform domains from being used as custom store domains
+                const _pd = (process.env.PLATFORM_DOMAIN || 'bluetick.cloud').toLowerCase();
+                const blockedDomains = [_pd, `www.${_pd}`, 'localhost'];
                 if (blockedDomains.includes(domain)) {
                     return res.status(400).json({ error: 'This domain cannot be used as a custom domain.' });
                 }
@@ -1737,6 +1840,10 @@ router.put('/:id', async (req, res) => {
         delete updates.userId;
         delete updates.createdAt;
         delete updates.updatedAt;
+        delete updates.isBasicDetails;
+        delete updates._isBasicDetails;
+        delete updates.isBasicDetailsPage;
+        delete updates._source;
 
         // NOTE: Images are NOT deleted from cloud storage when a store field is updated.
         // Physical file deletion happens only from the Media Manager (DELETE /api/media/:id).
@@ -1782,12 +1889,14 @@ router.post('/:id/verify-domain', auth, async (req, res) => {
         if (!store.customDomain) return res.status(400).json({ error: 'No custom domain configured for this store.' });
 
         const domain = store.customDomain;
-        const validTargets = ['router.bluetick.cloud'];
-        const displayTarget = 'router.bluetick.cloud';
+        const routerHostname = (process.env.ROUTER_HOSTNAME || `router.${process.env.PLATFORM_DOMAIN || 'bluetick.cloud'}`).toLowerCase();
+        const validTargets = [routerHostname];
+        const displayTarget = routerHostname;
         // Resolve target IPs dynamically — never hardcoded so IP changes don't break verification
-        let targetIPs = ['187.127.171.15']; // Always accept the direct server IP
+        let targetIPs = [];
+        if (process.env.SERVER_IP) targetIPs.push(process.env.SERVER_IP);
         try { 
-            const resolvedIps = await dns.resolve4('router.bluetick.cloud').catch(() => []);
+            const resolvedIps = await dns.resolve4(routerHostname).catch(() => []);
             targetIPs = [...targetIPs, ...resolvedIps]; 
         } catch(e) { }
         let verified = false;
@@ -2410,8 +2519,14 @@ router.post('/:storeId/products', auth, async (req, res) => {
             payload.subCategories = [];
         }
 
+        if (payload.taxRate !== undefined && payload.taxRate !== null && payload.taxRate !== '' && !isNaN(parseFloat(payload.taxRate))) {
+            payload.taxRate = parseFloat(payload.taxRate);
+        } else {
+            payload.taxRate = null;
+        }
+
         if (store.taxConfig && store.taxConfig.enabled) {
-            if (payload.taxRate === null || payload.taxRate === undefined || payload.taxRate === '') {
+            if (payload.taxRate === null || payload.taxRate === undefined || isNaN(payload.taxRate)) {
                 return res.status(400).json({ error: 'Please select a Tax Slab for this product.' });
             }
         }
@@ -2450,8 +2565,14 @@ router.put('/products/:productId', auth, async (req, res) => {
             payload.subCategories = [];
         }
 
+        if (payload.taxRate !== undefined && payload.taxRate !== null && payload.taxRate !== '' && !isNaN(parseFloat(payload.taxRate))) {
+            payload.taxRate = parseFloat(payload.taxRate);
+        } else if (payload.taxRate !== undefined) {
+            payload.taxRate = null;
+        }
+
         if (store.taxConfig && store.taxConfig.enabled) {
-            if (payload.taxRate === null || payload.taxRate === undefined || payload.taxRate === '') {
+            if (payload.taxRate === null || payload.taxRate === undefined || isNaN(payload.taxRate)) {
                 return res.status(400).json({ error: 'Please select a Tax Slab for this product.' });
             }
         }

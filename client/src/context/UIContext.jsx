@@ -80,6 +80,13 @@ export const UIProvider = ({ children }) => {
         if (data.primaryColor) {
             root.style.setProperty('--color-primary', data.primaryColor);
         }
+        // Dynamically update document title from Superadmin settings
+        if (data.appName) {
+            const p = window.location.pathname;
+            if (!p.startsWith('/store') && !p.startsWith('/vcard') && !p.startsWith('/blog/')) {
+                document.title = data.appName;
+            }
+        }
         // Dynamically update the browser favicon
         if (data.faviconUrl) {
             let faviconUrl = data.faviconUrl;
