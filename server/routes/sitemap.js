@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const WaStore = require('../models/WaStore');
 const WaProduct = require('../models/WaProduct');
+const Blog = require('../models/Blog');
 
 // ─── Helper: build a URL entry ────────────────────────────────────────────────
 function urlEntry(loc, { lastmod, changefreq, priority }) {
@@ -106,6 +107,41 @@ async function buildSitemapXml(baseUrl) {
     } catch (err) {
         console.error('[Sitemap] Error fetching store data:', err.message);
         // Non-fatal: sitemap still returns static routes
+    }
+
+    // ── Blog posts ────────────────────────────────────────────────────────────
+    try {
+        const blogs = await Blog.findAll({
+            where: { isPublished: true },
+            attributes: ['slug', 'updatedAt', 'coverImage', 'title']
+        });
+
+        for (const blog of blogs) {
+            const blogUrl = `${baseUrl}/blog/${blog.slug}`;
+            const blogUpdated = blog.updatedAt ? new Date(blog.updatedAt).toISOString() : now;
+
+            let imageXml = '';
+            if (blog.coverImage) {
+                const resolvedImg = blog.coverImage.startsWith('http') ? blog.coverImage : `${baseUrl}${blog.coverImage}`;
+                const safeTitle = (blog.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                imageXml = `
+        <image:image>
+            <image:loc>${resolvedImg}</image:loc>
+            <image:title>${safeTitle}</image:title>
+        </image:image>`;
+            }
+
+            xml += `
+    <url>
+        <loc>${blogUrl}</loc>
+        <lastmod>${blogUpdated}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>${imageXml}
+    </url>`;
+        }
+    } catch (err) {
+        console.error('[Sitemap] Error fetching blog data:', err.message);
+        // Non-fatal: sitemap still returns store + static routes
     }
 
     xml += `\n</urlset>`;

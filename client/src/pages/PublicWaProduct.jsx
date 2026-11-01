@@ -11,6 +11,7 @@ import StoreNotFound from '../components/StoreNotFound';
 import { getThemeConfig } from '../utils/wastoreThemes';
 import { applyProductSeo, cleanupStoreSeo } from '../utils/storeSeo';
 import { getStoreRoute } from '../utils/storeRouting';
+import { trackViewItem, trackAddToCart } from '../utils/analytics';
 import { StoreCustomerProvider, useStoreCustomer } from '../context/StoreCustomerContext';
 
 // Inner component that reads the customer auth context and injects it into the header
@@ -242,6 +243,7 @@ export default function PublicWaProduct({ customSlug }) {
                     setProduct(foundProduct);
                     // Apply full product SEO (title, og tags, Product schema, BreadcrumbList)
                     applyProductSeo(foundProduct, res.data.store, window.location.origin);
+                    trackViewItem(foundProduct, res.data.store?.currency);
                 } else {
                     // product is null, handled by UI below
                 }
@@ -291,6 +293,7 @@ export default function PublicWaProduct({ customSlug }) {
             return [...prev, { ...product, price: resolvedPrice, cartItemId, qty, selectedVariants }];
         });
         toast.success(`Added ${qty} ${product.name} to cart`);
+        trackAddToCart({ ...product, price: resolvedPrice }, qty, store?.currency);
     };
 
     const handleBuyNow = () => {

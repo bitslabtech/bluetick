@@ -12,6 +12,7 @@ import { SocketProvider } from './context/SocketContext';
 import Layout from './components/Layout';
 import { PaymentRedirectHandler } from './components/PaymentRedirectHandler';
 import { StoreCustomerProvider } from './context/StoreCustomerContext';
+import AnalyticsListener from './components/AnalyticsListener';
 
 // ── Code-Split Pages (React.lazy) ──────────────────────────────────────────
 // Each page loads as a separate JS chunk (~20-150KB) only when navigated to.
@@ -591,6 +592,7 @@ function App() {
                         <SocketProvider>
                             <NotificationProvider>
                             <Router>
+                                <AnalyticsListener />
                                 <EditorSync />
                                 <ReferralCapture />
                                 <Toaster position="top-right" />

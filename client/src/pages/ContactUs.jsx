@@ -4,6 +4,7 @@ import PublicLayout from '../components/landing/PublicLayout';
 import { Mail, MessageSquare, Phone, MapPin, Send, Loader2 } from 'lucide-react';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { countryCodes } from '../utils/countryCodes';
+import { trackLead } from '../utils/analytics';
 
 const ContactUs = () => {
     const [status, setStatus] = useState('');
@@ -44,6 +45,7 @@ const ContactUs = () => {
         try {
             await axios.post(`${import.meta.env.VITE_API_URL}/api/contact`, data);
             setStatus('Thanks for reaching out! We will get back to you shortly.');
+            trackLead({ formName: 'Contact Us', details: { email: data.email } });
             e.target.reset();
         } catch (err) {
             setError(err.response?.data?.error || 'Failed to send message.');

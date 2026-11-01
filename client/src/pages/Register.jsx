@@ -6,6 +6,7 @@ import axios from 'axios';
 import { useUI } from '../context/UIContext';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { motion } from 'framer-motion';
+import { trackSignUp } from '../utils/analytics';
 
 const CURRENCY_SYMBOLS = {
     USD: '$', INR: '₹', EUR: '€', GBP: '£',
@@ -377,6 +378,7 @@ const Register = () => {
         setIsSubmitting(false);
 
         if (res.success) {
+            trackSignUp({ method: 'Email', planName: selectedPlan?.name || 'Default' });
             // Clear persisted codes so they can't be reused
             clearReferralCode();
             clearPartnerCode();

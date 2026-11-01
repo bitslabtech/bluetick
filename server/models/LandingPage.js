@@ -100,7 +100,10 @@ const LandingPage = sequelize.define('LandingPage', {
                 twitter: '',
                 instagram: '',
                 linkedin: ''
-            }
+            },
+            googleVerificationToken: '',
+            googleAnalyticsId: '',
+            facebookPixelId: '',
         }
     },
     footer: {

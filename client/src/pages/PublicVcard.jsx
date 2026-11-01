@@ -38,15 +38,36 @@ export default function PublicVcard() {
     useEffect(() => {
         if (!vcard) return;
 
-        // SEO
-        document.title = vcard.seoTitle || `${vcard.name} - Digital Business Card`;
-        let metaDesc = document.querySelector('meta[name="description"]');
-        if (!metaDesc) {
-            metaDesc = document.createElement('meta');
-            metaDesc.name = 'description';
-            document.head.appendChild(metaDesc);
-        }
-        metaDesc.content = vcard.seoDescription || vcard.bio || vcard.designation || '';
+        // ── SEO & OG Tags ──────────────────────────────────────────────────────
+        const vcardTitle = vcard.seoTitle || `${vcard.name} - Digital Business Card`;
+        const vcardDesc = vcard.seoDescription || vcard.bio || vcard.designation || '';
+        const vcardImage = vcard.profileImage || vcard.coverImage || '';
+        const vcardUrl = window.location.href;
+
+        document.title = vcardTitle;
+
+        const setMeta = (attr, name, content) => {
+            if (!content) return;
+            let el = document.querySelector(`meta[${attr}="${name}"]`);
+            if (!el) { el = document.createElement('meta'); el.setAttribute(attr, name); document.head.appendChild(el); }
+            el.setAttribute('content', content);
+        };
+
+        setMeta('name', 'description', vcardDesc);
+        setMeta('name', 'robots', 'index, follow');
+
+        // Open Graph
+        setMeta('property', 'og:type', 'profile');
+        setMeta('property', 'og:title', vcardTitle);
+        setMeta('property', 'og:description', vcardDesc);
+        setMeta('property', 'og:image', vcardImage);
+        setMeta('property', 'og:url', vcardUrl);
+
+        // Twitter Card
+        setMeta('name', 'twitter:card', 'summary_large_image');
+        setMeta('name', 'twitter:title', vcardTitle);
+        setMeta('name', 'twitter:description', vcardDesc);
+        setMeta('name', 'twitter:image', vcardImage);
 
         // Google Analytics
         if (vcard.googleAnalyticsId) {

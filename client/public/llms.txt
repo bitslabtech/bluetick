@@ -1,11 +1,47 @@
-# Bluetick
+# Bluetick — WhatsApp Marketing & Automation Platform
 
-Bluetick is a SaaS platform for WhatsApp marketing, digital stores, and vCards.
+Bluetick is an AI-powered WhatsApp Business API SaaS platform that enables
+businesses to run bulk campaigns, automate chatbot flows, manage contacts,
+sell products via an integrated online store, and share digital business cards (vCards).
 
-## Links
+## Core Features
 
-- [Home](https://bluetick.cloud/)
-- [Login](https://bluetick.cloud/login)
-- [Register](https://bluetick.cloud/register)
-- [Privacy Policy](https://bluetick.cloud/privacy)
-- [Terms of Service](https://bluetick.cloud/terms)
+- Bulk WhatsApp messaging and campaign broadcasts
+- AI-powered chatbot flow builder (drag-and-drop, no code)
+- WhatsApp Business API integration (Meta Cloud API)
+- CRM with contact management, labeling, and segmentation
+- Online store with WhatsApp-native checkout and UPI/card payments
+- Digital business cards (vCards) with NFC support
+- Click-to-WhatsApp (CTWA) Meta Ads integration
+- Team inbox and live chat
+- Multi-language support
+
+## Public Pages
+
+- Homepage: /
+- Blog: /blog
+- About Us: /about
+- Contact: /contact
+- Partner Program: /partner
+- FAQ: /faq
+- Pricing: /#pricing
+- Login: /login
+- Register: /register
+- Privacy Policy: /privacy
+- Terms of Service: /terms
+- Refund Policy: /refund-policy
+
+## Content
+
+- Blog articles: /blog (marketing, WhatsApp, automation topics)
+- Public Stores: /store/:slug (e-commerce storefronts)
+- Public vCards: /vcard/:slug (digital business cards)
+
+## Sitemap
+
+Full sitemap (all stores, products, blogs): /sitemap.xml
+
+## Crawling
+
+- robots.txt: /robots.txt
+- Private dashboard routes are disallowed for all crawlers

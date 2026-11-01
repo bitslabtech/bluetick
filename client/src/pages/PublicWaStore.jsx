@@ -14,6 +14,7 @@ import { cdnImg, cdnSrcSet } from '../utils/cdnImage';
 import { StoreCustomerProvider, useStoreCustomer } from '../context/StoreCustomerContext';
 import { getStoreRoute } from '../utils/storeRouting';
 import PublicQuickAddModal from '../components/PublicQuickAddModal';
+import { trackAddToCart } from '../utils/analytics';
 // Generates a SEO-friendly product URL slug: "blue-cotton-shirt--a1b2c3d4"
 
 /**
@@ -671,6 +672,7 @@ export default function PublicWaStore({ customSlug }) {
             return [...prev, { ...product, cartItemId: targetId, qty }];
         });
         toast.success(`Added ${product.name} to cart`);
+        trackAddToCart(product, qty, store?.currency);
     };
 
     const updateQty = (cartItemId, delta) => {

@@ -12,6 +12,7 @@ import { getThemeConfig } from '../utils/wastoreThemes';
 import { applyStoreSeo, cleanupStoreSeo } from '../utils/storeSeo';
 import { getStoreRoute } from '../utils/storeRouting';
 import { StoreCustomerProvider, useStoreCustomer } from '../context/StoreCustomerContext';
+import { trackAddToCart } from '../utils/analytics';
 
 // Inner component that reads customer auth context and injects it into the header
 function CategoryPageInner({ store, theme, slug, products, categories, cartCount, setIsCartOpen, children }) {
@@ -225,6 +226,7 @@ export default function PublicWaStoreCategory({ customSlug }) {
             return [...prev, { ...product, cartItemId: targetId, qty }];
         });
         toast.success(`Added ${product.name} to cart`);
+        trackAddToCart(product, qty, store?.currency);
     };
 
     const updateQty = (cartItemId, delta) => {

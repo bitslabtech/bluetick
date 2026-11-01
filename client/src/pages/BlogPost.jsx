@@ -43,12 +43,43 @@ const BlogPost = () => {
 
             if (data.metaDescription) setMetaTag('description', data.metaDescription);
             if (data.keywords && data.keywords.length > 0) setMetaTag('keywords', data.keywords.join(', '));
-            
-            // Open Graph (Social Sharing)
+            setMetaTag('robots', 'index, follow');
+
+            // Canonical
+            const blogUrl = window.location.href;
+            let canonEl = document.querySelector('link[rel="canonical"]');
+            if (!canonEl) { canonEl = document.createElement('link'); canonEl.rel = 'canonical'; document.head.appendChild(canonEl); }
+            canonEl.href = blogUrl;
+
+            // Open Graph (Social Sharing — Facebook, WhatsApp, LinkedIn)
             setMetaTag('og:title', data.metaTitle || data.title, 'property');
-            if (data.metaDescription) setMetaTag('og:description', data.metaDescription, 'property');
-            if (data.coverImage) setMetaTag('og:image', data.coverImage, 'property');
+            setMetaTag('og:description', data.metaDescription || data.excerpt || '', 'property');
+            setMetaTag('og:image', data.coverImage || '', 'property');
             setMetaTag('og:type', 'article', 'property');
+            setMetaTag('og:url', blogUrl, 'property');
+
+            // Twitter Card
+            setMetaTag('twitter:card', 'summary_large_image');
+            setMetaTag('twitter:title', data.metaTitle || data.title);
+            setMetaTag('twitter:description', data.metaDescription || data.excerpt || '');
+            setMetaTag('twitter:image', data.coverImage || '');
+
+            // JSON-LD: Article schema
+            let ldEl = document.querySelector('script[type="application/ld+json"][data-blog-ld]');
+            if (!ldEl) { ldEl = document.createElement('script'); ldEl.type = 'application/ld+json'; ldEl.setAttribute('data-blog-ld', 'true'); document.head.appendChild(ldEl); }
+            ldEl.textContent = JSON.stringify({
+                '@context': 'https://schema.org',
+                '@type': 'Article',
+                headline: data.metaTitle || data.title,
+                description: data.metaDescription || data.excerpt || '',
+                image: data.coverImage ? [data.coverImage] : [],
+                url: blogUrl,
+                datePublished: data.createdAt,
+                dateModified: data.updatedAt,
+                author: { '@type': 'Person', name: data.authorName || 'Admin' },
+                publisher: { '@type': 'Organization', name: window.location.hostname },
+                keywords: data.keywords ? data.keywords.join(', ') : '',
+            });
 
         } catch (err) {
             console.error('Failed to load blog', err);

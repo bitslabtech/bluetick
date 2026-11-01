@@ -1,2 +1,20 @@
 User-agent: *
 Allow: /
+
+# Private app routes — do not crawl
+Disallow: /dashboard
+Disallow: /settings
+Disallow: /admin
+Disallow: /api/
+Disallow: /wastore-manager
+Disallow: /vcard-manager
+Disallow: /campaigns
+Disallow: /contacts
+Disallow: /flows
+Disallow: /integrations
+Disallow: /team
+Disallow: /billing
+Disallow: /inbox
+
+# Sitemap — update with your actual domain
+Sitemap: https://yourdomain.com/sitemap.xml

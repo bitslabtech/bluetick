@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { useStoreCustomerOptional } from '../context/StoreCustomerContext';
 import { getStoreRoute } from '../utils/storeRouting';
 import StoreEmbeddedLogin from './StoreEmbeddedLogin';
+import { trackPurchase } from '../utils/analytics';
 
 const INDIAN_STATES = [
     "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", 
@@ -327,6 +328,19 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
             });
 
             const { order, orderNumber, gatewayOptions } = res.data;
+
+            // Track E-commerce Purchase in GA4 / Meta Pixel
+            trackPurchase({
+                orderNumber: orderNumber || order?.orderNumber,
+                total: finalTotal + shippingCost,
+                currency: store.currency,
+                items: cart.map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    price: getItemPrice(item),
+                    qty: item.qty
+                }))
+            }, store.currency);
 
             if (store.checkoutMode === 'gateway' && gatewayOptions) {
                 if (gatewayOptions.provider === 'razorpay') {

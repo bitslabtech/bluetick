@@ -259,6 +259,53 @@ app.use('/api/support', supportRoute); // NEW
 app.use('/api/landing', require('./routes/landing'));
 app.use('/api/checkout', require('./routes/checkout'));
 app.use('/sitemap.xml', require('./routes/sitemap'));
+
+// Dynamic robots.txt — keeps Sitemap URL in sync with BASE_URL
+app.get('/robots.txt', (req, res) => {
+    const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+    res.type('text/plain');
+    res.send(`User-agent: *
+Allow: /
+
+# Private app routes — do not crawl
+Disallow: /dashboard
+Disallow: /settings
+Disallow: /admin
+Disallow: /api/
+Disallow: /wastore-manager
+Disallow: /vcard-manager
+Disallow: /campaigns
+Disallow: /contacts
+Disallow: /flows
+Disallow: /integrations
+Disallow: /team
+Disallow: /billing
+Disallow: /inbox
+
+# Sitemap
+Sitemap: ${baseUrl}/sitemap.xml
+`);
+});
+
+// Google Search Console HTML verification file — served dynamically from DB
+// Google verifies by fetching: https://yourdomain.com/<token>.html
+// The token stored in LandingPage.seo.googleVerificationToken is used as both the filename and content
+app.get('/:token.html', async (req, res, next) => {
+    try {
+        const token = req.params.token;
+        if (!token || token.length < 15) return next();
+        const LandingPage = require('./models/LandingPage');
+        const settings = await LandingPage.getSettings();
+        const storedToken = settings?.seo?.googleVerificationToken;
+        if (storedToken && token === storedToken) {
+            res.type('text/html');
+            return res.send(storedToken);
+        }
+        next(); // Not a matching token — fall through to static files or SPA
+    } catch (err) {
+        next();
+    }
+});
 app.use('/api/system', require('./routes/system')); // NEW // NEW
 app.use('/api/billing', require('./routes/billing')); // NEW
 app.use('/api/invoices', require('./routes/invoices')); // Invoice management & downloads
@@ -528,6 +575,159 @@ img{display:block;vertical-align:middle}
         } catch (err) {
             console.error('[Store SSR Preload] Error:', err.message);
             res.sendFile(distIndex); // Fallback to plain SPA
+        }
+    });
+
+    // ── Landing Page SSR — inject full OG/meta into index.html for bots & crawlers ──
+    // Social crawlers (WhatsApp, Facebook, LinkedIn, Twitter) do NOT run JavaScript.
+    // This route reads LandingPage.seo from DB and injects all meta tags directly
+    // into the raw HTML before serving it, so link previews work on every platform.
+    app.get('/', async (req, res) => {
+        // Only intercept if the dist build exists; otherwise fall through to API/dev
+        try {
+            const LandingPage = require('./models/LandingPage');
+            const settings = await LandingPage.getSettings();
+            const seo = settings?.seo || {};
+            const brand = settings?.brand || {};
+            const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+
+            const e = (str) => (str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const title       = e(seo.title || brand.name || 'Bluetick');
+            const description = e((seo.description || '').substring(0, 160));
+            const ogTitle     = e(seo.socialTitle || seo.title || brand.name || 'Bluetick');
+            const ogDesc      = e((seo.socialDescription || seo.description || '').substring(0, 200));
+            const ogImage     = e(seo.ogImage || '');
+            const canonical   = e(seo.canonicalUrl || baseUrl);
+            const robots      = e(seo.robots || 'index, follow');
+            const twitterCard = e(seo.twitterCard || 'summary_large_image');
+
+            const injections = [
+                `<title>${title}</title>`,
+                `<meta name="description" content="${description}">`,
+                `<meta name="robots" content="${robots}">`,
+                seo.keywords ? `<meta name="keywords" content="${e(seo.keywords)}">` : '',
+                seo.googleVerificationToken ? `<meta name="google-site-verification" content="${e(seo.googleVerificationToken)}">` : '',
+                `<link rel="canonical" href="${canonical}">`,
+                // Open Graph
+                `<meta property="og:type" content="website">`,
+                `<meta property="og:site_name" content="${title}">`,
+                `<meta property="og:title" content="${ogTitle}">`,
+                `<meta property="og:description" content="${ogDesc}">`,
+                ogImage ? `<meta property="og:image" content="${ogImage}">` : '',
+                `<meta property="og:url" content="${canonical}">`,
+                // Twitter Card
+                `<meta name="twitter:card" content="${twitterCard}">`,
+                `<meta name="twitter:title" content="${ogTitle}">`,
+                `<meta name="twitter:description" content="${ogDesc}">`,
+                ogImage ? `<meta name="twitter:image" content="${ogImage}">` : '',
+                // JSON-LD: Organization
+                `<script type="application/ld+json">${JSON.stringify({
+                    '@context': 'https://schema.org',
+                    '@type': 'Organization',
+                    name: seo.title || brand.name || 'Bluetick',
+                    url: baseUrl,
+                    logo: '',
+                    description: seo.description || '',
+                    sameAs: Object.values(seo.socialLinks || {}).filter(Boolean),
+                }).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')}</script>`,
+                // JSON-LD: WebSite
+                `<script type="application/ld+json">${JSON.stringify({
+                    '@context': 'https://schema.org',
+                    '@type': 'WebSite',
+                    name: seo.title || brand.name || 'Bluetick',
+                    url: baseUrl,
+                }).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')}</script>`,
+            ].filter(Boolean);
+
+            let html = fs.readFileSync(distIndex, 'utf8');
+            html = html.replace('</head>', `${injections.join('\n  ')}\n</head>`);
+
+            res.set('Content-Type', 'text/html; charset=utf-8');
+            res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+            res.send(html);
+        } catch (err) {
+            console.error('[Landing SSR] Error:', err.message);
+            res.sendFile(distIndex);
+        }
+    });
+
+    // ── Blog Post SSR — inject full OG/meta + Article JSON-LD for social bots ──
+    // When WhatsApp, Facebook, Twitter bots hit /blog/:slug, they need OG tags
+    // in the raw HTML (they don't execute JS). This reads the blog from DB and
+    // injects all social meta tags before serving the SPA shell.
+    app.get('/blog/:slug', async (req, res) => {
+        try {
+            const Blog = require('./models/Blog');
+            const LandingPage = require('./models/LandingPage');
+
+            const [blog, landingSettings] = await Promise.all([
+                Blog.findOne({ where: { slug: req.params.slug, isPublished: true } }),
+                LandingPage.getSettings(),
+            ]);
+
+            let html = fs.readFileSync(distIndex, 'utf8');
+
+            if (blog) {
+                const baseUrl   = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+                const blogUrl   = `${baseUrl}/blog/${blog.slug}`;
+                const siteName  = landingSettings?.seo?.title || landingSettings?.brand?.name || 'Blog';
+                const e = (str) => (str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+                const title       = e(blog.metaTitle || blog.title);
+                const description = e((blog.metaDescription || blog.excerpt || '').substring(0, 160));
+                const ogImage     = e(blog.coverImage || '');
+                const keywords    = Array.isArray(blog.keywords) ? blog.keywords.join(', ') : '';
+
+                const injections = [
+                    `<title>${title} | ${e(siteName)}</title>`,
+                    `<meta name="description" content="${description}">`,
+                    `<meta name="robots" content="index, follow">`,
+                    keywords ? `<meta name="keywords" content="${e(keywords)}">` : '',
+                    `<link rel="canonical" href="${e(blogUrl)}">`,
+                    // Open Graph
+                    `<meta property="og:type" content="article">`,
+                    `<meta property="og:site_name" content="${e(siteName)}">`,
+                    `<meta property="og:title" content="${title}">`,
+                    `<meta property="og:description" content="${description}">`,
+                    ogImage ? `<meta property="og:image" content="${ogImage}">` : '',
+                    `<meta property="og:url" content="${e(blogUrl)}">`,
+                    blog.createdAt ? `<meta property="article:published_time" content="${new Date(blog.createdAt).toISOString()}">` : '',
+                    blog.updatedAt ? `<meta property="article:modified_time" content="${new Date(blog.updatedAt).toISOString()}">` : '',
+                    // Twitter Card
+                    `<meta name="twitter:card" content="summary_large_image">`,
+                    `<meta name="twitter:title" content="${title}">`,
+                    `<meta name="twitter:description" content="${description}">`,
+                    ogImage ? `<meta name="twitter:image" content="${ogImage}">` : '',
+                    // JSON-LD: Article
+                    `<script type="application/ld+json">${JSON.stringify({
+                        '@context': 'https://schema.org',
+                        '@type': 'Article',
+                        headline: blog.metaTitle || blog.title,
+                        description: blog.metaDescription || blog.excerpt || '',
+                        image: blog.coverImage ? [blog.coverImage] : [],
+                        url: blogUrl,
+                        datePublished: blog.createdAt,
+                        dateModified: blog.updatedAt,
+                        author: { '@type': 'Person', name: 'Admin' },
+                        publisher: {
+                            '@type': 'Organization',
+                            name: siteName,
+                            logo: { '@type': 'ImageObject', url: landingSettings?.brand?.logo || '' },
+                        },
+                        keywords: keywords,
+                        mainEntityOfPage: { '@type': 'WebPage', '@id': blogUrl },
+                    }).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')}</script>`,
+                ].filter(Boolean);
+
+                html = html.replace('</head>', `${injections.join('\n  ')}\n</head>`);
+            }
+
+            res.set('Content-Type', 'text/html; charset=utf-8');
+            res.set('Cache-Control', 'public, max-age=120, stale-while-revalidate=600');
+            res.send(html);
+        } catch (err) {
+            console.error('[Blog SSR] Error:', err.message);
+            res.sendFile(distIndex);
         }
     });
 

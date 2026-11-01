@@ -1962,6 +1962,32 @@ const AdminLandingPage = () => {
                                     </div>
                                 </div>
 
+                                {/* Google Verification & Analytics */}
+                                <div className="pt-4 space-y-4">
+                                    <label className="text-xs font-bold uppercase text-slate-400 tracking-wider block">Google Search Console & Analytics</label>
+                                    <InputGroup
+                                        label="Google Verification Token"
+                                        value={config.seo?.googleVerificationToken || ''}
+                                        onChange={v => setConfig({ ...config, seo: { ...config.seo, googleVerificationToken: v } })}
+                                        placeholder="Paste the content= value from the Google HTML tag e.g. abc123xyz"
+                                    />
+                                    <p className="text-xs text-slate-500 -mt-2">This injects <code className="bg-slate-100 dark:bg-white/10 px-1 rounded">{'<meta name="google-site-verification" content="...">'}</code> into your site's {'<head>'}.</p>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <InputGroup
+                                            label="Google Analytics ID (GA4)"
+                                            value={config.seo?.googleAnalyticsId || ''}
+                                            onChange={v => setConfig({ ...config, seo: { ...config.seo, googleAnalyticsId: v } })}
+                                            placeholder="G-XXXXXXXXXX"
+                                        />
+                                        <InputGroup
+                                            label="Facebook Pixel ID"
+                                            value={config.seo?.facebookPixelId || ''}
+                                            onChange={v => setConfig({ ...config, seo: { ...config.seo, facebookPixelId: v } })}
+                                            placeholder="1234567890"
+                                        />
+                                    </div>
+                                </div>
+
                                 <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-xl flex justify-between items-center border border-slate-100 dark:border-white/5">
                                     <div>
                                         <div className="font-bold text-slate-900 dark:text-white text-sm">Sitemap URL</div>
