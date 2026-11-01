@@ -19,9 +19,14 @@
  *   3. Replace the default code with this file's contents
  *   4. Click Deploy
  *
- * STEP 2 - Add Environment Variable
+ * STEP 2 - Add Environment Variables
  *   - Workers - Your Worker - Settings - Variables
- *   - Add: BACKEND_URL = https://bluetick.cloud  (your FRONTEND URL, NOT the API URL)
+ *   - BACKEND_URL       = https://onedash.cloud        (required — your platform's root URL)
+ *   - EXTRA_BYPASS_DOMAINS = bluetick.cloud            (optional — comma-separated legacy/whitelabel
+ *                                                        domains to also bypass. E.g. if you had a
+ *                                                        previous domain or run a whitelabel tenant,
+ *                                                        add their root domains here. All subdomains
+ *                                                        of each listed domain are auto-bypassed.)
  *
  * STEP 3 - Assign Custom Domains to the Worker
  *   Option A (Recommended - "Cloudflare for SaaS"):
@@ -35,7 +40,7 @@
  *     - Zone: amardryfruits.in
  *
  * STEP 4 - For each customer domain:
- *   - Customer adds CNAME at their registrar: www to bluetick.cloud
+ *   - Customer adds CNAME at their registrar: www to router.onedash.cloud (or your ROUTER_HOSTNAME)
  *   - Or with Cloudflare for SaaS: automated via API
  * -----------------------------------------------------------------
  */
@@ -45,18 +50,35 @@ export default {
     const url = new URL(request.url);
     const originalHost = url.hostname; // e.g., "www.amardryfruits.in"
 
-    // IMPORTANT: Bypass the worker for our main system domains!
-    // If we don't do this, the worker will intercept requests to the backend
-    // and cause an infinite loop (Error 522 or 1000).
-    if (originalHost.endsWith('bluetick.cloud')) {
+    // Target Backend — set via Worker env var BACKEND_URL (e.g. https://onedash.cloud)
+    // This is the primary domain config. All bypass rules are derived from it.
+    const backendUrl = env.BACKEND_URL || 'https://onedash.cloud';
+    const backendHostname = new URL(backendUrl).hostname; // e.g. "onedash.cloud"
+
+    // Extract root domain from backendHostname (handles subdomains like "www.onedash.cloud")
+    // e.g. "onedash.cloud" → "onedash.cloud" | "www.onedash.cloud" → "onedash.cloud"
+    const backendParts = backendHostname.split('.');
+    const primaryRootDomain = backendParts.length > 2
+      ? backendParts.slice(-2).join('.')
+      : backendHostname; // e.g. "onedash.cloud"
+
+    // Build the full list of platform root domains to bypass.
+    // EXTRA_BYPASS_DOMAINS = comma-separated legacy/whitelabel domains (e.g. "bluetick.cloud,client.com")
+    // All subdomains of each listed domain are auto-bypassed — no code changes needed.
+    const extraDomains = (env.EXTRA_BYPASS_DOMAINS || '')
+      .split(',')
+      .map(d => d.trim().toLowerCase())
+      .filter(Boolean);
+    const bypassDomains = [primaryRootDomain, ...extraDomains]; // ["onedash.cloud", "bluetick.cloud"]
+
+    // BYPASS: If this request is for any platform domain (primary or legacy/whitelabel),
+    // pass it through untouched — avoids infinite proxy loops (Error 522 / 1000).
+    const isOwnDomain = bypassDomains.some(
+      domain => originalHost === domain || originalHost.endsWith(`.${domain}`)
+    );
+    if (isOwnDomain) {
       return fetch(request);
     }
-
-    // Target Backend - set via Worker environment variable BACKEND_URL
-    // IMPORTANT: This MUST point to your FRONTEND URL (e.g., https://bluetick.cloud) 
-    // where your React app is hosted, NOT your API backend!
-    const backendUrl = env.BACKEND_URL || 'https://bluetick.cloud';
-    const backendHostname = new URL(backendUrl).hostname;
 
     // Rewrite the target URL
     url.hostname = backendHostname;
