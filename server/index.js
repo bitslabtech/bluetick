@@ -438,6 +438,13 @@ if (fs.existsSync(distIndex)) {
                 where: { slug: req.params.slug, isActive: true }
             });
 
+            // If store has a verified custom domain, permanently redirect public visitors
+            // from the platform subpath (onedash.cloud/store/slug) to their custom domain.
+            // Preserves editor iframe access (?editor=true) inside the admin visual editor.
+            if (store && store.customDomain && store.domainStatus === 'verified' && req.query.editor !== 'true') {
+                return res.redirect(301, `https://${store.customDomain}`);
+            }
+
             let html = fs.readFileSync(distIndex, 'utf8');
 
             if (store) {

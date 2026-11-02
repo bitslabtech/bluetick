@@ -125,8 +125,13 @@ export default function WaStoreList() {
                                     </span>
                                 </div>
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{store.name}</h3>
-                                <a href={`/store/${store.slug}`} target="_blank" rel="noreferrer" className="text-sm text-indigo-600 dark:text-indigo-400 flex items-center gap-1 hover:underline mb-4">
-                                    /store/{store.slug} <ExternalLink className="w-3 h-3" />
+                                <a 
+                                    href={store.customDomain && store.domainStatus === 'verified' ? `https://${store.customDomain}` : `/store/${store.slug}`} 
+                                    target="_blank" 
+                                    rel="noreferrer" 
+                                    className="text-sm text-indigo-600 dark:text-indigo-400 flex items-center gap-1 hover:underline mb-4"
+                                >
+                                    {store.customDomain && store.domainStatus === 'verified' ? store.customDomain : `/store/${store.slug}`} <ExternalLink className="w-3 h-3" />
                                 </a>
                                 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-6">

@@ -10,7 +10,7 @@ import WaStoreCheckoutModal from '../components/WaStoreCheckoutModal';
 import StoreNotFound from '../components/StoreNotFound';
 import { getThemeConfig } from '../utils/wastoreThemes';
 import { applyProductSeo, cleanupStoreSeo } from '../utils/storeSeo';
-import { getStoreRoute } from '../utils/storeRouting';
+import { getStoreRoute, isPlatformDomain } from '../utils/storeRouting';
 import { trackViewItem, trackAddToCart } from '../utils/analytics';
 import { StoreCustomerProvider, useStoreCustomer } from '../context/StoreCustomerContext';
 
@@ -218,6 +218,14 @@ export default function PublicWaProduct({ customSlug }) {
             try {
                 const timestamp = new Date().getTime();
                 const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/public/${slug}?t=${timestamp}`);
+                const s = res.data.store;
+                // If store has a verified custom domain and visitor reached via platform domain,
+                // redirect to their custom domain product URL
+                if (s?.customDomain && s?.domainStatus === 'verified' && isPlatformDomain()) {
+                    window.location.replace(`https://${s.customDomain}/product/${productId}`);
+                    return;
+                }
+
                 setStore(res.data.store);
                 setAllProducts(res.data.products);
 

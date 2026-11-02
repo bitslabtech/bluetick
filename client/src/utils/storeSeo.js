@@ -156,7 +156,12 @@ export function applyStoreSeo(store, category, products, baseUrl) {
     const seo = store.seoConfig || {};
     const isCategory = category && category !== 'All';
 
-    const storeUrl = `${baseUrl}/store/${store.slug}`;
+    // Use custom domain as canonical URL if verified — prevents Google from seeing
+    // onedash.cloud/store/slug and www.customdomain.com as duplicate content
+    const hasVerifiedDomain = store.customDomain && store.domainStatus === 'verified';
+    const storeUrl = hasVerifiedDomain
+        ? `https://${store.customDomain}`
+        : `${baseUrl}/store/${store.slug}`;
     const categoryUrl = isCategory
         ? `${storeUrl}?cat=${encodeURIComponent(category)}`
         : storeUrl;
@@ -309,7 +314,12 @@ export function applyStoreSeo(store, category, products, baseUrl) {
 export function applyProductSeo(product, store, baseUrl) {
     if (!product || !store) return;
 
-    const storeUrl = `${baseUrl}/store/${store.slug}`;
+    // Use custom domain as canonical URL if verified — prevents Google from seeing
+    // onedash.cloud/store/slug and www.customdomain.com as duplicate content
+    const hasVerifiedDomain = store.customDomain && store.domainStatus === 'verified';
+    const storeUrl = hasVerifiedDomain
+        ? `https://${store.customDomain}`
+        : `${baseUrl}/store/${store.slug}`;
     const productUrl = `${storeUrl}/product/${product.id}`;
     const seo = store.seoConfig || {};
 

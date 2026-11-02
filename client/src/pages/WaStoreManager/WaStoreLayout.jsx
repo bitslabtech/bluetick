@@ -128,7 +128,7 @@ export default function WaStoreLayout() {
         const fetchStoreUnread = () => {
             axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/unread-count?storeId=${store.id}`)
                 .then(res => setUnreadStoreCounts(res.data))
-                .catch(() => {});
+                .catch(() => { });
         };
         fetchStoreUnread();
         const interval = setInterval(fetchStoreUnread, 60000); // 1 min poll
@@ -197,7 +197,7 @@ export default function WaStoreLayout() {
                     </div>
                 </div>
             </div>
-            
+
             {/* Main Content Area Skeleton */}
             <div className="flex flex-col md:flex-row gap-6">
                 {/* Sidebar Skeleton */}
@@ -206,7 +206,7 @@ export default function WaStoreLayout() {
                         <div key={i} className="h-11 w-full bg-slate-100 dark:bg-slate-800/50 rounded-xl"></div>
                     ))}
                 </div>
-                
+
                 {/* Content Skeleton */}
                 <div className="flex-1 space-y-6">
                     <div className="h-24 w-full bg-slate-100 dark:bg-slate-800/50 rounded-2xl"></div>
@@ -233,7 +233,7 @@ export default function WaStoreLayout() {
                     <p className="text-slate-600 dark:text-slate-400 mb-8 leading-relaxed">
                         We couldn't find the store you're looking for. It may have been deleted, or your session/impersonation may have timed out.
                     </p>
-                    <button 
+                    <button
                         onClick={() => navigate('/online-store')}
                         className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-all shadow-lg hover:shadow-indigo-500/25"
                     >
@@ -251,7 +251,8 @@ export default function WaStoreLayout() {
         );
     }
 
-    const storeUrl = `${window.location.origin}/store/${store.slug}`;
+    const hasVerifiedDomain = store?.customDomain && store?.domainStatus === 'verified';
+    const storeUrl = hasVerifiedDomain ? `https://${store.customDomain}` : `${window.location.origin}/store/${store.slug}`;
 
     return (
         <div className="flex flex-col gap-6 w-full max-w-[1700px] mx-auto px-2 md:px-6 xl:px-10 pb-7 sm:pb-20">
@@ -364,21 +365,21 @@ export default function WaStoreLayout() {
                                     </div>
                                 </div>
                                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                                        <button
-                                            onClick={() => navigate(`/online-store/${slug}/visual-editor`)}
-                                            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl font-semibold transition-all text-sm shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-95"
-                                        >
-                                            <Wand2 className="w-4 h-4" /> Visual Editor
-                                        </button>
-                                        <a
-                                            href={storeUrl}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="inline-flex items-center justify-center w-full sm:w-auto gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors text-sm shadow-sm"
-                                        >
-                                            <ExternalLink className="w-4 h-4" /> View Live Store
-                                        </a>
-                                    </div>
+                                    <button
+                                        onClick={() => navigate(`/online-store/${slug}/visual-editor`)}
+                                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-xl font-semibold transition-all text-sm shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-95"
+                                    >
+                                        <Wand2 className="w-4 h-4" /> Visual Editor
+                                    </button>
+                                    <a
+                                        href={storeUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center justify-center w-full sm:w-auto gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors text-sm shadow-sm"
+                                    >
+                                        <ExternalLink className="w-4 h-4" /> View Live Store
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>

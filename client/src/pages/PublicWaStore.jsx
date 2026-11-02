@@ -12,7 +12,7 @@ import { getThemeConfig } from '../utils/wastoreThemes';
 import { applyStoreSeo, cleanupStoreSeo } from '../utils/storeSeo';
 import { cdnImg, cdnSrcSet } from '../utils/cdnImage';
 import { StoreCustomerProvider, useStoreCustomer } from '../context/StoreCustomerContext';
-import { getStoreRoute } from '../utils/storeRouting';
+import { getStoreRoute, isPlatformDomain } from '../utils/storeRouting';
 import PublicQuickAddModal from '../components/PublicQuickAddModal';
 import { trackAddToCart } from '../utils/analytics';
 // Generates a SEO-friendly product URL slug: "blue-cotton-shirt--a1b2c3d4"
@@ -477,6 +477,14 @@ export default function PublicWaStore({ customSlug }) {
         const fetchStore = async (isSilent = false) => {
             try {
                 const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/public/${slug}`);
+                const s = res.data.store;
+                // If store has a verified custom domain and visitor reached via platform domain,
+                // redirect to their custom domain to prevent duplicate URLs (skip in visual editor).
+                if (s?.customDomain && s?.domainStatus === 'verified' && isPlatformDomain() && !isEditorMode) {
+                    window.location.replace(`https://${s.customDomain}`);
+                    return;
+                }
+
                 setStore(res.data.store);
                 setProducts(res.data.products);
                 setTrendingProducts(res.data.trendingProducts || []);

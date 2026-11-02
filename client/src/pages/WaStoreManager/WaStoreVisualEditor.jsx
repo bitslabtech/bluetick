@@ -449,7 +449,7 @@ export default function WaStoreVisualEditor() {
                     </button>
 
                     <a
-                        href={`/store/${slug}`}
+                        href={draft?.customDomain && draft?.domainStatus === 'verified' ? `https://${draft.customDomain}` : `/store/${slug}`}
                         target="_blank"
                         rel="noreferrer"
                         className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white text-sm transition-colors"

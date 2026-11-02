@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { Op } = require('sequelize');
 const WaStore = require('../models/WaStore');
 const WaProduct = require('../models/WaProduct');
 const Blog = require('../models/Blog');
@@ -7,6 +8,34 @@ const auth = require('../middleware/auth');
 const admin = require('../middleware/admin');
 const fs = require('fs');
 const path = require('path');
+
+// ─── Platform-host detection ──────────────────────────────────────────────────
+// Matches the same logic as server/routes/robots.js and server/index.js.
+const _platformDomain = (process.env.PLATFORM_DOMAIN || '')
+    .toLowerCase().replace(/^https?:\/\//, '').replace(/\/+$/, '');
+const _extraPlatformDomains = (process.env.EXTRA_PLATFORM_DOMAINS || '')
+    .split(',')
+    .map(d => d.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, ''))
+    .filter(Boolean);
+const PAAS_PATTERNS = [
+    'sslip.io', 'nip.io', 'traefik.me',
+    'ngrok.io', 'ngrok-free.app',
+    'railway.app', 'onrender.com', 'vercel.app', 'netlify.app',
+    'workers.dev'
+];
+
+function isPlatformHost(hostname) {
+    if (!hostname) return true;
+    const h = hostname.toLowerCase().split(':')[0];
+    if (h === 'localhost' || h === '127.0.0.1') return true;
+    if (/^(\d{1,3}\.){3}\d{1,3}$/.test(h)) return true;
+    if (PAAS_PATTERNS.some(p => h.includes(p))) return true;
+    if (_platformDomain && (h === _platformDomain || h.endsWith(`.${_platformDomain}`))) return true;
+    if (_extraPlatformDomains.some(d => h === d || h.endsWith(`.${d}`))) return true;
+    if (h === 'onedash.cloud'  || h.endsWith('.onedash.cloud'))  return true;
+    if (h === 'bluetick.cloud' || h.endsWith('.bluetick.cloud')) return true;
+    return false;
+}
 
 // ─── Helper: escape XML special characters ────────────────────────────────────
 function escapeXml(str) {
@@ -30,9 +59,8 @@ function urlEntry(loc, { lastmod, changefreq, priority }) {
     </url>`;
 }
 
-// ─── Helper: resolve base URL ─────────────────────────────────────────────────
+// ─── Helper: resolve base URL for platform ────────────────────────────────────
 async function resolveBaseUrl(req) {
-    // 1. Explicit baseUrl passed in request body (e.g. from UI input)
     if (req?.body?.baseUrl && typeof req.body.baseUrl === 'string') {
         const customUrl = req.body.baseUrl.trim();
         if (customUrl && !customUrl.includes('localhost') && !customUrl.includes('127.0.0.1')) {
@@ -41,7 +69,6 @@ async function resolveBaseUrl(req) {
         }
     }
 
-    // 2. Canonical URL configured by admin in Superadmin -> SEO & Social
     try {
         const LandingPage = require('../models/LandingPage');
         const landing = await LandingPage.findOne({ attributes: ['seo'] });
@@ -52,20 +79,17 @@ async function resolveBaseUrl(req) {
         }
     } catch (_) {}
 
-    // 3. Primary PLATFORM_DOMAIN (from .env, e.g. bluetick.cloud or onedash.cloud)
     if (process.env.PLATFORM_DOMAIN && !process.env.PLATFORM_DOMAIN.includes('localhost')) {
         const domain = process.env.PLATFORM_DOMAIN.replace(/^https?:\/\//, '').replace(/\/+$/, '');
         return `https://${domain}`;
     }
 
-    // 4. Production FRONTEND_URL or BASE_URL (only if non-localhost)
     for (const envUrl of [process.env.FRONTEND_URL, process.env.BASE_URL]) {
         if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
             return envUrl.replace(/\/+$/, '');
         }
     }
 
-    // 5. Check incoming request host if it's a real domain (not localhost)
     if (req) {
         const host = (req.headers['x-forwarded-host'] || req.get('host') || '').toLowerCase();
         if (host && !host.includes('localhost') && !host.includes('127.0.0.1')) {
@@ -74,15 +98,131 @@ async function resolveBaseUrl(req) {
         }
     }
 
-    // 6. Absolute last fallback (pure offline development without any domain)
     return process.env.FRONTEND_URL || 'http://localhost:5173';
 }
 
-// ─── Helper: generate the full sitemap XML ────────────────────────────────────
-async function buildSitemapXml(baseUrl) {
+// ─── Builder: Merchant Store Dedicated Sitemap ────────────────────────────────
+// Served when Googlebot visits e.g. https://www.amardryfruits.in/sitemap.xml
+// Contains ONLY that specific store's pages, categories, and products.
+async function buildStoreSitemapXml(requestHost, req) {
+    const now = new Date().toISOString();
+    const proto = req?.headers['x-forwarded-proto'] || 'https';
+    const storeBaseUrl = `${proto}://${requestHost}`;
+
+    const lookupHostname = requestHost.startsWith('www.') ? requestHost.slice(4) : requestHost;
+
+    const store = await WaStore.findOne({
+        where: {
+            customDomain: [lookupHostname, `www.${lookupHostname}`],
+            isActive: true
+        }
+    });
+
+    if (!store) {
+        return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>`;
+    }
+
+    const storeUpdated = store.updatedAt ? new Date(store.updatedAt).toISOString() : now;
+
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">`;
+
+    // 1. Store Homepage
+    xml += urlEntry(`${storeBaseUrl}/`, {
+        lastmod: storeUpdated,
+        changefreq: 'daily',
+        priority: 1.0
+    });
+
+    // 2. Categories listing page
+    xml += urlEntry(`${storeBaseUrl}/categories`, {
+        lastmod: storeUpdated,
+        changefreq: 'weekly',
+        priority: 0.8
+    });
+
+    // 3. Category pages
+    let categories = [];
+    try {
+        categories = Array.isArray(store.categories)
+            ? store.categories
+            : (typeof store.categories === 'string' ? JSON.parse(store.categories) : []);
+    } catch (_) {}
+
+    for (const cat of categories) {
+        if (!cat) continue;
+        xml += urlEntry(`${storeBaseUrl}/category/${encodeURIComponent(cat)}`, {
+            lastmod: storeUpdated,
+            changefreq: 'weekly',
+            priority: 0.8
+        });
+    }
+
+    // 4. Products
+    try {
+        const products = await WaProduct.findAll({
+            where: { storeId: store.id, inStock: true },
+            attributes: ['id', 'name', 'imageUrls', 'updatedAt']
+        });
+
+        for (const product of products) {
+            const productUrl = `${storeBaseUrl}/product/${product.id}`;
+            const productUpdated = product.updatedAt ? new Date(product.updatedAt).toISOString() : now;
+
+            let imageXml = '';
+            let images = product.imageUrls || [];
+            if (typeof images === 'string') {
+                try { images = JSON.parse(images); } catch (_) { images = []; }
+            }
+            const firstImage = Array.isArray(images) ? images[0] : null;
+            if (firstImage) {
+                const resolvedImg = firstImage.startsWith('http') ? firstImage : `${storeBaseUrl}${firstImage.startsWith('/') ? '' : '/'}${firstImage}`;
+                imageXml = `
+        <image:image>
+            <image:loc>${escapeXml(resolvedImg)}</image:loc>
+            <image:title>${escapeXml(product.name || '')}</image:title>
+        </image:image>`;
+            }
+
+            xml += `
+    <url>
+        <loc>${escapeXml(productUrl)}</loc>
+        <lastmod>${productUpdated}</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>${imageXml}
+    </url>`;
+        }
+    } catch (prodErr) {
+        console.error('[Sitemap Store] Error fetching products:', prodErr.message);
+    }
+
+    // 5. Store Policy Pages (Google Merchant trust signals)
+    const storePages = [
+        '/pages/about-us',
+        '/pages/contact-us',
+        '/pages/privacy-policy',
+        '/pages/terms-and-conditions',
+        '/pages/return-policy',
+        '/pages/shipping-policy'
+    ];
+
+    for (const pagePath of storePages) {
+        xml += urlEntry(`${storeBaseUrl}${pagePath}`, {
+            lastmod: storeUpdated,
+            changefreq: 'monthly',
+            priority: 0.5
+        });
+    }
+
+    xml += `\n</urlset>`;
+    return xml;
+}
+
+// ─── Builder: OneDash Platform Sitemap ────────────────────────────────────────
+// Served when Googlebot visits https://onedash.cloud/sitemap.xml
+// Excludes any store that has a verified custom domain to prevent duplicate content.
+async function buildPlatformSitemapXml(baseUrl) {
     const now = new Date().toISOString();
 
-    // Static app routes
     const staticRoutes = [
         { url: '/',               changefreq: 'daily',   priority: 1.0 },
         { url: '/login',          changefreq: 'weekly',  priority: 0.8 },
@@ -98,12 +238,12 @@ async function buildSitemapXml(baseUrl) {
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">`;
 
-    // ── Static routes ─────────────────────────────────────────────────────────
+    // 1. Static SaaS routes
     staticRoutes.forEach(r => {
         xml += urlEntry(`${baseUrl}${r.url}`, { lastmod: now, changefreq: r.changefreq, priority: r.priority });
     });
 
-    // ── Dynamic blog routes ───────────────────────────────────────────────────
+    // 2. Dynamic blog routes
     try {
         const blogs = await Blog.findAll({
             where: { isPublished: true },
@@ -132,13 +272,22 @@ async function buildSitemapXml(baseUrl) {
     </url>`;
         }
     } catch (err) {
-        console.error('[Sitemap] Error fetching blog data:', err.message);
+        console.error('[Sitemap Platform] Error fetching blog data:', err.message);
     }
 
-    // ── Dynamic store routes ──────────────────────────────────────────────────
+    // 3. Dynamic stores: ONLY stores WITHOUT a verified custom domain.
+    // Stores with verified custom domains are indexed on their own domain sitemaps.
     try {
         const stores = await WaStore.findAll({
-            where: { isActive: true },
+            where: {
+                isActive: true,
+                [Op.or]: [
+                    { customDomain: null },
+                    { customDomain: '' },
+                    { domainStatus: { [Op.ne]: 'verified' } },
+                    { domainStatus: null }
+                ]
+            },
             attributes: ['id', 'slug', 'categories', 'categoryImages', 'logo', 'updatedAt']
         });
 
@@ -147,7 +296,7 @@ async function buildSitemapXml(baseUrl) {
             const storeUpdated = store.updatedAt ? new Date(store.updatedAt).toISOString() : now;
             const storeUrl = `${baseUrl}/store/${store.slug}`;
 
-            // Store home page
+            // Store home
             xml += urlEntry(storeUrl, {
                 lastmod: storeUpdated,
                 changefreq: 'weekly',
@@ -171,7 +320,7 @@ async function buildSitemapXml(baseUrl) {
                 });
             }
 
-            // Product pages
+            // Products
             const products = await WaProduct.findAll({
                 where: { storeId: store.id, inStock: true },
                 attributes: ['id', 'name', 'imageUrls', 'updatedAt']
@@ -181,7 +330,6 @@ async function buildSitemapXml(baseUrl) {
                 const productUrl = `${storeUrl}/product/${product.id}`;
                 const productUpdated = product.updatedAt ? new Date(product.updatedAt).toISOString() : now;
 
-                // Build image tags if available
                 let imageXml = '';
                 let images = product.imageUrls || [];
                 if (typeof images === 'string') {
@@ -189,7 +337,7 @@ async function buildSitemapXml(baseUrl) {
                 }
                 const firstImage = Array.isArray(images) ? images[0] : null;
                 if (firstImage) {
-                    const resolvedImg = firstImage.startsWith('http') ? firstImage : `${baseUrl}${firstImage}`;
+                    const resolvedImg = firstImage.startsWith('http') ? firstImage : `${baseUrl}${firstImage.startsWith('/') ? '' : '/'}${firstImage}`;
                     imageXml = `
         <image:image>
             <image:loc>${escapeXml(resolvedImg)}</image:loc>
@@ -207,75 +355,46 @@ async function buildSitemapXml(baseUrl) {
             }
         }
     } catch (err) {
-        console.error('[Sitemap] Error fetching store data:', err.message);
-        // Non-fatal: sitemap still returns static routes
-    }
-
-    // ── Blog posts ────────────────────────────────────────────────────────────
-    try {
-        const blogs = await Blog.findAll({
-            where: { isPublished: true },
-            attributes: ['slug', 'updatedAt', 'coverImage', 'title']
-        });
-
-        for (const blog of blogs) {
-            const blogUrl = `${baseUrl}/blog/${blog.slug}`;
-            const blogUpdated = blog.updatedAt ? new Date(blog.updatedAt).toISOString() : now;
-
-            let imageXml = '';
-            if (blog.coverImage) {
-                const resolvedImg = blog.coverImage.startsWith('http') ? blog.coverImage : `${baseUrl}${blog.coverImage}`;
-                const safeTitle = (blog.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                imageXml = `
-        <image:image>
-            <image:loc>${resolvedImg}</image:loc>
-            <image:title>${safeTitle}</image:title>
-        </image:image>`;
-            }
-
-            xml += `
-    <url>
-        <loc>${blogUrl}</loc>
-        <lastmod>${blogUpdated}</lastmod>
-        <changefreq>monthly</changefreq>
-        <priority>0.6</priority>${imageXml}
-    </url>`;
-        }
-    } catch (err) {
-        console.error('[Sitemap] Error fetching blog data:', err.message);
-        // Non-fatal: sitemap still returns store + static routes
+        console.error('[Sitemap Platform] Error fetching store data:', err.message);
     }
 
     xml += `\n</urlset>`;
     return xml;
 }
 
-// @route   GET /sitemap.xml
-// @desc    Generate and serve dynamic XML sitemap
+// ─── Main Route: GET /sitemap.xml ─────────────────────────────────────────────
 router.get('/', async (req, res) => {
     try {
-        const baseUrl = await resolveBaseUrl(req);
-        const xml = await buildSitemapXml(baseUrl);
+        const requestHost = (
+            req.headers['x-forwarded-host'] || req.get('host') || ''
+        ).toLowerCase().split(':')[0];
+
         res.header('Content-Type', 'application/xml; charset=utf-8');
         res.header('Cache-Control', 'public, max-age=3600'); // cache 1 hour
-        res.send(xml);
+
+        // If request is from a merchant custom domain, serve their isolated store sitemap
+        if (!isPlatformHost(requestHost) && requestHost) {
+            const xml = await buildStoreSitemapXml(requestHost, req);
+            return res.send(xml);
+        }
+
+        // Otherwise serve OneDash SaaS platform sitemap
+        const baseUrl = await resolveBaseUrl(req);
+        const xml = await buildPlatformSitemapXml(baseUrl);
+        return res.send(xml);
     } catch (err) {
-        console.error('Sitemap Error:', err);
+        console.error('[Sitemap] Error generating sitemap:', err);
         res.status(500).send('Error generating sitemap');
     }
 });
 
-// @route   POST /sitemap.xml/generate
-// @desc    Generate sitemap and save it as a physical file (for static hosting)
+// ─── Admin Route: POST /sitemap.xml/generate ──────────────────────────────────
+// Manually persist platform sitemap to disk for static hosting fallback
 router.post('/generate', [auth, admin], async (req, res) => {
     try {
         const baseUrl = await resolveBaseUrl(req);
-        const xml = await buildSitemapXml(baseUrl);
+        const xml = await buildPlatformSitemapXml(baseUrl);
 
-        // Target locations to persist sitemap.xml:
-        // 1. Server's public directory (e.g. /app/public/sitemap.xml in Docker, or server/public/sitemap.xml locally)
-        // 2. Server's built frontend dist (if it exists, e.g. /app/public/dist/sitemap.xml)
-        // 3. Client's public directory (if in local development, e.g. ../../client/public/sitemap.xml)
         const targets = [
             path.join(__dirname, '../public/sitemap.xml'),
             path.join(__dirname, '../public/dist/sitemap.xml'),
@@ -286,7 +405,6 @@ router.post('/generate', [auth, admin], async (req, res) => {
         for (const target of targets) {
             try {
                 const dir = path.dirname(target);
-                // Ensure server/public directory exists
                 if (target === targets[0] && !fs.existsSync(dir)) {
                     fs.mkdirSync(dir, { recursive: true });
                 }
@@ -299,7 +417,6 @@ router.post('/generate', [auth, admin], async (req, res) => {
             }
         }
 
-        // Count entries for reporting
         const storeCount = (xml.match(/\/store\//g) || []).length;
         const totalUrls = (xml.match(/<loc>/g) || []).length;
 
@@ -308,7 +425,7 @@ router.post('/generate', [auth, admin], async (req, res) => {
             totalUrls,
             storeCount,
             savedLocations: writtenCount,
-            message: `Sitemap generated with ${totalUrls} URLs (~${storeCount} store URLs) successfully.`
+            message: `Platform sitemap generated with ${totalUrls} URLs (~${storeCount} store URLs) successfully.`
         });
     } catch (err) {
         console.error('Sitemap Generate Error:', err);

@@ -459,7 +459,10 @@ export default function WaStoreBasicDetails() {
 
     const set = (field, val) => setStore(prev => ({ ...prev, [field]: val }));
 
-    const storeUrl = store ? `${window.location.origin}/store/${store.slug}` : '';
+    const hasVerifiedDomain = store?.customDomain && store?.domainStatus === 'verified';
+    const storeUrl = store
+        ? (hasVerifiedDomain ? `https://${store.customDomain}` : `${window.location.origin}/store/${store.slug}`)
+        : '';
     const copySlug = () => { navigator.clipboard.writeText(storeUrl); toast.success('Store URL copied!'); };
 
     return (
