@@ -42,7 +42,7 @@ const PublicHeader = () => {
                     {loading ? (
                         <div className="w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
                     ) : logoUrl ? (
-                        <img src={logoUrl} alt={brandName} className="h-8 object-contain" />
+                        <img src={logoUrl} alt={brandName} height="32" className="h-8 w-auto object-contain" />
                     ) : (
                         <div className="w-8 h-8 bg-gradient-to-tr from-indigo-600 to-indigo-400 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
                             <MessageSquare className="w-5 h-5 text-white" />

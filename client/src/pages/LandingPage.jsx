@@ -175,6 +175,7 @@ const CapabilitiesBento = ({ config, activeCapability, setActiveCapability }) =>
                             loop
                             muted
                             playsInline
+                            preload="none"
                             className="w-full h-full object-cover"
                         />
                     </div>
@@ -208,6 +209,7 @@ const CapabilitiesBento = ({ config, activeCapability, setActiveCapability }) =>
                             loop
                             muted
                             playsInline
+                            preload="none"
                             className="w-full h-full object-cover object-center"
                         />
                     </div>
@@ -241,6 +243,7 @@ const CapabilitiesBento = ({ config, activeCapability, setActiveCapability }) =>
                             loop
                             muted
                             playsInline
+                            preload="none"
                             className="w-full h-full object-cover"
                         />
                     </div>
@@ -1060,7 +1063,7 @@ function FeaturePreview({ feature }) {
                 <motion.div initial={{ scale: 0.8, y: 10 }} animate={{ scale: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className="w-32 h-44 bg-white rounded-xl shadow-xl shadow-slate-900/10 border border-slate-100 z-10 overflow-hidden flex flex-col">
                     <div className="h-12 bg-gradient-to-r from-slate-800 to-slate-900 relative">
                         <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-white p-1">
-                            <div className="w-full h-full rounded-full bg-slate-200 overflow-hidden"><img loading="lazy" src="https://ui-avatars.com/api/?name=JS&background=random" alt="avatar" className="w-full h-full object-cover" /></div>
+                            <div className="w-full h-full rounded-full bg-slate-200 overflow-hidden"><img loading="lazy" src="https://ui-avatars.com/api/?name=JS&background=random" width="32" height="32" alt="avatar" className="w-full h-full object-cover" /></div>
                         </div>
                     </div>
                     <div className="mt-6 flex-1 flex flex-col items-center px-3 text-center">
@@ -1445,7 +1448,7 @@ const TestimonialCard = ({ t, str }) => (
         {/* User Info */}
         <div className="flex items-center gap-3 pt-4 border-t border-slate-100 dark:border-zinc-800/80 mt-auto">
             {t.avatar ? (
-                <img loading="lazy" src={str(t.avatar)} className="w-9 h-9 sm:w-11 sm:h-11 rounded-full object-cover ring-2 ring-indigo-500/20 bg-slate-100 shrink-0" alt={str(t.name)} />
+                <img loading="lazy" src={str(t.avatar)} width="44" height="44" className="w-9 h-9 sm:w-11 sm:h-11 rounded-full object-cover ring-2 ring-indigo-500/20 bg-slate-100 shrink-0" alt={str(t.name)} />
             ) : (
                 <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-indigo-50 dark:bg-indigo-900/40 border border-indigo-100 dark:border-indigo-800/50 flex items-center justify-center font-bold text-indigo-600 dark:text-indigo-400 text-xs sm:text-sm shrink-0">
                     {str(t.name).substring(0, 1)}
@@ -1620,8 +1623,11 @@ const HERO_CARDS = [
 ];
 
 export default function LandingPage() {
-    const [config, setConfig] = useState(null);
-    const [publicSettings, setPublicSettings] = useState(null);
+    // Initialize with empty objects so the page renders immediately on first paint.
+    // API data will hydrate these after mount — eliminating the full-screen spinner that
+    // was blocking LCP on mobile (Lighthouse saw a blank page for 2-4 seconds).
+    const [config, setConfig] = useState({});
+    const [publicSettings, setPublicSettings] = useState({});
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showDemoModal, setShowDemoModal] = useState(false);
     const [demoForm, setDemoForm] = useState({ name: '', phone: '', countryCode: '91' });
@@ -1760,17 +1766,10 @@ export default function LandingPage() {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [config, publicSettings]);
-
     if (error) return (
         <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50 text-slate-800 gap-4">
             <p className="text-red-500 font-bold">Failed to load content.</p>
             <button onClick={() => window.location.reload()} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold shadow-lg">Retry</button>
-        </div>
-    );
-
-    if (!config || !publicSettings) return (
-        <div className="h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-zinc-950">
-            <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
     );
 
@@ -2211,6 +2210,9 @@ export default function LandingPage() {
                                         <img
                                             src={config?.hero?.imageType2 || config?.hero?.imageType1 || config?.hero?.image}
                                             alt="Platform Dashboard"
+                                            loading="lazy"
+                                            width="1200"
+                                            height="675"
                                             className="w-full h-full object-cover"
                                         />
                                     </div>
@@ -2895,6 +2897,9 @@ export default function LandingPage() {
                                         <img
                                             src="/meta-icon.svg"
                                             alt="Meta"
+                                            width="28"
+                                            height="28"
+                                            loading="lazy"
                                             className="w-full h-full object-contain"
                                         />
                                     </div>
@@ -2911,6 +2916,9 @@ export default function LandingPage() {
                                         <img
                                             src="/razorpay-logo.svg"
                                             alt="Razorpay"
+                                            width="52"
+                                            height="24"
+                                            loading="lazy"
                                             className="w-full h-full object-contain"
                                         />
                                     </div>
@@ -3058,7 +3066,7 @@ export default function LandingPage() {
                                 <div className="col-span-2 lg:col-span-2 space-y-6">
                                     <div className="flex items-center gap-3 font-extrabold text-2xl tracking-tight text-slate-900 dark:text-white">
                                         {(publicSettings?.logoUrl || config.brand?.logo) ? (
-                                            <img loading="lazy" src={publicSettings?.logoUrl || config.brand.logo} alt={publicSettings?.appName || config.brand.name} className="h-10 object-contain" />
+                                            <img loading="lazy" src={publicSettings?.logoUrl || config.brand?.logo} alt={publicSettings?.appName || config.brand?.name || 'OneDash'} className="h-10 object-contain" />
                                         ) : (
                                             <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center shadow-md">
                                                 <MessageSquare className="w-5 h-5 text-white" />
@@ -3139,8 +3147,8 @@ export default function LandingPage() {
                             <div className="pt-8 border-t border-slate-200 dark:border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 text-sm font-medium text-slate-500 dark:text-slate-500">
                                 <div>
                                     {config.footer?.bottomBarLeft
-                                        ? config.footer.bottomBarLeft.replace(/\{year\}/ig, new Date().getFullYear()).replace(/\{brand\}/ig, publicSettings?.appName || config.brand.name).replace(config.brand.name, publicSettings?.appName || config.brand.name)
-                                        : `© ${new Date().getFullYear()} ${publicSettings?.appName || config.brand.name}. All rights reserved.`}
+                                        ? config.footer.bottomBarLeft.replace(/\{year\}/ig, new Date().getFullYear()).replace(/\{brand\}/ig, publicSettings?.appName || config.brand?.name || 'OneDash').replace(config.brand?.name || '', publicSettings?.appName || config.brand?.name || 'OneDash')
+                                        : `© ${new Date().getFullYear()} ${publicSettings?.appName || config.brand?.name || 'OneDash'}. All rights reserved.`}
                                 </div>
                                 <div className="flex gap-4">
                                     {config.footer?.bottomBarRight ? (

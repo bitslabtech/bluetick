@@ -42,6 +42,7 @@ export default function HeroShowcase() {
     const [progress, setProgress] = useState(0);
 
     // Auto-advance tabs every 4 seconds sequentially (0 -> 1 -> 2 -> 3)
+    // Interval slowed to 250ms (was 40ms=25fps) to prevent excessive main-thread work on mobile
     useEffect(() => {
         setProgress(0);
         const startTime = Date.now();
@@ -56,7 +57,7 @@ export default function HeroShowcase() {
                 clearInterval(timer);
                 setActiveTab((prev) => (prev + 1) % TABS.length);
             }
-        }, 40);
+        }, 250); // 4fps progress bar update — imperceptible vs 25fps, saves ~90% JS main-thread time
 
         return () => clearInterval(timer);
     }, [activeTab]);
@@ -171,6 +172,7 @@ export default function HeroShowcase() {
                                             loop
                                             muted
                                             playsInline
+                                            preload="none"
                                             className="w-full h-full object-cover rounded-[1.6rem]"
                                         />
                                     </div>
@@ -212,6 +214,7 @@ export default function HeroShowcase() {
                                             loop
                                             muted
                                             playsInline
+                                            preload="none"
                                             className="w-full h-full object-cover rounded-[1.6rem]"
                                         />
                                     </div>
@@ -248,7 +251,7 @@ export default function HeroShowcase() {
                                 <div className="sm:col-span-7 h-full flex items-center justify-center">
                                     <div className="w-full max-w-[260px] bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-2xl p-5 border border-white/10 shadow-xl text-center space-y-3">
                                         <div className="w-16 h-16 rounded-full border-2 border-indigo-400 p-0.5 mx-auto">
-                                            <img src="https://i.pravatar.cc/150?img=32" alt="Avatar" className="w-full h-full rounded-full object-cover" />
+                                            <img src="https://i.pravatar.cc/150?img=32" alt="Avatar" width="64" height="64" loading="lazy" className="w-full h-full rounded-full object-cover" />
                                         </div>
                                         <div>
                                             <div className="font-bold text-base">Sarah Jenkins</div>

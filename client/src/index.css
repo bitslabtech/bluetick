@@ -64,10 +64,13 @@ body {
 
 .animate-marquee {
   animation: marquee 28s linear infinite;
+  /* Keep marquee on GPU compositor thread — prevents layout thrashing on mobile */
+  will-change: transform;
 }
 
 .animate-marquee-reverse {
   animation: marquee-reverse 28s linear infinite;
+  will-change: transform;
 }
 
 .animate-marquee:hover,
@@ -190,6 +193,7 @@ body {
 
 .hero-beam {
   animation: heroBeam 8s ease-in-out infinite;
+  will-change: opacity, transform;
 }
 
 /* Central Radial Glows */
@@ -208,9 +212,9 @@ body {
   50%      { opacity: 0.3; transform: scale(1.15) translateZ(0); }
 }
 
-.hero-glow-1 { animation: heroGlow1 7s ease-in-out infinite; }
-.hero-glow-2 { animation: heroGlow2 10s ease-in-out 2s infinite; }
-.hero-glow-3 { animation: heroGlow3 13s ease-in-out 1s infinite; }
+.hero-glow-1 { animation: heroGlow1 7s ease-in-out infinite; will-change: opacity, transform; }
+.hero-glow-2 { animation: heroGlow2 10s ease-in-out 2s infinite; will-change: opacity, transform; }
+.hero-glow-3 { animation: heroGlow3 13s ease-in-out 1s infinite; will-change: opacity, transform; }
 
 /* Floating Star Particles */
 @keyframes heroParticle {
@@ -220,6 +224,7 @@ body {
 
 .hero-particle {
   animation: heroParticle 8s ease-in-out infinite;
+  will-change: transform;
 }
 
 /* Floating Chips */
@@ -233,6 +238,7 @@ body {
 .hero-chip {
   opacity: 0;
   animation: heroChip 6s ease-in-out infinite;
+  will-change: opacity, transform;
 }
 
 /* Orbiting Rings */
@@ -246,13 +252,16 @@ body {
   to   { transform: rotate(0deg) translateZ(0); }
 }
 
-.hero-orbit { animation: heroOrbit 40s linear infinite; }
-.hero-orbit-reverse { animation: heroOrbitReverse 55s linear infinite; }
+.hero-orbit { animation: heroOrbit 40s linear infinite; will-change: transform; }
+.hero-orbit-reverse { animation: heroOrbitReverse 55s linear infinite; will-change: transform; }
 
 /* ──────────────────────────────────────────────────────────
    PERFORMANCE — content-visibility for off-screen sections
+   Skips rendering off-screen sections until they scroll into view.
+   contain-intrinsic-size reserves space to prevent CLS jumps.
    ────────────────────────────────────────────────────────── */
 section {
+  content-visibility: auto;
   contain-intrinsic-size: auto 800px;
 }
 

@@ -640,6 +640,15 @@ img{display:block;vertical-align:middle}
                 seo.keywords ? `<meta name="keywords" content="${e(seo.keywords)}">` : '',
                 seo.googleVerificationToken ? `<meta name="google-site-verification" content="${e(seo.googleVerificationToken)}">` : '',
                 `<link rel="canonical" href="${canonical}">`,
+                // ── Performance: LCP preload for the hero OG image ──────────────
+                // If the landing page has an OG image set, preload it immediately.
+                // This eliminates the render-blocking delay where the browser had to
+                // wait for React to hydrate before it discovered the hero image URL.
+                ogImage ? `<link rel="preload" as="image" href="${ogImage}" fetchpriority="high">` : '',
+                // DNS prefetch for external image hosts used on the landing page
+                // (testimonial avatars, meta-icon.svg served from CDN, etc.)
+                `<link rel="dns-prefetch" href="https://images.unsplash.com">`,
+                `<link rel="dns-prefetch" href="https://i.pravatar.cc">`,
                 // Open Graph
                 `<meta property="og:type" content="website">`,
                 `<meta property="og:site_name" content="${title}">`,
