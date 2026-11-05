@@ -249,6 +249,11 @@ app.use('/uploads', (req, res, next) => {
 // Serve dynamic SEO endpoints before static dist fallback
 app.use('/sitemap.xml', require('./routes/sitemap'));
 app.use('/robots.txt', require('./routes/robots'));
+app.use('/llms.txt', require('./routes/llms'));
+app.get('/store/:slug/llms.txt', (req, res, next) => {
+    req.url = `/store/${req.params.slug}`;
+    require('./routes/llms')(req, res, next);
+});
 
 // Serve built React frontend (only if dist exists — i.e. in Docker/production build)
 const distPath = path.join(__dirname, 'public/dist');
@@ -882,6 +887,37 @@ img{display:block;vertical-align:middle}
             if (ogImg) injections.push(`<meta property="og:image" content="${ogImg}">`);
             injections.push(`<meta property="og:type" content="website">`);
             injections.push(`<link rel="canonical" href="https://${hostname}${req.path}">`);
+            injections.push(`<link rel="alternate" type="text/markdown" href="https://${hostname}/llms.txt" title="Agentic Site Summary">`);
+            injections.push(`<link rel="help" type="text/markdown" href="https://${hostname}/llms.txt">`);
+
+            // Structured Data for AI Agents & Search Crawlers
+            injections.push(`<script type="application/ld+json">${JSON.stringify({
+                '@context': 'https://schema.org',
+                '@type': 'OnlineStore',
+                name: store.name || 'Online Store',
+                description: desc,
+                url: `https://${hostname}`,
+                currenciesAccepted: store.currency || 'USD',
+                paymentAccepted: 'Cash, Credit Card, UPI, WhatsApp Checkout',
+                priceRange: '$$',
+                ...(store.whatsappNumber ? { telephone: store.whatsappNumber } : {}),
+                ...(store.email ? { email: store.email } : {})
+            }).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')}</script>`);
+
+            if (products && products.length > 0) {
+                injections.push(`<script type="application/ld+json">${JSON.stringify({
+                    '@context': 'https://schema.org',
+                    '@type': 'ItemList',
+                    name: `Products — ${store.name || 'Store'}`,
+                    numberOfItems: products.length,
+                    itemListElement: products.slice(0, 20).map((p, i) => ({
+                        '@type': 'ListItem',
+                        position: i + 1,
+                        name: p.name,
+                        url: `https://${hostname}/product/${p.slug || p.id}`
+                    }))
+                }).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')}</script>`);
+            }
 
             // Inject head tags
             html = html.replace('</head>', `${injections.join('\n  ')}\n</head>`);
@@ -905,6 +941,98 @@ img{display:block;vertical-align:middle}
         } catch (err) {
             console.error('[Custom Domain SSR] Error:', err.message);
             // Fallback to SPA — CustomDomainRouter in React will handle it
+            next();
+        }
+    });
+
+    // ── Platform Store SSR (/store/:slug) ─────────────────────────────────────────
+    // Injects SEO meta, Schema.org OnlineStore & ItemList JSON-LD, and llms.txt discovery
+    app.get('/store/:slug', async (req, res, next) => {
+        try {
+            const WaStoreModel = require('./models/WaStore');
+            const WaProductModel = require('./models/WaProduct');
+            const { slug } = req.params;
+
+            const store = await WaStoreModel.findOne({
+                where: { slug, isActive: true }
+            });
+
+            if (!store) return next();
+
+            let html = fs.readFileSync(distIndex, 'utf8');
+            const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+            const storeUrl = `${baseUrl}/store/${store.slug}`;
+
+            const [{ count: totalProducts, rows: products }] = await Promise.all([
+                WaProductModel.findAndCountAll({
+                    where: { storeId: store.id },
+                    order: [['createdAt', 'DESC']],
+                    limit: 24
+                })
+            ]);
+
+            const title = store.name ? `${store.name} | Shop Online` : 'Online Store';
+            const desc = store.description || `Shop at ${store.name || 'our store'} — fast checkout via WhatsApp.`;
+            const ogImg = store.logo || store.coverImage || '';
+
+            const injections = [
+                `<title>${title}</title>`,
+                `<meta name="description" content="${desc.replace(/"/g, '&quot;').substring(0, 160)}">`,
+                `<meta property="og:title" content="${title}">`,
+                `<meta property="og:description" content="${desc.replace(/"/g, '&quot;').substring(0, 200)}">`,
+                ogImg ? `<meta property="og:image" content="${ogImg}">` : '',
+                `<meta property="og:type" content="website">`,
+                `<link rel="canonical" href="${storeUrl}">`,
+                `<link rel="alternate" type="text/markdown" href="${storeUrl}/llms.txt" title="Agentic Site Summary">`,
+                `<link rel="help" type="text/markdown" href="${storeUrl}/llms.txt">`,
+                `<script type="application/ld+json">${JSON.stringify({
+                    '@context': 'https://schema.org',
+                    '@type': 'OnlineStore',
+                    name: store.name || 'Online Store',
+                    description: desc,
+                    url: storeUrl,
+                    currenciesAccepted: store.currency || 'USD',
+                    paymentAccepted: 'Cash, Credit Card, UPI, WhatsApp Checkout',
+                    priceRange: '$$',
+                    ...(store.whatsappNumber ? { telephone: store.whatsappNumber } : {}),
+                    ...(store.email ? { email: store.email } : {})
+                }).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')}</script>`,
+            ];
+
+            if (products && products.length > 0) {
+                injections.push(`<script type="application/ld+json">${JSON.stringify({
+                    '@context': 'https://schema.org',
+                    '@type': 'ItemList',
+                    name: `Products — ${store.name || 'Store'}`,
+                    numberOfItems: products.length,
+                    itemListElement: products.slice(0, 20).map((p, i) => ({
+                        '@type': 'ListItem',
+                        position: i + 1,
+                        name: p.name,
+                        url: `${storeUrl}/product/${p.slug || p.id}`
+                    }))
+                }).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')}</script>`);
+            }
+
+            html = html.replace('</head>', `${injections.filter(Boolean).join('\n  ')}\n</head>`);
+
+            const storeJson = store.toJSON();
+            const productsJson = products.map(p => p.toJSON());
+            const safeJson = JSON.stringify({ store: storeJson, products: productsJson, totalProducts })
+                .replace(/</g, '\\u003c')
+                .replace(/>/g, '\\u003e')
+                .replace(/&/g, '\\u0026');
+
+            html = html.replace(
+                /<script type="module"/,
+                `<script>window.__STORE_INITIAL_DATA__=${safeJson};</script>\n  <script type="module"`
+            );
+
+            res.set('Content-Type', 'text/html; charset=utf-8');
+            res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=600');
+            res.send(html);
+        } catch (err) {
+            console.error('[/store/:slug SSR] Error:', err.message);
             next();
         }
     });

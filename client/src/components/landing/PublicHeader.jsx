@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, MessageSquare, LayoutDashboard } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
@@ -56,7 +55,7 @@ const PublicHeader = () => {
                     <Link to="/faq" className="hover:text-indigo-600 transition-colors">FAQ</Link>
                     <Link to="/contact" className="hover:text-indigo-600 transition-colors">Contact Us</Link>
                     <div className="h-4 w-[1px] max-w-full bg-slate-300" />
-                    
+
                     {user ? (
                         <Link to="/dashboard" className="px-5 py-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/20 transition-all font-bold flex items-center gap-2">
                             <LayoutDashboard className="w-4 h-4" /> Go to Dashboard
@@ -71,35 +70,40 @@ const PublicHeader = () => {
                     )}
                 </div>
 
-                <button className="md:hidden text-slate-900" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+                <button
+                    className="md:hidden text-slate-900 p-2"
+                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                    aria-label="Toggle Navigation Menu"
+                    aria-expanded={isMenuOpen}
+                >
                     {isMenuOpen ? <X /> : <Menu />}
                 </button>
             </div>
 
-            <AnimatePresence>
-                {isMenuOpen && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="md:hidden bg-white border-b border-slate-200 overflow-hidden">
-                        <div className="flex flex-col p-4 md:p-6 gap-6 text-center text-slate-600 font-semibold">
-                            <a href="/#capabilities-section" onClick={() => setIsMenuOpen(false)}>Features</a>
-                            <a href="/#pricing" onClick={() => setIsMenuOpen(false)}>Pricing</a>
-                            <Link to="/faq" onClick={() => setIsMenuOpen(false)}>FAQ</Link>
-                            <Link to="/contact" onClick={() => setIsMenuOpen(false)}>Contact Us</Link>
-                            <div className="h-[1px] w-full bg-slate-200" />
-                            
-                            {user ? (
-                                <Link to="/dashboard" onClick={() => setIsMenuOpen(false)} className="bg-indigo-600 text-white py-3 rounded-full font-bold shadow-lg flex items-center justify-center gap-2">
-                                    <LayoutDashboard className="w-4 h-4" /> Go to Dashboard
-                                </Link>
-                            ) : (
-                                <>
-                                    <Link to="/login" onClick={() => setIsMenuOpen(false)}>Log In</Link>
-                                    <Link to="/register" onClick={() => setIsMenuOpen(false)} className="bg-indigo-600 text-white py-3 rounded-full font-bold shadow-lg">Get Started</Link>
-                                </>
-                            )}
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {/* Mobile menu — CSS transition, no framer-motion on critical path */}
+            <div
+                className={`md:hidden bg-white border-b border-slate-200 overflow-hidden transition-all duration-300 ease-in-out ${isMenuOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'
+                    }`}
+            >
+                <div className="flex flex-col p-4 md:p-6 gap-6 text-center text-slate-600 font-semibold">
+                    <a href="/#capabilities-section" onClick={() => setIsMenuOpen(false)}>Features</a>
+                    <a href="/#pricing" onClick={() => setIsMenuOpen(false)}>Pricing</a>
+                    <Link to="/faq" onClick={() => setIsMenuOpen(false)}>FAQ</Link>
+                    <Link to="/contact" onClick={() => setIsMenuOpen(false)}>Contact Us</Link>
+                    <div className="h-[1px] w-full bg-slate-200" />
+
+                    {user ? (
+                        <Link to="/dashboard" onClick={() => setIsMenuOpen(false)} className="bg-indigo-600 text-white py-3 rounded-full font-bold shadow-lg flex items-center justify-center gap-2">
+                            <LayoutDashboard className="w-4 h-4" /> Go to Dashboard
+                        </Link>
+                    ) : (
+                        <>
+                            <Link to="/login" onClick={() => setIsMenuOpen(false)}>Log In</Link>
+                            <Link to="/register" onClick={() => setIsMenuOpen(false)} className="bg-indigo-600 text-white py-3 rounded-full font-bold shadow-lg">Get Started</Link>
+                        </>
+                    )}
+                </div>
+            </div>
         </nav>
     );
 };

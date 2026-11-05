@@ -1,26 +1,75 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OneDash</title>
 
-    <!-- Preconnect to API origin so DNS+TLS is ready before first request -->
-    <link rel="preconnect" href="https://api.onedash.cloud" crossorigin>
-    <link rel="dns-prefetch" href="https://api.onedash.cloud">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OneDash — WhatsApp Marketing, Automation & Online Store</title>
+  <meta name="description" content="OneDash is an all-in-one WhatsApp Business API platform. Automate sales & support with AI chatbots, run bulk broadcasts, create online storefronts, and share digital vCards." />
+  <link rel="canonical" href="https://onedash.cloud/" />
 
-    <!--
+  <!-- Machine-Readable Agentic Discovery (llms.txt) -->
+  <link rel="alternate" type="text/markdown" href="/llms.txt" title="Agentic Site Summary" />
+  <link rel="help" type="text/markdown" href="/llms.txt" />
+
+  <!-- Preconnect to API origin so DNS+TLS is ready before first request -->
+  <link rel="preconnect" href="https://api.onedash.cloud" crossorigin>
+  <link rel="dns-prefetch" href="https://api.onedash.cloud">
+
+  <!--
       GOOGLE FONTS — Non-render-blocking via preload + media swap.
-      Loads Inter (core UI font) and Outfit (headings/theme font) with display=swap.
+      Loads Inter (core UI font) only. Outfit removed — not used in any CSS.
     -->
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600&display=swap"></noscript>
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style"
+    onload="this.onload=null;this.rel='stylesheet'">
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  </noscript>
 
-    <!-- Razorpay SDK loaded dynamically only on Checkout/Payment pages -->
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+  <!-- Schema.org Structured Data for Search Engines & Autonomous AI Agents -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://onedash.cloud/#organization",
+        "name": "OneDash",
+        "url": "https://onedash.cloud",
+        "logo": "https://onedash.cloud/meta-icon.svg",
+        "description": "WhatsApp Business API SaaS Platform for marketing automation, online commerce, and customer support."
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://onedash.cloud/#website",
+        "url": "https://onedash.cloud",
+        "name": "OneDash",
+        "publisher": { "@id": "https://onedash.cloud/#organization" }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://onedash.cloud/#software",
+        "name": "OneDash",
+        "operatingSystem": "All (Web-based)",
+        "applicationCategory": "BusinessApplication",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "description": "Official Meta WhatsApp Business API platform offering bulk broadcasts, drag-and-drop chatbots, digital storefronts, and smart NFC vCards."
+      }
+    ]
+  }
+  </script>
+
+  <!-- Razorpay SDK loaded dynamically only on Checkout/Payment pages -->
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
 </html>

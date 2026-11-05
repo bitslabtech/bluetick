@@ -98,6 +98,7 @@ export default function WaStoreMobileBottomMenu({ store, theme, cartCount, setIs
 
     return (
         <nav 
+            aria-label="Mobile Navigation Bar"
             className={`md:hidden fixed bottom-0 left-0 right-0 z-40 ${theme?.mobileNavBg || theme?.pageBg || 'bg-white'} border-t ${theme?.id === 'jewelry' ? 'border-[#B76E79]/30' : 'border-black/5 dark:border-white/10'} flex items-center justify-around shadow-[0_-4px_20px_rgba(0,0,0,0.05)]`}
             style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
@@ -105,6 +106,7 @@ export default function WaStoreMobileBottomMenu({ store, theme, cartCount, setIs
                 <button
                     key={item.id}
                     onClick={() => handleAction(item)}
+                    aria-label={getLabel(item)}
                     className={`flex flex-col items-center justify-center py-2.5 px-2 w-full transition-colors ${theme?.id === 'jewelry' ? 'text-[#261C1D] hover:text-[#B76E79]' : (theme?.textMuted || 'text-gray-500')} hover:opacity-70`}
                 >
                     {renderIcon(item)}

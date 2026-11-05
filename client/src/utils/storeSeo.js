@@ -59,6 +59,24 @@ export function injectCanonical(href) {
     el.setAttribute('href', href);
 }
 
+/**
+ * Inject or update a <link> tag with specific rel, href, type, title.
+ */
+export function injectLink(rel, href, type, title) {
+    if (!href) return;
+    const selector = type ? `link[rel="${rel}"][type="${type}"]` : `link[rel="${rel}"]`;
+    let el = document.querySelector(selector);
+    if (!el) {
+        el = document.createElement('link');
+        el.setAttribute('rel', rel);
+        if (type) el.setAttribute('type', type);
+        el.setAttribute(SEO_ATTR, 'true');
+        document.head.appendChild(el);
+    }
+    el.setAttribute('href', href);
+    if (title) el.setAttribute('title', title);
+}
+
 // ─── Favicon ──────────────────────────────────────────────────────────────────
 
 /**
@@ -209,7 +227,11 @@ export function applyStoreSeo(store, category, products, baseUrl) {
     // ── Canonical ────────────────────────────────────────────────────────────
     injectCanonical(categoryUrl);
 
-    // ── JSON-LD: WebSite (only on home, not category) ────────────────────────
+    // ── Machine-Readable Agentic Discoverability (llms.txt) ─────────────────
+    injectLink('alternate', `${storeUrl}/llms.txt`, 'text/markdown', `${store.name} AI Agent Summary`);
+    injectLink('help', `${storeUrl}/llms.txt`, 'text/markdown');
+
+    // ── JSON-LD: OnlineStore & WebSite (only on home, not category) ──────────
     if (!isCategory) {
         injectJsonLd('website', {
             '@context': 'https://schema.org',
@@ -226,8 +248,30 @@ export function applyStoreSeo(store, category, products, baseUrl) {
                 'query-input': 'required name=search_term_string'
             }
         });
+
+        injectJsonLd('store', {
+            '@context': 'https://schema.org',
+            '@type': 'OnlineStore',
+            name: store.name,
+            description: store.description || `Online store powered by OneDash`,
+            url: storeUrl,
+            currenciesAccepted: store.currency || 'USD',
+            paymentAccepted: 'Cash, Credit Card, UPI, WhatsApp Checkout',
+            priceRange: '$$',
+            ...(store.whatsappNumber ? { telephone: store.whatsappNumber } : {}),
+            ...(store.email ? { email: store.email } : {}),
+            potentialAction: {
+                '@type': 'SearchAction',
+                target: {
+                    '@type': 'EntryPoint',
+                    urlTemplate: `${storeUrl}?search={search_term_string}`
+                },
+                'query-input': 'required name=search_term_string'
+            }
+        });
     } else {
         removeJsonLd('website');
+        removeJsonLd('store');
     }
 
     // ── JSON-LD: BreadcrumbList ───────────────────────────────────────────────
@@ -363,6 +407,10 @@ export function applyProductSeo(product, store, baseUrl) {
 
     // ── Canonical ────────────────────────────────────────────────────────────
     injectCanonical(productUrl);
+
+    // ── Machine-Readable Agentic Discoverability (llms.txt) ─────────────────
+    injectLink('alternate', `${storeUrl}/llms.txt`, 'text/markdown', `${store.name} AI Agent Summary`);
+    injectLink('help', `${storeUrl}/llms.txt`, 'text/markdown');
 
     // ── JSON-LD: BreadcrumbList ───────────────────────────────────────────────
     const breadcrumbItems = [

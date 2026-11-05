@@ -32,23 +32,10 @@ export default defineConfig({
       // NOTE: Do NOT set treeshake.moduleSideEffects: false — it strips CSS imports
       // which are side-effect-only (import './index.css') and breaks all styling.
       output: {
-        manualChunks: {
-          // Core React — shared across all pages (~140KB gzipped)
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          // Lucide icons — bundle ALL icons into ONE chunk to prevent dozens of micro-files
-          // Without this, Vite creates a separate ~0.8KB file for every icon used on a page
-          'vendor-icons': ['lucide-react'],
-          // Charts — only loaded on Dashboard, Reports, Campaign pages (~300KB)
-          // Not imported anywhere in the critical path → deferred until first chart page visit
-          'vendor-charts': ['recharts'],
-          // Flow builder — only loaded on FlowBot page (~200KB)
-          'vendor-flow': ['@xyflow/react'],
-          // Animation library — no longer in critical path (UIContext + Layout migrated to CSS)
-          // Only loads when a lazy page that imports framer-motion is first navigated to
-          'vendor-motion': ['framer-motion'],
-          // Drag & drop — used on FlowBot, SystemControls (~50KB)
-          'vendor-dnd': ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
-        }
+        // Let Rollup automatically split chunks based on dynamic import boundaries.
+        // This ensures lazy pages (Dashboard, FlowBot, etc.) keep their heavy dependencies
+        // (recharts, @xyflow, etc.) completely isolated to their own chunks, without leaking
+        // into the critical entry bundle loaded on the landing page.
       }
     }
   },

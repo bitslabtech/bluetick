@@ -18,4 +18,4 @@ Disallow: /billing
 Disallow: /inbox
 
 # Sitemap
-Sitemap: https://bluetick.cloud/sitemap.xml
+Sitemap: https://onedash.cloud/sitemap.xml

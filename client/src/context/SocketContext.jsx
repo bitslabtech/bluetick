@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 
 // ── Shared, unlocked AudioContext ──────────────────────────────────────────────
@@ -100,88 +99,92 @@ export const SocketProvider = ({ children }) => {
             return;
         }
 
-        const API_BASE = import.meta.env.VITE_API_URL || '';
-        const newSocket = io(API_BASE, { withCredentials: true });
+        let isMounted = true;
+        let activeSocket = null;
 
-        // ── Join rooms ────────────────────────────────────────────────────────
-        const joinRooms = () => {
-            newSocket.emit('join_waba', user.id);
-            newSocket.emit('join_personal', user.id);
-            newSocket.emit('user_connected', {
-                userId: user.id,
-                parentId: user.parentUserId || null,
+        // Dynamically import socket.io-client only for authenticated users.
+        // This completely eliminates socket.io-client from the critical bundle for
+        // public visitors on mobile (Landing page, Blog, Storefront, etc.)
+        import('socket.io-client').then(({ io }) => {
+            if (!isMounted) return;
+
+            const API_BASE = import.meta.env.VITE_API_URL || '';
+            const newSocket = io(API_BASE, { withCredentials: true });
+            activeSocket = newSocket;
+
+            // ── Join rooms ────────────────────────────────────────────────────────
+            const joinRooms = () => {
+                newSocket.emit('join_waba', user.id);
+                newSocket.emit('join_personal', user.id);
+                newSocket.emit('user_connected', {
+                    userId: user.id,
+                    parentId: user.parentUserId || null,
+                });
+            };
+
+            newSocket.on('connect', () => {
+                if (isMounted) setIsConnected(true);
+                joinRooms();
             });
-        };
 
-        newSocket.on('connect', () => {
-            setIsConnected(true);
-            joinRooms();
-        });
+            newSocket.on('disconnect', () => {
+                if (isMounted) setIsConnected(false);
+            });
 
-        newSocket.on('disconnect', () => setIsConnected(false));
-        // Note: in Socket.IO v4, 'connect' fires on EVERY connection including
-        // reconnects after network drops — so joinRooms() above handles both.
+            // ── Global incoming WhatsApp message handler ──────────────────────────
+            newSocket.on('new_message', ({ conversation, message }) => {
+                if (message.direction !== 'INBOUND') return;
 
-        // ── Global incoming WhatsApp message handler ──────────────────────────
-        // Runs on ALL pages. WhatsAppInbox registers its own additional listener
-        // on the same event for inbox-specific UI updates — socket.io fires all
-        // registered listeners, so both run independently without conflict.
-        newSocket.on('new_message', ({ conversation, message }) => {
-            if (message.direction !== 'INBOUND') return;
+                const isViewingChat =
+                    activeChatIdRef.current === conversation.id && !document.hidden;
 
-            // Is the user actively looking at this exact conversation right now?
-            const isViewingChat =
-                activeChatIdRef.current === conversation.id && !document.hidden;
+                if (notificationsEnabledRef.current && !isViewingChat) {
+                    playIncomingMessageSound();
+                }
 
-            // Play sound if notifications are on and user isn't focused on that chat
-            if (notificationsEnabledRef.current && !isViewingChat) {
-                playIncomingMessageSound();
+                if (!isViewingChat) {
+                    const safeName =
+                        !conversation.contactName ||
+                        conversation.contactName === conversation.phoneNumber ||
+                        /^\d+$/.test(conversation.contactName.replace(/\D/g, ''))
+                            ? conversation.phoneNumber
+                            : conversation.contactName;
+                    showBrowserNotification(safeName, message.body || '📎 Media');
+                }
+
+                window.dispatchEvent(new Event('whatsapp_unread_update'));
+            });
+
+            newSocket.on('notification_update', () => {
+                window.dispatchEvent(new Event('notification_refresh'));
+            });
+
+            const unlockAudio = () => {
+                const ctx = getAudioCtx();
+                if (ctx && ctx.state === 'suspended') ctx.resume();
+            };
+            window.addEventListener('click', unlockAudio, { once: true });
+
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
             }
 
-            // Show browser desktop notification when not actively viewing
-            if (!isViewingChat) {
-                const safeName =
-                    !conversation.contactName ||
-                    conversation.contactName === conversation.phoneNumber ||
-                    /^\d+$/.test(conversation.contactName.replace(/\D/g, ''))
-                        ? conversation.phoneNumber
-                        : conversation.contactName;
-                showBrowserNotification(safeName, message.body || '📎 Media');
+            if (isMounted) {
+                setSocket(newSocket);
             }
-
-            // Instantly update sidebar WhatsApp unread badge on every page
-            window.dispatchEvent(new Event('whatsapp_unread_update'));
+        }).catch(err => {
+            console.error('Failed to load socket client:', err);
         });
-
-        // ── System notification update handler ────────────────────────────────
-        // Dispatches a window event that NotificationContext listens to.
-        // This keeps the two contexts fully decoupled (no circular imports).
-        newSocket.on('notification_update', () => {
-            window.dispatchEvent(new Event('notification_refresh'));
-        });
-
-        // ── Unlock AudioContext on first user gesture ────────────────────────
-        const unlockAudio = () => {
-            const ctx = getAudioCtx();
-            if (ctx && ctx.state === 'suspended') ctx.resume();
-        };
-        window.addEventListener('click', unlockAudio, { once: true });
-
-        // ── Request browser notification permission if not yet decided ────────
-        if ('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission();
-        }
-
-        // Expose socket to consumers
-        setSocket(newSocket);
 
         return () => {
-            newSocket.disconnect();
+            isMounted = false;
+            if (activeSocket) {
+                activeSocket.disconnect();
+            }
             setSocket(null);
             setIsConnected(false);
-            window.removeEventListener('click', unlockAudio);
         };
-    }, [user?.id]); // Re-run only when the logged-in user changes
+    }, [user?.id]);
 
     const value = {
         socket,

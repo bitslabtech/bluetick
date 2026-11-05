@@ -9,15 +9,16 @@ import GuestRoute from './components/GuestRoute';
 import { UIProvider } from './context/UIContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { SocketProvider } from './context/SocketContext';
-import Layout from './components/Layout';
 import { PaymentRedirectHandler } from './components/PaymentRedirectHandler';
 import { StoreCustomerProvider } from './context/StoreCustomerContext';
 import AnalyticsListener from './components/AnalyticsListener';
 import { isPlatformDomain } from './utils/storeRouting';
 
-// ── Code-Split Pages (React.lazy) ──────────────────────────────────────────
-// Each page loads as a separate JS chunk (~20-150KB) only when navigated to.
-// This reduces the initial bundle from ~3.5MB to ~300-500KB.
+// ── Code-Split Pages & Layouts (React.lazy) ──────────────────────────────────
+// Each page/layout loads as a separate JS chunk only when navigated to.
+// This ensures authenticated dashboard components (Layout, Sidebar, etc.)
+// are NEVER loaded on public routes like the landing page.
+const Layout = React.lazy(() => import('./components/Layout'));
 const Setup = React.lazy(() => import('./pages/Setup'));
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
 const Contacts = React.lazy(() => import('./pages/Contacts'));

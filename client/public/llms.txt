@@ -1,47 +1,44 @@
-# Bluetick — WhatsApp Marketing & Automation Platform
+# OneDash — WhatsApp Marketing & Automation Platform
 
-Bluetick is an AI-powered WhatsApp Business API SaaS platform that enables
+OneDash (https://onedash.cloud) is an AI-powered WhatsApp Business API SaaS platform that enables
 businesses to run bulk campaigns, automate chatbot flows, manage contacts,
 sell products via an integrated online store, and share digital business cards (vCards).
 
 ## Core Features
 
-- Bulk WhatsApp messaging and campaign broadcasts
+- Bulk WhatsApp messaging and campaign broadcasts via Meta Cloud API
 - AI-powered chatbot flow builder (drag-and-drop, no code)
 - WhatsApp Business API integration (Meta Cloud API)
 - CRM with contact management, labeling, and segmentation
 - Online store with WhatsApp-native checkout and UPI/card payments
 - Digital business cards (vCards) with NFC support
 - Click-to-WhatsApp (CTWA) Meta Ads integration
-- Team inbox and live chat
+- Multi-agent shared team inbox and live chat
 - Multi-language support
 
 ## Public Pages
 
-- Homepage: /
-- Blog: /blog
-- About Us: /about
-- Contact: /contact
-- Partner Program: /partner
-- FAQ: /faq
-- Pricing: /#pricing
-- Login: /login
-- Register: /register
-- Privacy Policy: /privacy
-- Terms of Service: /terms
-- Refund Policy: /refund-policy
+- Homepage: https://onedash.cloud/
+- Blog: https://onedash.cloud/blog
+- About Us: https://onedash.cloud/about
+- Contact: https://onedash.cloud/contact
+- Partner Program: https://onedash.cloud/partner
+- FAQ: https://onedash.cloud/faq
+- Pricing: https://onedash.cloud/#pricing
+- Login: https://onedash.cloud/login
+- Register: https://onedash.cloud/register
+- Privacy Policy: https://onedash.cloud/privacy
+- Terms of Service: https://onedash.cloud/terms
+- Refund Policy: https://onedash.cloud/refund-policy
 
-## Content
+## Content & Stores
 
-- Blog articles: /blog (marketing, WhatsApp, automation topics)
-- Public Stores: /store/:slug (e-commerce storefronts)
-- Public vCards: /vcard/:slug (digital business cards)
+- Blog articles: https://onedash.cloud/blog
+- Public Stores: https://onedash.cloud/store/:slug
+- Public vCards: https://onedash.cloud/vcard/:slug
 
-## Sitemap
+## Sitemap & Machine Readability
 
-Full sitemap (all stores, products, blogs): /sitemap.xml
-
-## Crawling
-
-- robots.txt: /robots.txt
-- Private dashboard routes are disallowed for all crawlers
+- Sitemap: https://onedash.cloud/sitemap.xml
+- Robots: https://onedash.cloud/robots.txt
+- Machine Context: https://onedash.cloud/llms.txt
