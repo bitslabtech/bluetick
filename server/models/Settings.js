@@ -26,7 +26,7 @@ const Settings = sequelize.define('Settings', {
     // Branding
     appName: {
         type: DataTypes.STRING,
-        defaultValue: 'Bluetick'
+        defaultValue: 'OneDash'
     },
     supportEmail: {
         type: DataTypes.STRING,

@@ -34,13 +34,13 @@ const videoFileFilter = (req, file, cb) => {
 const buildVcfString = (vcard) => {
     let vcf = `BEGIN:VCARD\nVERSION:3.0\n`;
     vcf += `FN:${vcard.name}\n`;
-    
+
     // Split name roughly if possible
     const nameParts = vcard.name.split(' ');
     const firstName = nameParts[0];
     const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
     vcf += `N:${lastName};${firstName};;;\n`;
-    
+
     if (vcard.designation) vcf += `TITLE:${vcard.designation}\n`;
     if (vcard.company) vcf += `ORG:${vcard.company}\n`;
     if (vcard.phone) vcf += `TEL;TYPE=CELL:${vcard.phone}\n`;
@@ -48,7 +48,7 @@ const buildVcfString = (vcard) => {
     if (vcard.email) vcf += `EMAIL;TYPE=WORK,INTERNET:${vcard.email}\n`;
     if (vcard.website) vcf += `URL:${vcard.website}\n`;
     if (vcard.bio) vcf += `NOTE:${vcard.bio.replace(/\n/g, '\\n')}\n`; // Escape newlines in bio
-    
+
     // Location parsing (simplified)
     if (vcard.location) {
         vcf += `ADR;TYPE=WORK:;;${vcard.location};;;;\n`;
@@ -66,7 +66,7 @@ const buildVcfString = (vcard) => {
 router.get('/public/:slug', async (req, res) => {
     try {
         const { slug } = req.params;
-        
+
         const vcard = await Vcard.findOne({
             where: { slug, status: 'active' },
             include: [{
@@ -88,12 +88,12 @@ router.get('/public/:slug', async (req, res) => {
         // Fetch owner's plan limit/access
         const ownerPlan = await Plan.findOne({ where: { name: owner.plan } });
         if (!ownerPlan || !ownerPlan.allowVcard) {
-             return res.status(403).json({ error: 'This vCard is currently unavailable due to plan restrictions.' });
+            return res.status(403).json({ error: 'This vCard is currently unavailable due to plan restrictions.' });
         }
 
         // Increment total Views counter + log individual view for time-series analytics
         await vcard.increment('views');
-        VcardViewLog.create({ vcardId: vcard.id, userId: vcard.userId, viewedAt: new Date() }).catch(() => {});
+        VcardViewLog.create({ vcardId: vcard.id, userId: vcard.userId, viewedAt: new Date() }).catch(() => { });
 
         // Note: For public view we might want to sanitize but Sequelize output should be safe if no secrets are in it.
         // Also need to mask the password if it's set
@@ -107,9 +107,9 @@ router.get('/public/:slug', async (req, res) => {
         const adminUser = await User.findOne({ where: { isAdmin: true } });
         if (adminUser) {
             const adminSettings = await Settings.findOne({ where: { userId: adminUser.id } });
-            responseData.appName = adminSettings?.appName || 'Bluetick';
+            responseData.appName = adminSettings?.appName || 'OneDash';
         } else {
-            responseData.appName = 'Bluetick';
+            responseData.appName = 'OneDash';
         }
 
         res.json(responseData);
@@ -134,7 +134,7 @@ router.get('/public/:slug/download-vcf', async (req, res) => {
         res.set('Content-Type', 'text/vcard; name="contact.vcf"');
         res.set('Content-Disposition', `attachment; filename="${vcard.slug}-contact.vcf"`);
         res.send(vcfContent);
-        
+
     } catch (error) {
         console.error("VCF Download Error:", error);
         res.status(500).send('Error generating vCard');
@@ -333,13 +333,13 @@ router.get('/data/enquiries', async (req, res) => {
             where: { userId: req.user.id },
             order: [['createdAt', 'DESC']]
         });
-        
+
         // Also fetch the vcard names to attach to the data
         const vcardIds = [...new Set(enquiries.map(e => e.vcardId))];
         const vcards = await Vcard.findAll({ where: { id: vcardIds }, attributes: ['id', 'name', 'slug'] });
         const vcardMap = {};
         vcards.forEach(v => vcardMap[v.id] = { name: v.name, slug: v.slug });
-        
+
         const enriched = enquiries.map(e => {
             const data = e.toJSON();
             data.vcardName = vcardMap[e.vcardId]?.name || 'Unknown vCard';
@@ -364,7 +364,7 @@ router.put('/data/enquiries/:id/status', async (req, res) => {
 
         enquiry.status = req.body.status;
         await enquiry.save();
-        
+
         res.json(enquiry);
     } catch (error) {
         res.status(500).json({ error: 'Failed to update enquiry' });

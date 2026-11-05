@@ -83,7 +83,7 @@ body {
   visibility: hidden;
 }
 .react-flow__attribution::after {
-  content: "Bluetick";
+  content: "OneDash";
   visibility: visible;
   position: absolute;
   right: 5px;

@@ -580,7 +580,7 @@ const Register = () => {
                             Create Account
                         </h1>
                         <p className="text-slate-500 dark:text-slate-400 text-sm">
-                            {!publicSettingsLoading && `Get started with ${publicSettings?.appName || 'Bluetick'}`}
+                            {!publicSettingsLoading && `Get started with ${publicSettings?.appName || 'OneDash'}`}
                         </p>
                     </div>
 

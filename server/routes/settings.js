@@ -7,8 +7,8 @@ const logActivity = require('../utils/logger');
 const User = require('../models/User');
 const multer = require('multer');
 const { generalImageFilter } = require('../utils/storageProvider');
-const upload = multer({ 
-    dest: 'uploads/', 
+const upload = multer({
+    dest: 'uploads/',
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
     fileFilter: generalImageFilter
 });
@@ -67,8 +67,8 @@ router.get('/public', async (req, res) => {
         // Find the first admin user
         const adminUser = await User.findOne({ where: { isAdmin: true } });
         if (!adminUser) {
-            const result = { 
-                appName: 'Bluetick',
+            const result = {
+                appName: 'OneDash',
                 menuOrder: systemConfig.menuOrder,
                 settings: {
                     showLockedMenus: systemConfig.settings?.showLockedMenus !== false && systemConfig.settings?.showLockedMenus !== 'false'
@@ -81,8 +81,8 @@ router.get('/public', async (req, res) => {
         // Get their settings
         const settings = await Settings.findOne({ where: { userId: adminUser.id } });
         if (!settings) {
-            const result = { 
-                appName: 'Bluetick',
+            const result = {
+                appName: 'OneDash',
                 menuOrder: systemConfig.menuOrder,
                 settings: {
                     showLockedMenus: systemConfig.settings?.showLockedMenus !== false && systemConfig.settings?.showLockedMenus !== 'false'
@@ -94,7 +94,7 @@ router.get('/public', async (req, res) => {
 
         // Only return non-sensitive branding data
         const result = {
-            appName: settings.appName || 'Bluetick',
+            appName: settings.appName || 'OneDash',
             appTagline: settings.appTagline || 'Business API',
             logoUrl: settings.logoUrl,
             faviconUrl: settings.faviconUrl,
@@ -171,15 +171,15 @@ router.get('/', async (req, res) => {
                 }
             }
         }
-        
+
         let jsonRes = maskSettingsForClient(settings);
-        
+
         // Admins can read system-level storage config
         if (req.user.isAdmin) {
             const SystemConfig = require('../models/SystemConfig');
             const sysConfig = await SystemConfig.getConfig();
             jsonRes.storage = sysConfig.settings?.storage || { type: 'local', s3: {}, r2: {} };
-            
+
             // Mask S3 credentials
             if (jsonRes.storage.s3?.accessKeyId) {
                 jsonRes.storage.s3.accessKeyId = maskSecret(jsonRes.storage.s3.accessKeyId);
@@ -198,7 +198,7 @@ router.get('/', async (req, res) => {
                 jsonRes.storage.r2.secretAccessKey = maskSecret(jsonRes.storage.r2.secretAccessKey);
             }
         }
-        
+
         // Return masked version — secrets are never sent to the browser
         res.json(jsonRes);
     } catch (err) {
@@ -230,9 +230,9 @@ router.post('/', async (req, res) => {
         let effectiveToken = (metaAccessToken !== undefined && !isMasked(metaAccessToken)) ? String(metaAccessToken).replace(/\s/g, '') : (settings ? settings.metaAccessToken : undefined);
         let effectiveWabaId = metaBusinessAccountId !== undefined ? String(metaBusinessAccountId).replace(/\s/g, '') : (settings ? settings.metaBusinessAccountId : undefined);
 
-        const isWaUpdate = (metaPhoneNumberId !== undefined && metaPhoneNumberId !== '') || 
-                           (metaAccessToken !== undefined && metaAccessToken !== '' && !isMasked(metaAccessToken)) || 
-                           (metaBusinessAccountId !== undefined && metaBusinessAccountId !== '');
+        const isWaUpdate = (metaPhoneNumberId !== undefined && metaPhoneNumberId !== '') ||
+            (metaAccessToken !== undefined && metaAccessToken !== '' && !isMasked(metaAccessToken)) ||
+            (metaBusinessAccountId !== undefined && metaBusinessAccountId !== '');
 
         if (isWaUpdate && effectivePhoneId && effectiveToken && effectiveWabaId) {
             try {
@@ -407,11 +407,11 @@ router.post('/', async (req, res) => {
         if (req.user.isAdmin && storage !== undefined) {
             const SystemConfig = require('../models/SystemConfig');
             const sysConfig = await SystemConfig.getConfig();
-            
+
             // ── S3 credential preservation ──
             let currentS3 = sysConfig.settings?.storage?.s3 || {};
             let safeS3 = storage.s3 ? { ...storage.s3 } : {};
-            
+
             // Preserve existing S3 credentials if masked
             if (safeS3.accessKeyId && isMasked(safeS3.accessKeyId)) {
                 safeS3.accessKeyId = currentS3.accessKeyId || '';
@@ -433,7 +433,7 @@ router.post('/', async (req, res) => {
             if (safeR2.secretAccessKey && isMasked(safeR2.secretAccessKey)) {
                 safeR2.secretAccessKey = currentR2.secretAccessKey || '';
             }
-            
+
             let safeStorage = {
                 type: storage.type || 'local',
                 s3: safeS3,
@@ -472,7 +472,7 @@ router.post('/', async (req, res) => {
                 jsonRes.storage.r2.secretAccessKey = maskSecret(jsonRes.storage.r2.secretAccessKey);
             }
         }
-        
+
         res.json(jsonRes);
     } catch (err) {
         console.error('[SETTINGS] Save error:', err.message, err.stack?.split('\n')[1]);
@@ -781,7 +781,7 @@ router.post('/test', auth, async (req, res) => {
                     return { created: true };
                 } catch (e) {
                     const code = e.response?.data?.error?.code;
-                    const msg  = e.response?.data?.error?.message || e.message;
+                    const msg = e.response?.data?.error?.message || e.message;
                     console.error('[WA TEST] Template creation failed:', e.response?.data || msg);
                     if (code === 200) {
                         return { error: 'permission' };
@@ -888,7 +888,7 @@ router.post('/test', auth, async (req, res) => {
                 console.error('[WA TEST] Unexpected error:', err.response?.data || err.message);
 
                 const metaErr = err.response?.data?.error;
-                const code    = metaErr?.code;
+                const code = metaErr?.code;
 
                 let errorMsg;
                 if (code === 200) {

@@ -754,7 +754,7 @@ export default function WaStoreSettings() {
                                                     { q: 'Domain was working but stopped?', a: 'This can happen if the DNS records were changed or if your domain expired. Re-verify your DNS to check the current status.' },
                                                     { q: 'Can I use Cloudflare proxy (orange cloud)?', a: 'Yes! Cloudflare proxy is fully compatible and recommended — it adds DDoS protection and free SSL to your store.' },
                                                     { q: 'Do I need an SSL certificate?', a: 'SSL is handled automatically. If you use Cloudflare, their free SSL works out of the box. Otherwise, our server handles SSL via Let\'s Encrypt.' },
-                                                    { q: 'My old website was on this domain. What happens?', a: 'Once you change the DNS records to point to Bluetick, your old website will stop loading on that domain. Make sure to back up your old site first.' }
+                                                    { q: 'My old website was on this domain. What happens?', a: 'Once you change the DNS records to point to OneDash, your old website will stop loading on that domain. Make sure to back up your old site first.' }
                                                 ].map((item, i) => (
                                                     <details key={i} className="bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                                                         <summary className="cursor-pointer px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300">{item.q}</summary>

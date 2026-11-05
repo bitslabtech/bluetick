@@ -625,7 +625,7 @@ function renderLandscapeLabel({ doc, order, store, currency, isCod, payableAmoun
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6);
     doc.setTextColor(100, 100, 100);
-    doc.text(`Powered by ${store?.customDomain || store?.name || 'Bluetick.cloud'}`, splitX + 3, 91.5);
+    doc.text(`Powered by ${store?.customDomain || store?.name || 'OneDash.cloud'}`, splitX + 3, 91.5);
 }
 
 // ─── Direct Thermal Print Helper ──────────────────────────────────────────────

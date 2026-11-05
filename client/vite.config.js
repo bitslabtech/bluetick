@@ -17,25 +17,17 @@ export default defineConfig({
     include: ['use-sync-external-store/shim/with-selector.js'],
     exclude: ['@xyflow/react', 'framer-motion', '@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities']
   },
+  // Drop console and debugger statements in production builds for smaller size and security
+  esbuild: {
+    drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
+  },
   build: {
     outDir: process.env.BUILD_OUT_DIR || 'dist',
     emptyOutDir: true,
     modulePreload: false, // Keep disabled so Vite doesn't preload lazy chunks in index.html
     cssCodeSplit: true,   // Split CSS per-route chunk — reduces render-blocking CSS size
     chunkSizeWarningLimit: 600, // Suppress noise for known large vendor chunks
-    // Terser gives ~15-20% smaller bundles than esbuild on complex React code.
-    // Smaller JS = less parse/compile time on low-end mobile CPUs.
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,   // Remove all console.log in production (reduces bundle size)
-        drop_debugger: true,
-        passes: 2,            // Two-pass compression for better tree-shaking results
-      },
-      mangle: {
-        safari10: true,       // Fix Safari 10 getter/setter bug
-      },
-    },
+    minify: 'esbuild',    // Native esbuild minifier — fast, reliable, and memory-safe
     rollupOptions: {
       // NOTE: Do NOT set treeshake.moduleSideEffects: false — it strips CSS imports
       // which are side-effect-only (import './index.css') and breaks all styling.

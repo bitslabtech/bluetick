@@ -32,7 +32,7 @@ const PublicHeader = () => {
     }, []);
 
     // Fallback UI to prevent LCP blocking while data fetches
-    const brandName = publicSettings?.appName || config?.brand?.name || 'Bluetick';
+    const brandName = publicSettings?.appName || config?.brand?.name || 'OneDash';
     const logoUrl = publicSettings?.logoUrl || config?.brand?.logo;
 
     return (

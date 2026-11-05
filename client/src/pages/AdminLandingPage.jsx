@@ -155,7 +155,7 @@ const AdminLandingPage = () => {
 
     // Branding Settings (from /api/settings)
     const [brandingSettings, setBrandingSettings] = useState({
-        appName: 'Bluetick',
+        appName: 'OneDash',
         appTagline: 'Business API',
         supportEmail: '',
         currency: 'USD',
@@ -463,7 +463,7 @@ const AdminLandingPage = () => {
             const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings`);
             const d = res.data;
             setBrandingSettings({
-                appName: d.appName || 'Bluetick',
+                appName: d.appName || 'OneDash',
                 appTagline: d.appTagline || 'Business API',
                 supportEmail: d.supportEmail || '',
                 currency: d.currency || 'USD',

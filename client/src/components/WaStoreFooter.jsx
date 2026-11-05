@@ -276,12 +276,12 @@ export default function WaStoreFooter({ store, theme }) {
                                 {store.customFooterText}
                             </p>
                             <p className="text-center font-medium">
-                                Made by <a href="/" className={`font-bold hover:underline ${fHeadingColor}`}>{publicSettings?.appName || 'Bluetick.cloud'}</a>
+                                Made by <a href="/" className={`font-bold hover:underline ${fHeadingColor}`}>{publicSettings?.appName || 'OneDash.cloud'}</a>
                             </p>
                         </>
                     ) : (
                         <p className="text-center sm:text-right font-medium">
-                            Made by <a href="/" className={`font-bold hover:underline ${fHeadingColor}`}>{publicSettings?.appName || 'Bluetick.cloud'}</a>
+                            Made by <a href="/" className={`font-bold hover:underline ${fHeadingColor}`}>{publicSettings?.appName || 'OneDash.cloud'}</a>
                         </p>
                     )}
                 </div>

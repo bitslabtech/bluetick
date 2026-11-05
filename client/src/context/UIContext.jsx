@@ -81,10 +81,12 @@ export const UIProvider = ({ children }) => {
             root.style.setProperty('--color-primary', data.primaryColor);
         }
         // Dynamically update document title from Superadmin settings
+        // Do NOT overwrite document.title on the landing page ('/') or public content pages (store, vcard, blog),
+        // where page-specific SEO titles are managed by their respective components.
         if (data.appName) {
             const p = window.location.pathname;
-            if (!p.startsWith('/store') && !p.startsWith('/vcard') && !p.startsWith('/blog/')) {
-                document.title = data.appName;
+            if (p !== '/' && !p.startsWith('/store') && !p.startsWith('/vcard') && !p.startsWith('/blog')) {
+                document.title = data.appName || 'OneDash';
             }
         }
         // Dynamically update the browser favicon
@@ -120,8 +122,13 @@ export const UIProvider = ({ children }) => {
             }
             setSettings(data);
 
-            // Re-apply if user has personal overrides, otherwise public stays
-            applyBranding(res.data);
+            // Re-apply personal color/favicon overrides if set, preserving global platform appName
+            if (res.data) {
+                applyBranding({
+                    ...res.data,
+                    appName: publicSettings?.appName || 'OneDash'
+                });
+            }
         } catch (err) {
             console.error("Failed to fetch settings for UI Context:", err);
         }

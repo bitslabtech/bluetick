@@ -104,7 +104,7 @@ const defaultTestimonials = [
     {
         name: 'Siddharth Mehta',
         role: 'Head of Growth at RetailPulse',
-        quote: 'Bluetick transformed our abandoned cart recovery. We saw an 84% increase in recovered orders within 2 weeks of deploying WhatsApp workflows.',
+        quote: 'OneDash transformed our abandoned cart recovery. We saw an 84% increase in recovered orders within 2 weeks of deploying WhatsApp workflows.',
         avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
     },
     {
@@ -122,7 +122,7 @@ const defaultTestimonials = [
     {
         name: 'Vikram Malhotra',
         role: 'VP of Sales at AutoCare India',
-        quote: 'Test drive bookings increased by 300% after integrating Bluetick WhatsApp automations directly with our Meta click-to-WhatsApp ads.',
+        quote: 'Test drive bookings increased by 300% after integrating OneDash WhatsApp automations directly with our Meta click-to-WhatsApp ads.',
         avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80'
     }
 ];
@@ -2203,7 +2203,8 @@ export default function LandingPage() {
                                             <span className="w-2.5 h-2.5 rounded-full bg-emerald-400/80" />
                                         </div>
                                         <div className="mx-auto text-[11px] font-mono text-slate-400 dark:text-zinc-500">
-                                            bluetick.io
+
+                                            Onedash.cloud
                                         </div>
                                     </div>
                                     <div className="rounded-xl overflow-hidden aspect-[16/9] max-h-[460px] bg-slate-900">

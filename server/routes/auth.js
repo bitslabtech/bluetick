@@ -100,7 +100,7 @@ router.post('/send-otp', authLimiter, async (req, res) => {
         const otp = await otpStore.createOtp(normalized, otpConfig);
 
         const sysConfig = await SystemConfig.getCachedConfig();
-        const appName = sysConfig?.settings?.appName || 'Bluetick';
+        const appName = sysConfig?.settings?.appName || 'OneDash';
         const minutes = Math.ceil(otpConfig.otpExpirySec / 60);
 
         let result;
@@ -257,7 +257,7 @@ router.post('/forgot-password-otp', authLimiter, async (req, res) => {
 
         const otp = await otpStore.createOtp(normalized, otpConfig);
         const sysConfig = await SystemConfig.getCachedConfig();
-        const appName = sysConfig?.settings?.appName || 'Bluetick';
+        const appName = sysConfig?.settings?.appName || 'OneDash';
         const minutes = Math.ceil(otpConfig.otpExpirySec / 60);
 
         let result;
@@ -364,7 +364,7 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
         const adminUser = await User.findOne({ where: { isAdmin: true } });
         let securityConfig = null;
         let notificationTemplates = null;
-        let appName = 'Bluetick';
+        let appName = 'OneDash';
         if (adminUser) {
             const adminSettings = await Settings.findOne({ where: { userId: adminUser.id } });
             if (adminSettings) {

@@ -114,7 +114,7 @@ export default function HeroShowcase() {
                                         <div className="bg-[#128C7E] p-3 flex items-center gap-2">
                                             <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-bold text-xs">AI</div>
                                             <div>
-                                                <div className="font-bold text-[12px]">Bluetick Assistant</div>
+                                                <div className="font-bold text-[12px]">OneDash Assistant</div>
                                                 <div className="text-[10px] text-emerald-100">Official Business Account</div>
                                             </div>
                                         </div>

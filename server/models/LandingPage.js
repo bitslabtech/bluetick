@@ -53,9 +53,9 @@ const LandingPage = sequelize.define('LandingPage', {
     brand: {
         type: DataTypes.JSON,
         defaultValue: {
-            name: 'Bluetick',
+            name: 'OneDash',
             logo: '',
-            footerText: '© 2024 Bluetick. All rights reserved.'
+            footerText: '© 2024 OneDash. All rights reserved.'
         }
     },
     trustedBy: {
@@ -86,7 +86,7 @@ const LandingPage = sequelize.define('LandingPage', {
     seo: {
         type: DataTypes.JSON,
         defaultValue: {
-            title: 'Bluetick - Bulk Messaging Platform',
+            title: 'OneDash | Ecommerce Store, WhatsApp Automation, CRM & Meta Ads',
             description: 'The best platform for WhatsApp marketing and automation.',
             keywords: 'whatsapp, marketing, bulk sender, automation, business api',
             ogImage: '',

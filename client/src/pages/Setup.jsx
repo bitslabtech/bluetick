@@ -71,7 +71,7 @@ export default function Setup() {
   const [dbTesting, setDbTesting] = useState(false);
   const [dbError, setDbError] = useState('');
   const [admin, setAdmin] = useState({ name: '', email: '', phone: '', password: '', confirm: '' });
-  const [app, setApp] = useState({ appName: 'Bluetick', frontendUrl: '' });
+  const [app, setApp] = useState({ appName: 'OneDash', frontendUrl: '' });
   const [meta, setMeta] = useState({ fbClientId: '', fbClientSecret: '', webhookToken: '' });
   const [extras, setExtras] = useState({ geminiKey: '', smtpHost: '', smtpPort: '587', smtpUser: '', smtpPass: '', smtpFrom: '', smtpFromName: '' });
 

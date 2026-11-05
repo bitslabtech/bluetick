@@ -102,7 +102,7 @@ const Settings = () => {
         language: 'en',
         dateFormat: 'DD/MM/YYYY',
         // Branding
-        appName: 'Bluetick',
+        appName: 'OneDash',
         appTagline: 'Business API',
         supportEmail: '',
         currency: 'USD',

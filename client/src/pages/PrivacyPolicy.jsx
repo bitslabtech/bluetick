@@ -7,7 +7,7 @@ const PrivacyPolicy = () => {
             <p className="text-slate-500 mb-8 font-medium">Last updated: July 2026 | Effective: July 2026</p>
 
             <p className="mb-6 text-slate-700 dark:text-slate-300 leading-relaxed">
-                This Privacy Policy explains how Bluetick ("we", "our", or "us") collects, uses, stores, and protects your information when you use our SaaS platform. By using our services, you agree to the practices described in this policy.
+                This Privacy Policy explains how OneDash ("we", "our", or "us") collects, uses, stores, and protects your information when you use our SaaS platform. By using our services, you agree to the practices described in this policy.
             </p>
 
             <h2 className="text-2xl font-bold mt-10 mb-4">1. Information We Collect</h2>

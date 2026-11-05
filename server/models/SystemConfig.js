@@ -72,7 +72,7 @@ const SystemConfig = sequelize.define('SystemConfig', {
     settings: {
         type: DataTypes.JSON,
         defaultValue: {
-            appName: 'Bluetick',
+            appName: 'OneDash',
             allowRegistration: true,
             debugMode: false,
             linkedAdminUserId: null, // Used for official Platform-as-a-CRM communication

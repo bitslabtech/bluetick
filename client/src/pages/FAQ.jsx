@@ -21,8 +21,8 @@ import PublicLayout from '../components/landing/PublicLayout';
 
 const DEFAULT_FAQS = [
     {
-        question: 'What is Bluetick and how does it work?',
-        answer: 'Bluetick is an enterprise-grade WhatsApp Business API platform that lets you broadcast targeted campaigns, automate chatbots and CRM workflows, manage shared multi-agent team inboxes, and run automated e-commerce stores with official Meta Cloud API compliance.',
+        question: 'What is OneDash and how does it work?',
+        answer: 'OneDash is an enterprise-grade WhatsApp Business API platform that lets you broadcast targeted campaigns, automate chatbots and CRM workflows, manage shared multi-agent team inboxes, and run automated e-commerce stores with official Meta Cloud API compliance.',
         category: 'General'
     },
     {
@@ -52,7 +52,7 @@ const DEFAULT_FAQS = [
     },
     {
         question: 'Can I send bulk messages without risking WhatsApp account bans?',
-        answer: 'Yes! Because Bluetick uses the official Meta WhatsApp Cloud API (not unauthorized Web automation or modded APKs), your phone number is protected from ban risks when sending approved template broadcasts.',
+        answer: 'Yes! Because OneDash uses the official Meta WhatsApp Cloud API (not unauthorized Web automation or modded APKs), your phone number is protected from ban risks when sending approved template broadcasts.',
         category: 'Broadcasts & Messaging'
     },
     {
@@ -61,7 +61,7 @@ const DEFAULT_FAQS = [
         category: 'Features & Automation'
     },
     {
-        question: 'Can I integrate Bluetick with my CRM, Shopify, or custom apps?',
+        question: 'Can I integrate OneDash with my CRM, Shopify, or custom apps?',
         answer: 'Yes! We provide full REST APIs, incoming and outgoing webhooks, and direct integrations for Shopify, WooCommerce, Zapier, and custom software stacks.',
         category: 'Features & Automation'
     }
@@ -93,7 +93,7 @@ const FAQ = () => {
         fetchLandingConfig();
     }, []);
 
-    const brandName = publicSettings?.appName || config?.brand?.name || 'Bluetick';
+    const brandName = publicSettings?.appName || config?.brand?.name || 'OneDash';
 
     useEffect(() => {
         document.title = `Frequently Asked Questions - ${brandName}`;

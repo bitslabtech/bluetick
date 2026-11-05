@@ -167,8 +167,8 @@ const PublicLayout = ({ children, title, pageKey, fullWidth = false }) => {
                     <div className="pt-8 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4 text-sm font-medium text-slate-500">
                         <div>
                             {config.footer?.bottomBarLeft
-                                ? config.footer.bottomBarLeft.replace(/\{year\}/ig, new Date().getFullYear()).replace(/\{brand\}/ig, publicSettings?.appName || config.brand?.name || 'Bluetick').replace(config.brand?.name || 'Bluetick', publicSettings?.appName || config.brand?.name || 'Bluetick')
-                                : `© ${new Date().getFullYear()} ${publicSettings?.appName || config.brand?.name || 'Bluetick'}. All rights reserved.`
+                                ? config.footer.bottomBarLeft.replace(/\{year\}/ig, new Date().getFullYear()).replace(/\{brand\}/ig, publicSettings?.appName || config.brand?.name || 'OneDash').replace(config.brand?.name || 'OneDash', publicSettings?.appName || config.brand?.name || 'OneDash')
+                                : `© ${new Date().getFullYear()} ${publicSettings?.appName || config.brand?.name || 'OneDash'}. All rights reserved.`
                             }
                         </div>
                         <div className="flex gap-4">

@@ -624,9 +624,9 @@ img{display:block;vertical-align:middle}
             const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
 
             const e = (str) => (str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            const title       = e(seo.title || brand.name || 'Bluetick');
+            const title       = e(seo.title || brand.name || 'OneDash');
             const description = e((seo.description || '').substring(0, 160));
-            const ogTitle     = e(seo.socialTitle || seo.title || brand.name || 'Bluetick');
+            const ogTitle     = e(seo.socialTitle || seo.title || brand.name || 'OneDash');
             const ogDesc      = e((seo.socialDescription || seo.description || '').substring(0, 200));
             const ogImage     = e(seo.ogImage || '');
             const canonical   = e(seo.canonicalUrl || baseUrl);
@@ -665,7 +665,7 @@ img{display:block;vertical-align:middle}
                 `<script type="application/ld+json">${JSON.stringify({
                     '@context': 'https://schema.org',
                     '@type': 'Organization',
-                    name: seo.title || brand.name || 'Bluetick',
+                    name: seo.title || brand.name || 'OneDash',
                     url: baseUrl,
                     logo: '',
                     description: seo.description || '',
@@ -675,7 +675,7 @@ img{display:block;vertical-align:middle}
                 `<script type="application/ld+json">${JSON.stringify({
                     '@context': 'https://schema.org',
                     '@type': 'WebSite',
-                    name: seo.title || brand.name || 'Bluetick',
+                    name: seo.title || brand.name || 'OneDash',
                     url: baseUrl,
                 }).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')}</script>`,
             ].filter(Boolean);
