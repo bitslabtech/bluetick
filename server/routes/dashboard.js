@@ -29,6 +29,9 @@ const getStartDate = (range, startDate, endDate) => {
         case '7d':
             start.setDate(now.getDate() - 7);
             break;
+        case '30d':
+            start.setDate(now.getDate() - 30);
+            break;
         case '1m':
             start.setMonth(now.getMonth() - 1);
             break;
@@ -221,12 +224,23 @@ router.get('/stats', async (req, res) => {
                 ]},
                 include: chatInclude
             });
-            failedCount = await ChatMessage.count({
-                where: { ...chatLogWhere, [Op.and]: [
-                    Sequelize.where(Sequelize.fn('lower', Sequelize.col('status')), 'failed')
-                ]},
-                include: chatInclude
+            // Failed campaign messages never get a ChatMessage entry (campaignProcessor intentionally
+            // skips inbox sync on failure). Count from MessageLog instead — the authoritative source.
+            const userCampaignIds = await Message.findAll({
+                where: { userId },
+                attributes: ['id'],
+                raw: true
+            }).then(rows => rows.map(r => r.id));
+            failedCount = userCampaignIds.length === 0 ? 0 : await MessageLog.count({
+                where: {
+                    createdAt: { [Op.between]: [start, end] },
+                    [Op.and]: [
+                        Sequelize.where(Sequelize.fn('lower', Sequelize.col('MessageLog.status')), 'failed')
+                    ],
+                    campaignId: { [Op.in]: userCampaignIds }
+                }
             });
+            console.log(`[stats] failedCount=${failedCount} campaignIds=${userCampaignIds.length} range=[${start.toISOString()},${end.toISOString()}]`);
             totalAttempted = await ChatMessage.count({
                 where: chatLogWhere,
                 include: chatInclude
@@ -736,4 +750,4 @@ router.get('/ai-token-history', async (req, res) => {
     }
 });
 
-module.exports = router;
+module.exports = router;

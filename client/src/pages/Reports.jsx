@@ -622,6 +622,7 @@ const Reports = () => {
                     params.startDate = customStart;
                     params.endDate = customEnd;
                 }
+                const token = localStorage.getItem('token');
                 const headers = { 'Authorization': `Bearer ${token}` };
                 const [s, c, r] = await Promise.all([
                     axios.get(`${API}/api/dashboard/stats`, { params, headers }),
@@ -682,6 +683,60 @@ const Reports = () => {
         };
         fetchExtras();
     }, [activeTab, timeRange]);
+
+    const exportCSV = () => {
+        let rows = [];
+        let filename = '';
+        if (activeTab === 'messaging') {
+            filename = `messaging_report_${timeRange}.csv`;
+            rows = [
+                ['Campaign', 'Date', 'Audience', 'Delivered', 'Read', 'Failed', 'Delivery %', 'Read %', 'Status'],
+                ...reports.map(c => [
+                    c.name,
+                    new Date(c.sentDate).toLocaleDateString(),
+                    c.audience,
+                    c.delivered,
+                    c.read,
+                    c.failed || 0,
+                    c.audience > 0 ? Math.round((c.delivered / c.audience) * 100) : 0,
+                    c.audience > 0 ? Math.round((c.read / c.audience) * 100) : 0,
+                    c.status
+                ])
+            ];
+        } else if (activeTab === 'flowbots' && flowBots?.flows) {
+            filename = `flowbots_report_${timeRange}.csv`;
+            rows = [
+                ['Flow Name', 'Trigger', 'Status', 'Triggers', 'Unique Contacts', 'Completion %', 'Last Triggered'],
+                ...flowBots.flows.map(f => [
+                    f.name,
+                    f.isAny ? 'Any Message' : (f.triggerKeyword || ''),
+                    f.isActive ? 'Active' : 'Draft',
+                    f.triggered || 0,
+                    f.uniqueContacts || 0,
+                    f.completionRate || 0,
+                    f.lastTriggered ? new Date(f.lastTriggered).toLocaleDateString() : ''
+                ])
+            ];
+        } else if (activeTab === 'meta-ads' && metaAds?.campaigns) {
+            filename = `meta_ads_report_${timeRange}.csv`;
+            rows = [
+                ['Campaign', 'Status', 'Budget/Day', 'Impressions', 'Reach', 'Clicks', 'Spend', 'CTR %', 'CPC'],
+                ...metaAds.campaigns.map(a => [
+                    a.campaignName, a.status, a.dailyBudget,
+                    a.impressions ?? '', a.reach ?? '', a.clicks ?? '',
+                    a.spend ?? '', a.ctr ?? '', a.cpc ?? ''
+                ])
+            ];
+        } else {
+            return;
+        }
+        const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename; a.click();
+        URL.revokeObjectURL(url);
+    };
 
     const TABS = [
         { id: 'messaging', label: 'Messaging', icon: Send },
@@ -748,7 +803,7 @@ const Reports = () => {
                             </select>
                             <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                         </div>
-                        <button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl px-5 py-2.5 transition-all shadow-lg shadow-indigo-500/20 active:scale-95">
+                        <button onClick={exportCSV} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl px-5 py-2.5 transition-all shadow-lg shadow-indigo-500/20 active:scale-95">
                             <Download className="w-4 h-4" />Export CSV
                         </button>
                     </div>
