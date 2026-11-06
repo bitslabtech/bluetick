@@ -30,6 +30,44 @@ const ChatMessage = require('../models/ChatMessage');
 const { getIo } = require('../socket');
 const { MAX_RETRIES, RETRY_DELAYS_HOURS } = require('./retryConfig'); // Bug #13 — single source of truth
 
+/**
+ * Checks whether the current moment falls inside the user's configured retry
+ * delivery window. Returns { inWindow: true } when retries are allowed, or
+ * { inWindow: false, nextOpen: Date } when they should be deferred.
+ *
+ * Uses Intl.DateTimeFormat so it is DST-safe and requires no extra packages.
+ */
+function getRetryWindowStatus(settings, now) {
+    const rd = settings?.whatsappAutomations?.retryDelivery;
+    if (!rd || rd.mode !== 'scheduled') return { inWindow: true };
+
+    const tz = rd.timezone || 'UTC';
+    const startTime = rd.startTime || '09:00';
+    const endTime   = rd.endTime   || '21:00';
+
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false
+    }).formatToParts(now);
+
+    const currentH    = parseInt(parts.find(p => p.type === 'hour').value, 10);
+    const currentM    = parseInt(parts.find(p => p.type === 'minute').value, 10);
+    const currentMins = currentH * 60 + currentM;
+
+    const [startH, startM] = startTime.split(':').map(Number);
+    const [endH,   endM]   = endTime.split(':').map(Number);
+    const startMins = startH * 60 + startM;
+    const endMins   = endH   * 60 + endM;
+
+    if (currentMins >= startMins && currentMins < endMins) return { inWindow: true };
+
+    // Minutes until window opens (today if before start, tomorrow if after end)
+    const minsUntilOpen = currentMins < startMins
+        ? startMins - currentMins
+        : (24 * 60 - currentMins) + startMins;
+
+    return { inWindow: false, nextOpen: new Date(now.getTime() + minsUntilOpen * 60 * 1000) };
+}
+
 const CONCURRENCY = 3;   // Low concurrency to avoid Meta rate limits during retries
 const BATCH_LIMIT = 500; // Bug #10 — cap per-run to prevent memory overload on large platforms
 
@@ -73,6 +111,14 @@ async function processRetries() {
                 if (!settings || !settings.metaAccessToken || !settings.metaPhoneNumberId) {
                     console.error(`[RETRY] Settings missing for user ${userId}. Skipping log ${log.id}.`);
                     return; // Don't permanently fail — settings might be misconfigured temporarily
+                }
+
+                // --- Delivery window check ---
+                const { inWindow, nextOpen } = getRetryWindowStatus(settings, now);
+                if (!inWindow) {
+                    await log.update({ retryAfter: nextOpen });
+                    console.log(`[RETRY] Log ${log.id} deferred — outside delivery window. Next attempt at ${nextOpen.toISOString()}`);
+                    return;
                 }
 
                 // --- Load template ---

@@ -21,7 +21,7 @@ const userNavItems = [
             { label: 'Broadcast History', path: '/campaign-list', perm: 'menu_campaigns' },
             { label: 'Contacts', path: '/contacts', perm: 'menu_contacts' },
             { label: 'Templates', path: '/templates', perm: 'menu_templates' },
-            { label: 'WhatsApp Profile', path: '/whatsapp-settings', perm: 'menu_whatsapp_settings' },
+            { label: 'WhatsApp Settings', path: '/whatsapp-settings', perm: 'menu_whatsapp_settings' },
             { label: 'Team', path: '/team', ownerOnly: true },
             { label: 'Usage & Spend', path: '/whatsapp-usage', perm: 'menu_whatsapp_inbox' },
         ]
