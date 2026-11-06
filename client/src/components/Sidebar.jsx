@@ -222,7 +222,13 @@ function NavItem({ item, location, setIsOpen, unreadCount }) {
                             </span>
                             {sub.isLocked ? (
                                 <Link
-                                    to="/billing"
+                                    to={
+                                        sub.requiresWaStore || sub.label === 'Online Store'
+                                            ? '/billing?feature=online-store'
+                                            : sub.requiresFlowbot || sub.label === 'FlowBot Builder'
+                                                ? '/billing?feature=flowbot'
+                                                : '/billing'
+                                    }
                                     onClick={(e) => e.stopPropagation()}
                                     className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700/50 whitespace-nowrap hover:bg-amber-200 dark:hover:bg-amber-900/60 transition-colors"
                                 >

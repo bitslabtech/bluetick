@@ -108,6 +108,7 @@ const checkSendLimits = async (phone, otpConfig) => {
             const retryAfterSec = Math.ceil((hourMs - (now - windowStart)) / 1000);
             return {
                 allowed: false,
+                blocked: true,
                 reason: `Too many verification codes requested. Please try again in ${Math.ceil(retryAfterSec / 60)} minute(s).`,
                 retryAfterSec
             };
@@ -166,7 +167,7 @@ const verifyOtp = async (phone, otp, otpConfig) => {
 
     if (entry.attempts >= maxAttempts) {
         await deleteEntry(phone);
-        return { valid: false, reason: 'Too many incorrect attempts. Please request a new verification code.' };
+        return { valid: false, blocked: true, maxAttemptsReached: true, reason: 'Too many incorrect attempts. Please request a new verification code.' };
     }
 
     const inputHash = hashOtp(String(otp).trim());
@@ -177,7 +178,7 @@ const verifyOtp = async (phone, otp, otpConfig) => {
         const remaining = maxAttempts - entry.attempts;
         if (remaining <= 0) {
             await deleteEntry(phone);
-            return { valid: false, reason: 'Too many incorrect attempts. Please request a new verification code.' };
+            return { valid: false, blocked: true, maxAttemptsReached: true, reason: 'Too many incorrect attempts. Please request a new verification code.' };
         }
         await setEntry(phone, entry, Math.ceil((entry.expiresAt - now)/1000));
         return { valid: false, reason: `Incorrect code. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.` };

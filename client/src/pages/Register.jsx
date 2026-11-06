@@ -123,6 +123,7 @@ const Register = () => {
     const [phoneVerifiedToken, setPhoneVerifiedToken] = useState(null);
     const [otpExpiry, setOtpExpiry] = useState(0);      // seconds remaining until OTP expires
     const [cooldown, setCooldown] = useState(0);         // seconds remaining until resend allowed
+    const [isBlocked, setIsBlocked] = useState(false);   // true when user exceeded resend or verify limits
     const otpExpiryRef = useRef(null);
     const cooldownRef = useRef(null);
     const otpInputRefs = useRef([]);
@@ -178,7 +179,11 @@ const Register = () => {
         setCooldown(seconds);
         cooldownRef.current = setInterval(() => {
             setCooldown(prev => {
-                if (prev <= 1) { clearInterval(cooldownRef.current); return 0; }
+                if (prev <= 1) {
+                    clearInterval(cooldownRef.current);
+                    setIsBlocked(false);
+                    return 0;
+                }
                 return prev - 1;
             });
         }, 1000);
@@ -200,12 +205,15 @@ const Register = () => {
             setOtpError(`Please enter a valid phone number (${hint} for ${dialCode}).`);
             return;
         }
+        if (isBlocked || cooldown > 0) return;
         setOtpError('');
+        const prevStep = otpStep;
         setOtpStep('sending');
         try {
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/send-otp`, { phone });
             setOtpDigits(['', '', '', '', '', '']);
             setOtpStep('input');
+            setIsBlocked(false);
             startExpiryTimer(res.data.expiresIn || 300);
             startCooldownTimer(res.data.cooldownSec || 60);
             // Focus first OTP box
@@ -213,34 +221,55 @@ const Register = () => {
         } catch (err) {
             const msg = err.response?.data?.error || 'Failed to send verification code. Try again.';
             const retryAfter = err.response?.data?.retryAfterSec;
+            const blocked = Boolean(
+                err.response?.data?.blocked ||
+                err.response?.status === 429 ||
+                (retryAfter && retryAfter > 60)
+            );
             if (retryAfter) startCooldownTimer(retryAfter);
+            if (blocked) {
+                setIsBlocked(true);
+            }
             setOtpError(msg);
-            setOtpStep(otpStep === 'sending' ? 'idle' : otpStep);
+            setOtpStep(prevStep === 'input' ? 'input' : 'idle');
         }
     };
 
     // ── Verify OTP ──
     const handleVerifyOtp = async (digits) => {
         const code = (digits || otpDigits).join('');
-        if (code.length < 6) return;
+        if (code.length < 6 || isBlocked) return;
         setOtpError('');
         setOtpStep('verifying');
         try {
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/verify-otp`, { phone, otp: code });
             setPhoneVerifiedToken(res.data.phoneVerifiedToken);
             setOtpStep('verified');
+            setIsBlocked(false);
             if (otpExpiryRef.current) clearInterval(otpExpiryRef.current);
             if (cooldownRef.current) clearInterval(cooldownRef.current);
         } catch (err) {
-            setOtpError(err.response?.data?.error || 'Incorrect code. Please try again.');
+            const errorMsg = err.response?.data?.error || 'Incorrect code. Please try again.';
+            const isMaxAttempts = Boolean(
+                err.response?.data?.blocked ||
+                err.response?.data?.maxAttemptsReached ||
+                (err.response?.status === 400 && errorMsg.toLowerCase().includes('too many incorrect attempts'))
+            );
+            if (isMaxAttempts) {
+                setIsBlocked(true);
+            }
+            setOtpError(errorMsg);
             setOtpStep('input');
             setOtpDigits(['', '', '', '', '', '']);
-            setTimeout(() => otpInputRefs.current[0]?.focus(), 50);
+            if (!isMaxAttempts) {
+                setTimeout(() => otpInputRefs.current[0]?.focus(), 50);
+            }
         }
     };
 
     // ── OTP digit box key handler ──
     const handleOtpKey = (index, e) => {
+        if (isBlocked) return;
         if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
             otpInputRefs.current[index - 1]?.focus();
         }
@@ -248,6 +277,7 @@ const Register = () => {
 
     // ── OTP digit change ──
     const handleOtpDigit = (index, value) => {
+        if (isBlocked) return;
         const digit = value.replace(/\D/g, '').slice(-1);
         const next = [...otpDigits];
         next[index] = digit;
@@ -263,6 +293,7 @@ const Register = () => {
 
     // ── Reset OTP when phone number changes ──
     useEffect(() => {
+        setIsBlocked(false);
         if (otpStep !== 'idle') {
             setOtpStep('idle');
             setPhoneVerifiedToken(null);
@@ -690,11 +721,12 @@ const Register = () => {
                                                     {otpEnabled && localNumber.length >= getPhoneLength(dialCode).min && (
                                                         <button
                                                             type="button"
+                                                            disabled={cooldown > 0 || isBlocked}
                                                             onClick={handleSendOtp}
-                                                            className="hidden sm:inline-flex absolute right-1.5 top-1.5 bottom-1.5 items-center justify-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-all"
+                                                            className="hidden sm:inline-flex absolute right-1.5 top-1.5 bottom-1.5 items-center justify-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                                         >
                                                             <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.878-.788-1.46-1.761-1.633-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
-                                                            Send OTP
+                                                            {cooldown > 0 ? (cooldown > 60 ? `Wait ${Math.ceil(cooldown / 60)}m` : `Wait ${cooldown}s`) : 'Send OTP'}
                                                         </button>
                                                     )}
                                                 </div>
@@ -702,18 +734,28 @@ const Register = () => {
                                             {otpEnabled && localNumber.length >= getPhoneLength(dialCode).min && (
                                                 <button
                                                     type="button"
+                                                    disabled={cooldown > 0 || isBlocked}
                                                     onClick={handleSendOtp}
-                                                    className="sm:hidden w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white text-sm font-semibold shadow-sm transition-all"
+                                                    className="sm:hidden w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white text-sm font-semibold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
                                                     <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.878-.788-1.46-1.761-1.633-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
-                                                    Send WhatsApp Code
+                                                    {cooldown > 0 ? (cooldown > 60 ? `Wait ${Math.ceil(cooldown / 60)}m` : `Wait ${cooldown}s`) : 'Send WhatsApp Code'}
                                                 </button>
                                             )}
                                         </div>
                                         <p className="text-xs text-slate-400 dark:text-slate-500">
                                             Enter number without leading zero · {(() => { const { min, max } = getPhoneLength(dialCode); return min === max ? `${min} digits required` : `${min}–${max} digits`; })()}
                                         </p>
-                                        {otpError && <p className="text-xs text-red-500 font-medium">{otpError}</p>}
+                                        {otpError && (
+                                            <div className="flex flex-wrap items-center gap-1.5 text-xs text-red-500 font-medium">
+                                                <span>{otpError}</span>
+                                                {otpError.toLowerCase().includes('already exists') && (
+                                                    <Link to="/login" className="font-bold underline text-emerald-600 dark:text-emerald-400 hover:text-emerald-700">
+                                                        Log in here →
+                                                    </Link>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
@@ -740,7 +782,7 @@ const Register = () => {
                                             </div>
                                             <button 
                                                 type="button" 
-                                                onClick={() => { setOtpStep('idle'); setOtpError(''); }}
+                                                onClick={() => { setOtpStep('idle'); setOtpError(''); setIsBlocked(false); }}
                                                 className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 hover:underline transition-colors px-2 py-1 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg"
                                             >
                                                 Edit Number
@@ -756,7 +798,7 @@ const Register = () => {
                                                     inputMode="numeric"
                                                     maxLength={1}
                                                     value={digit}
-                                                    disabled={otpStep === 'verifying' || otpExpiry === 0}
+                                                    disabled={otpStep === 'verifying' || otpExpiry === 0 || isBlocked}
                                                     onChange={(e) => handleOtpDigit(i, e.target.value)}
                                                     onKeyDown={(e) => handleOtpKey(i, e)}
                                                     className="w-10 h-12 text-center text-xl font-bold border-2 rounded-xl outline-none transition-all
@@ -776,19 +818,21 @@ const Register = () => {
                                             </div>
                                         ) : (
                                             <div className="flex items-center justify-between text-xs px-1">
-                                                {otpExpiry > 0 ? (
+                                                {otpExpiry > 0 && !isBlocked ? (
                                                     <span className="text-slate-500 dark:text-slate-400 font-medium">Expires in {otpExpiry}s</span>
+                                                ) : isBlocked ? (
+                                                    <span className="text-red-500 font-semibold">Verification blocked</span>
                                                 ) : (
                                                     <span className="text-red-500 font-semibold">Code expired</span>
                                                 )}
                                                 
                                                 <button
                                                     type="button"
-                                                    disabled={cooldown > 0}
+                                                    disabled={cooldown > 0 || isBlocked}
                                                     onClick={handleSendOtp}
                                                     className="font-semibold text-emerald-600 dark:text-emerald-400 disabled:text-slate-400 dark:disabled:text-slate-600 hover:underline transition-colors"
                                                 >
-                                                    {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend Code'}
+                                                    {cooldown > 0 ? (cooldown > 60 ? `Resend in ${Math.ceil(cooldown / 60)}m` : `Resend in ${cooldown}s`) : 'Resend Code'}
                                                 </button>
                                             </div>
                                         )}

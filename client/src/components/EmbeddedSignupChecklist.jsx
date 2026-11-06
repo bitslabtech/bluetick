@@ -1,11 +1,18 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import {
     X, Facebook, ArrowRight, Globe, Phone, Building2,
     ShieldCheck, FileText, Wifi, Smartphone, CheckCircle,
-    AlertCircle, Info, CreditCard, Mail, Hash, Lock
+    AlertCircle, Info, CreditCard, Mail, Hash, Lock,
+    Store, Sparkles, ArrowUpRight
 } from 'lucide-react';
 
 export default function EmbeddedSignupChecklist({ isOpen, onClose, onProceed, fbLoading }) {
+    const navigate = useNavigate();
+    const { user } = useAuth();
+    const hasOnlineStore = Boolean(user?.planDetails?.allowWaStore);
+
     if (!isOpen) return null;
 
     return (
@@ -51,31 +58,81 @@ export default function EmbeddedSignupChecklist({ isOpen, onClose, onProceed, fb
                         </div>
                     </div>
 
-                    {/* Card 2: Your Business */}
+                    {/* Card 2: Business Registration */}
                     <div className="flex items-start gap-4 p-4 rounded-xl border border-gray-200 bg-gray-50">
                         <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
                             <Building2 className="w-5 h-5" />
                         </div>
-                        <div>
-                            <h3 className="text-sm font-bold text-gray-900 mb-1">2. Your Business</h3>
+                        <div className="flex-1 min-w-0">
+                            <h3 className="text-sm font-bold text-gray-900 mb-1">2. Business Registration (GST / MSME)</h3>
                             <p className="text-sm text-gray-600 leading-relaxed">
-                                Have your business details and registration documents ready.<br />
-                                Meta may ask for verification.
+                                Keep your official business proof handy (such as a <strong>GST certificate</strong> or <strong>MSME / Udyam registration</strong>), as Meta may require document verification to verify your business.
                             </p>
                         </div>
                     </div>
 
-                    {/* Card 3: Your Website */}
+                    {/* Card 3: Active Website */}
                     <div className="flex items-start gap-4 p-4 rounded-xl border border-gray-200 bg-gray-50">
                         <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
                             <Globe className="w-5 h-5" />
                         </div>
-                        <div>
-                            <h3 className="text-sm font-bold text-gray-900 mb-1">3. Your Website</h3>
+                        <div className="flex-1 min-w-0">
+                            <h3 className="text-sm font-bold text-gray-900 mb-1">3. Active Website</h3>
                             <p className="text-sm text-gray-600 leading-relaxed">
-                                Have a live website on your own domain.<br />
-                                <span className="text-indigo-600 font-medium">Don't have one yet? We can help you set it up—just bring your own domain to get started</span>
+                                Have an active, functional website or online store representing your business.
                             </p>
+
+                            {hasOnlineStore ? (
+                                <div className="mt-3 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200/90 text-emerald-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                                    <div className="flex items-start gap-2.5">
+                                        <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
+                                            <Store className="w-4 h-4" />
+                                        </div>
+                                        <div className="leading-snug">
+                                            <p className="text-xs font-bold text-emerald-900">Your plan includes Online Store</p>
+                                            <p className="text-[11px] text-emerald-700 mt-0.5">
+                                                Create your store, add basic details, and add a minimum of 5 products so Meta can verify your business catalog.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            onClose();
+                                            navigate('/online-store?action=create', { state: { openCreateModal: true } });
+                                        }}
+                                        className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-xs transition-colors text-xs whitespace-nowrap"
+                                    >
+                                        <span>Create Store</span>
+                                        <ArrowRight className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="mt-3 p-3.5 rounded-xl bg-amber-50 border border-amber-200/90 text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                                    <div className="flex items-start gap-2.5">
+                                        <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                                            <Sparkles className="w-4 h-4" />
+                                        </div>
+                                        <div className="leading-snug">
+                                            <p className="text-xs font-bold text-amber-900">Need an active website?</p>
+                                            <p className="text-[11px] text-amber-800 mt-0.5">
+                                                Upgrade your plan to get Online Store and launch your online store in 15 mins.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            onClose();
+                                            navigate('/billing?feature=online-store', { state: { requiredFeature: 'online-store' } });
+                                        }}
+                                        className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg shadow-xs transition-colors text-xs whitespace-nowrap"
+                                    >
+                                        <span>Upgrade Plan</span>
+                                        <ArrowUpRight className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
 

@@ -97,6 +97,28 @@ const UpgradeFunnel = () => {
         </div>
     );
 
+    const handleUpgrade = () => {
+        const raw = (featureName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        let slug = '';
+        if (raw.includes('store') || raw.includes('ecommerce') || raw.includes('website')) {
+            slug = 'online-store';
+        } else if (raw.includes('flowbot') || raw.includes('flow')) {
+            slug = 'flowbot';
+        } else if (raw.includes('vcard') || raw.includes('card')) {
+            slug = 'vcard';
+        } else if (raw.includes('api') || raw.includes('integration')) {
+            slug = 'api';
+        } else if (raw.includes('ctwa') || raw.includes('metaad') || raw.includes('ads')) {
+            slug = 'meta-ads';
+        }
+
+        if (slug) {
+            navigate(`/billing?feature=${encodeURIComponent(slug)}`, { state: { requiredFeature: slug } });
+        } else {
+            navigate('/billing');
+        }
+    };
+
     return (
         <div className="w-full h-full flex flex-col bg-background-light dark:bg-background-dark">
             <TopHeader 
@@ -154,7 +176,7 @@ const UpgradeFunnel = () => {
 
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="pt-4">
                             <button 
-                                onClick={() => navigate('/billing')}
+                                onClick={handleUpgrade}
                                 className={`group relative flex items-center justify-center gap-2 w-full md:w-auto px-8 py-4 bg-gradient-to-r ${data.color} text-white font-bold text-lg rounded-xl shadow-xl shadow-blue-500/25 hover:shadow-blue-500/40 transition-all hover:-translate-y-1`}
                             >
                                 Upgrade Plan Now

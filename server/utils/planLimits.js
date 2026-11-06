@@ -93,6 +93,7 @@ const getMonthlyMessageCount = async (userId) => {
     const chatMessageCount = await ChatMessage.count({
         where: {
             direction: 'OUTBOUND',
+            source: { [Op.is]: null },
             createdAt: { [Op.gte]: startOfMonth },
             '$Conversation.userId$': userId
         },
@@ -101,10 +102,11 @@ const getMonthlyMessageCount = async (userId) => {
 
     const campaignMessageCount = await MessageLog.count({
         where: {
+            status: { [Op.notIn]: ['FAILED', 'RETRY_PENDING'] },
             createdAt: { [Op.gte]: startOfMonth }
         },
-        include: [{ 
-            model: Message, 
+        include: [{
+            model: Message,
             where: { userId },
             attributes: []
         }]

@@ -594,6 +594,95 @@ router.get('/', async (req, res) => {
     }
 });
 
+// GET Usage Breakdown — powers the "View Usage" modal in the billing dashboard
+router.get('/usage-breakdown', async (req, res) => {
+    try {
+        const { sequelize: db } = require('../config/database');
+        const Message = require('../models/Message');
+        const ChatMessage = require('../models/ChatMessage');
+
+        const startOfMonth = new Date();
+        startOfMonth.setDate(1);
+        startOfMonth.setHours(0, 0, 0, 0);
+
+        const userId = req.user.id;
+
+        // 1. Broadcast campaigns this month with their counted messages
+        const campaigns = await Message.findAll({
+            where: { userId, createdAt: { [Op.gte]: startOfMonth } },
+            attributes: ['id', 'campaignName', 'createdAt', 'sentCount', 'deliveredCount', 'failedCount'],
+            order: [['createdAt', 'DESC']]
+        });
+
+        const campaignIds = campaigns.map(c => c.id);
+        let countMap = {};
+        if (campaignIds.length > 0) {
+            const campaignCounts = await MessageLog.findAll({
+                where: {
+                    campaignId: { [Op.in]: campaignIds },
+                    status: { [Op.notIn]: ['FAILED', 'RETRY_PENDING'] }
+                },
+                attributes: ['campaignId', [db.fn('COUNT', db.col('id')), 'count']],
+                group: ['campaignId'],
+                raw: true
+            });
+            campaignCounts.forEach(r => { countMap[r.campaignId] = parseInt(r.count); });
+        }
+
+        const broadcasts = campaigns.map(c => ({
+            id: c.id,
+            name: c.campaignName || 'Unnamed Campaign',
+            date: c.createdAt,
+            counted: countMap[c.id] || 0,
+            delivered: c.deliveredCount,
+            failed: c.failedCount
+        }));
+
+        // 2. Daily ChatMessage outbound grouped by date + source (non-campaign)
+        const dailyRaw = await db.query(
+            `SELECT DATE("ChatMessages"."createdAt") AS date,
+                    COALESCE("ChatMessages"."source", 'live_inbox') AS source,
+                    COUNT(*) AS count
+             FROM "ChatMessages"
+             INNER JOIN "Conversations"
+               ON "ChatMessages"."conversationId" = "Conversations"."id"
+             WHERE "ChatMessages"."direction" = 'OUTBOUND'
+               AND ("ChatMessages"."source" IS NULL OR "ChatMessages"."source" != 'campaign')
+               AND "ChatMessages"."createdAt" >= :startOfMonth
+               AND "Conversations"."userId" = :userId
+             GROUP BY DATE("ChatMessages"."createdAt"),
+                      COALESCE("ChatMessages"."source", 'live_inbox')
+             ORDER BY DATE("ChatMessages"."createdAt") ASC`,
+            { replacements: { startOfMonth, userId }, type: db.QueryTypes.SELECT }
+        );
+
+        // 3. Summary totals by source
+        const summaryRaw = await db.query(
+            `SELECT COALESCE("ChatMessages"."source", 'live_inbox') AS source,
+                    COUNT(*) AS count
+             FROM "ChatMessages"
+             INNER JOIN "Conversations"
+               ON "ChatMessages"."conversationId" = "Conversations"."id"
+             WHERE "ChatMessages"."direction" = 'OUTBOUND'
+               AND ("ChatMessages"."source" IS NULL OR "ChatMessages"."source" != 'campaign')
+               AND "ChatMessages"."createdAt" >= :startOfMonth
+               AND "Conversations"."userId" = :userId
+             GROUP BY COALESCE("ChatMessages"."source", 'live_inbox')`,
+            { replacements: { startOfMonth, userId }, type: db.QueryTypes.SELECT }
+        );
+
+        const totalBroadcast = Object.values(countMap).reduce((s, v) => s + v, 0);
+        const summary = { broadcast: totalBroadcast };
+        summaryRaw.forEach(r => { summary[r.source] = parseInt(r.count); });
+        summary.total = Object.values(summary).reduce((s, v) => s + v, 0);
+
+        res.json({ broadcasts, dailyInbox: dailyRaw, summary });
+    } catch (err) {
+        console.error('[BILLING] usage-breakdown error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // GET Invoices
 router.get('/invoices', async (req, res) => {
     try {

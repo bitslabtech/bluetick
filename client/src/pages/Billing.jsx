@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import TrialBanner from '../components/TrialBanner';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import {
     Sparkles, Zap, Check, X, MessageSquare, Users, Layout,
     Clock, TrendingUp, Shield, ChevronRight, RefreshCw, Menu, Info,
-    MousePointerClick, Megaphone, CreditCard, ShoppingCart, Bot
+    MousePointerClick, Megaphone, CreditCard, ShoppingCart, Bot, Store
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import ThemeToggle from '../components/ThemeToggle';
@@ -116,7 +116,7 @@ const UsageBar = ({ label, icon, used, limit, color }) => {
     );
 };
 
-const PlanCard = ({ plan, currentPlan, billingInterval, usage, metaRates, onUpgrade }) => {
+const PlanCard = ({ plan, currentPlan, billingInterval, usage, metaRates, onUpgrade, isSuitable, missingFeature }) => {
     const currentPlanName = currentPlan?.name || 'Free';
     const isExpired = currentPlan?.expiry ? new Date(currentPlan.expiry) < new Date() : false;
     const isOnTrial = currentPlan?.status === 'Trial';
@@ -209,6 +209,14 @@ const PlanCard = ({ plan, currentPlan, billingInterval, usage, metaRates, onUpgr
                 >
                     Renew {plan.name}
                 </button>
+            ) : isSuitable ? (
+                <button
+                    onClick={() => onUpgrade(plan, intervalCode)}
+                    className="w-full py-4 rounded-xl font-bold text-center transition-all text-sm bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2"
+                >
+                    <Sparkles className="w-4 h-4 text-amber-300 fill-amber-300" />
+                    <span>Choose Suitable Plan</span>
+                </button>
             ) : (
                 <button
                     onClick={() => onUpgrade(plan, intervalCode)}
@@ -221,17 +229,41 @@ const PlanCard = ({ plan, currentPlan, billingInterval, usage, metaRates, onUpgr
     );
 
     return (
-        <div className={`relative flex flex-col h-full rounded-[2rem] border p-5 lg:p-6 transition-all ${isPopular ? theme.bgPop : theme.bgReg}`}>
+        <div className={`relative flex flex-col h-full rounded-[2rem] border p-5 lg:p-6 transition-all ${
+            isSuitable 
+                ? 'ring-2 ring-emerald-500 dark:ring-emerald-400 border-emerald-500 dark:border-emerald-400 shadow-2xl shadow-emerald-500/20 bg-emerald-50/30 dark:bg-emerald-950/20 text-slate-900 dark:text-white transform md:-translate-y-4' 
+                : missingFeature
+                ? 'border-red-400 dark:border-red-600 shadow-sm bg-red-50/20 dark:bg-red-950/10 text-slate-900 dark:text-white opacity-80'
+                : isPopular 
+                    ? theme.bgPop 
+                    : theme.bgReg
+        }`}>
             
+            {/* Suitable Requirement Tag */}
+            {isSuitable && (
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-1 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 text-white text-[10px] font-extrabold uppercase tracking-wider rounded-full shadow-lg shadow-emerald-600/30 border border-emerald-300/40 whitespace-nowrap z-20 flex items-center gap-1.5">
+                    <Sparkles className="w-3 h-3 text-amber-300 fill-amber-300 shrink-0" />
+                    <span>Suitable as per your requirement</span>
+                </div>
+            )}
+
             {/* Badges */}
             {isCurrent && (
                 <div className="absolute top-0 right-6 px-3.5 py-1.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-[9px] uppercase tracking-widest font-bold rounded-b-xl shadow-lg shadow-emerald-500/10 border-b border-x border-emerald-400/30 whitespace-nowrap z-10 flex items-center gap-1.5">
                     <Check className="w-2.5 h-2.5" /> CURRENT PLAN
                 </div>
             )}
-            {isPopular && !isCurrent && (
+            {isPopular && !isCurrent && !isSuitable && (
                 <div className="absolute top-0 right-6 px-3.5 py-1.5 bg-gradient-to-r from-indigo-500 to-violet-600 text-white text-[9px] uppercase tracking-widest font-bold rounded-b-xl shadow-lg shadow-indigo-500/10 border-b border-x border-indigo-400/30 whitespace-nowrap z-10">
                     MOST POPULAR
+                </div>
+            )}
+
+            {/* Missing Feature Warning */}
+            {missingFeature && (
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 text-[10px] font-bold border border-amber-300 dark:border-amber-600/50 rounded-full whitespace-nowrap z-20 flex items-center gap-1.5 shadow-sm">
+                    <X className="w-2.5 h-2.5 shrink-0" />
+                    <span>No {missingFeature}</span>
                 </div>
             )}
 
@@ -349,9 +381,9 @@ const PlanCard = ({ plan, currentPlan, billingInterval, usage, metaRates, onUpgr
                             </li>
                         )}
                         {plan.waStoreLimit > 0 || plan.waStoreLimit === -1 ? (
-                            <li className="flex items-center gap-3 text-sm font-semibold">
-                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
-                                <span>{plan.waStoreLimit === -1 ? 'Unlimited' : plan.waStoreLimit} Online Stores</span>
+                            <li className={`flex items-center gap-3 text-sm font-semibold ${isSuitable ? 'text-emerald-700 dark:text-emerald-300 font-bold' : ''}`}>
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isSuitable ? 'bg-emerald-500 text-white' : theme.checkSubtle}`}><Check className="w-3 h-3" /></div>
+                                <span>{plan.waStoreLimit === -1 ? 'Unlimited' : plan.waStoreLimit} Online Stores {isSuitable && <span className="text-[10px] bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 rounded-full ml-1 font-bold">Included</span>}</span>
                             </li>
                         ) : (
                             <li className="flex items-center gap-3 text-sm font-semibold opacity-70">
@@ -474,7 +506,37 @@ const PlanCard = ({ plan, currentPlan, billingInterval, usage, metaRates, onUpgr
 
 const Billing = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const [searchParams] = useSearchParams();
     const { user } = useAuth();
+    const plansRef = useRef(null);
+    const suitableCardRef = useRef(null);
+
+    const targetFeature = searchParams.get('feature') || location.state?.requiredFeature;
+    const normalizedTarget = (targetFeature || '').toLowerCase().replace(/[-_\s]/g, '');
+    // Feature detection — which feature is the user looking for?
+    const isOnlineStoreRequested = ['onlinestore', 'store', 'wastore', 'website'].includes(normalizedTarget);
+    const isFlowbotRequested     = ['flowbot', 'flowbotbuilder', 'flow', 'bot'].includes(normalizedTarget);
+    const isVcardRequested       = ['vcard', 'vcards', 'vecard', 'vecards'].includes(normalizedTarget);
+    const isMetaAdsRequested     = ['metaads', 'meta', 'ads', 'metaad'].includes(normalizedTarget);
+
+    // Generic: is any contextual feature requested?
+    const isFeatureRequested = isOnlineStoreRequested || isFlowbotRequested || isVcardRequested || isMetaAdsRequested;
+
+    // Human-readable label for the requested feature
+    const featureLabel = isOnlineStoreRequested ? 'Online Store'
+        : isFlowbotRequested ? 'FlowBot Builder'
+        : isVcardRequested   ? 'vCards'
+        : isMetaAdsRequested ? 'Meta Ads'
+        : null;
+
+    // Icon for the feature banner
+    const FeatureBannerIcon = isOnlineStoreRequested ? Store
+        : isFlowbotRequested ? Bot
+        : isVcardRequested   ? CreditCard
+        : isMetaAdsRequested ? Megaphone
+        : Store;
+
     const [billingInfo, setBillingInfo] = useState(null);
     const [plans, setPlans] = useState([]);
     const [metaRates, setMetaRates] = useState(null);
@@ -482,6 +544,8 @@ const Billing = () => {
     const [loading, setLoading] = useState(true);
     const [pendingManualRequest, setPendingManualRequest] = useState(null);
     const [cancellingRequest, setCancellingRequest] = useState(false);
+
+    // Auto-scroll removed — page loads at top always
 
     useEffect(() => {
         const fetchData = async () => {
@@ -538,6 +602,31 @@ const Billing = () => {
     const hasMonthly = plans.some(p => parseFloat(p.monthlyPrice) > 0);
     const hasHalfYearly = plans.some(p => parseFloat(p.halfYearlyPrice) > 0);
     const hasYearly = plans.some(p => parseFloat(p.yearlyPrice) > 0);
+
+    // Identify ALL plans that include the requested feature — every qualifying plan gets the badge.
+    const suitablePlans = isOnlineStoreRequested
+        ? plans.filter(p => p.allowWaStore || p.waStoreLimit > 0 || p.waStoreLimit === -1)
+        : isFlowbotRequested
+        ? plans.filter(p => p.flowBotEnabled)
+        : isVcardRequested
+        ? plans.filter(p => p.vcardLimit > 0 || p.vcardLimit === -1)
+        : isMetaAdsRequested
+        ? plans.filter(p => p.allowMetaAds)
+        : [];
+    // Set of IDs for O(1) lookup per card
+    const suitablePlanIds = new Set(suitablePlans.map(p => p.id));
+    // Keep a reference to the cheapest suitable plan for the banner text
+    const suitablePlan = suitablePlans[0] || null;
+
+    // Does a given plan include the requested feature?
+    const planHasRequestedFeature = (p) => {
+        if (!isFeatureRequested) return true;
+        if (isOnlineStoreRequested) return Boolean(p.allowWaStore || p.waStoreLimit > 0 || p.waStoreLimit === -1);
+        if (isFlowbotRequested)     return Boolean(p.flowBotEnabled);
+        if (isVcardRequested)       return Boolean(p.vcardLimit > 0 || p.vcardLimit === -1);
+        if (isMetaAdsRequested)     return Boolean(p.allowMetaAds);
+        return true;
+    };
 
     const maxYearlySavings = Math.max(0, ...plans.map(p => {
         const m = parseFloat(p.monthlyPrice) || 0;
@@ -628,8 +717,36 @@ const Billing = () => {
                             </div>
                         )}
 
+                        {/* ── Feature Requirement Banner ── */}
+                        {isFeatureRequested && featureLabel && (
+                            <div className="flex items-start sm:items-center justify-between gap-4 p-4 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-indigo-500/10 border border-emerald-500/30 rounded-2xl shadow-sm text-left">
+                                <div className="flex items-center gap-3.5">
+                                    <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-600/20">
+                                        <FeatureBannerIcon className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                                            Looking for {featureLabel}?
+                                        </h3>
+                                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                                            {suitablePlan
+                                                ? <>We've tagged the <strong>{suitablePlan.name}</strong> plan — the most affordable option that includes <strong>{featureLabel}</strong>. Plans without it are marked below.</>
+                                                : <>No plan currently includes <strong>{featureLabel}</strong>. <button onClick={() => navigate('/support')} className="underline">Contact support</button> for a custom plan.</>
+                                            }
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => navigate('/billing', { replace: true, state: {} })}
+                                    className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white bg-white/80 dark:bg-slate-800/80 rounded-lg border border-slate-200 dark:border-white/10 shrink-0 transition-colors"
+                                >
+                                    View All Plans
+                                </button>
+                            </div>
+                        )}
+
                         {/* Plans Grid */}
-                        <div>
+                        <div ref={plansRef}>
                             <div className="mb-10 flex flex-col items-center justify-center text-center gap-6">
                                 <div>
                                     <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Available Plans</h2>
@@ -680,18 +797,29 @@ const Billing = () => {
                                 <div className="text-center py-20 text-slate-400">No plans available at the moment.</div>
                             ) : (
                                 <div className="flex flex-wrap justify-center gap-6">
-                                    {plans.map(p => (
-                                        <div key={p.id} className="w-full sm:w-[calc(50%-1.5rem)] lg:w-[calc(33.333%-1.5rem)] xl:w-[calc(25%-1.5rem)] max-w-[300px] flex flex-col">
-                                            <PlanCard
-                                                plan={p}
-                                                currentPlan={billingInfo?.plan}
-                                                billingInterval={billingInterval}
-                                                usage={billingInfo?.usage}
-                                                metaRates={metaRates}
-                                                onUpgrade={handleUpgrade}
-                                            />
-                                        </div>
-                                    ))}
+                                    {plans.map(p => {
+                                        const isSuitable = suitablePlanIds.has(p.id);
+                                        const missingFeature = isFeatureRequested && !planHasRequestedFeature(p);
+
+                                        return (
+                                            <div
+                                                key={p.id}
+                                                ref={isSuitable && p.id === (suitablePlans[0]?.id) ? suitableCardRef : null}
+                                                className="w-full sm:w-[calc(50%-1.5rem)] lg:w-[calc(33.333%-1.5rem)] xl:w-[calc(25%-1.5rem)] max-w-[300px] flex flex-col pt-5"
+                                            >
+                                                <PlanCard
+                                                    plan={p}
+                                                    currentPlan={billingInfo?.plan}
+                                                    billingInterval={billingInterval}
+                                                    usage={billingInfo?.usage}
+                                                    metaRates={metaRates}
+                                                    onUpgrade={handleUpgrade}
+                                                    isSuitable={isSuitable}
+                                                    missingFeature={missingFeature ? featureLabel : null}
+                                                />
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>

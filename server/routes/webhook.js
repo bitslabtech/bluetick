@@ -468,6 +468,7 @@ router.post('/:userId', (req, res, next) => {
                                                 components: richComponents
                                             },
                                             status: 'delivered',
+                                            source: 'campaign',
                                             timestamp: new Date()
                                         });
 
@@ -917,6 +918,7 @@ router.post('/:userId', (req, res, next) => {
                                                 type: 'text',
                                                 body: ackText,
                                                 status: 'sent',
+                                                source: 'auto_reply',
                                                 timestamp: new Date()
                                             });
                                             
@@ -1332,6 +1334,7 @@ router.post('/:userId', (req, res, next) => {
                                                         type: 'text',
                                                         body: replyText,
                                                         status: 'sent',
+                                                        source: 'auto_reply',
                                                         timestamp: new Date()
                                                     });
                                                     conversation.lastMessage = replyText;
@@ -1403,6 +1406,7 @@ router.post('/:userId', (req, res, next) => {
                                                     type: 'text',
                                                     body: aiReplyText,
                                                     status: 'sent',
+                                                    source: 'ai_bot',
                                                     timestamp: new Date()
                                                 });
                                                 conversation.lastMessage = aiReplyText;

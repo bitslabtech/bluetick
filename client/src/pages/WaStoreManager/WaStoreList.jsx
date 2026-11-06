@@ -1,20 +1,33 @@
 import React, { useState, useEffect, startTransition } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { Store, Plus, ArrowRight, Activity, ExternalLink, Settings, LayoutTemplate, Package } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function WaStoreList() {
+    const navigate = useNavigate();
+    const location = useLocation();
+    const [searchParams] = useSearchParams();
+
     const [stores, setStores] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showCreateModal, setShowCreateModal] = useState(() => {
+        return searchParams.get('action') === 'create' || !!location.state?.openCreateModal;
+    });
     const [countryCode, setCountryCode] = useState('+91');
     const [newStore, setNewStore] = useState({ name: '', slug: '', whatsappNumber: '', currency: 'INR' });
-    const navigate = useNavigate();
 
     useEffect(() => {
         fetchStores();
     }, []);
+
+    useEffect(() => {
+        if (searchParams.get('action') === 'create' || location.state?.openCreateModal) {
+            setShowCreateModal(true);
+            // Clean up the URL query param and route state so it doesn't re-trigger on subsequent reloads or back navigation
+            navigate(location.pathname, { replace: true, state: {} });
+        }
+    }, [searchParams, location.state, navigate, location.pathname]);
 
     const fetchStores = async () => {
         try {
@@ -44,125 +57,127 @@ export default function WaStoreList() {
         }
     };
 
-    if (loading) return (
-        <div className="w-full lg:w-[70%] max-w-[1600px] mx-auto px-4 lg:px-0 space-y-6 mt-6 animate-pulse">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <div className="h-8 w-48 bg-slate-200 dark:bg-slate-700 rounded-lg mb-2"></div>
-                    <div className="h-4 w-72 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
-                </div>
-                <div className="h-10 w-32 bg-slate-200 dark:bg-slate-700 rounded-xl"></div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-                {[1, 2, 3].map((i) => (
-                    <div key={i} className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-white/10 rounded-2xl p-6">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="w-12 h-12 rounded-xl bg-slate-200 dark:bg-slate-700"></div>
-                            <div className="w-16 h-6 rounded-full bg-slate-200 dark:bg-slate-700"></div>
-                        </div>
-                        <div className="h-6 w-3/4 bg-slate-200 dark:bg-slate-700 rounded-lg mb-2"></div>
-                        <div className="h-4 w-1/2 bg-slate-200 dark:bg-slate-700 rounded-lg mb-6"></div>
-                        
-                        <div className="grid grid-cols-3 gap-2 mb-6">
-                            <div className="h-12 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
-                            <div className="h-12 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
-                            <div className="h-12 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
-                        </div>
-                        
-                        <div className="h-10 w-full bg-slate-200 dark:bg-slate-700 rounded-xl"></div>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-
     return (
         <div className="w-full lg:w-[70%] max-w-[1600px] mx-auto px-4 lg:px-0 space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-                        <Store className="w-6 h-6 text-indigo-600" />
-                        Online Stores
-                    </h1>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">Manage your interactive WhatsApp e-commerce storefronts.</p>
-                </div>
-                <button 
-                    onClick={() => setShowCreateModal(true)}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors"
-                >
-                    <Plus className="w-5 h-5" />
-                    Create Store
-                </button>
-            </div>
-
-            {stores.length === 0 ? (
-                <div className="flex flex-col items-center justify-center min-h-[40vh] bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 md:p-8 text-center">
-                    <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center mb-4">
-                        <Store className="w-8 h-8" />
+            {loading ? (
+                <div className="space-y-6 mt-6 animate-pulse">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <div className="h-8 w-48 bg-slate-200 dark:bg-slate-700 rounded-lg mb-2"></div>
+                            <div className="h-4 w-72 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+                        </div>
+                        <div className="h-10 w-32 bg-slate-200 dark:bg-slate-700 rounded-xl"></div>
                     </div>
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No stores yet</h2>
-                    <p className="text-slate-500 max-w-md mx-auto mb-6">Create your first Online store to start selling your products seamlessly with interactive themes.</p>
-                    <button 
-                        onClick={() => setShowCreateModal(true)}
-                        className="flex items-center gap-2 px-4 md:px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors"
-                    >
-                        <Plus className="w-5 h-5" />
-                        Create Your First Store
-                    </button>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+                        {[1, 2, 3].map((i) => (
+                            <div key={i} className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-white/10 rounded-2xl p-6">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="w-12 h-12 rounded-xl bg-slate-200 dark:bg-slate-700"></div>
+                                    <div className="w-16 h-6 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+                                </div>
+                                <div className="h-6 w-3/4 bg-slate-200 dark:bg-slate-700 rounded-lg mb-2"></div>
+                                <div className="h-4 w-1/2 bg-slate-200 dark:bg-slate-700 rounded-lg mb-6"></div>
+                                
+                                <div className="grid grid-cols-3 gap-2 mb-6">
+                                    <div className="h-12 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+                                    <div className="h-12 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+                                    <div className="h-12 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+                                </div>
+                                
+                                <div className="h-10 w-full bg-slate-200 dark:bg-slate-700 rounded-xl"></div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {stores.map(store => (
-                        <div key={store.id} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden hover:border-indigo-300 dark:hover:border-indigo-500/50 transition-all group">
-                            <div className="p-4 md:p-6">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl">
-                                        {store.name.charAt(0)}
-                                    </div>
-                                    <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${store.isActive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'}`}>
-                                        {store.isActive ? 'Active' : 'Draft'}
-                                    </span>
-                                </div>
-                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{store.name}</h3>
-                                <a 
-                                    href={store.customDomain && store.domainStatus === 'verified' ? `https://${store.customDomain}` : `/store/${store.slug}`} 
-                                    target="_blank" 
-                                    rel="noreferrer" 
-                                    className="text-sm text-indigo-600 dark:text-indigo-400 flex items-center gap-1 hover:underline mb-4"
-                                >
-                                    {store.customDomain && store.domainStatus === 'verified' ? store.customDomain : `/store/${store.slug}`} <ExternalLink className="w-3 h-3" />
-                                </a>
-                                
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-6">
-                                    <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-center">
-                                        <Package className="w-4 h-4 mx-auto text-slate-400 mb-1" />
-                                        <p className="text-xs text-slate-500">Products</p>
-                                    </div>
-                                    <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-center">
-                                        <LayoutTemplate className="w-4 h-4 mx-auto text-slate-400 mb-1" />
-                                        <p className="text-xs text-slate-500 uppercase">{store.themeId}</p>
-                                    </div>
-                                    <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-center">
-                                        <Activity className="w-4 h-4 mx-auto text-slate-400 mb-1" />
-                                        <p className="text-xs text-slate-500">{store.views} views</p>
-                                    </div>
-                                </div>
-
-                                <button 
-                                    onClick={() => {
-                                        startTransition(() => {
-                                            navigate(`/online-store/${store.slug}/analytics`);
-                                        });
-                                    }}
-                                    className="w-full flex items-center justify-center gap-2 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white rounded-lg transition-colors font-medium text-sm"
-                                >
-                                    Manage Store <ArrowRight className="w-4 h-4" />
-                                </button>
-                            </div>
+                <>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+                                <Store className="w-6 h-6 text-indigo-600" />
+                                Online Stores
+                            </h1>
+                            <p className="text-slate-500 dark:text-slate-400 mt-1">Manage your interactive WhatsApp e-commerce storefronts.</p>
                         </div>
-                    ))}
-                </div>
+                        <button 
+                            onClick={() => setShowCreateModal(true)}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors"
+                        >
+                            <Plus className="w-5 h-5" />
+                            Create Store
+                        </button>
+                    </div>
+
+                    {stores.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center min-h-[40vh] bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-4 md:p-8 text-center">
+                            <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center mb-4">
+                                <Store className="w-8 h-8" />
+                            </div>
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No stores yet</h2>
+                            <p className="text-slate-500 max-w-md mx-auto mb-6">Create your first Online store to start selling your products seamlessly with interactive themes.</p>
+                            <button 
+                                onClick={() => setShowCreateModal(true)}
+                                className="flex items-center gap-2 px-4 md:px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors"
+                            >
+                                <Plus className="w-5 h-5" />
+                                Create Your First Store
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {stores.map(store => (
+                                <div key={store.id} className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden hover:border-indigo-300 dark:hover:border-indigo-500/50 transition-all group">
+                                    <div className="p-4 md:p-6">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl">
+                                                {store.name.charAt(0)}
+                                            </div>
+                                            <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${store.isActive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'}`}>
+                                                {store.isActive ? 'Active' : 'Draft'}
+                                            </span>
+                                        </div>
+                                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{store.name}</h3>
+                                        <a 
+                                            href={store.customDomain && store.domainStatus === 'verified' ? `https://${store.customDomain}` : `/store/${store.slug}`} 
+                                            target="_blank" 
+                                            rel="noreferrer" 
+                                            className="text-sm text-indigo-600 dark:text-indigo-400 flex items-center gap-1 hover:underline mb-4"
+                                        >
+                                            {store.customDomain && store.domainStatus === 'verified' ? store.customDomain : `/store/${store.slug}`} <ExternalLink className="w-3 h-3" />
+                                        </a>
+                                        
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-6">
+                                            <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-center">
+                                                <Package className="w-4 h-4 mx-auto text-slate-400 mb-1" />
+                                                <p className="text-xs text-slate-500">Products</p>
+                                            </div>
+                                            <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-center">
+                                                <LayoutTemplate className="w-4 h-4 mx-auto text-slate-400 mb-1" />
+                                                <p className="text-xs text-slate-500 uppercase">{store.themeId}</p>
+                                            </div>
+                                            <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-center">
+                                                <Activity className="w-4 h-4 mx-auto text-slate-400 mb-1" />
+                                                <p className="text-xs text-slate-500">{store.views} views</p>
+                                            </div>
+                                        </div>
+
+                                        <button 
+                                            onClick={() => {
+                                                startTransition(() => {
+                                                    navigate(`/online-store/${store.slug}/analytics`);
+                                                });
+                                            }}
+                                            className="w-full flex items-center justify-center gap-2 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white rounded-lg transition-colors font-medium text-sm"
+                                        >
+                                            Manage Store <ArrowRight className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </>
             )}
 
             {showCreateModal && (

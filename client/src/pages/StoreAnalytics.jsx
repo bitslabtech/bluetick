@@ -348,7 +348,7 @@ const StoreAnalytics = () => {
                 </p>
 
                 <button
-                    onClick={() => navigate('/billing')}
+                    onClick={() => navigate('/billing?feature=online-store', { state: { requiredFeature: 'online-store' } })}
                     className="inline-flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-400 text-white font-bold rounded-xl shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 transition-all text-sm"
                 >
                     <ArrowUpRight className="w-4 h-4" />
@@ -397,7 +397,7 @@ const StoreAnalytics = () => {
                 </div>
 
                 <button
-                    onClick={() => navigate('/online-store')}
+                    onClick={() => navigate('/online-store?action=create', { state: { openCreateModal: true } })}
                     className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/25 hover:shadow-emerald-600/40 transition-all text-sm"
                 >
                     <Plus className="w-4 h-4" />

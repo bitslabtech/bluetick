@@ -326,6 +326,7 @@ async function processRetries() {
                             body: fullBody,
                             templateData: { name: template.name, language: template.language, components: richComponents },
                             status: 'sent',
+                            source: 'campaign',
                             timestamp: nowTs
                         });
                         console.log(`[RETRY INBOX] Created ChatMessage for phone: ${phone} after successful retry.`);

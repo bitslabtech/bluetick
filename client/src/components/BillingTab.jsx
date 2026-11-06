@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Sparkles, CheckCircle2, XCircle, Clock, BarChart, MessageCircle, UserPlus, Layout, Zap, FileText, Download, TrendingUp, Calendar, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Sparkles, CheckCircle2, XCircle, Clock, BarChart, MessageCircle, UserPlus, Layout, Zap, FileText, Download, TrendingUp, Calendar, AlertTriangle, ShieldCheck, Eye } from 'lucide-react';
 import BillingProfile from './BillingProfile';
 import { InvoiceDetailModal } from '../pages/AdminInvoices';
+import UsageBreakdownModal from './UsageBreakdownModal';
 
 const BillingTab = () => {
     const navigate = useNavigate();
@@ -11,6 +12,7 @@ const BillingTab = () => {
     const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedInvoice, setSelectedInvoice] = useState(null);
+    const [showUsage, setShowUsage] = useState(false);
 
     useEffect(() => {
         fetchBillingData();
@@ -192,6 +194,12 @@ const BillingTab = () => {
                             <span className="text-slate-400 mx-1">/</span>
                             {usage?.monthlyLimit === -1 ? 'Unlimited' : usage?.monthlyLimit?.toLocaleString()}
                         </p>
+                        <button
+                            onClick={() => setShowUsage(true)}
+                            className="mt-3 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors border border-indigo-200 dark:border-indigo-700/50"
+                        >
+                            <Eye className="w-3.5 h-3.5" /> View Usage
+                        </button>
                     </div>
                 </div>
             </div>
@@ -311,12 +319,14 @@ const BillingTab = () => {
         </div>
 
         {selectedInvoice && (
-            <InvoiceDetailModal 
-                invoice={selectedInvoice} 
-                onClose={() => setSelectedInvoice(null)} 
+            <InvoiceDetailModal
+                invoice={selectedInvoice}
+                onClose={() => setSelectedInvoice(null)}
                 isUser={true}
             />
         )}
+
+        {showUsage && <UsageBreakdownModal onClose={() => setShowUsage(false)} />}
         </>
     );
 };

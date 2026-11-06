@@ -51,6 +51,10 @@ const ChatMessage = sequelize.define('ChatMessage', {
         type: DataTypes.JSONB,
         allowNull: true,
         comment: 'CTWA referral data from Meta (source_id, headline, image_url, etc.) if message originated from a WhatsApp Ad'
+    },
+    source: {
+        type: DataTypes.STRING,
+        allowNull: true
     }
 }, {
     timestamps: true,

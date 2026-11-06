@@ -1042,6 +1042,7 @@ class FlowRunner {
                     type: logType,
                     body: logBody,
                     status: 'sent',
+                    source: 'flowbot',
                     mediaUrl: extraData.mediaUrl || null,
                     templateData: extraData.templateData || null,
                     timestamp: new Date()

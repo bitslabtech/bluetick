@@ -19,6 +19,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns'; // We need date-fns, if not available I will use native logic or check package.json
 import EmbeddedSignupChecklist from '../components/EmbeddedSignupChecklist';
 import StoreAnalytics from './StoreAnalytics';
+import UsageBreakdownModal from '../components/UsageBreakdownModal';
 
 const WhatsAppEmptyState = ({ onConnect, loading }) => (
     <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-8 sm:p-12 shadow-sm text-center max-w-3xl mx-auto my-6 animate-in fade-in zoom-in-95 duration-500">
@@ -109,6 +110,7 @@ const Dashboard = () => {
     const [chartLoading, setChartLoading] = useState(true); // Separate loading for chart
     const [fbLoading, setFbLoading] = useState(false);
     const [showChecklistModal, setShowChecklistModal] = useState(false);
+    const [showUsageModal, setShowUsageModal] = useState(false);
 
     // Filter State
     const [dateRange, setDateRange] = useState('7d'); // 1d, 7d, 1m, 3m, custom
@@ -636,6 +638,12 @@ const Dashboard = () => {
                                     style={{ width: stats.monthlyLimit === -1 ? '0%' : `${Math.min((stats.monthlyUsageCount / (stats.monthlyLimit || 30)) * 100, 100)}%` }}
                                 ></div>
                             </div>
+                            <button
+                                onClick={() => setShowUsageModal(true)}
+                                className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-indigo-500 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+                            >
+                                <Eye className="w-3.5 h-3.5" /> View Usage
+                            </button>
                         </div>
 
                         {/* Stat 2: Delivery Rate */}
@@ -1153,6 +1161,8 @@ const Dashboard = () => {
                 }}
                 fbLoading={fbLoading}
             />
+
+            {showUsageModal && <UsageBreakdownModal onClose={() => setShowUsageModal(false)} />}
 
             {/* ── Quality Insights Modal ────────────────────────────────────────── */}
             <AnimatePresence>

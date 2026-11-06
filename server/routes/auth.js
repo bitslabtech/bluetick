@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { Op } = require('sequelize');
 const { authLimiter } = require('../middleware/rateLimiter');
 const verifyTurnstile = require('../middleware/turnstile');
 const bcrypt = require('bcryptjs');
@@ -87,12 +88,28 @@ router.post('/send-otp', authLimiter, async (req, res) => {
             return res.status(400).json({ error: 'Invalid phone number.' });
         }
 
+        // ── Pre-send Check: Prevent sending OTP if account already exists ──
+        // Saves WhatsApp template message charges and informs user immediately.
+        const existingUser = await User.findOne({
+            where: {
+                [Op.or]: [
+                    { phone: phone },
+                    { phone: normalized },
+                    { phone: `+${normalized}` }
+                ]
+            }
+        });
+        if (existingUser) {
+            return res.status(400).json({ error: 'An account with this phone number already exists. Please log in.' });
+        }
+
         // ── Rate limit check ──
         const limitCheck = await otpStore.checkSendLimits(normalized, otpConfig);
         if (!limitCheck.allowed) {
             return res.status(429).json({
                 error: limitCheck.reason,
-                retryAfterSec: limitCheck.retryAfterSec
+                retryAfterSec: limitCheck.retryAfterSec,
+                blocked: Boolean(limitCheck.blocked)
             });
         }
 
@@ -196,7 +213,11 @@ router.post('/verify-otp', authLimiter, async (req, res) => {
         const result = await otpStore.verifyOtp(normalized, otp, otpConfig);
 
         if (!result.valid) {
-            return res.status(400).json({ error: result.reason });
+            return res.status(400).json({
+                error: result.reason,
+                blocked: Boolean(result.blocked),
+                maxAttemptsReached: Boolean(result.maxAttemptsReached)
+            });
         }
 
         // Issue a short-lived phoneVerifiedToken — proves the phone was verified.
@@ -331,7 +352,11 @@ router.post('/reset-password-otp', authLimiter, async (req, res) => {
         const result = await otpStore.verifyOtp(normalized, otp, otpConfig);
 
         if (!result.valid) {
-            return res.status(400).json({ error: result.reason });
+            return res.status(400).json({
+                error: result.reason,
+                blocked: Boolean(result.blocked),
+                maxAttemptsReached: Boolean(result.maxAttemptsReached)
+            });
         }
 
         let user = await User.findOne({ where: { phone: normalized } });
@@ -416,7 +441,16 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
             return res.status(400).json({ error: 'An account with this email address already exists.' });
         }
 
-        let phoneUser = await User.findOne({ where: { phone } });
+        const normalizedPhone = otpStore.normalizePhone(phone);
+        let phoneUser = await User.findOne({
+            where: {
+                [Op.or]: [
+                    { phone: phone },
+                    { phone: normalizedPhone },
+                    { phone: `+${normalizedPhone}` }
+                ]
+            }
+        });
         if (phoneUser) {
             return res.status(400).json({ error: 'An account with this phone number already exists.' });
         }
