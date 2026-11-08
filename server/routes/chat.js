@@ -155,6 +155,19 @@ router.get('/unread-count', async (req, res) => {
 router.get('/conversations/:id/messages', async (req, res) => {
     try {
         console.log(`[CHAT API] GET /conversations/${req.params.id}/messages`);
+
+        // ── Ownership check (prevents cross-tenant IDOR) ──────────────────────────
+        // Without this, any authenticated user could read another workspace's chat
+        // history simply by supplying its conversation id. Scope to the caller's
+        // workspace (owner, or parent workspace for sub-members) and 404 otherwise.
+        const ownerId = req.user.parentUserId || req.user.id;
+        const conversation = await Conversation.findOne({
+            where: { id: req.params.id, userId: ownerId }
+        });
+        if (!conversation) {
+            return res.status(404).json({ error: 'Conversation not found' });
+        }
+
         const messages = await ChatMessage.findAll({
             where: { conversationId: req.params.id },
             order: [['timestamp', 'ASC']]

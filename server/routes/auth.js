@@ -730,8 +730,13 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
     }
 });
 
-// LOGIN
-router.post('/login', authLimiter, verifyTurnstile, async (req, res) => {
+// Shared login handler for both the web and mobile endpoints.
+// Credentials and all account checks are identical; the ONLY differences are:
+//   - web  (/login):        protected by Turnstile, token delivered as HttpOnly cookie only.
+//   - mobile (/mobile-login): no Turnstile (native apps can't render it), token ALSO
+//                             returned in the JSON body so the app can store a Bearer token.
+// `includeTokenInBody` controls that one behaviour.
+async function handleLogin(req, res, { includeTokenInBody = false } = {}) {
     try {
         let { email, password } = req.body;
         if (email) email = email.trim().toLowerCase();
@@ -769,10 +774,11 @@ router.post('/login', authLimiter, verifyTurnstile, async (req, res) => {
         const Plan = require('../models/Plan');
         const planDetails = await Plan.findOne({ where: { name: user.plan } });
 
-        // Set HttpOnly cookie and return user data (no token in response body)
+        // Set HttpOnly cookie (web) — harmless for mobile, which ignores it.
         const token = generateToken(user);
         setAuthCookies(res, token);
-        res.json({
+
+        const payload = {
             user: {
                 id: user.id,
                 name: user.name,
@@ -789,13 +795,24 @@ router.post('/login', authLimiter, verifyTurnstile, async (req, res) => {
                 parentUserId: user.parentUserId,
                 teamPolicy: user.teamPolicy
             }
-        });
+        };
+        // Mobile/native clients can't use the HttpOnly cookie, so hand them the token.
+        if (includeTokenInBody) payload.token = token;
+
+        res.json(payload);
 
     } catch (err) {
         console.error('[LOGIN] Error:', err);
         res.status(500).json({ error: 'Login failed. Please try again.' });
     }
-});
+}
+
+// LOGIN (web) — Turnstile-protected, cookie-based.
+router.post('/login', authLimiter, verifyTurnstile, (req, res) => handleLogin(req, res, { includeTokenInBody: false }));
+
+// MOBILE LOGIN — same credentials, no Turnstile, returns the JWT in the body for
+// Bearer-token auth from the OneDash mobile app.
+router.post('/mobile-login', authLimiter, (req, res) => handleLogin(req, res, { includeTokenInBody: true }));
 
 // LOGOUT — Clear HttpOnly auth cookies
 router.post('/logout', (req, res) => {

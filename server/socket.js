@@ -73,7 +73,7 @@ const initSocket = (server) => {
         }
     });
 
-    io.use((socket, next) => {
+    io.use(async (socket, next) => {
         // Extract token from HttpOnly cookie in handshake headers, fallback to auth.token
         let token = null;
         const cookieHeader = socket.handshake.headers?.cookie || '';
@@ -93,6 +93,19 @@ const initSocket = (server) => {
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
             socket.user = decoded.user;
+
+            // Resolve the workspace owner room from the DB (sub-members inherit the
+            // parent account's workspace). This is the ONLY trusted source of room
+            // membership — client-supplied ids in join_* events are never trusted,
+            // otherwise any authenticated user could subscribe to another tenant's
+            // live messages simply by emitting join_personal(<their id>).
+            try {
+                const User = require('./models/User');
+                const dbUser = await User.findByPk(decoded.user.id, { attributes: ['id', 'parentUserId'] });
+                socket.ownerId = (dbUser && dbUser.parentUserId) ? dbUser.parentUserId : decoded.user.id;
+            } catch (dbErr) {
+                socket.ownerId = decoded.user.id;
+            }
             next();
         } catch (e) {
             next(new Error('Invalid token'));
@@ -102,38 +115,40 @@ const initSocket = (server) => {
     io.on('connection', (socket) => {
         console.log('New client connected: ' + socket.id);
 
-        // Frontend will emit this when they load the WhatsApp Inbox
-        socket.on('join_waba', (wabaId) => {
-            if (wabaId) {
-                console.log(`Socket ${socket.id} joining room: ${wabaId}`);
-                socket.join(wabaId);
-            }
+        // Rooms are ALWAYS derived from the authenticated user (socket.ownerId /
+        // socket.user.id), never from the id the client passes in. The event
+        // arguments are ignored on purpose so a user can only ever join their own
+        // workspace room and their own personal room.
+
+        // Frontend emits this when it loads the WhatsApp Inbox.
+        socket.on('join_waba', () => {
+            socket.join(socket.ownerId); // workspace owner room — receives new_message etc.
+            console.log(`Socket ${socket.id} joined workspace room: ${socket.ownerId}`);
         });
 
-        // Join a personal room (userId) for direct targeted notifications like chat assignment
-        socket.on('join_personal', (userId) => {
-            if (userId) {
-                socket.join(userId);
-                console.log(`Socket ${socket.id} joined personal room: ${userId}`);
-            }
+        // Personal room for direct targeted notifications like chat assignment.
+        socket.on('join_personal', () => {
+            socket.join(socket.user.id);  // personal room (assignment targets realId)
+            socket.join(socket.ownerId);  // workspace room (new_message targets owner id)
+            console.log(`Socket ${socket.id} joined personal room ${socket.user.id} + workspace ${socket.ownerId}`);
         });
 
         // Team Live Status & Presence Tracking
-        socket.on('user_connected', (data) => {
-            const { userId, parentId } = data;
-            if (userId) {
-                onlineUsers.set(socket.id, userId);
+        socket.on('user_connected', () => {
+            const userId = socket.user.id;
+            onlineUsers.set(socket.id, userId);
 
-                // The "room" is based on the parent account. If they are the parent, they use their own ID.
-                const roomToJoin = parentId || userId;
-                userRooms.set(socket.id, roomToJoin);
+            // The team room is the workspace owner, resolved from the DB — not from
+            // client input. team_<ownerId> also receives new_message, so trusting a
+            // client-supplied parentId here would reopen the same cross-tenant leak.
+            const roomToJoin = socket.ownerId;
+            userRooms.set(socket.id, roomToJoin);
 
-                socket.join(`team_${roomToJoin}`);
-                console.log(`User ${userId} joined team room team_${roomToJoin}`);
+            socket.join(`team_${roomToJoin}`);
+            console.log(`User ${userId} joined team room team_${roomToJoin}`);
 
-                // Broadcast to the team room that this specific user is now online
-                io.to(`team_${roomToJoin}`).emit('user_status_change', { userId, isOnline: true });
-            }
+            // Broadcast to the team room that this specific user is now online
+            io.to(`team_${roomToJoin}`).emit('user_status_change', { userId, isOnline: true });
         });
 
         socket.on('disconnect', () => {
