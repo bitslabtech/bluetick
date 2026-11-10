@@ -3,7 +3,7 @@ import TrialBanner from '../components/TrialBanner';
 import { createPortal } from 'react-dom';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
-import { Bell, LifeBuoy, Ticket, Book, Map, Plus, Trash2, Send, CheckCircle2, MoreHorizontal, MessageSquare, CornerDownRight, ThumbsUp as ThumbsUpIcon, Filter, X, ExternalLink, Calendar, Clock, AlertCircle, User, Search, Paperclip } from 'lucide-react';
+import { Bell, LifeBuoy, Ticket, Book, Map, Plus, Trash2, Send, CheckCircle2, MoreHorizontal, MessageSquare, CornerDownRight, ThumbsUp as ThumbsUpIcon, Filter, X, ExternalLink, Calendar, Clock, AlertCircle, User, Search, Paperclip, Loader2 } from 'lucide-react';
 
 import { useUI } from '../context/UIContext';
 import AdminHeader from '../components/AdminHeader';
@@ -326,7 +326,7 @@ const TicketManager = ({ tickets, refresh, showToast, showModal, initialTicketId
             {/* Ticket Detail Modal */}
             {selectedTicket && (
                 <TicketDetailModal
-                    ticket={selectedTicket}
+                    ticket={tickets.find(t => t.id === selectedTicket.id) || selectedTicket}
                     onClose={() => setSelectedTicket(null)}
                     refresh={refresh}
                     showToast={showToast}
@@ -355,7 +355,7 @@ const TicketDetailModal = ({ ticket, onClose, refresh, showToast, showModal }) =
                     await axios.patch(`${import.meta.env.VITE_API_URL}/api/support/tickets/${ticket.id}/status`, { status: newStatus });
                     setCurrentStatus(newStatus);
                     setTicketStatus(newStatus);
-                    refresh();
+                    refresh(false);
                     showToast({ type: 'success', title: 'Status Updated', message: `Ticket is now ${newStatus}.` });
                 } catch (err) {
                     console.error('Status update failed:', err.response?.status, err.response?.data || err.message);
@@ -368,6 +368,11 @@ const TicketDetailModal = ({ ticket, onClose, refresh, showToast, showModal }) =
     const [attachedImage, setAttachedImage] = useState(null);
     const [attachedPreview, setAttachedPreview] = useState(null);
     const fileInputRef = useRef(null);
+    const messagesEndRef = useRef(null);
+
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }, [ticket.messages?.length]);
 
     const handleFileSelect = (file) => {
         if (!file || !file.type.match(/^image\/(jpeg|png|jpg)$/i)) return;
@@ -411,7 +416,7 @@ const TicketDetailModal = ({ ticket, onClose, refresh, showToast, showModal }) =
             setReply('');
             setAttachedImage(null);
             setAttachedPreview(null);
-            refresh();
+            refresh(false);
             showToast({ type: 'success', title: 'Reply Sent', message: 'Reply added to ticket.' });
         } catch (err) {
             console.error(err);
@@ -484,6 +489,7 @@ const TicketDetailModal = ({ ticket, onClose, refresh, showToast, showModal }) =
                                     </div>
                                 </div>
                             ))}
+                            <div ref={messagesEndRef} />
                         </div>
 
                         {/* Reply Box */}
@@ -534,7 +540,7 @@ const TicketDetailModal = ({ ticket, onClose, refresh, showToast, showModal }) =
                                     disabled={sending || (!reply.trim() && !attachedImage)}
                                     className="absolute right-3 bottom-3 p-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl transition-all shadow-lg shadow-indigo-500/20"
                                 >
-                                    <Send className="w-4 h-4" />
+                                    {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                                 </button>
                                 <input
                                     ref={fileInputRef}

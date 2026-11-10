@@ -116,14 +116,20 @@ export const NotificationProvider = ({ children }) => {
     }, []);
 
     const markOneRead = useCallback((notifId) => {
-        if (!isAdmin) {
+        if (isAdmin) {
+            const target = notifications.find(n => n.id === notifId);
+            if (!target || target.isRead) return;
+            setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, isRead: true } : n));
+            setUnreadCount(prev => Math.max(0, prev - 1));
+            axios.put(import.meta.env.VITE_API_URL + "/api/admin-notifications/" + notifId + "/read").catch(err => console.error(err));
+        } else {
             const currentIds = getReadIds();
             if (!currentIds.includes(notifId)) {
                 saveReadIds([...currentIds, notifId]);
                 setUnreadCount(prev => Math.max(0, prev - 1));
             }
         }
-    }, [isAdmin, getReadIds, saveReadIds]);
+    }, [isAdmin, notifications, getReadIds, saveReadIds]);
 
     const value = {
         notifications, unreadCount, prevUnreadRef, markAllRead, markOneRead, getReadIds,

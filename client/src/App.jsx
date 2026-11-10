@@ -157,6 +157,15 @@ const PARTNER_KEY = 'partner_code';
 const PARTNER_EXPIRY_KEY = 'partner_code_expiry';
 const PARTNER_TTL_MS = 60 * 24 * 60 * 60 * 1000; // 60 days
 
+function UiScale() {
+    const { pathname } = useLocation();
+    useEffect(() => {
+        const isPublicPage = pathname.startsWith('/store/') || pathname.startsWith('/vecards/') || !isPlatformDomain(window.location.hostname);
+        document.documentElement.toggleAttribute('data-no-scale', isPublicPage);
+    }, [pathname]);
+    return null;
+}
+
 function ReferralCapture() {
     const location = useLocation();
     useEffect(() => {
@@ -597,6 +606,7 @@ function App() {
                             <Router>
                                 <AnalyticsListener />
                                 <EditorSync />
+                                <UiScale />
                                 <ReferralCapture />
                                 <Toaster position="top-right" />
                                 <PaymentRedirectHandler />

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import TrialBanner from '../components/TrialBanner';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
-import { Ticket, Book, Map, Plus, Send, Search, ChevronRight, ThumbsUp, Paperclip, X, CreditCard, Laptop, HelpCircle, User, Menu, Coffee, Sparkles } from 'lucide-react';
+import { Ticket, Book, Map, Plus, Send, Search, ChevronRight, ThumbsUp, Paperclip, X, CreditCard, Laptop, HelpCircle, User, Menu, Coffee, Sparkles, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -767,6 +767,12 @@ const UserTicketManager = ({ tickets, refresh, initialView, initialTicketId, onV
     const [attachedImage, setAttachedImage] = useState(null);
     const [attachedPreview, setAttachedPreview] = useState(null);
     const fileInputRef = useRef(null);
+    const messagesEndRef = useRef(null);
+    const [sendingReply, setSendingReply] = useState(false);
+
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }, [selectedTicket?.id, selectedTicket?.messages?.length]);
 
     const handleFileSelect = (file) => {
         if (!file || !file.type.match(/^image\/(jpeg|png|jpg)$/i)) return;
@@ -815,7 +821,8 @@ const UserTicketManager = ({ tickets, refresh, initialView, initialTicketId, onV
     };
 
     const handleReply = async () => {
-        if (!replyMessage.trim() && !attachedImage) return;
+        if ((!replyMessage.trim() && !attachedImage) || sendingReply) return;
+        setSendingReply(true);
         const tempMessage = replyMessage;
         const tempImage = attachedImage;
         const tempPreview = attachedPreview;
@@ -851,6 +858,8 @@ const UserTicketManager = ({ tickets, refresh, initialView, initialTicketId, onV
             setAttachedImage(tempImage);
             setAttachedPreview(tempPreview);
             alert("Failed to send reply. Please try again.");
+        } finally {
+            setSendingReply(false);
         }
     };
 
@@ -987,7 +996,7 @@ const UserTicketManager = ({ tickets, refresh, initialView, initialTicketId, onV
                                     <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-slate-50/30 dark:bg-black/20 hide-scrollbar">
                                         {selectedTicket.messages.map((msg, i) => (
                                             <div key={i} className={`flex ${msg.sender === 'User' ? 'justify-end' : 'justify-start'}`}>
-                                                <div className={`max-w-[85%] md:max-w-[80%] rounded-2xl p-4 shadow-sm ${msg.sender === 'User' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white dark:bg-surface-dark border border-slate-100 dark:border-white/5 text-slate-900 dark:text-white rounded-tl-none'}`}>
+                                                <div className={`max-w-[85%] md:max-w-[80%] rounded-2xl p-4 shadow-sm ${msg.sender === 'User' ? 'bg-indigo-50 dark:bg-indigo-500/15 border border-indigo-100 dark:border-indigo-500/20 text-slate-900 dark:text-white rounded-tr-none' : 'bg-white dark:bg-surface-dark border border-slate-100 dark:border-white/5 text-slate-900 dark:text-white rounded-tl-none'}`}>
                                                     {msg.text && <p className="text-sm leading-relaxed">{msg.text}</p>}
                                                     {msg.imageUrl && (
                                                         <img
@@ -997,10 +1006,11 @@ const UserTicketManager = ({ tickets, refresh, initialView, initialTicketId, onV
                                                             onClick={() => window.open(msg.imageUrl, '_blank', 'noopener,noreferrer')}
                                                         />
                                                     )}
-                                                    <p className={`text-[10px] mt-2 opacity-70 ${msg.sender === 'User' ? 'text-indigo-100' : 'text-slate-400'}`}>{formatDistanceToNow(new Date(msg.timestamp), { addSuffix: true })}</p>
+                                                    <p className={`text-[10px] mt-2 opacity-70 text-slate-400`}>{formatDistanceToNow(new Date(msg.timestamp), { addSuffix: true })}</p>
                                                 </div>
                                             </div>
                                         ))}
+                                        <div ref={messagesEndRef} />
                                     </div>
                                     <div className="p-4 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-surface-dark shrink-0">
                                         {attachedPreview && (
@@ -1032,7 +1042,7 @@ const UserTicketManager = ({ tickets, refresh, initialView, initialTicketId, onV
                                             >
                                                 <Paperclip className="w-5 h-5" />
                                             </button>
-                                            <button onClick={handleReply} className="p-3 bg-indigo-600 hover:bg-indigo-700 transition-colors text-white rounded-xl shrink-0"><Send className="w-5 h-5" /></button>
+                                            <button onClick={handleReply} disabled={sendingReply} className="p-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-70 disabled:cursor-not-allowed transition-colors text-white rounded-xl shrink-0">{sendingReply ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}</button>
                                             <input
                                                 ref={fileInputRef}
                                                 type="file"

@@ -345,8 +345,21 @@ router.patch('/tickets/:id/status', async (req, res) => {
             return res.status(400).json({ error: 'This ticket is closed.' });
         }
 
+        const previousStatus = ticket.status;
         ticket.status = status;
         await ticket.save();
+
+        // Notify superadmin when the ticket owner resolves or reopens their ticket
+        if (!req.user.isAdmin && status !== previousStatus && (status === 'Resolved' || status === 'Open')) {
+            try {
+                await AdminNotification.create({
+                    type: 'SUPPORT_TICKET',
+                    message: `${status === 'Resolved' ? 'Ticket Resolved' : 'Ticket Reopened'} by ${req.user.name}: ${ticket.subject}`,
+                    data: { ticketId: ticket.id, userId: req.user.id }
+                });
+            } catch {}
+        }
+
         res.json(ticket);
     } catch (err) {
         console.error('Patch Status Error:', err);

@@ -22,6 +22,16 @@
   --font-display: 'Inter', sans-serif;
 }
 
+/* Fluid UI scale: Tailwind sizes are rem-based, so shrinking the root font size
+   scales the whole app like browser zoom. ~81% at 1366px, 100% from 1920px up.
+   Breakpoints use the browser's initial 16px and are unaffected. Public
+   storefronts / vCards opt out via [data-no-scale] (set in App.jsx). */
+@media (min-width: 1024px) {
+  html:not([data-no-scale]) {
+    font-size: clamp(13px, calc(5px + 0.58vw), 16px);
+  }
+}
+
 body {
   font-family: 'Inter', sans-serif;
   @apply bg-background-light dark:bg-background-dark text-slate-900 dark:text-white;

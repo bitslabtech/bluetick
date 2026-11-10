@@ -211,7 +211,7 @@ const NotificationBell = () => {
                                             <div
                                                 key={notif.id || i}
                                                 onClick={() => {
-                                                    if (!isAdmin && !isRead) {
+                                                    if (!isRead) {
                                                         markOneRead(notif.id);
                                                     }
                                                     setIsNotificationsOpen(false);
@@ -243,6 +243,7 @@ const NotificationBell = () => {
                                                                 <button
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
+                                                                        markOneRead(notif.id);
                                                                         setIsNotificationsOpen(false);
                                                                         navigate(`/superadmin/support?ticketId=${notif.data.ticketId}`);
                                                                     }}
@@ -258,6 +259,7 @@ const NotificationBell = () => {
                                                                 <button
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
+                                                                        markOneRead(notif.id);
                                                                         setIsNotificationsOpen(false);
                                                                         if (notif.buttonUrl.startsWith('http')) {
                                                                             window.open(notif.buttonUrl, '_blank', 'noopener,noreferrer');
