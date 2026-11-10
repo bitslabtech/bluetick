@@ -154,13 +154,6 @@ router.get('/unread-count', async (req, res) => {
 // GET /conversations/:id/messages - Message history
 router.get('/conversations/:id/messages', async (req, res) => {
     try {
-        const ownerId = req.user.parentUserId || req.user.id;
-        // Verify the conversation belongs to this account before returning its messages.
-        const conversation = await Conversation.findOne({
-            where: { id: req.params.id, userId: ownerId }
-        });
-        if (!conversation) return res.status(404).json({ error: 'Conversation not found' });
-
         console.log(`[CHAT API] GET /conversations/${req.params.id}/messages`);
 
         // ── Ownership check (prevents cross-tenant IDOR) ──────────────────────────
