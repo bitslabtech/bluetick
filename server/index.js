@@ -110,10 +110,10 @@ const _getAllowedOrigins = async () => {
             const WaStoreModel = require('./models/WaStore');
             const { Op } = require('sequelize');
             const rows = await WaStoreModel.findAll({
-                // Allow ANY store that has a custom domain set (pending, verified, or active).
-                // If a visitor is on a custom domain, DNS is already routing correctly —
-                // blocking their API calls would break checkout and account features.
-                where: { customDomain: { [Op.not]: null }, isActive: true },
+                // Only allow stores whose custom domain has been verified.
+                // Unverified domains could be set to any hostname (including evil.com)
+                // and would otherwise let an attacker read authenticated API responses.
+                where: { customDomain: { [Op.not]: null }, domainStatus: 'verified', isActive: true },
                 attributes: ['customDomain'],
                 raw: true,
             });
@@ -163,11 +163,6 @@ function _isPlatformOrigin(origin) {
         const h = hostname.toLowerCase();
         // Always allow localhost / 127.0.0.1
         if (h === 'localhost' || h === '127.0.0.1') return true;
-        // Direct IP address access
-        if (/(\d{1,3}\.){3}\d{1,3}$/.test(h)) return true;
-        // PaaS / Dynamic DNS domains (Coolify, sslip.io, nip.io, traefik.me, etc.)
-        const paasPatterns = ['sslip.io', 'nip.io', 'traefik.me', 'ngrok.io', 'ngrok-free.app', 'railway.app', 'onrender.com', 'vercel.app', 'netlify.app'];
-        if (paasPatterns.some(p => h.includes(p))) return true;
         // Allow primary FRONTEND_URL (exact)
         const primary = process.env.FRONTEND_URL || '';
         if (primary && origin === primary) return true;
@@ -431,22 +426,51 @@ if (fs.existsSync(distIndex)) {
     // scanner finds the image in the raw HTML response.
     // It also embeds initial store+products data to eliminate the API call on first render,
     // cutting the LCP "resource load delay" from ~2,600ms to ~100ms on mobile.
+
+    // In-memory cache: slug → verified customDomain (or null). Avoids a full DB round-trip
+    // on every hit to /store/:slug when the store has already redirected once.
+    // TTL: 5 minutes. Stale entries are evicted lazily on next read.
+    const _slugDomainCache = new Map();
+    const _SLUG_CACHE_TTL = 5 * 60 * 1000;
+
     app.get('/store/:slug', async (req, res) => {
         try {
+            const { slug } = req.params;
             const WaStore = require('./models/WaStore');
             const WaProduct = require('./models/WaProduct');
             // warmCache is exported from imgProxy — used to pre-warm the LCP image
             // cache BEFORE the browser even receives the HTML.
             const { warmCache } = require('./routes/imgProxy');
 
+            // ── Fast-path: serve the 301 from cache without hitting the DB ──────────
+            // On first miss the full DB query below populates the cache; on subsequent
+            // hits within the TTL we skip the query entirely and redirect in <1ms.
+            if (req.query.editor !== 'true') {
+                const cached = _slugDomainCache.get(slug);
+                if (cached && cached.expiresAt > Date.now() && cached.customDomain) {
+                    res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
+                    return res.redirect(301, `https://${cached.customDomain}`);
+                }
+            }
+
             const store = await WaStore.findOne({
-                where: { slug: req.params.slug, isActive: true }
+                where: { slug, isActive: true }
             });
+
+            // Populate the cache from the DB result (store null = no redirect, still cached)
+            if (req.query.editor !== 'true') {
+                const customDomain = (store?.customDomain && store?.domainStatus === 'verified')
+                    ? store.customDomain : null;
+                _slugDomainCache.set(slug, { customDomain, expiresAt: Date.now() + _SLUG_CACHE_TTL });
+            }
 
             // If store has a verified custom domain, permanently redirect public visitors
             // from the platform subpath (onedash.cloud/store/slug) to their custom domain.
             // Preserves editor iframe access (?editor=true) inside the admin visual editor.
+            // Cache-Control: browsers and CDN will cache this redirect for 5 minutes,
+            // making repeat visits truly instant without hitting the server at all.
             if (store && store.customDomain && store.domainStatus === 'verified' && req.query.editor !== 'true') {
+                res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
                 return res.redirect(301, `https://${store.customDomain}`);
             }
 

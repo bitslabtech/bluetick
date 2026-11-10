@@ -124,7 +124,8 @@ const Settings = () => {
                 expiryAlert: { templateName: 'expiry_alert_v1', languageCode: 'en_US', enabled: true },
                 quotaLimit: { templateName: 'quota_alert_v1', languageCode: 'en_US', enabled: true },
                 systemUpdate: { templateName: 'system_update_v1', languageCode: 'en_US', enabled: false },
-                features: { templateName: 'feature_announcement_v1', languageCode: 'en_US', enabled: false }
+                features: { templateName: 'feature_announcement_v1', languageCode: 'en_US', enabled: false },
+                inactiveLoginReminder: { templateName: '', languageCode: 'en_US', enabled: false, inactiveDays: 14 }
             }
         },
         // Security — safe defaults to prevent crashes before API fetch completes
@@ -1111,6 +1112,13 @@ const Settings = () => {
             icon: Zap,
             description: 'Sent when new features are added to the platform.',
             variables: ['{name}', '{feature_name}', '{feature_details}', '{link}']
+        },
+        {
+            id: 'inactiveLoginReminder',
+            label: 'Inactive User Login Reminder',
+            icon: Clock,
+            description: 'Sent to users who have not logged in for a configured number of days.',
+            variables: ['{name}', '{days}', '{last_login_date}', '{login_link}']
         }
     ];
 
@@ -1707,6 +1715,27 @@ const Settings = () => {
                                                     </div>
 
                                                     {/* Custom configurations based on category */}
+                                                    {cat.id === 'inactiveLoginReminder' && (
+                                                        <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700/50">
+                                                            <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-2">Inactivity Threshold</h4>
+                                                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Send the reminder after this many days since the user last logged in.</p>
+                                                            <div className="w-48">
+                                                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Days Since Last Login</label>
+                                                                <div className="relative flex items-center">
+                                                                    <input
+                                                                        type="number"
+                                                                        min="1"
+                                                                        value={formData.notificationTemplates.whatsapp?.inactiveLoginReminder?.inactiveDays ?? 14}
+                                                                        onChange={(e) => handleTemplateChange('whatsapp', 'inactiveLoginReminder', 'inactiveDays', parseInt(e.target.value) || 14)}
+                                                                        className="w-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:outline-none"
+                                                                        placeholder="14"
+                                                                    />
+                                                                    <span className="absolute right-3 text-xs text-slate-400">days</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
                                                     {cat.id === 'expiryAlert' && (
                                                         <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700/50">
                                                             <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-2">Reminder Triggers</h4>

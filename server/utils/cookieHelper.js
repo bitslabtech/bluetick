@@ -10,11 +10,12 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 const COOKIE_OPTIONS = {
     httpOnly: true,                    // JS cannot read
-    secure: isProduction,              // HTTPS only in prod (required for SameSite=None)
-    // In production (cross-origin): SameSite=None so Brave/Firefox/Chrome all send
-    // the cookie across origins. In dev (localhost): Lax since Secure=false
-    // and SameSite=None requires Secure.
-    sameSite: isProduction ? 'none' : 'lax',
+    secure: isProduction,              // HTTPS only in prod
+    // SameSite=Lax: cookies are sent for same-site requests and top-level navigation,
+    // but NOT for cross-site AJAX. This prevents CSRF from custom store domains.
+    // Works because app.onedash.cloud and api.onedash.cloud share the same registered
+    // domain (onedash.cloud), so they are treated as same-site by browsers.
+    sameSite: 'lax',
     maxAge: 24 * 60 * 60 * 1000,      // 24h — matches JWT expiry
     path: '/'
 };

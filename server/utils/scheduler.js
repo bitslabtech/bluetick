@@ -196,7 +196,8 @@ function initScheduler() {
             const expiryTpl = waTemplates.expiryAlert;
             const quotaTpl = waTemplates.quotaLimit;
 
-            if (!expiryTpl?.enabled && !quotaTpl?.enabled) return;
+            const inactiveLoginTpl = waTemplates.inactiveLoginReminder;
+            if (!expiryTpl?.enabled && !quotaTpl?.enabled && !inactiveLoginTpl?.enabled) return;
 
             // Fetch active users with phone numbers
             const activeUsers = await User.findAll({
@@ -531,6 +532,81 @@ function initScheduler() {
             // ── AUTO-TAG EXPIRY PRUNING ──────────────────────────────────────────
             // Remove tags from contacts where their TTL (expiresInHours) has lapsed
             await pruneExpiredTags();
+
+            // ==========================================
+            // 4. INACTIVE USER LOGIN REMINDERS
+            // ==========================================
+            try {
+                if (inactiveLoginTpl?.enabled && inactiveLoginTpl?.templateName) {
+                    const inactiveDays = Math.max(1, parseInt(inactiveLoginTpl.inactiveDays) || 14);
+                    const cutoff = new Date(now.getTime() - inactiveDays * 24 * 60 * 60 * 1000);
+
+                    const inactiveUsers = await User.findAll({
+                        where: {
+                            phone: { [Op.and]: [{ [Op.not]: null }, { [Op.ne]: '' }] },
+                            parentUserId: null,
+                            [Op.and]: [
+                                {
+                                    [Op.or]: [
+                                        { lastLogin: { [Op.lt]: cutoff } },
+                                        { lastLogin: null }
+                                    ]
+                                },
+                                {
+                                    [Op.or]: [
+                                        { lastInactiveReminderSent: null },
+                                        { lastInactiveReminderSent: { [Op.lt]: cutoff } }
+                                    ]
+                                }
+                            ]
+                        }
+                    });
+
+                    for (const inactiveUser of inactiveUsers) {
+                        const userPhone = inactiveUser.phone.replace(/\D/g, '');
+                        if (!userPhone) continue;
+
+                        const lastLoginDate = inactiveUser.lastLogin
+                            ? new Date(inactiveUser.lastLogin).toLocaleDateString()
+                            : 'Never';
+                        const loginLink = process.env.FRONTEND_URL || 'https://app.onedash.cloud';
+
+                        const contextMap = {
+                            '{name}': inactiveUser.name || 'User',
+                            '{days}': inactiveDays.toString(),
+                            '{last_login_date}': lastLoginDate,
+                            '{login_link}': loginLink
+                        };
+
+                        let parameters = [];
+                        if (inactiveLoginTpl.selectedVariables && inactiveLoginTpl.selectedVariables.length > 0) {
+                            parameters = inactiveLoginTpl.selectedVariables.map(v => ({
+                                type: 'text',
+                                text: contextMap[v] || 'N/A'
+                            }));
+                        } else {
+                            parameters = [
+                                { type: 'text', text: inactiveUser.name || 'User' },
+                                { type: 'text', text: inactiveDays.toString() },
+                                { type: 'text', text: lastLoginDate },
+                                { type: 'text', text: loginLink }
+                            ];
+                        }
+
+                        await sendSystemMessage(userPhone, 'template', {
+                            templateName: inactiveLoginTpl.templateName,
+                            languageCode: inactiveLoginTpl.languageCode || 'en_US',
+                            components: [{ type: 'body', parameters }]
+                        });
+
+                        inactiveUser.lastInactiveReminderSent = now;
+                        await inactiveUser.save();
+                        console.log(`[INACTIVE REMINDER] Sent to ${userPhone} (last login: ${lastLoginDate})`);
+                    }
+                }
+            } catch (inactiveErr) {
+                console.error('[INACTIVE REMINDER] Job error:', inactiveErr);
+            }
 
         } catch (err) {
             console.error('Scheduler Expiry & Quota check error:', err);

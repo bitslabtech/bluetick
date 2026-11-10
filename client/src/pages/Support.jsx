@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import TrialBanner from '../components/TrialBanner';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
@@ -9,6 +9,64 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from '../components/ThemeToggle';
 import NotificationBell from '../components/NotificationBell';
 import UserDropdown from '../components/UserDropdown';
+
+const parseInline = (text) => {
+    const result = [];
+    let key = 0;
+    let remaining = text;
+    while (remaining.length > 0) {
+        let earliest = null;
+        const tryMatch = (re, type) => {
+            const m = re.exec(remaining);
+            if (m && (earliest === null || m.index < earliest.index)) {
+                earliest = { type, m, index: m.index };
+            }
+        };
+        tryMatch(/\*\*(.+?)\*\*/, 'bold');
+        tryMatch(/(?<!\*)\*([^*\n]+)\*(?!\*)/, 'italic');
+        tryMatch(/`([^`]+)`/, 'code');
+        tryMatch(/\[([^\]]+)\]\(([^)]+)\)/, 'link');
+        if (!earliest) { result.push(remaining); break; }
+        if (earliest.index > 0) result.push(remaining.slice(0, earliest.index));
+        if (earliest.type === 'bold') result.push(<strong key={key++} className="font-bold text-slate-900 dark:text-white">{earliest.m[1]}</strong>);
+        else if (earliest.type === 'italic') result.push(<em key={key++}>{earliest.m[1]}</em>);
+        else if (earliest.type === 'code') result.push(<code key={key++} className="bg-slate-100 dark:bg-white/10 px-1.5 py-0.5 rounded text-sm font-mono text-indigo-600 dark:text-indigo-400">{earliest.m[1]}</code>);
+        else if (earliest.type === 'link') result.push(<a key={key++} href={earliest.m[2]} target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 underline">{earliest.m[1]}</a>);
+        remaining = remaining.slice(earliest.index + earliest.m[0].length);
+    }
+    return result.length === 1 && typeof result[0] === 'string' ? result[0] : result;
+};
+
+const renderMarkdown = (content) => {
+    const lines = content.split('\n');
+    const elements = [];
+    let i = 0;
+    while (i < lines.length) {
+        const line = lines[i];
+        if (line.trimStart().startsWith('```')) {
+            const codeLines = [];
+            i++;
+            while (i < lines.length && !lines[i].trimStart().startsWith('```')) { codeLines.push(lines[i]); i++; }
+            i++;
+            elements.push(<pre key={elements.length} className="bg-slate-900 dark:bg-black/40 text-green-400 rounded-xl p-4 my-4 overflow-x-auto text-sm font-mono">{codeLines.join('\n')}</pre>);
+            continue;
+        }
+        if (line.startsWith('# ')) { elements.push(<h1 key={elements.length} className="text-3xl font-bold mb-6 text-slate-900 dark:text-white">{parseInline(line.slice(2))}</h1>); i++; continue; }
+        if (line.startsWith('## ')) { elements.push(<h2 key={elements.length} className="text-2xl font-bold mt-8 mb-4 text-slate-900 dark:text-white">{parseInline(line.slice(3))}</h2>); i++; continue; }
+        if (line.startsWith('### ')) { elements.push(<h3 key={elements.length} className="text-xl font-bold mt-6 mb-3 text-slate-900 dark:text-white">{parseInline(line.slice(4))}</h3>); i++; continue; }
+        if (line.startsWith('- ')) { elements.push(<li key={elements.length} className="ml-4 mb-2 list-disc">{parseInline(line.slice(2))}</li>); i++; continue; }
+        const numMatch = line.match(/^(\d+)\.\s/);
+        if (numMatch) { elements.push(<li key={elements.length} className="ml-4 mb-2 list-decimal">{parseInline(line.slice(numMatch[0].length))}</li>); i++; continue; }
+        if (line.startsWith('![')) {
+            const match = line.match(/!\[(.*?)\]\((.*?)\)/);
+            if (match) { elements.push(<img key={elements.length} src={match[2]} alt={match[1]} className="rounded-2xl my-8 border border-slate-100 dark:border-white/10 shadow-lg" />); i++; continue; }
+        }
+        if (line.trim() === '') { elements.push(<div key={elements.length} className="h-4" />); i++; continue; }
+        elements.push(<p key={elements.length} className="leading-relaxed mb-4">{parseInline(line)}</p>);
+        i++;
+    }
+    return elements;
+};
 
 // Custom Confetti Particle
 const ConfettiParticle = ({ index }) => {
@@ -48,16 +106,20 @@ const Support = () => {
     const { user } = useAuth();
     const [searchParams, setSearchParams] = useSearchParams();
     
-    // Read from URL e.g. ?tab=tickets&action=create-ticket
+    // Read from URL e.g. ?tab=tickets&action=create-ticket&ticketId=abc
     const initialTab = searchParams.get('tab') || 'home';
     const action = searchParams.get('action');
+    const initialTicketId = searchParams.get('ticketId');
 
-    const [activeTab, setActiveTabState] = useState(['home', 'tickets', 'roadmap'].includes(initialTab) ? initialTab : 'home');
+    const [activeTab, setActiveTabState] = useState(() => {
+        if (initialTicketId) return 'tickets';
+        return ['home', 'tickets', 'roadmap'].includes(initialTab) ? initialTab : 'home';
+    });
 
-    // Keep URL in sync with tabs to allow copy-pasting the link
+    // Keep URL in sync with tabs; clear action param on tab switch
     const setActiveTab = (tab) => {
         setActiveTabState(tab);
-        setSearchParams(prev => { prev.set('tab', tab); return prev; }, { replace: true });
+        setSearchParams(prev => { prev.set('tab', tab); prev.delete('action'); return prev; }, { replace: true });
     };
 
     // Sync tab state if URL changes externally
@@ -77,11 +139,19 @@ const Support = () => {
     const [selectedArticle, setSelectedArticle] = useState(null);
     const [activeConfettiId, setActiveConfettiId] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState(null);
 
-    const fetchKB = async () => { try { const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/support/kb`); setKbArticles(res.data); } catch (e) { console.error(e); } };
-    const fetchCategories = async () => { try { const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/support/kb/categories`); setCategories(res.data); } catch (e) { console.error(e); } };
-    const fetchRoadmap = async () => { try { const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/support/roadmap`); setRoadmap(res.data); } catch (e) { console.error(e); } };
-    const fetchTickets = async () => { try { const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/support/tickets`); setTickets(res.data); } catch (e) { console.error(e); } };
+    const fetchKB = async () => { try { const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/support/kb`); setKbArticles(res.data); } catch (e) { console.error(e); setFetchError('Failed to load knowledge base. Please refresh.'); } };
+    const fetchCategories = async () => { try { const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/support/kb/categories`); setCategories(res.data); } catch (e) { console.error(e); setFetchError('Failed to load categories. Please refresh.'); } };
+    const fetchRoadmap = async () => { try { const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/support/roadmap`); setRoadmap(res.data); } catch (e) { console.error(e); setFetchError('Failed to load roadmap. Please refresh.'); } };
+    const fetchTickets = async () => { try { const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/support/tickets?myTickets=true`); setTickets(res.data); } catch (e) { console.error(e); setFetchError('Failed to load tickets. Please refresh.'); } };
+
+    const handleUpvote = async (itemId) => {
+        try {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/support/roadmap/${itemId}/upvote`);
+            setRoadmap(prev => prev.map(i => i.id === itemId ? { ...i, ...res.data } : i));
+        } catch {}
+    };
 
     const [visibleRoadmapCount, setVisibleRoadmapCount] = useState(8);
 
@@ -121,11 +191,17 @@ const Support = () => {
         }
     }, [activeTab, user, unreadRoadmapCount]);
 
-    const filteredArticles = kbArticles.filter(a =>
-        a.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        a.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        a.content.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredArticles = kbArticles.filter(a => {
+        const q = searchTerm.toLowerCase();
+        return a.title.toLowerCase().includes(q) ||
+            (a.category || '').toLowerCase().includes(q) ||
+            a.content.toLowerCase().includes(q);
+    });
+
+    const openArticle = (article) => {
+        setSelectedArticle(article);
+        axios.post(`${import.meta.env.VITE_API_URL}/api/support/kb/${article.id}/view`).catch(() => {});
+    };
 
     if (loading) return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark overflow-hidden animate-pulse">
@@ -165,19 +241,7 @@ const Support = () => {
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark overflow-hidden fade-in transition-colors duration-300">
             {/* Standard Header */}
-            <header className="hidden md:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-4 md:px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
-                <div className="flex items-center gap-6 w-full">
-                    {/* Search Bar */}
-                    <div className="flex items-center rounded-lg bg-slate-100 dark:bg-surface-dark h-10 w-full max-w-md px-3 border border-transparent focus-within:border-primary transition-colors">
-                        <Search className="w-5 h-5 text-slate-400 dark:text-text-secondary" />
-                        <input
-                            type="text"
-                            placeholder="Search support..."
-                            className="w-full bg-transparent border-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-text-secondary text-sm focus:outline-none ml-2"
-                        />
-                    </div>
-                </div>
-
+            <header className="hidden md:flex items-center justify-end border-b border-slate-200 dark:border-surface-dark px-4 md:px-6 py-4 bg-white dark:bg-background-dark shrink-0 transition-colors duration-300">
                 <div className="flex items-center gap-4">
                     <TrialBanner />
                     <ThemeToggle />
@@ -185,6 +249,13 @@ const Support = () => {
                     <UserDropdown />
                 </div>
             </header>
+            {/* Error Banner */}
+            {fetchError && (
+                <div className="mx-4 sm:mx-6 mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 rounded-xl flex items-center justify-between gap-3 text-sm text-red-700 dark:text-red-400 shrink-0">
+                    <span>{fetchError}</span>
+                    <button onClick={() => setFetchError(null)} className="shrink-0 text-red-400 hover:text-red-600"><X className="w-4 h-4" /></button>
+                </div>
+            )}
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 scroll-smooth hide-scrollbar">
                 <div className="max-w-6xl mx-auto">
@@ -268,51 +339,79 @@ const Support = () => {
                                 ))}
                             </div>
 
-                            <div className="space-y-12 mb-12">
-                                {categories
-                                    .filter(cat => searchTerm === '' || cat.name === searchTerm || kbArticles.some(a => a.category === cat.name && a.title.toLowerCase().includes(searchTerm.toLowerCase())))
-                                    .map(cat => {
-                                        const articlesInCat = filteredArticles.filter(a => a.category === cat.name);
-                                        if (articlesInCat.length === 0) return null;
+                            {(() => {
+                                const knownCategoryNames = new Set(categories.map(c => c.name));
+                                const q = searchTerm.toLowerCase();
+                                // A category is visible if search is empty, matches by name, or has an article matching the query
+                                const visibleCategories = categories.filter(cat =>
+                                    q === '' || (cat.name || '').toLowerCase().includes(q) ||
+                                    kbArticles.some(a => a.category === cat.name && (
+                                        a.title.toLowerCase().includes(q) ||
+                                        a.content.toLowerCase().includes(q)
+                                    ))
+                                );
+                                // Articles in categories not in KBCategory table (orphaned / uncategorized)
+                                const uncategorizedArticles = filteredArticles.filter(a => !knownCategoryNames.has(a.category));
+                                const totalVisible = visibleCategories.reduce((n, cat) => n + filteredArticles.filter(a => a.category === cat.name).length, 0) + uncategorizedArticles.length;
 
-                                        return (
-                                            <div key={cat.id} className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                                                <div className="flex items-center gap-3 mb-6">
-                                                    <div className="p-2 bg-indigo-100 dark:bg-indigo-500/20 rounded-lg text-indigo-600 dark:text-indigo-400">
-                                                        <Book className="w-5 h-5" />
+                                return (
+                                    <div className="space-y-12 mb-12">
+                                        {visibleCategories.map(cat => {
+                                            const articlesInCat = filteredArticles.filter(a => a.category === cat.name);
+                                            if (articlesInCat.length === 0) return null;
+                                            return (
+                                                <div key={cat.id} className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                                    <div className="flex items-center gap-3 mb-6">
+                                                        <div className="p-2 bg-indigo-100 dark:bg-indigo-500/20 rounded-lg text-indigo-600 dark:text-indigo-400"><Book className="w-5 h-5" /></div>
+                                                        <h3 className="text-xl font-bold text-slate-900 dark:text-white">{cat.name}</h3>
+                                                        <div className="flex-1 h-px bg-slate-200 dark:bg-white/5 ml-2"></div>
                                                     </div>
-                                                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">{cat.name}</h3>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        {articlesInCat.map(article => (
+                                                            <div key={article.id} onClick={() => openArticle(article)} className="bg-white dark:bg-surface-dark p-4 md:p-6 rounded-xl border border-slate-200 dark:border-white/5 hover:border-indigo-500 transition-all cursor-pointer group hover:shadow-md active:scale-[0.98]">
+                                                                <h4 className="font-bold text-slate-900 dark:text-white mb-2 group-hover:text-indigo-500 transition-colors">{article.title}</h4>
+                                                                <div className="flex items-center gap-2 mb-3">
+                                                                    <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-50 dark:bg-white/5 rounded text-indigo-500 border border-indigo-100 dark:border-indigo-500/20">{article.category}</span>
+                                                                </div>
+                                                                <p className="text-slate-500 dark:text-slate-400 text-sm line-clamp-2">{article.content}</p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+
+                                        {/* Articles whose category was deleted/renamed */}
+                                        {uncategorizedArticles.length > 0 && (
+                                            <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                                <div className="flex items-center gap-3 mb-6">
+                                                    <div className="p-2 bg-slate-100 dark:bg-white/5 rounded-lg text-slate-500"><Book className="w-5 h-5" /></div>
+                                                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">Other</h3>
                                                     <div className="flex-1 h-px bg-slate-200 dark:bg-white/5 ml-2"></div>
                                                 </div>
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    {articlesInCat.map(article => (
-                                                        <div
-                                                            key={article.id}
-                                                            onClick={() => setSelectedArticle(article)}
-                                                            className="bg-white dark:bg-surface-dark p-4 md:p-6 rounded-xl border border-slate-200 dark:border-white/5 hover:border-indigo-500 transition-all cursor-pointer group hover:shadow-md active:scale-[0.98]"
-                                                        >
+                                                    {uncategorizedArticles.map(article => (
+                                                        <div key={article.id} onClick={() => openArticle(article)} className="bg-white dark:bg-surface-dark p-4 md:p-6 rounded-xl border border-slate-200 dark:border-white/5 hover:border-indigo-500 transition-all cursor-pointer group hover:shadow-md active:scale-[0.98]">
                                                             <h4 className="font-bold text-slate-900 dark:text-white mb-2 group-hover:text-indigo-500 transition-colors">{article.title}</h4>
-                                                            <div className="flex items-center gap-2 mb-3">
-                                                                <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-50 dark:bg-white/5 rounded text-indigo-500 border border-indigo-100 dark:border-indigo-500/20">{article.category}</span>
-                                                            </div>
                                                             <p className="text-slate-500 dark:text-slate-400 text-sm line-clamp-2">{article.content}</p>
                                                         </div>
                                                     ))}
                                                 </div>
                                             </div>
-                                        );
-                                    })}
+                                        )}
 
-                                {filteredArticles.length === 0 && (
-                                    <div className="text-center py-20 bg-white dark:bg-surface-dark rounded-2xl border border-dashed border-slate-300 dark:border-white/10">
-                                        <div className="bg-slate-100 dark:bg-white/5 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                                            <Search className="w-8 h-8 text-slate-400" />
-                                        </div>
-                                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">No articles found</h3>
-                                        <p className="text-slate-500 dark:text-slate-400">Try adjusting your search or category filter.</p>
+                                        {totalVisible === 0 && (
+                                            <div className="text-center py-20 bg-white dark:bg-surface-dark rounded-2xl border border-dashed border-slate-300 dark:border-white/10">
+                                                <div className="bg-slate-100 dark:bg-white/5 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                    <Search className="w-8 h-8 text-slate-400" />
+                                                </div>
+                                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">No articles found</h3>
+                                                <p className="text-slate-500 dark:text-slate-400">Try adjusting your search or category filter.</p>
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                            </div>
+                                );
+                            })()}
 
                             {/* CTA for Tickets */}
                             <div className="bg-indigo-50 dark:bg-indigo-900/10 rounded-2xl p-4 md:p-8 text-center border border-indigo-100 dark:border-indigo-500/20">
@@ -328,7 +427,7 @@ const Support = () => {
                         </div>
                     )}
 
-                    {activeTab === 'tickets' && <UserTicketManager tickets={tickets} refresh={fetchTickets} initialView={action === 'create-ticket' ? 'create' : 'list'} />}
+                    {activeTab === 'tickets' && <UserTicketManager tickets={tickets} refresh={fetchTickets} initialView={action === 'create-ticket' ? 'create' : 'list'} initialTicketId={initialTicketId} onViewMounted={() => { if (action) setSearchParams(p => { p.delete('action'); return p; }, { replace: true }); }} />}
 
                     {activeTab === 'roadmap' && (
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -443,6 +542,43 @@ const Support = () => {
                                     </>
                                 )}
                             </div>
+
+                            {/* Community Requests - Upvoting Section */}
+                            {roadmap.filter(i => i.status === 'Requested').length > 0 && (
+                                <div className="space-y-6 mt-12">
+                                    <div className="text-center max-w-2xl mx-auto mb-8">
+                                        <h4 className="text-sm font-black uppercase tracking-widest text-amber-500 mb-2 flex items-center justify-center gap-2">
+                                            <ThumbsUp className="w-4 h-4" /> Community Requests
+                                        </h4>
+                                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">Vote on Upcoming Features</h2>
+                                        <p className="text-slate-500 dark:text-slate-400 text-sm">Help us prioritize by upvoting the features you care about most.</p>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {roadmap
+                                            .filter(i => i.status === 'Requested')
+                                            .sort((a, b) => (b.upvotes || 0) - (a.upvotes || 0))
+                                            .map(item => (
+                                                <div key={item.id} className="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-white/10 p-5 hover:shadow-md hover:border-amber-500/30 transition-all">
+                                                    <h5 className="font-bold text-slate-900 dark:text-white text-sm leading-snug mb-4">{item.title}</h5>
+                                                    <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-white/5">
+                                                        <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Requested</span>
+                                                        <button
+                                                            onClick={() => handleUpvote(item.id)}
+                                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border ${
+                                                                item.hasVoted
+                                                                    ? 'text-green-600 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-900/20 dark:border-green-800/50'
+                                                                    : 'text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-white/5 border-transparent hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-600'
+                                                            }`}
+                                                        >
+                                                            <ThumbsUp className={`w-3.5 h-3.5 ${item.hasVoted ? 'fill-current' : ''}`} />
+                                                            {item.upvotes || 0}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -450,7 +586,11 @@ const Support = () => {
             {/* Article Modal */}
             <AnimatePresence>
                 {selectedArticle && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-4 md:p-8">
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-4 md:p-8"
+                        onKeyDown={e => e.key === 'Escape' && setSelectedArticle(null)}
+                        tabIndex={-1}
+                        ref={el => el?.focus()}
+                    >
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -484,20 +624,9 @@ const Support = () => {
                             </div>
 
                             {/* Modal Content */}
-                            <div className="flex-1 overflow-y-auto p-8 md:p-4 md:p-12 hide-scrollbar">
+                            <div className="flex-1 overflow-y-auto p-8 md:p-12 hide-scrollbar">
                                 <div className="prose dark:prose-invert max-w-none text-slate-600 dark:text-slate-300">
-                                    {selectedArticle.content.split('\n').map((line, i) => {
-                                        if (line.startsWith('# ')) return <h1 key={i} className="text-3xl font-bold mb-6 text-slate-900 dark:text-white">{line.replace('# ', '')}</h1>;
-                                        if (line.startsWith('## ')) return <h2 key={i} className="text-2xl font-bold mt-8 mb-4 text-slate-900 dark:text-white">{line.replace('## ', '')}</h2>;
-                                        if (line.startsWith('### ')) return <h3 key={i} className="text-xl font-bold mt-6 mb-3 text-slate-900 dark:text-white">{line.replace('### ', '')}</h3>;
-                                        if (line.startsWith('- ')) return <li key={i} className="ml-4 mb-2">{line.replace('- ', '')}</li>;
-                                        if (line.startsWith('![')) {
-                                            const match = line.match(/!\[(.*?)\]\((.*?)\)/);
-                                            if (match) return <img key={i} src={match[2]} alt={match[1]} className="rounded-2xl my-8 border border-slate-100 dark:border-white/10 shadow-lg" />;
-                                        }
-                                        if (line.trim() === '') return <div key={i} className="h-4" />;
-                                        return <p key={i} className="leading-relaxed mb-4">{line}</p>;
-                                    })}
+                                    {renderMarkdown(selectedArticle.content)}
                                 </div>
                             </div>
 
@@ -621,8 +750,11 @@ const RoadmapSuggestionForm = ({ refresh, initiallyOpen }) => {
     );
 };
 
-const UserTicketManager = ({ tickets, refresh, initialView }) => {
+const UserTicketManager = ({ tickets, refresh, initialView, initialTicketId, onViewMounted }) => {
     const [view, setView] = useState(initialView || 'list'); // list | create
+
+    // Clear ?action= from URL once consumed
+    useEffect(() => { if (onViewMounted) onViewMounted(); }, []);
     const [subject, setSubject] = useState('');
     const [message, setMessage] = useState('');
     const [category, setCategory] = useState('General');
@@ -631,14 +763,46 @@ const UserTicketManager = ({ tickets, refresh, initialView }) => {
     const [selectedTicket, setSelectedTicket] = useState(null);
     const [replyMessage, setReplyMessage] = useState('');
 
-    // Mark ticket as read when user opens it (clears red dot on sidebar)
+    const didAutoOpen = useRef(false);
+    const [attachedImage, setAttachedImage] = useState(null);
+    const [attachedPreview, setAttachedPreview] = useState(null);
+    const fileInputRef = useRef(null);
+
+    const handleFileSelect = (file) => {
+        if (!file || !file.type.match(/^image\/(jpeg|png|jpg)$/i)) return;
+        setAttachedImage(file);
+        const reader = new FileReader();
+        reader.onload = e => setAttachedPreview(e.target.result);
+        reader.readAsDataURL(file);
+    };
+
+    const handlePaste = (e) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+        for (const item of items) {
+            if (item.type.startsWith('image/')) {
+                const file = item.getAsFile();
+                if (file) { handleFileSelect(file); break; }
+            }
+        }
+    };
+
+    // Mark ticket as read when user opens it (clears red dot on sidebar and list)
     const openTicket = (ticket) => {
         setSelectedTicket(ticket);
         if (ticket.hasUnreadAdminReply) {
             axios.post(`${import.meta.env.VITE_API_URL}/api/support/tickets/${ticket.id}/mark-read`)
-                .catch(() => {}); // silently fail
+                .then(() => refresh())
+                .catch(() => {});
         }
     };
+
+    // Auto-open a ticket when deep-linked via ?ticketId=
+    useEffect(() => {
+        if (!initialTicketId || didAutoOpen.current || tickets.length === 0) return;
+        const target = tickets.find(t => t.id === initialTicketId);
+        if (target) { didAutoOpen.current = true; openTicket(target); }
+    }, [tickets, initialTicketId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleCreate = async () => {
         if (!subject.trim() || !message.trim()) return alert("Please fill in all details");
@@ -651,36 +815,70 @@ const UserTicketManager = ({ tickets, refresh, initialView }) => {
     };
 
     const handleReply = async () => {
-        if (!replyMessage.trim()) return;
+        if (!replyMessage.trim() && !attachedImage) return;
         const tempMessage = replyMessage;
+        const tempImage = attachedImage;
+        const tempPreview = attachedPreview;
         setReplyMessage('');
+        setAttachedImage(null);
+        setAttachedPreview(null);
 
         // Optimistic UI update
-        const optimisticMsg = { sender: 'User', text: tempMessage, timestamp: new Date().toISOString() };
+        const optimisticMsg = { sender: 'User', text: tempMessage, timestamp: new Date().toISOString(), ...(tempPreview && { imageUrl: tempPreview }) };
         setSelectedTicket(prev => ({ ...prev, messages: [...prev.messages, optimisticMsg] }));
 
         try {
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/support/tickets/${selectedTicket.id}/reply`, { text: tempMessage });
+            let imageUrl = null;
+            if (tempImage) {
+                const form = new FormData();
+                form.append('image', tempImage);
+                const up = await axios.post(
+                    `${import.meta.env.VITE_API_URL}/api/support/tickets/${selectedTicket.id}/upload-image`,
+                    form,
+                    { headers: { 'Content-Type': 'multipart/form-data' } }
+                );
+                imageUrl = up.data.url;
+            }
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/support/tickets/${selectedTicket.id}/reply`, {
+                text: tempMessage,
+                ...(imageUrl && { imageUrl })
+            });
             setSelectedTicket(res.data); refresh();
         } catch (e) {
-            alert("Failed to send reply");
-            refresh(); // Refresh to revert state if failed
+            // Revert optimistic update and restore the typed text + image
+            setSelectedTicket(prev => ({ ...prev, messages: prev.messages.slice(0, -1) }));
+            setReplyMessage(tempMessage);
+            setAttachedImage(tempImage);
+            setAttachedPreview(tempPreview);
+            alert("Failed to send reply. Please try again.");
         }
     };
 
     const handleResolve = async () => {
         try {
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/support/tickets/${selectedTicket.id}/reply`, { text: "Ticket marked as resolved.", status: 'Resolved' });
-            setSelectedTicket(res.data); refresh();
+            await axios.patch(`${import.meta.env.VITE_API_URL}/api/support/tickets/${selectedTicket.id}/status`, { status: 'Resolved' });
+            setSelectedTicket(prev => ({ ...prev, status: 'Resolved' })); refresh();
         } catch (e) { alert("Failed to resolve ticket"); }
     };
 
     const handleReopen = async () => {
         try {
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/support/tickets/${selectedTicket.id}/reply`, { text: "Ticket reopened by user.", status: 'Open' });
-            setSelectedTicket(res.data); refresh();
+            await axios.patch(`${import.meta.env.VITE_API_URL}/api/support/tickets/${selectedTicket.id}/status`, { status: 'Open' });
+            setSelectedTicket(prev => ({ ...prev, status: 'Open' })); refresh();
         } catch (e) { alert("Failed to reopen ticket"); }
     };
+
+    // Poll the open ticket for new messages every 15s
+    useEffect(() => {
+        if (!selectedTicket?.id) return;
+        const interval = setInterval(async () => {
+            try {
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/support/tickets/${selectedTicket.id}`);
+                setSelectedTicket(res.data);
+            } catch {}
+        }, 15000);
+        return () => clearInterval(interval);
+    }, [selectedTicket?.id]);
 
     const ticketCategories = [
         { id: 'Technical', icon: Laptop, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
@@ -751,7 +949,11 @@ const UserTicketManager = ({ tickets, refresh, initialView }) => {
                                         </div>
                                         <div className="flex items-center gap-2 shrink-0">
                                             <span className={`text-[10px] sm:text-xs font-bold px-2 py-1 rounded ${t.priority === 'High' || t.priority === 'Critical' ? 'text-red-500 bg-red-50 dark:bg-red-900/20' : 'text-blue-500 bg-blue-50 dark:bg-blue-900/20'}`}>{t.priority} Priority</span>
-                                            <span className={`px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold border ${t.status === 'Open' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>{t.status}</span>
+                                            <span className={`px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold border ${
+                                                t.status === 'Open' ? 'bg-green-100 text-green-700 border-green-200' :
+                                                t.status === 'In Progress' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                                                t.status === 'Resolved' ? 'bg-purple-100 text-purple-700 border-purple-200' :
+                                                'bg-slate-100 text-slate-500 border-slate-200'}`}>{t.status}</span>
                                         </div>
                                     </div>
                                     <p className="text-slate-500 dark:text-slate-400 text-sm mb-5 line-clamp-2 leading-relaxed">{t.messages[0]?.text}</p>
@@ -771,8 +973,12 @@ const UserTicketManager = ({ tickets, refresh, initialView }) => {
                         <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} onClick={e => e.stopPropagation()} className="bg-white dark:bg-surface-dark w-full max-w-4xl h-[90dvh] md:h-[80vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-white/10 cursor-pointer">
                             <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex items-start sm:items-center justify-between bg-slate-50 dark:bg-white/[0.02] gap-4 shrink-0">
                                 <div className="min-w-0">
-                                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-1"><h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white truncate">{selectedTicket.subject}</h2><span className={`w-fit px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold ${selectedTicket.status === 'Open' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>{selectedTicket.status}</span></div>
-                                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-[10px] sm:text-xs text-slate-500"><span>#{selectedTicket.id}</span><span>{selectedTicket.category}</span><span>{selectedTicket.priority} Priority</span></div>
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-1"><h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white truncate">{selectedTicket.subject}</h2><span className={`w-fit px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold ${
+                                        selectedTicket.status === 'Open' ? 'bg-green-100 text-green-700' :
+                                        selectedTicket.status === 'In Progress' ? 'bg-blue-100 text-blue-700' :
+                                        selectedTicket.status === 'Resolved' ? 'bg-purple-100 text-purple-700' :
+                                        'bg-slate-100 text-slate-500'}`}>{selectedTicket.status}</span></div>
+                                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-[10px] sm:text-xs text-slate-500"><span>#{selectedTicket.id.split('-')[0]}</span><span>{selectedTicket.category}</span><span>{selectedTicket.priority} Priority</span></div>
                                 </div>
                                 <button onClick={() => setSelectedTicket(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full text-slate-500 shrink-0"><X className="w-5 h-5 sm:w-6 sm:h-6" /></button>
                             </div>
@@ -782,15 +988,59 @@ const UserTicketManager = ({ tickets, refresh, initialView }) => {
                                         {selectedTicket.messages.map((msg, i) => (
                                             <div key={i} className={`flex ${msg.sender === 'User' ? 'justify-end' : 'justify-start'}`}>
                                                 <div className={`max-w-[85%] md:max-w-[80%] rounded-2xl p-4 shadow-sm ${msg.sender === 'User' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white dark:bg-surface-dark border border-slate-100 dark:border-white/5 text-slate-900 dark:text-white rounded-tl-none'}`}>
-                                                    <p className="text-sm leading-relaxed">{msg.text}</p>
+                                                    {msg.text && <p className="text-sm leading-relaxed">{msg.text}</p>}
+                                                    {msg.imageUrl && (
+                                                        <img
+                                                            src={msg.imageUrl}
+                                                            alt="attachment"
+                                                            className={`max-w-full rounded-lg max-h-60 object-contain cursor-pointer ${msg.text ? 'mt-2' : ''}`}
+                                                            onClick={() => window.open(msg.imageUrl, '_blank', 'noopener,noreferrer')}
+                                                        />
+                                                    )}
                                                     <p className={`text-[10px] mt-2 opacity-70 ${msg.sender === 'User' ? 'text-indigo-100' : 'text-slate-400'}`}>{formatDistanceToNow(new Date(msg.timestamp), { addSuffix: true })}</p>
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
-                                    <div className="p-4 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-surface-dark flex gap-3 md:gap-4 shrink-0">
-                                        <input className="flex-1 bg-slate-50 dark:bg-background-dark border border-slate-200 rounded-xl px-4 py-3 outline-none text-sm" placeholder="Type your reply..." value={replyMessage} onChange={e => setReplyMessage(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleReply()} />
-                                        <button onClick={handleReply} className="p-3 bg-indigo-600 hover:bg-indigo-700 transition-colors text-white rounded-xl shrink-0"><Send className="w-5 h-5" /></button>
+                                    <div className="p-4 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-surface-dark shrink-0">
+                                        {attachedPreview && (
+                                            <div className="mb-2 relative inline-block">
+                                                <img src={attachedPreview} alt="attachment preview" className="h-16 rounded-lg object-cover border border-slate-200 dark:border-white/10" />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setAttachedImage(null); setAttachedPreview(null); }}
+                                                    className="absolute -top-1.5 -right-1.5 bg-slate-800 text-white rounded-full p-0.5 hover:bg-red-600 transition-colors"
+                                                >
+                                                    <X className="w-3 h-3" />
+                                                </button>
+                                            </div>
+                                        )}
+                                        <div className="flex gap-3 md:gap-4">
+                                            <input
+                                                className="flex-1 bg-slate-50 dark:bg-background-dark border border-slate-200 rounded-xl px-4 py-3 outline-none text-sm"
+                                                placeholder="Type your reply... (paste image or click 📎)"
+                                                value={replyMessage}
+                                                onChange={e => setReplyMessage(e.target.value)}
+                                                onKeyDown={e => e.key === 'Enter' && handleReply()}
+                                                onPaste={handlePaste}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => fileInputRef.current?.click()}
+                                                title="Attach image (JPG, PNG)"
+                                                className="p-3 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors shrink-0"
+                                            >
+                                                <Paperclip className="w-5 h-5" />
+                                            </button>
+                                            <button onClick={handleReply} className="p-3 bg-indigo-600 hover:bg-indigo-700 transition-colors text-white rounded-xl shrink-0"><Send className="w-5 h-5" /></button>
+                                            <input
+                                                ref={fileInputRef}
+                                                type="file"
+                                                accept="image/jpeg,image/png,image/jpg"
+                                                className="hidden"
+                                                onChange={e => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); e.target.value = ''; }}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="w-full md:w-80 shrink-0 bg-slate-50 dark:bg-black/20 p-4 md:p-6 overflow-y-auto hide-scrollbar space-y-4 md:space-y-6 order-1 md:order-2 border-b md:border-b-0 md:border-l border-slate-100 dark:border-white/5 md:max-h-full min-h-0">
@@ -802,7 +1052,9 @@ const UserTicketManager = ({ tickets, refresh, initialView }) => {
                                         </div>
                                         <div className="flex-1 bg-white dark:bg-surface-dark p-4 rounded-xl border border-slate-200 shadow-sm">
                                             <h4 className="text-[10px] font-bold uppercase text-slate-400 mb-2 md:mb-3 tracking-wider">Actions</h4>
-                                            {selectedTicket.status !== 'Resolved' ? (
+                                            {selectedTicket.status === 'Closed' ? (
+                                                <p className="text-xs text-slate-400 text-center py-2">This ticket is closed.</p>
+                                            ) : selectedTicket.status !== 'Resolved' ? (
                                                 <button onClick={handleResolve} className="w-full py-2 bg-slate-900 hover:bg-slate-800 transition-colors text-white rounded-lg text-xs font-bold">Mark Resolved</button>
                                             ) : (
                                                 <button onClick={handleReopen} className="w-full py-2 border border-indigo-600 text-indigo-600 hover:bg-indigo-50 transition-colors rounded-lg text-xs font-bold">Reopen</button>

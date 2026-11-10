@@ -475,12 +475,14 @@ export default function PublicWaStore({ customSlug }) {
         // ──────────────────────────────────────────────────────────────────────
 
         const fetchStore = async (isSilent = false) => {
+            let didRedirect = false;
             try {
                 const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/public/${slug}`);
                 const s = res.data.store;
                 // If store has a verified custom domain and visitor reached via platform domain,
                 // redirect to their custom domain to prevent duplicate URLs (skip in visual editor).
                 if (s?.customDomain && s?.domainStatus === 'verified' && isPlatformDomain() && !isEditorMode) {
+                    didRedirect = true;
                     window.location.replace(`https://${s.customDomain}`);
                     return;
                 }
@@ -503,7 +505,7 @@ export default function PublicWaStore({ customSlug }) {
             } catch (error) {
                 if (!isSilent) toast.error("Failed to load store");
             } finally {
-                if (!isSilent) setLoading(false);
+                if (!isSilent && !didRedirect) setLoading(false);
             }
         };
 

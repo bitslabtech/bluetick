@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import TrialBanner from '../components/TrialBanner';
 import { createPortal } from 'react-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
-import { Bell, LifeBuoy, Ticket, Book, Map, Plus, Trash2, Send, CheckCircle2, MoreHorizontal, MessageSquare, CornerDownRight, ThumbsUp as ThumbsUpIcon, Filter, X, ExternalLink, Calendar, Clock, AlertCircle, User, Search } from 'lucide-react';
+import { Bell, LifeBuoy, Ticket, Book, Map, Plus, Trash2, Send, CheckCircle2, MoreHorizontal, MessageSquare, CornerDownRight, ThumbsUp as ThumbsUpIcon, Filter, X, ExternalLink, Calendar, Clock, AlertCircle, User, Search, Paperclip } from 'lucide-react';
 
 import { useUI } from '../context/UIContext';
 import AdminHeader from '../components/AdminHeader';
@@ -50,6 +51,12 @@ const ConfettiExplosion = ({ trigger }) => {
 const AdminSupport = () => {
     const { showModal, showToast } = useUI();
     const { user, fetchUser } = useAuth();
+    const [searchParams] = useSearchParams();
+    const initialTicketId = searchParams.get('ticketId');
+
+    // Guard: only admins can access this page
+    if (user && !user.isAdmin) return <Navigate to="/dashboard" replace />;
+
     // Expose fetchUser to window for easy access inside useEffect
     useEffect(() => { window.fetchAuthUser = fetchUser; }, [fetchUser]);
 
@@ -66,16 +73,16 @@ const AdminSupport = () => {
 
     useEffect(() => {
         fetchData();
+        // Delay mark-seen by 3 s so the admin can read the NEW labels first
+        let timer;
         if (activeTab === 'roadmap' && user?.isAdmin) {
-            axios.post(`${import.meta.env.VITE_API_URL}/api/support/roadmap/mark-seen`)
-                .then(() => {
-                    // Refetch user to get the updated lastSeenRoadmapAt
-                    if (window.fetchAuthUser) {
-                        window.fetchAuthUser();
-                    }
-                })
-                .catch(() => {});
+            timer = setTimeout(() => {
+                axios.post(`${import.meta.env.VITE_API_URL}/api/support/roadmap/mark-seen`)
+                    .then(() => { if (window.fetchAuthUser) window.fetchAuthUser(); })
+                    .catch(() => {});
+            }, 3000);
         }
+        return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeTab]);
 
@@ -108,7 +115,7 @@ const AdminSupport = () => {
                     <ThemeToggle />
             </AdminHeader>
 
-            <main className="flex-1 overflow-hidden p-4 sm:p-6 lg:p-8 max-w-[1920px] max-w-full mx-auto w-full flex flex-col relative">
+            <main className="flex-1 overflow-hidden p-4 sm:p-6 lg:p-8 max-w-[1920px] mx-auto w-full flex flex-col relative">
 
                 {/* Modern Header: Title & Tabs Inline */}
                 <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4 shrink-0">
@@ -157,7 +164,7 @@ const AdminSupport = () => {
                         </div>
                     ) : (
                         <>
-                            {activeTab === 'tickets' && <TicketManager tickets={tickets} refresh={fetchData} showToast={showToast} showModal={showModal} />}
+                            {activeTab === 'tickets' && <TicketManager tickets={tickets} refresh={fetchData} showToast={showToast} showModal={showModal} initialTicketId={initialTicketId} />}
                             {activeTab === 'kb' && <KBManager articles={kbArticles} refresh={fetchData} showToast={showToast} showModal={showModal} />}
                             {activeTab === 'roadmap' && <RoadmapManager items={roadmap} refresh={fetchData} showToast={showToast} showModal={showModal} user={user} />}
                         </>
@@ -170,29 +177,71 @@ const AdminSupport = () => {
 
 // --- Subcomponents ---
 
-const TicketManager = ({ tickets, refresh, showToast }) => {
+const TicketManager = ({ tickets, refresh, showToast, showModal, initialTicketId }) => {
     const [selectedTicket, setSelectedTicket] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('All');
+    const didAutoOpen = useRef(false);
 
-    // Mark ticket as read when admin opens it (clears red dot on sidebar)
+    // Mark ticket as read when admin opens it (clears red dot on sidebar and table)
     const openTicket = (ticket) => {
         setSelectedTicket(ticket);
         if (ticket.hasUnreadUserReply) {
             axios.post(`${import.meta.env.VITE_API_URL}/api/support/tickets/${ticket.id}/mark-read`)
-                .catch(() => {}); // silently fail
+                .then(() => refresh(false))
+                .catch(() => {});
         }
     };
+
+    // Auto-open ticket when arriving via notification deep-link (?ticketId=...)
+    useEffect(() => {
+        if (!initialTicketId || didAutoOpen.current || tickets.length === 0) return;
+        const target = tickets.find(t => t.id === initialTicketId);
+        if (target) {
+            didAutoOpen.current = true;
+            openTicket(target);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tickets, initialTicketId]);
+
+    const filteredTickets = tickets.filter(t => {
+        const matchesSearch = !searchQuery ||
+            t.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (t.user?.name || '').toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesStatus = statusFilter === 'All' || t.status === statusFilter;
+        return matchesSearch && matchesStatus;
+    });
 
     return (
         <>
             <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden flex flex-col h-full">
                 {/* Visual Header for Table */}
-                <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/[0.02]">
+                <div className="p-4 md:p-6 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
                     <div>
                         <h3 className="font-bold text-slate-800 dark:text-white text-lg">Support Tickets</h3>
                         <p className="text-xs text-slate-500 mt-1">Manage and resolve user inquiries.</p>
                     </div>
-                    <div className="flex gap-2">
-                        <button className="p-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-slate-500 hover:text-indigo-600 transition-colors shadow-sm"><Filter className="w-4 h-4" /></button>
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <input
+                                className="pl-9 pr-4 py-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500/50 dark:text-white w-full sm:w-56"
+                                placeholder="Search by subject or user..."
+                                value={searchQuery}
+                                onChange={e => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+                        <select
+                            value={statusFilter}
+                            onChange={e => setStatusFilter(e.target.value)}
+                            className="px-3 py-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-sm dark:text-white focus:ring-2 focus:ring-indigo-500/50 focus:outline-none"
+                        >
+                            <option value="All">All Status</option>
+                            <option value="Open">Open</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Resolved">Resolved</option>
+                            <option value="Closed">Closed</option>
+                        </select>
                     </div>
                 </div>
 
@@ -209,7 +258,14 @@ const TicketManager = ({ tickets, refresh, showToast }) => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                            {tickets.map(t => (
+                            {filteredTickets.length === 0 && (
+                                <tr>
+                                    <td colSpan={6} className="px-6 py-16 text-center text-slate-400 text-sm">
+                                        {tickets.length === 0 ? 'No tickets yet.' : 'No tickets match your search.'}
+                                    </td>
+                                </tr>
+                            )}
+                            {filteredTickets.map(t => (
                                 <tr key={t.id} onClick={() => openTicket(t)} className="group hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer text-sm">
                                     <td className="px-4 md:px-6 py-4 font-medium text-slate-900 dark:text-white group-hover:text-indigo-600 transition-colors">
                                         <div className="flex items-center gap-3">
@@ -237,16 +293,18 @@ const TicketManager = ({ tickets, refresh, showToast }) => {
                                         </div>
                                     </td>
                                     <td className="px-4 md:px-6 py-4">
-                                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${t.status === 'Open' ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-500/30' :
+                                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
+                                            t.status === 'Open' ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-500/30' :
                                             t.status === 'In Progress' ? 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-500/30' :
-                                                'bg-slate-100 text-slate-600 border-slate-200 dark:bg-white/10 dark:text-slate-400 dark:border-white/5'
+                                            t.status === 'Resolved' ? 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-500/30' :
+                                            'bg-slate-100 text-slate-500 border-slate-200 dark:bg-white/10 dark:text-slate-400 dark:border-white/5'
                                             }`}>
                                             {t.status}
                                         </span>
                                     </td>
                                     <td className="px-4 md:px-6 py-4">
-                                        <span className={`flex items-center gap-1.5 ${t.priority === 'High' ? 'text-red-500 font-bold' : 'text-slate-500'}`}>
-                                            <div className={`w-1.5 h-1.5 rounded-full ${t.priority === 'High' ? 'bg-red-500' : 'bg-slate-300'}`}></div>
+                                        <span className={`flex items-center gap-1.5 ${t.priority === 'High' || t.priority === 'Critical' ? 'text-red-500 font-bold' : 'text-slate-500'}`}>
+                                            <div className={`w-1.5 h-1.5 rounded-full ${t.priority === 'High' || t.priority === 'Critical' ? 'bg-red-500' : 'bg-slate-300'}`}></div>
                                             {t.priority}
                                         </span>
                                     </td>
@@ -272,28 +330,89 @@ const TicketManager = ({ tickets, refresh, showToast }) => {
                     onClose={() => setSelectedTicket(null)}
                     refresh={refresh}
                     showToast={showToast}
+                    showModal={showModal}
                 />
             )}
         </>
     );
 };
 
-const TicketDetailModal = ({ ticket, onClose, refresh, showToast }) => {
+const TicketDetailModal = ({ ticket, onClose, refresh, showToast, showModal }) => {
     const [reply, setReply] = useState('');
+    const [ticketStatus, setTicketStatus] = useState(ticket.status);
+    const [currentStatus, setCurrentStatus] = useState(ticket.status);
+
+    const handleStatusChange = (newStatus) => {
+        if (newStatus === currentStatus) return;
+        showModal({
+            type: 'warning',
+            title: 'Change Ticket Status',
+            message: `Change status from "${currentStatus}" to "${newStatus}"?`,
+            confirmText: 'Change',
+            cancelText: 'Cancel',
+            onConfirm: async () => {
+                try {
+                    await axios.patch(`${import.meta.env.VITE_API_URL}/api/support/tickets/${ticket.id}/status`, { status: newStatus });
+                    setCurrentStatus(newStatus);
+                    setTicketStatus(newStatus);
+                    refresh();
+                    showToast({ type: 'success', title: 'Status Updated', message: `Ticket is now ${newStatus}.` });
+                } catch (err) {
+                    console.error('Status update failed:', err.response?.status, err.response?.data || err.message);
+                    showToast({ type: 'error', title: 'Error', message: err.response?.data?.error || 'Failed to update status' });
+                }
+            }
+        });
+    };
     const [sending, setSending] = useState(false);
+    const [attachedImage, setAttachedImage] = useState(null);
+    const [attachedPreview, setAttachedPreview] = useState(null);
+    const fileInputRef = useRef(null);
+
+    const handleFileSelect = (file) => {
+        if (!file || !file.type.match(/^image\/(jpeg|png|jpg)$/i)) return;
+        setAttachedImage(file);
+        const reader = new FileReader();
+        reader.onload = e => setAttachedPreview(e.target.result);
+        reader.readAsDataURL(file);
+    };
+
+    const handlePaste = (e) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+        for (const item of items) {
+            if (item.type.startsWith('image/')) {
+                const file = item.getAsFile();
+                if (file) { handleFileSelect(file); break; }
+            }
+        }
+    };
 
     const handleReply = async () => {
-        if (!reply.trim()) return;
+        if (!reply.trim() && !attachedImage) return;
         setSending(true);
         try {
+            let imageUrl = null;
+            if (attachedImage) {
+                const form = new FormData();
+                form.append('image', attachedImage);
+                const up = await axios.post(
+                    `${import.meta.env.VITE_API_URL}/api/support/tickets/${ticket.id}/upload-image`,
+                    form,
+                    { headers: { 'Content-Type': 'multipart/form-data' } }
+                );
+                imageUrl = up.data.url;
+            }
             await axios.post(`${import.meta.env.VITE_API_URL}/api/support/tickets/${ticket.id}/reply`, {
                 text: reply,
-                status: 'In Progress'
+                status: ticketStatus,
+                ...(imageUrl && { imageUrl })
             });
             setReply('');
+            setAttachedImage(null);
+            setAttachedPreview(null);
             refresh();
             showToast({ type: 'success', title: 'Reply Sent', message: 'Reply added to ticket.' });
-            onClose();
         } catch (err) {
             console.error(err);
             showToast({ type: 'error', title: 'Error', message: "Failed to send reply" });
@@ -323,10 +442,10 @@ const TicketDetailModal = ({ ticket, onClose, refresh, showToast }) => {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <div className={`px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider border ${ticket.status === 'Open' ? 'bg-green-50 text-green-700 border-green-200' :
+                        <div className={`px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider border ${currentStatus === 'Open' ? 'bg-green-50 text-green-700 border-green-200' :
                             'bg-slate-50 text-slate-600 border-slate-200'
                             }`}>
-                            {ticket.status}
+                            {currentStatus}
                         </div>
                         <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors">
                             <X className="w-5 h-5 text-slate-400" />
@@ -349,7 +468,15 @@ const TicketDetailModal = ({ ticket, onClose, refresh, showToast }) => {
                                             ? 'bg-indigo-600 text-white rounded-tr-none'
                                             : 'bg-white dark:bg-surface-dark dark:text-slate-200 border border-slate-200 dark:border-white/10 rounded-tl-none'
                                             }`}>
-                                            {msg.text}
+                                            {msg.text && <span>{msg.text}</span>}
+                                            {msg.imageUrl && (
+                                                <img
+                                                    src={msg.imageUrl}
+                                                    alt="attachment"
+                                                    className={`max-w-full rounded-lg max-h-60 object-contain cursor-pointer ${msg.text ? 'mt-2' : ''}`}
+                                                    onClick={() => window.open(msg.imageUrl, '_blank', 'noopener,noreferrer')}
+                                                />
+                                            )}
                                         </div>
                                         <div className={`text-[10px] text-slate-400 mt-1.5 flex items-center gap-1 ${msg.sender === 'Admin' ? 'justify-end' : 'justify-start'}`}>
                                             <Clock className="w-3 h-3" /> {formatDistanceToNow(new Date(msg.timestamp))} ago
@@ -361,27 +488,61 @@ const TicketDetailModal = ({ ticket, onClose, refresh, showToast }) => {
 
                         {/* Reply Box */}
                         <div className="p-4 bg-white dark:bg-surface-dark border-t border-slate-200 dark:border-white/10">
+                            <div className="flex gap-2 mb-2">
+                                <label className="text-xs font-bold text-slate-500 self-center">Set Status:</label>
+                                <select
+                                    value={ticketStatus}
+                                    onChange={e => handleStatusChange(e.target.value)}
+                                    className="text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                >
+                                    <option value="Open">Open</option>
+                                    <option value="In Progress">In Progress</option>
+                                    <option value="Resolved">Resolved</option>
+                                    <option value="Closed">Closed</option>
+                                </select>
+                            </div>
+                            {attachedPreview && (
+                                <div className="mb-2 relative inline-block">
+                                    <img src={attachedPreview} alt="attachment preview" className="h-20 rounded-lg object-cover border border-slate-200 dark:border-white/10" />
+                                    <button
+                                        type="button"
+                                        onClick={() => { setAttachedImage(null); setAttachedPreview(null); }}
+                                        className="absolute -top-1.5 -right-1.5 bg-slate-800 text-white rounded-full p-0.5 hover:bg-red-600 transition-colors"
+                                    >
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </div>
+                            )}
                             <div className="relative">
                                 <textarea
-                                    className="w-full pl-5 pr-14 py-4 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none dark:text-white resize-none h-20 transition-all placeholder:text-slate-400"
-                                    placeholder="Write a professional reply..."
+                                    className="w-full pl-5 pr-20 py-4 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none dark:text-white resize-none h-20 transition-all placeholder:text-slate-400"
+                                    placeholder="Write a professional reply... (paste image or click 📎)"
                                     value={reply}
                                     onChange={e => setReply(e.target.value)}
+                                    onPaste={handlePaste}
                                 />
                                 <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    title="Attach image (JPG, PNG)"
+                                    className="absolute right-12 bottom-3 p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                                >
+                                    <Paperclip className="w-4 h-4" />
+                                </button>
+                                <button
                                     onClick={handleReply}
-                                    disabled={sending || !reply.trim()}
+                                    disabled={sending || (!reply.trim() && !attachedImage)}
                                     className="absolute right-3 bottom-3 p-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl transition-all shadow-lg shadow-indigo-500/20"
                                 >
                                     <Send className="w-4 h-4" />
                                 </button>
-                            </div>
-                            <div className="flex justify-between items-center mt-2 px-2">
-                                <span className="text-xs text-slate-400">Shift + Enter for new line</span>
-                                <div className="flex gap-2">
-                                    <button className="text-xs font-bold text-slate-500 hover:text-indigo-600 px-2 py-1 rounded hover:bg-slate-100 transition-colors">Attach File</button>
-                                    <button className="text-xs font-bold text-slate-500 hover:text-indigo-600 px-2 py-1 rounded hover:bg-slate-100 transition-colors">Saved Replies</button>
-                                </div>
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/jpg"
+                                    className="hidden"
+                                    onChange={e => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); e.target.value = ''; }}
+                                />
                             </div>
                         </div>
                     </div>
@@ -401,7 +562,7 @@ const TicketDetailModal = ({ ticket, onClose, refresh, showToast }) => {
                             <div className="space-y-4">
                                 <div>
                                     <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Category</label>
-                                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200">General Inquiry</p>
+                                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{ticket.category}</p>
                                 </div>
                                 <div>
                                     <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Ticket ID</label>
@@ -424,11 +585,8 @@ const TicketDetailModal = ({ ticket, onClose, refresh, showToast }) => {
                                 </div>
                                 <div className="space-y-2">
                                     <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-white/5 p-2 rounded-lg">
-                                        <Clock className="w-3 h-3" /> Last Seen: 2 hours ago
+                                        <Clock className="w-3 h-3" /> Updated {ticket.lastReplyAt ? new Date(ticket.lastReplyAt).toLocaleDateString() : '—'}
                                     </div>
-                                    <button className="w-full py-2 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:text-indigo-400 dark:hover:bg-indigo-900/30 rounded-lg transition-colors flex items-center justify-center gap-2">
-                                        <ExternalLink className="w-3 h-3" /> View Profile
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -443,7 +601,7 @@ const TicketDetailModal = ({ ticket, onClose, refresh, showToast }) => {
 const KBManager = ({ articles, refresh, showToast, showModal }) => {
     const [newTitle, setNewTitle] = useState('');
     const [newContent, setNewContent] = useState('');
-    const [category, setCategory] = useState('General');
+    const [category, setCategory] = useState('');
     const [isPublished, setIsPublished] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedArticleId, setSelectedArticleId] = useState(null);
@@ -457,6 +615,13 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
     useEffect(() => {
         fetchCategories();
     }, []);
+
+    // Set default category to first from list once loaded
+    useEffect(() => {
+        if (categories.length > 0 && !category) {
+            setCategory(categories[0].name);
+        }
+    }, [categories]);
 
     const fetchCategories = async () => {
         try {
@@ -490,6 +655,8 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
     const handleImageUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
+        // Reset input so the same file can be re-uploaded if needed
+        e.target.value = '';
         const formData = new FormData();
         formData.append('image', file);
         try {
@@ -526,7 +693,7 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
     const resetEditor = () => {
         setNewTitle('');
         setNewContent('');
-        setCategory('General');
+        setCategory(categories[0]?.name || '');
         setIsPublished(true);
         setSelectedArticleId(null);
     };
@@ -830,19 +997,36 @@ const RoadmapManager = ({ items, refresh }) => {
     const [activeConfettiId, setActiveConfettiId] = useState(null);
 
     const handleCreate = async () => {
-        await axios.post(`${import.meta.env.VITE_API_URL}/api/support/roadmap`, { title: newTitle, status: 'Requested' });
-        setNewTitle('');
-        refresh();
+        if (!newTitle.trim()) return;
+        try {
+            await axios.post(`${import.meta.env.VITE_API_URL}/api/support/roadmap`, { title: newTitle });
+            setNewTitle('');
+            refresh();
+        } catch (err) {
+            console.error('Roadmap create failed:', err);
+        }
     };
 
     const handleUpdateStatus = async (id, newStatus) => {
         try {
             await axios.put(`${import.meta.env.VITE_API_URL}/api/support/roadmap/${id}`, { status: newStatus });
-            refresh();
+            refresh(false);
         } catch (err) {
             console.error(err);
         }
     };
+
+    const handleDelete = async (id) => {
+        if (!window.confirm('Delete this roadmap item?')) return;
+        try {
+            await axios.delete(`${import.meta.env.VITE_API_URL}/api/support/roadmap/${id}`);
+            refresh(false);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const prevStatus = { 'Approved': 'Requested', 'In Progress': 'Approved', 'Live': 'In Progress' };
 
     const columns = [
         { id: 'Requested', label: 'Requested', icon: '💡', color: 'bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-400' },
@@ -852,7 +1036,7 @@ const RoadmapManager = ({ items, refresh }) => {
     ];
 
     return (
-        <div className="max-w-[1200px] max-w-full w-full mx-auto h-full flex flex-col px-4 md:px-6">
+        <div className="max-w-[1200px] w-full mx-auto h-full flex flex-col px-4 md:px-6">
             <div className="bg-gradient-to-r from-slate-900 to-slate-800 dark:from-white/10 dark:to-white/5 p-1 rounded-2xl mb-8 flex gap-2 w-full max-w-md mx-auto shadow-lg">
                 <input
                     className="flex-1 bg-white dark:bg-[#0B1120] rounded-xl px-4 py-3 outline-none text-slate-900 dark:text-white placeholder:text-slate-400"
@@ -964,6 +1148,22 @@ const RoadmapManager = ({ items, refresh }) => {
                                                                 🚀 Mark Live
                                                             </button>
                                                         )}
+                                                        <div className="flex gap-1.5 mt-0.5">
+                                                            {prevStatus[col.id] && (
+                                                                <button
+                                                                    onClick={() => handleUpdateStatus(item.id, prevStatus[col.id])}
+                                                                    className="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-600 dark:text-slate-300 text-[11px] font-bold rounded-md transition-colors flex items-center justify-center gap-1"
+                                                                >
+                                                                    ← Back
+                                                                </button>
+                                                            )}
+                                                            <button
+                                                                onClick={() => handleDelete(item.id)}
+                                                                className="p-1.5 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 text-red-500 rounded-md transition-colors flex items-center justify-center"
+                                                            >
+                                                                <Trash2 className="w-3 h-3" />
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </MotionDiv>
                                             )

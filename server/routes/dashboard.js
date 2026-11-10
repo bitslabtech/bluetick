@@ -64,13 +64,27 @@ const getEndDate = (range, endDate) => {
     return new Date(); // Now
 };
 
+// A selected campaign is a fixed event, so report on its whole lifetime instead of the date filter.
+const getCampaignWindow = async (userId, campaignId) => {
+    const campaign = await Message.findOne({ where: { id: campaignId, userId }, attributes: ['id', 'createdAt'] });
+    if (!campaign) return null;
+    const lastLog = await MessageLog.max('createdAt', { where: { campaignId } });
+    const first = new Date(campaign.createdAt);
+    const last = lastLog ? new Date(lastLog) : first;
+    return { start: first, end: new Date(Math.max(first, last) + 60 * 1000) };
+};
+
 router.get('/stats', async (req, res) => {
     try {
         const userId = req.user.id;
         const { range, startDate, endDate, campaignId } = req.query;
 
-        const start = getStartDate(range, startDate, endDate);
-        const end = getEndDate(range, endDate);
+        let start = getStartDate(range, startDate, endDate);
+        let end = getEndDate(range, endDate);
+        if (campaignId && campaignId !== 'all') {
+            const win = await getCampaignWindow(userId, campaignId);
+            if (win) ({ start, end } = win);
+        }
 
         // Common Where Clauses
         // 1. For MessageLog (Timeline data)
@@ -240,11 +254,8 @@ router.get('/stats', async (req, res) => {
                     campaignId: { [Op.in]: userCampaignIds }
                 }
             });
-            console.log(`[stats] failedCount=${failedCount} campaignIds=${userCampaignIds.length} range=[${start.toISOString()},${end.toISOString()}]`);
-            totalAttempted = await ChatMessage.count({
-                where: chatLogWhere,
-                include: chatInclude
-            });
+            // Campaign failures have no ChatMessage row, so attempts = non-failed chat messages + failed logs.
+            totalAttempted = totalMessages + failedCount;
             hourlyDistributionRaw = await ChatMessage.findAll({
                 attributes: [
                     [sequelize.fn('date_part', 'hour', sequelize.col('ChatMessage.createdAt')), 'hour'],
@@ -279,9 +290,9 @@ router.get('/stats', async (req, res) => {
             include: [Template]
         });
 
-        // Rates (Use totalAttempted for accurate industry-standard percentages)
+        // Delivery rate = delivered / attempted; read rate = read / delivered (a message can only be read once delivered)
         const deliveryRate = totalAttempted > 0 ? ((deliveredCount / totalAttempted) * 100).toFixed(1) : 0;
-        const readRate = totalAttempted > 0 ? ((readCount / totalAttempted) * 100).toFixed(1) : 0;
+        const readRate = deliveredCount > 0 ? ((readCount / deliveredCount) * 100).toFixed(1) : 0;
         const failedRate = totalAttempted > 0 ? ((failedCount / totalAttempted) * 100).toFixed(1) : 0;
 
         let waMessagingThreshold = 250;
@@ -373,12 +384,19 @@ router.get('/chart', async (req, res) => {
         const userId = req.user.id;
         const { range, startDate, endDate, campaignId } = req.query;
 
-        const start = getStartDate(range, startDate, endDate);
-        const end = getEndDate(range, endDate);
+        let start = getStartDate(range, startDate, endDate);
+        let end = getEndDate(range, endDate);
+        let campaignWindow = null;
+        if (campaignId && campaignId !== 'all') {
+            campaignWindow = await getCampaignWindow(userId, campaignId);
+            if (campaignWindow) ({ start, end } = campaignWindow);
+        }
 
         // Truncation Unit
         let dateTruncUnit = 'day';
-        if (range === '1d') {
+        if (campaignWindow) {
+            dateTruncUnit = (end - start) / (1000 * 60 * 60 * 24) <= 2 ? 'hour' : 'day';
+        } else if (range === '1d') {
             dateTruncUnit = 'hour';
         } else if (range === 'custom') {
             const diffDays = (end - start) / (1000 * 60 * 60 * 24);
@@ -527,7 +545,8 @@ router.get('/chart', async (req, res) => {
 router.get('/campaign-reports', async (req, res) => {
     try {
         const userId = req.user.id;
-        const { range, startDate, endDate } = req.query;
+        const { range, startDate, endDate, campaignId } = req.query;
+        const isCampaignFilter = campaignId && campaignId !== 'all';
 
         // Filter Campaigns by Created Date?
         // Or show all campaigns but filter their stats?
@@ -538,12 +557,9 @@ router.get('/campaign-reports', async (req, res) => {
         const end = getEndDate(range, endDate);
 
         const campaigns = await Message.findAll({
-            where: {
-                userId,
-                createdAt: {
-                    [Op.between]: [start, end]
-                }
-            },
+            where: isCampaignFilter
+                ? { userId, id: campaignId }
+                : { userId, createdAt: { [Op.between]: [start, end] } },
             include: [
                 { model: Template },
                 { model: MessageLog }
@@ -727,7 +743,9 @@ router.get('/ai-token-history', async (req, res) => {
         const daysWithUsage = dailyData.filter(d => d.total > 0).length;
         const avgDailyUsage = daysWithUsage > 0 ? Math.round(grandTotal / daysWithUsage) : 0;
         const totalUsed = grandTotal;
-        const usagePercent = totalAllowance > 0 ? Math.round((currentBalance / totalAllowance * 100)) : 0;
+        const usagePercent = (totalUsed + currentBalance) > 0
+            ? Math.min(100, Math.round(totalUsed / (totalUsed + currentBalance) * 100))
+            : 0;
 
         res.json({
             summary: {

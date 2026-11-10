@@ -11,6 +11,7 @@ const auth = require('../middleware/auth');
 const logActivity = require('../utils/logger');
 const KBCategory = require('../models/KBCategory');
 const { sendAdminAlert } = require('../services/systemMessenger');
+const { getIo } = require('../socket');
 // Multer Setup for KB Images replaced by storageProvider
 
 // Middleware: Verify Auth
@@ -84,8 +85,8 @@ router.get('/tickets', async (req, res) => {
         const isAdmin = req.user.isAdmin;
         let where = {};
 
-        // If User, restrict to own tickets
-        if (!isAdmin) {
+        // ?myTickets=true forces own-ticket scope (used by user-facing /support page)
+        if (!isAdmin || req.query.myTickets === 'true') {
             where.userId = req.user.id;
         }
 
@@ -120,38 +121,75 @@ router.get('/tickets', async (req, res) => {
 });
 
 
+// GET Single Ticket
+router.get('/tickets/:id', async (req, res) => {
+    try {
+        const ticket = await Ticket.findByPk(req.params.id);
+        if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
+
+        if (!req.user.isAdmin && ticket.userId !== req.user.id) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
+        if (req.user.isAdmin) {
+            const owner = await User.findByPk(ticket.userId, { attributes: ['id', 'name', 'email'] });
+            return res.json({ ...ticket.toJSON(), user: owner ? { name: owner.name, email: owner.email } : { name: 'Unknown', email: '' } });
+        }
+
+        res.json(ticket);
+    } catch (err) {
+        console.error('Get Ticket Error:', err);
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
 // POST Create Ticket
 router.post('/tickets', async (req, res) => {
     try {
         const { subject, category, priority, message } = req.body;
 
+        // Input validation
+        if (!subject || typeof subject !== 'string' || !subject.trim()) {
+            return res.status(400).json({ error: 'Subject is required.' });
+        }
+        if (!message || typeof message !== 'string' || !message.trim()) {
+            return res.status(400).json({ error: 'Message is required.' });
+        }
+        const validPriorities = ['Low', 'Medium', 'High', 'Critical'];
+        const validCategories = ['Technical', 'Billing', 'Account', 'General'];
+        if (priority && !validPriorities.includes(priority)) {
+            return res.status(400).json({ error: 'Invalid priority.' });
+        }
+        if (category && !validCategories.includes(category)) {
+            return res.status(400).json({ error: 'Invalid category.' });
+        }
+
         const initialMessage = {
             sender: 'User',
             name: req.user.name,
-            text: message,
+            text: message.trim(),
             timestamp: new Date()
         };
 
         const ticket = await Ticket.create({
             userId: req.user.id,
-            subject,
-            category,
-            priority,
+            subject: subject.trim().substring(0, 200),
+            category: validCategories.includes(category) ? category : 'General',
+            priority: validPriorities.includes(priority) ? priority : 'Medium',
             messages: [initialMessage],
-            lastReplyAt: new Date()
+            lastReplyAt: new Date(),
+            hasUnreadUserReply: true
         });
 
-        // Log
-        await logActivity(req, 'Ticket Created', `Ticket #${ticket.id.split('-')[0]} created: ${subject}`);
-
-        // Notify Admin
-        await AdminNotification.create({
-            type: 'SUPPORT_TICKET',
-            message: `New Ticket from ${req.user.name}: ${subject}`,
-            data: { ticketId: ticket.id, userId: req.user.id }
-        });
-
-        // 🚨 WA ADMIN NOTIFICATION - TICKET RAISED
+        // Log and notify (non-fatal)
+        try { await logActivity(req, 'Ticket Created', `Ticket #${ticket.id.split('-')[0]} created: ${subject}`); } catch {}
+        try {
+            await AdminNotification.create({
+                type: 'SUPPORT_TICKET',
+                message: `New Ticket from ${req.user.name}: ${subject}`,
+                data: { ticketId: ticket.id, userId: req.user.id }
+            });
+        } catch {}
         try {
             await sendAdminAlert('support_ticket_raised', `New support ticket from ${req.user.name}`, {
                 name: req.user.name,
@@ -168,64 +206,106 @@ router.post('/tickets', async (req, res) => {
 
 // POST Reply to Ticket
 router.post('/tickets/:id/reply', async (req, res) => {
+    const t = await Ticket.sequelize.transaction();
     try {
-        const { text, status } = req.body;
-        const ticket = await Ticket.findByPk(req.params.id);
+        const { text, status, imageUrl } = req.body;
 
-        if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
+        // Input validation — at least one of text or imageUrl is required
+        const hasText = text && typeof text === 'string' && text.trim();
+        const hasImage = imageUrl && typeof imageUrl === 'string' && imageUrl.length <= 2000;
+        if (!hasText && !hasImage) {
+            await t.rollback();
+            return res.status(400).json({ error: 'Reply text or image is required.' });
+        }
+        const validStatuses = ['Open', 'In Progress', 'Resolved', 'Closed'];
+        if (status && !validStatuses.includes(status)) {
+            await t.rollback();
+            return res.status(400).json({ error: 'Invalid status.' });
+        }
+
+        const ticket = await Ticket.findByPk(req.params.id, { transaction: t, lock: true });
+
+        if (!ticket) { await t.rollback(); return res.status(404).json({ error: 'Ticket not found' }); }
 
         // Permission Check
         if (!req.user.isAdmin && ticket.userId !== req.user.id) {
+            await t.rollback();
             return res.status(403).json({ error: 'Access denied' });
+        }
+
+        // Block replies to Closed tickets (users cannot re-open Closed)
+        if (ticket.status === 'Closed' && !req.user.isAdmin) {
+            await t.rollback();
+            return res.status(400).json({ error: 'This ticket is closed. Please open a new ticket.' });
+        }
+
+        // Users cannot set status to Closed
+        if (!req.user.isAdmin && status === 'Closed') {
+            await t.rollback();
+            return res.status(400).json({ error: 'Users cannot close tickets.' });
         }
 
         const newMessage = {
             sender: req.user.isAdmin ? 'Admin' : 'User',
-            name: req.user.name, // Assuming name is in token/user object
-            text,
-            timestamp: new Date()
+            name: req.user.name,
+            text: hasText ? text.trim() : '',
+            timestamp: new Date(),
+            ...(hasImage && { imageUrl })
         };
 
-        // Append Message
-        // Sequelize JSON array append workaround or just spread
         const updatedMessages = [...ticket.messages, newMessage];
         ticket.messages = updatedMessages;
         ticket.lastReplyAt = new Date();
 
-        // Set unread flag for the OTHER party, clear it for the replier
         if (req.user.isAdmin) {
-            ticket.hasUnreadAdminReply = true;  // user will see red dot
-            ticket.hasUnreadUserReply = false;  // admin just read/replied, clear their flag
+            ticket.hasUnreadAdminReply = true;
+            ticket.hasUnreadUserReply = false;
         } else {
-            ticket.hasUnreadUserReply = true;   // admin will see red dot
-            ticket.hasUnreadAdminReply = false; // user just replied, clear their flag
+            ticket.hasUnreadUserReply = true;
+            ticket.hasUnreadAdminReply = false;
         }
 
-        // Check previous status vs new status
         const previousStatus = ticket.status;
+        if (status) {
+            ticket.status = status;
+        } else if (req.user.isAdmin && ticket.status === 'Open') {
+            ticket.status = 'In Progress';
+        }
 
-        // Update Status if provided (mostly for Admin, but User can resolve/reopen)
-        if (status) ticket.status = status;
+        await ticket.save({ transaction: t });
+        await t.commit();
 
-        await ticket.save();
-
-        // Notify Admin if User replied or changed status
-        if (!req.user.isAdmin) {
+        // Non-fatal notifications after commit
+        if (req.user.isAdmin) {
+            // Notify ticket owner when admin replies
+            try {
+                const owner = await User.findByPk(ticket.userId, { attributes: ['id', 'name', 'email'] });
+                if (owner) {
+                    await SystemNotification.create({
+                        title: 'Support Ticket Update',
+                        message: `Your ticket "${ticket.subject}" has received a reply from our support team.`,
+                        type: 'Info',
+                        recipient: owner.email,
+                        target: `User: ${owner.name} (${owner.email})`,
+                        buttonName: 'View Ticket',
+                        buttonUrl: `/support?ticketId=${ticket.id}`,
+                        status: 'Sent'
+                    });
+                    try { getIo().to(String(owner.id)).emit('notification_update'); } catch {}
+                }
+            } catch {}
+        } else {
             let notifyMsg = `User Reply from ${req.user.name}: ${ticket.subject}`;
-
             if (status === 'Resolved' && previousStatus !== 'Resolved') {
                 notifyMsg = `Ticket Resolved by ${req.user.name}: ${ticket.subject}`;
-            } else if (status === 'Open' && previousStatus === 'Resolved') {
-                notifyMsg = `Ticket Reopened by ${req.user.name}: ${ticket.subject}`;
             }
-
-            await AdminNotification.create({
-                type: 'SUPPORT_TICKET',
-                message: notifyMsg,
-                data: { ticketId: ticket.id, userId: req.user.id }
-            });
-
-            // 🚨 WA ADMIN NOTIFICATION - TICKET REPLIED
+            try {
+                await AdminNotification.create({
+                    type: 'SUPPORT_TICKET',
+                    message: notifyMsg,
+                    data: { ticketId: ticket.id, userId: req.user.id }
+                });
+            } catch {}
             try {
                 await sendAdminAlert('support_ticket_replied', `User replied to ticket: ${ticket.subject}`, {
                     name: req.user.name,
@@ -236,11 +316,43 @@ router.post('/tickets/:id/reply', async (req, res) => {
 
         res.json(ticket);
     } catch (err) {
+        try { await t.rollback(); } catch {}
         console.error("Reply Ticket Error:", err);
         res.status(500).json({ error: 'Server Error' });
     }
 });
 
+
+// PATCH Update Ticket Status (without adding a message)
+router.patch('/tickets/:id/status', async (req, res) => {
+    try {
+        const { status } = req.body;
+        const validStatuses = ['Open', 'In Progress', 'Resolved', 'Closed'];
+        if (!status || !validStatuses.includes(status)) {
+            return res.status(400).json({ error: 'Invalid status.' });
+        }
+
+        const ticket = await Ticket.findByPk(req.params.id);
+        if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
+
+        if (!req.user.isAdmin && ticket.userId !== req.user.id) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        if (!req.user.isAdmin && status === 'Closed') {
+            return res.status(400).json({ error: 'Users cannot close tickets.' });
+        }
+        if (!req.user.isAdmin && ticket.status === 'Closed') {
+            return res.status(400).json({ error: 'This ticket is closed.' });
+        }
+
+        ticket.status = status;
+        await ticket.save();
+        res.json(ticket);
+    } catch (err) {
+        console.error('Patch Status Error:', err);
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
 
 // --- KNOWLEDGE BASE ---
 
@@ -266,11 +378,23 @@ router.get('/kb', async (req, res) => {
     }
 });
 
+// POST Increment Article View Counter
+router.post('/kb/:id/view', async (req, res) => {
+    try {
+        await Article.increment('views', { where: { id: req.params.id } });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
 // POST Create Article (Admin Only)
 router.post('/kb', async (req, res) => {
     if (!req.user.isAdmin) return res.status(403).json({ error: 'Admin only' });
     try {
-        const article = await Article.create(req.body);
+        const { title, content, category, isPublished } = req.body;
+        if (!title || !content) return res.status(400).json({ error: 'Title and content are required.' });
+        const article = await Article.create({ title, content, category, isPublished });
 
         // Log
         await logActivity(req, 'KB Article Created', `Admin created KB article: ${article.title}`);
@@ -310,12 +434,12 @@ router.delete('/kb/:id', async (req, res) => {
     if (!req.user.isAdmin) return res.status(403).json({ error: 'Admin only' });
     try {
         const article = await Article.findByPk(req.params.id);
-        const title = article ? article.title : req.params.id;
+        if (!article) return res.status(404).json({ error: 'Article not found' });
 
-        await Article.destroy({ where: { id: req.params.id } });
+        await article.destroy();
 
         // Log
-        await logActivity(req, 'KB Article Deleted', `Admin deleted KB article: ${title}`);
+        try { await logActivity(req, 'KB Article Deleted', `Admin deleted KB article: ${article.title}`); } catch {}
 
         res.json({ message: 'Deleted' });
     } catch (err) {
@@ -329,10 +453,19 @@ router.delete('/kb/:id', async (req, res) => {
 // GET Roadmap
 router.get('/roadmap', async (req, res) => {
     try {
-        const items = await RoadmapItem.findAll({
-            order: [['date', 'ASC']]
+        const isAdmin = req.user.isAdmin;
+        const items = await RoadmapItem.findAll({ order: [['date', 'ASC']] });
+        const sanitized = items.map(i => {
+            const obj = i.toJSON();
+            if (!isAdmin) {
+                // Replace voters array with a simple hasVoted boolean; hide suggester identity
+                obj.hasVoted = (obj.voters || []).includes(req.user.id);
+                delete obj.voters;
+                delete obj.suggesterId;
+            }
+            return obj;
         });
-        res.json(items);
+        res.json(sanitized);
     } catch (err) {
         res.status(500).json({ error: 'Server Error' });
     }
@@ -341,9 +474,13 @@ router.get('/roadmap', async (req, res) => {
 // POST Roadmap Item (Any User can suggest)
 router.post('/roadmap', async (req, res) => {
     try {
+        const { title } = req.body;
+        if (!title || typeof title !== 'string' || !title.trim()) {
+            return res.status(400).json({ error: 'Title is required.' });
+        }
         const item = await RoadmapItem.create({
-            ...req.body,
-            status: 'Requested', // Force status to 'Requested' for user suggestions
+            title: title.trim().substring(0, 200),
+            status: 'Requested',
             suggesterId: req.user.id,
             suggesterName: req.user.name
         });
@@ -372,6 +509,9 @@ router.put('/roadmap/:id', async (req, res) => {
 
         const previousStatus = item.status;
         item.status = status;
+        if (req.body.description !== undefined) {
+            item.description = String(req.body.description).substring(0, 255);
+        }
         await item.save();
 
         // Notify suggesting user if status changed to something positive
@@ -392,6 +532,19 @@ router.put('/roadmap/:id', async (req, res) => {
         }
 
         res.json(item);
+    } catch (err) {
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
+// DELETE Roadmap Item (Admin Only)
+router.delete('/roadmap/:id', async (req, res) => {
+    if (!req.user.isAdmin) return res.status(403).json({ error: 'Admin only' });
+    try {
+        const item = await RoadmapItem.findByPk(req.params.id);
+        if (!item) return res.status(404).json({ error: 'Item not found' });
+        await item.destroy();
+        res.json({ message: 'Deleted' });
     } catch (err) {
         res.status(500).json({ error: 'Server Error' });
     }
@@ -433,7 +586,14 @@ router.post('/roadmap/:id/upvote', async (req, res) => {
             item.voters = voters;
             await item.save();
         }
-        res.json(item);
+        if (!item) return res.status(404).json({ error: 'Item not found' });
+        const response = item.toJSON();
+        if (!req.user.isAdmin) {
+            response.hasVoted = (response.voters || []).includes(req.user.id);
+            delete response.voters;
+            delete response.suggesterId;
+        }
+        res.json(response);
     } catch (err) {
         res.status(500).json({ error: 'Server Error' });
     }
@@ -476,11 +636,19 @@ router.put('/kb/categories/:id', async (req, res) => {
         delete updates.id;
         delete updates.createdAt;
         delete updates.updatedAt;
+        if (updates.name !== undefined) {
+            updates.name = String(updates.name).trim();
+            if (!updates.name) return res.status(400).json({ error: 'Category name cannot be empty.' });
+        }
+        const oldName = category.name;
         await category.update(updates);
 
-        // Log
-        await logActivity(req, 'KB Category Updated', `Admin updated KB category: ${category.name}`);
+        // Cascade rename to articles
+        if (updates.name && updates.name !== oldName) {
+            await Article.update({ category: updates.name }, { where: { category: oldName } });
+        }
 
+        try { await logActivity(req, 'KB Category Updated', `Admin updated KB category: ${category.name}`); } catch {}
         res.json(category);
     } catch (err) {
         res.status(500).json({ error: 'Server Error' });
@@ -492,13 +660,14 @@ router.delete('/kb/categories/:id', async (req, res) => {
     if (!req.user.isAdmin) return res.status(403).json({ error: 'Admin only' });
     try {
         const category = await KBCategory.findByPk(req.params.id);
-        const name = category ? category.name : req.params.id;
+        if (!category) return res.status(404).json({ error: 'Category not found' });
+        const name = category.name;
 
+        // Reassign articles in this category to 'Uncategorized' before deleting
+        await Article.update({ category: 'Uncategorized' }, { where: { category: name } });
         await KBCategory.destroy({ where: { id: req.params.id } });
 
-        // Log
-        await logActivity(req, 'KB Category Deleted', `Admin deleted KB category: ${name}`);
-
+        try { await logActivity(req, 'KB Category Deleted', `Admin deleted KB category: ${name}`); } catch {}
         res.json({ message: 'Deleted' });
     } catch (err) {
         res.status(500).json({ error: 'Server Error' });
@@ -508,11 +677,38 @@ router.delete('/kb/categories/:id', async (req, res) => {
 // POST Upload Image (Admin Only)
 const storageProvider = require('../utils/storageProvider');
 
-router.post('/kb/upload-image', storageProvider('kb', { fileFilter: storageProvider.generalImageFilter }).single('image'), async (req, res) => {
-    if (!req.user.isAdmin) return res.status(403).json({ error: 'Admin only' });
-    if (!req.file) return res.status(400).json({ error: 'No file' });
+router.post('/kb/upload-image',
+    (req, res, next) => {
+        if (!req.user.isAdmin) return res.status(403).json({ error: 'Admin only' });
+        next();
+    },
+    storageProvider('kb', { fileFilter: storageProvider.generalImageFilter }).single('image'),
+    async (req, res) => {
+        if (!req.file) return res.status(400).json({ error: 'No file' });
+        res.json({ url: req.file.publicUrl });
+    }
+);
 
-    res.json({ url: req.file.publicUrl });
-});
+// POST Upload image attachment for a ticket reply (jpeg/png only, 10MB max)
+router.post('/tickets/:id/upload-image',
+    storageProvider('support-attachments', {
+        fileFilter: storageProvider.generalImageFilter,
+        uniqueNames: true,
+        limits: { fileSize: 10 * 1024 * 1024 }
+    }).single('image'),
+    async (req, res) => {
+        try {
+            if (!req.file) return res.status(400).json({ error: 'No image uploaded.' });
+            const ticket = await Ticket.findByPk(req.params.id, { attributes: ['id', 'userId'] });
+            if (!ticket) return res.status(404).json({ error: 'Ticket not found.' });
+            if (!req.user.isAdmin && ticket.userId !== req.user.id) {
+                return res.status(403).json({ error: 'Access denied.' });
+            }
+            res.json({ url: req.file.publicUrl });
+        } catch (e) {
+            res.status(500).json({ error: 'Upload failed.' });
+        }
+    }
+);
 
 module.exports = router;

@@ -12,10 +12,9 @@ const ErrorBell = () => {
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef(null);
 
-    if (!isAdmin) return null;
-
     // Close on outside click
     useEffect(() => {
+        if (!isAdmin) return;
         const handler = (e) => {
             if (containerRef.current && !containerRef.current.contains(e.target)) {
                 setIsOpen(false);
@@ -23,12 +22,14 @@ const ErrorBell = () => {
         };
         document.addEventListener("mousedown", handler);
         return () => document.removeEventListener("mousedown", handler);
-    }, []);
+    }, [isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Refresh when opened
     useEffect(() => {
         if (isOpen) fetchNotifications();
     }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    if (!isAdmin) return null;
 
     const handleResolve = async (e, id) => {
         e.stopPropagation();

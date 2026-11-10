@@ -238,6 +238,21 @@ const NotificationBell = () => {
                                                                 {notif.message}
                                                             </p>
                                                         )}
+                                                        {isAdmin && notif.type === 'SUPPORT_TICKET' && notif.data?.ticketId && (
+                                                            <div className="mt-2">
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setIsNotificationsOpen(false);
+                                                                        navigate(`/superadmin/support?ticketId=${notif.data.ticketId}`);
+                                                                    }}
+                                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/20 dark:hover:bg-amber-500/30 text-amber-700 dark:text-amber-300 rounded-md text-[10px] font-bold transition-colors border border-amber-200 dark:border-amber-500/30"
+                                                                >
+                                                                    <Ticket className="w-3 h-3" />
+                                                                    View Ticket
+                                                                </button>
+                                                            </div>
+                                                        )}
                                                         {!isAdmin && notif.buttonName && notif.buttonUrl && (
                                                             <div className="mt-2">
                                                                 <button

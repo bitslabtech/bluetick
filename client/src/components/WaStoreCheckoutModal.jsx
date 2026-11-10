@@ -372,7 +372,7 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                                 toast.success('Payment successful! Order placed.');
                                 if (onCheckoutSuccess) onCheckoutSuccess();
                                 onClose();
-                                navigate(`/store/${store.slug}/order-success`, {
+                                navigate(getStoreRoute(store.slug, '/order-success'), {
                                     state: { orderData: order }
                                 });
                             } catch (err) {
@@ -457,7 +457,7 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
             }
             onClose();
 
-            navigate(`/store/${store.slug}/order-success`, {
+            navigate(getStoreRoute(store.slug, '/order-success'), {
                 state: {
                     orderData: order,
                     whatsappUrl

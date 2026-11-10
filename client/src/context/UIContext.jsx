@@ -1,5 +1,5 @@
 
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { X, CheckCircle2, AlertTriangle, Info, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from './AuthContext'; // Import useAuth to get user status
@@ -16,6 +16,8 @@ const UI_ANIMATION_STYLES = `
 .ui-modal-in { animation: ui-modal-in 0.2s ease forwards; }
 .ui-toast-in { animation: ui-toast-in 0.25s ease forwards; }
 .ui-toast-out { animation: ui-toast-out 0.2s ease forwards; }
+@keyframes ui-badge-bump { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.3); } }
+.ui-badge-bump { animation: ui-badge-bump 0.2s ease; }
 `;
 let _stylesInjected = false;
 function ensureStyles() {
@@ -186,35 +188,63 @@ export const UIProvider = ({ children }) => {
         closeModal();
     }, [modal, closeModal]);
 
-    // Toast State
+    // Toast State — with deduplication and stack grouping
     const [toasts, setToasts] = useState([]);
+    const toastsRef = useRef([]);
+    const timers = useRef({});
 
-    const removeToast = useCallback((id) => {
-        setToasts(prev => prev.filter(t => t.id !== id));
+    const updateToasts = useCallback((updater) => {
+        setToasts(prev => {
+            const next = typeof updater === 'function' ? updater(prev) : updater;
+            toastsRef.current = next;
+            return next;
+        });
     }, []);
 
-    const showToast = useCallback((args, forcedType = 'info') => {
-        const id = Date.now().toString();
-        let config = { type: 'info', title: '', message: '', duration: 4000 };
+    const removeToast = useCallback((id) => {
+        if (timers.current[id]) {
+            clearTimeout(timers.current[id]);
+            delete timers.current[id];
+        }
+        updateToasts(prev => prev.filter(t => t.id !== id));
+    }, [updateToasts]);
 
+    const showToast = useCallback((args, forcedType = 'info') => {
+        let config = { type: 'info', title: '', message: '', duration: 4000 };
         if (typeof args === 'string') {
-            // Support old positional format: showToast("message", "type")
             config.message = args;
             config.type = forcedType;
             config.title = forcedType.charAt(0).toUpperCase() + forcedType.slice(1);
         } else {
-            // Support new object format: showToast({ message, type, title, duration })
             config = { ...config, ...args };
         }
 
-        setToasts(prev => [...prev, { id, ...config }]);
+        const existing = toastsRef.current.find(t =>
+            t.type === config.type &&
+            t.title === config.title &&
+            t.message === config.message
+        );
 
-        if (config.duration) {
-            setTimeout(() => {
-                removeToast(id);
-            }, config.duration);
+        if (existing) {
+            if (timers.current[existing.id]) clearTimeout(timers.current[existing.id]);
+            if (config.duration) {
+                timers.current[existing.id] = setTimeout(() => removeToast(existing.id), config.duration);
+            }
+            updateToasts(prev => prev.map(t =>
+                t.id === existing.id ? { ...t, count: t.count + 1 } : t
+            ));
+        } else {
+            const id = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+            if (config.duration) {
+                timers.current[id] = setTimeout(() => removeToast(id), config.duration);
+            }
+            updateToasts(prev => [...prev, { id, ...config, count: 1 }]);
         }
-    }, [removeToast]);
+    }, [removeToast, updateToasts]);
+
+    useEffect(() => {
+        return () => { Object.values(timers.current).forEach(clearTimeout); };
+    }, []);
 
     // Inject CSS animation styles once on first render
     useEffect(() => { ensureStyles(); }, []);
@@ -273,35 +303,66 @@ export const UIProvider = ({ children }) => {
                     </div>
                 </div>
             )}
-            {/* Toast Layer — CSS-animated, no framer-motion */}
-            <div className="fixed top-4 right-4 z-[200] flex flex-col gap-3 pointer-events-none p-4">
-                {toasts.map(toast => (
-                    <div
-                        key={toast.id}
-                        className="ui-toast-in pointer-events-auto w-full max-w-sm bg-white dark:bg-background-dark/95 backdrop-blur-xl rounded-xl shadow-2xl border border-slate-200 dark:border-white/10 p-4 flex items-start gap-4 ring-1 ring-black/5"
-                    >
-                        <div className={`mt-0.5 p-2 rounded-lg shrink-0 ${toast.type === 'success' ? 'bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400' :
-                            toast.type === 'error' ? 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400' :
-                                toast.type === 'warning' ? 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400' :
-                                    'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400'
-                            }`}>
-                            {toast.type === 'success' && <CheckCircle2 className="w-5 h-5" />}
-                            {toast.type === 'error' && <AlertCircle className="w-5 h-5" />}
-                            {toast.type === 'warning' && <AlertTriangle className="w-5 h-5" />}
-                            {toast.type === 'info' && <Info className="w-5 h-5" />}
-                        </div>
-                        <div className="flex-1 min-w-0 pt-1">
-                            {toast.title && <h4 className="font-bold text-slate-900 dark:text-white text-sm mb-0.5">{toast.title}</h4>}
-                            <p className="text-sm text-slate-600 dark:text-slate-300 leading-snug">{toast.message}</p>
-                        </div>
-                        <button
-                            onClick={() => removeToast(toast.id)}
-                            className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+            {/* Toast Layer — CSS-animated, stacked duplicates */}
+            <div className="fixed top-4 right-4 z-[200] flex flex-col gap-3 pointer-events-none" style={{ width: '24rem', padding: '1rem' }}>
+                {toasts.map(toast => {
+                    const stackCount = Math.min(toast.count - 1, 2);
+                    return (
+                        <div
+                            key={toast.id}
+                            className="relative pointer-events-auto"
+                            style={{ marginBottom: stackCount >= 2 ? '8px' : stackCount >= 1 ? '4px' : undefined }}
                         >
-                            <X className="w-4 h-4" />
-                        </button>
-                    </div>
-                ))}
+                            {/* Deepest shadow card — visible when 3+ duplicates */}
+                            {stackCount >= 2 && (
+                                <div
+                                    className="absolute inset-0 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10"
+                                    style={{ transform: 'translateY(8px) scaleX(0.88)', transformOrigin: 'center center', zIndex: 0, opacity: 0.5 }}
+                                />
+                            )}
+                            {/* Middle shadow card — visible when 2+ duplicates */}
+                            {stackCount >= 1 && (
+                                <div
+                                    className="absolute inset-0 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10"
+                                    style={{ transform: 'translateY(4px) scaleX(0.94)', transformOrigin: 'center center', zIndex: 1, opacity: 0.7 }}
+                                />
+                            )}
+                            {/* Main card */}
+                            <div className="ui-toast-in relative z-10 bg-white dark:bg-background-dark/95 backdrop-blur-xl rounded-xl shadow-2xl border border-slate-200 dark:border-white/10 p-4 flex items-start gap-4 ring-1 ring-black/5">
+                                <div className={`mt-0.5 p-2 rounded-lg shrink-0 ${toast.type === 'success' ? 'bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400' :
+                                    toast.type === 'error' ? 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400' :
+                                        toast.type === 'warning' ? 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400' :
+                                            'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400'
+                                    }`}>
+                                    {toast.type === 'success' && <CheckCircle2 className="w-5 h-5" />}
+                                    {toast.type === 'error' && <AlertCircle className="w-5 h-5" />}
+                                    {toast.type === 'warning' && <AlertTriangle className="w-5 h-5" />}
+                                    {toast.type === 'info' && <Info className="w-5 h-5" />}
+                                </div>
+                                <div className="flex-1 min-w-0 pt-1">
+                                    {toast.title && <h4 className="font-bold text-slate-900 dark:text-white text-sm mb-0.5">{toast.title}</h4>}
+                                    <p className="text-sm text-slate-600 dark:text-slate-300 leading-snug">{toast.message}</p>
+                                </div>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                    {toast.count > 1 && (
+                                        <span
+                                            key={toast.count}
+                                            className="ui-badge-bump text-[11px] font-black px-1.5 py-0.5 rounded-full bg-slate-800 dark:bg-white/90 text-white dark:text-slate-900 min-w-[1.5rem] text-center leading-tight tabular-nums"
+                                        >
+                                            ×{toast.count}
+                                        </span>
+                                    )}
+                                    <button
+                                        onClick={() => removeToast(toast.id)}
+                                        className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
         </UIContext.Provider>
     );

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
 import NotificationBell from '../components/NotificationBell';
 import UserDropdown from '../components/UserDropdown';
@@ -152,7 +153,7 @@ const TemplateBreakdown = ({ reports }) => {
     });
     const data = Object.values(templateMap).slice(0, 6).map(t => ({
         ...t,
-        readRate: t.sent > 0 ? Math.round((t.read / t.sent) * 100) : 0
+        readRate: t.delivered > 0 ? Math.round((t.read / t.delivered) * 100) : 0
     })).sort((a, b) => b.readRate - a.readRate);
 
     if (data.length === 0) return null;
@@ -240,17 +241,17 @@ const EngagementScore = ({ stats }) => {
 // ─── Message Status Donut ─────────────────────────────────────────────────────
 const StatusDonut = ({ stats }) => {
     if (!stats) return null;
-    const total = stats.totalMessages || 1;
     const delivered = stats.deliveredCount || 0;
     const read = stats.readCount || 0;
     const failed = stats.failedCount || 0;
-    const pending = Math.max(0, total - delivered - failed);
+    const pending = Math.max(0, (stats.totalMessages || 0) - delivered);
     const data = [
         { name: 'Read', value: read, color: '#6366f1' },
         { name: 'Delivered', value: Math.max(0, delivered - read), color: '#22c55e' },
         { name: 'Failed', value: failed, color: '#ef4444' },
         { name: 'Pending', value: pending, color: '#e2e8f0' },
     ].filter(d => d.value > 0);
+    const total = data.reduce((s, d) => s + d.value, 0) || 1;
     return (
         <div className="bg-white dark:bg-surface-dark rounded-2xl p-4 md:p-6 border border-slate-100 dark:border-white/5 shadow-sm">
             <div className="flex items-center justify-between mb-4">
@@ -293,9 +294,92 @@ const StatusDonut = ({ stats }) => {
 };
 
 // ─── AI Analytics Tab ────────────────────────────────────────────────────────
+const Sk = ({ className = '' }) => (
+    <div className={`animate-pulse rounded-xl bg-slate-200/70 dark:bg-white/10 ${className}`} />
+);
+
+const SkCard = ({ children, className = '' }) => (
+    <div className={`bg-white dark:bg-surface-dark rounded-2xl p-4 md:p-6 border border-slate-100 dark:border-white/5 shadow-sm ${className}`}>{children}</div>
+);
+
+const SkKpiRow = () => (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[0, 1, 2, 3].map(i => (
+            <SkCard key={i}>
+                <Sk className="w-10 h-10 mb-4" />
+                <Sk className="h-3 w-20 mb-3" />
+                <Sk className="h-7 w-24 mb-2" />
+                <Sk className="h-3 w-28" />
+            </SkCard>
+        ))}
+    </div>
+);
+
+const SkTable = ({ rows = 5 }) => (
+    <SkCard>
+        <Sk className="h-5 w-48 mb-5" />
+        <div className="space-y-3">
+            {Array.from({ length: rows }).map((_, i) => <Sk key={i} className="h-10 w-full" />)}
+        </div>
+    </SkCard>
+);
+
+const MessagingSkeleton = () => (
+    <div className="space-y-8 pb-10">
+        <SkKpiRow />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <SkCard className="lg:col-span-2"><Sk className="h-5 w-40 mb-5" /><Sk className="h-64 w-full" /></SkCard>
+            <SkCard><Sk className="h-5 w-32 mb-5" /><Sk className="h-48 w-48 rounded-full mx-auto" /></SkCard>
+        </div>
+        <SkTable rows={5} />
+    </div>
+);
+
+const AiSkeleton = () => (
+    <div className="space-y-6">
+        <SkKpiRow />
+        <SkCard>
+            <Sk className="h-5 w-40 mb-5" />
+            <div className="space-y-5">
+                {[0, 1, 2, 3].map(i => (
+                    <div key={i}><Sk className="h-3 w-full mb-2" /><Sk className="h-2 w-full" /></div>
+                ))}
+            </div>
+        </SkCard>
+    </div>
+);
+
+const MetaAdsSkeleton = () => (
+    <div className="space-y-6">
+        <SkKpiRow />
+        <SkTable rows={4} />
+    </div>
+);
+
+const FlowBotsSkeleton = () => (
+    <div className="space-y-6">
+        <SkKpiRow />
+        <SkCard><Sk className="h-5 w-40 mb-5" /><Sk className="h-56 w-full" /></SkCard>
+        <SkTable rows={4} />
+    </div>
+);
+
+const ConnectState = ({ icon: Icon, title, description, actionLabel, onAction }) => (
+    <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center">
+            <Icon className="w-7 h-7 text-indigo-500" />
+        </div>
+        <h3 className="text-base font-bold text-slate-900 dark:text-white">{title}</h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm">{description}</p>
+        <button onClick={onAction} className="mt-2 flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl px-5 py-2.5 transition-all shadow-lg shadow-indigo-500/20 active:scale-95">
+            {actionLabel}<ArrowRight className="w-4 h-4" />
+        </button>
+    </div>
+);
+
 const AiAnalyticsTab = ({ stats }) => {
-    if (!stats) return <div className="p-8 text-center text-slate-500">Loading AI stats...</div>;
-    if (!stats.hasHistory) return <div className="p-8 text-center text-slate-500">No AI usage history found.</div>;
+    if (!stats) return <AiSkeleton />;
+    if (!stats.summary?.hasHistory) return <div className="p-8 text-center text-slate-500">No AI usage history found.</div>;
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -327,16 +411,15 @@ const AiAnalyticsTab = ({ stats }) => {
 };
 
 // ─── Meta Ads Tab (Rich Analytics) ─────────────────────────────────────────
-const MetaAdsTab = ({ ads }) => {
-    if (!ads) return <div className="p-8 text-center text-slate-500">Loading Ads...</div>;
+const MetaAdsTab = ({ ads, onCreate }) => {
+    if (!ads) return <MetaAdsSkeleton />;
 
     const { summary = {}, campaigns = [] } = ads;
 
     if (campaigns.length === 0 && !summary.totalCampaigns) return (
-        <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <Megaphone className="w-12 h-12 text-slate-300 dark:text-slate-600" />
-            <p className="text-sm text-slate-500 dark:text-slate-400">No Meta Ad campaigns found.</p>
-        </div>
+        <ConnectState icon={Megaphone} title="No Meta Ad campaigns yet"
+            description="Create your first campaign to see impressions, clicks and spend here."
+            actionLabel="Create Campaign" onAction={onCreate} />
     );
 
     const fmtNum = (n) => n !== null && n !== undefined ? Number(n).toLocaleString() : '—';
@@ -442,16 +525,15 @@ const MetaAdsTab = ({ ads }) => {
 };
 
 // ─── FlowBots Tab (Rich Analytics) ─────────────────────────────────────────
-const FlowBotsTab = ({ flows }) => {
-    if (!flows) return <div className="p-8 text-center text-slate-500">Loading FlowBots...</div>;
+const FlowBotsTab = ({ flows, onCreate }) => {
+    if (!flows) return <FlowBotsSkeleton />;
 
     const { summary = {}, flows: flowList = [], dailyData = [] } = flows;
 
     if (flowList.length === 0 && !summary.totalFlows) return (
-        <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <GitMerge className="w-12 h-12 text-slate-300 dark:text-slate-600" />
-            <p className="text-sm text-slate-500 dark:text-slate-400">No FlowBots found. Create your first flow to see analytics here.</p>
-        </div>
+        <ConnectState icon={GitMerge} title="No FlowBots created"
+            description="Create your first flow to see triggers, contacts and completion analytics here."
+            actionLabel="Create Now" onAction={onCreate} />
     );
 
     return (
@@ -582,6 +664,7 @@ const FlowBotsTab = ({ flows }) => {
 
 // ─── Main Reports Page ────────────────────────────────────────────────────────
 const Reports = () => {
+    const navigate = useNavigate();
     const [timeRange, setTimeRange] = useState('30d');
     const [displayRange, setDisplayRange] = useState('Last 30 Days');
     const [customStart, setCustomStart] = useState('');
@@ -601,6 +684,7 @@ const Reports = () => {
     const [metaAds, setMetaAds] = useState(null);
     const [flowBots, setFlowBots] = useState(null);
     const [loadingExtras, setLoadingExtras] = useState(false);
+    const [extrasError, setExtrasError] = useState(null);
 
     useEffect(() => {
         axios.get(`${API}/api/messages`, { headers: { } })
@@ -660,11 +744,12 @@ const Reports = () => {
         const fetchExtras = async () => {
             if (activeTab === 'messaging') return;
             setLoadingExtras(true);
+            setExtrasError(null);
             try {
                 const token = localStorage.getItem('token');
                 const headers = { 'Authorization': `Bearer ${token}` };
-                
-                if (activeTab === 'ai' && !aiStats) {
+
+                if (activeTab === 'ai') {
                     const res = await axios.get(`${API}/api/dashboard/ai-token-history?range=${timeRange}`, { headers });
                     setAiStats(res.data);
                 } else if (activeTab === 'meta-ads') {
@@ -677,6 +762,10 @@ const Reports = () => {
                 }
             } catch (err) {
                 console.error('Error fetching extra tab data:', err);
+                setExtrasError({
+                    status: err.response?.status,
+                    message: err.response?.data?.error || 'Failed to load data. Please try again.'
+                });
             } finally {
                 setLoadingExtras(false);
             }
@@ -699,8 +788,31 @@ const Reports = () => {
                     c.read,
                     c.failed || 0,
                     c.audience > 0 ? Math.round((c.delivered / c.audience) * 100) : 0,
-                    c.audience > 0 ? Math.round((c.read / c.audience) * 100) : 0,
+                    c.delivered > 0 ? Math.round((c.read / c.delivered) * 100) : 0,
                     c.status
+                ])
+            ];
+        } else if (activeTab === 'ai' && aiStats?.summary) {
+            filename = `ai_usage_report_${timeRange}.csv`;
+            const s = aiStats.summary;
+            const features = (aiStats.featureBreakdown || []);
+            rows = [
+                ['Summary'],
+                ['Plan', s.planName],
+                ['Tokens Used', s.totalUsed],
+                ['Balance Remaining', s.currentBalance],
+                ['Peak Daily Usage', s.peakDayUsage],
+                ['Avg Daily Usage', s.avgDailyUsage],
+                ['Usage %', s.usagePercent],
+                [],
+                ['Feature Breakdown'],
+                ['Feature', 'Tokens', 'Share %'],
+                ...features.map(f => [f.name, f.tokens, f.percent]),
+                [],
+                ['Daily Usage'],
+                ['Date', 'Total Tokens', ...features.map(f => f.name), 'Balance After'],
+                ...(aiStats.dailyData || []).map(d => [
+                    d.date, d.total, ...features.map(f => d[f.key] || 0), d.runningBalance
                 ])
             ];
         } else if (activeTab === 'flowbots' && flowBots?.flows) {
@@ -768,13 +880,7 @@ const Reports = () => {
             )}
 
             {/* Header */}
-            <header className="hidden md:flex items-center justify-between border-b border-slate-200 dark:border-surface-dark px-4 md:px-6 py-4 bg-white dark:bg-background-dark shrink-0">
-                <div className="flex items-center gap-6 w-full">
-                    <div className="flex items-center rounded-xl bg-slate-100 dark:bg-surface-dark h-10 w-full max-w-md px-3 border border-transparent focus-within:border-indigo-500 transition-colors">
-                        <Search className="w-4 h-4 text-slate-400" />
-                        <input type="text" placeholder="Search reports..." className="w-full bg-transparent text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none ml-2" />
-                    </div>
-                </div>
+            <header className="hidden md:flex items-center justify-end border-b border-slate-200 dark:border-surface-dark px-4 md:px-6 py-4 bg-white dark:bg-background-dark shrink-0">
                 <div className="flex items-center gap-4 flex-shrink-0">
                     <TrialBanner />
                     <ThemeToggle /><NotificationBell /><UserDropdown />
@@ -792,6 +898,11 @@ const Reports = () => {
                         {activeTab === 'messaging' && (
                             <SearchableDropdown options={campaignsList} value={selectedCampaignId} onChange={setSelectedCampaignId} placeholder="All Campaigns" />
                         )}
+                        {activeTab === 'messaging' && selectedCampaignId !== 'all' ? (
+                            <div className="flex items-center gap-2 bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-300 text-sm rounded-xl px-4 py-2.5 shadow-sm">
+                                <Calendar className="w-4 h-4" />Campaign lifetime
+                            </div>
+                        ) : (
                         <div className="relative">
                             <select onChange={handleRangeChange} value={timeRange}
                                 className="appearance-none bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white text-sm rounded-xl pl-4 pr-8 py-2.5 focus:outline-none focus:border-indigo-500 cursor-pointer shadow-sm">
@@ -803,6 +914,7 @@ const Reports = () => {
                             </select>
                             <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                         </div>
+                        )}
                         <button onClick={exportCSV} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl px-5 py-2.5 transition-all shadow-lg shadow-indigo-500/20 active:scale-95">
                             <Download className="w-4 h-4" />Export CSV
                         </button>
@@ -837,16 +949,17 @@ const Reports = () => {
                 {activeTab === 'messaging' && (
                     <>
                         {loading && !stats ? (
-                            <div className="flex flex-col items-center justify-center h-full gap-3 py-20">
-                                <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-                                <p className="text-sm text-slate-500 dark:text-slate-400">Loading analytics...</p>
-                            </div>
+                            <MessagingSkeleton />
+                        ) : stats?.isWhatsappConfigured === false ? (
+                            <ConnectState icon={Send} title="WhatsApp not connected"
+                                description="Connect your WhatsApp Business account to start sending messages and see analytics here."
+                                actionLabel="Connect WhatsApp" onAction={() => navigate('/whatsapp-settings')} />
                         ) : (
                             <div className="space-y-8 pb-10">
 
                         {/* ── Row 1: KPI Strip ────────────────────────────── */}
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                            <MetricCard icon={Send} label="Total Sent" value={(stats?.totalMessages || 0).toLocaleString()} sub={displayRange} color="bg-indigo-500" />
+                            <MetricCard icon={Send} label="Total Sent" value={(stats?.totalMessages || 0).toLocaleString()} sub={selectedCampaignId !== 'all' ? 'Campaign lifetime' : displayRange} color="bg-indigo-500" />
                             <MetricCard icon={CheckCircle2} label="Delivered" value={(stats?.deliveredCount || 0).toLocaleString()} sub={`${stats?.deliveryRate || 0}% delivery rate`} color="bg-green-500" />
                             <MetricCard icon={Eye} label="Messages Read" value={(stats?.readCount || 0).toLocaleString()} sub={`${stats?.readRate || 0}% read rate`} color="bg-blue-500" />
                             <MetricCard icon={AlertCircle} label="Failed" value={(stats?.failedCount || 0).toLocaleString()} sub="Undelivered messages" color="bg-red-500" />
@@ -859,7 +972,7 @@ const Reports = () => {
                                 <div className="flex justify-between items-start mb-6">
                                     <div>
                                         <h3 className="font-bold text-slate-900 dark:text-white">Message Traffic</h3>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Volume over {displayRange}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{selectedCampaignId !== 'all' ? 'Volume over campaign lifetime' : `Volume over ${displayRange}`}</p>
                                     </div>
                                     <div className="flex items-center gap-3">
                                         {[
@@ -980,7 +1093,7 @@ const Reports = () => {
                                     <tbody className="text-sm divide-y divide-slate-100 dark:divide-white/5">
                                         {reports.length > 0 ? reports.map(campaign => {
                                             const delPct = campaign.audience > 0 ? Math.round((campaign.delivered / campaign.audience) * 100) : 0;
-                                            const readPct = campaign.audience > 0 ? Math.round((campaign.read / campaign.audience) * 100) : 0;
+                                            const readPct = campaign.delivered > 0 ? Math.round((campaign.read / campaign.delivered) * 100) : 0;
                                             return (
                                                 <tr key={campaign.id} className="hover:bg-slate-50/70 dark:hover:bg-white/5 transition-colors group">
                                                     <td className="px-5 py-4 font-semibold text-slate-900 dark:text-white max-w-[180px] max-w-full truncate">{campaign.name}</td>
@@ -1036,16 +1149,21 @@ const Reports = () => {
                 )}
 
                 {/* NEW TABS CONTENT */}
-                {loadingExtras && activeTab !== 'messaging' && (
-                    <div className="flex flex-col items-center justify-center h-full gap-3 py-20">
-                        <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Loading {activeTab} data...</p>
-                    </div>
+                {loadingExtras && activeTab === 'ai' && <AiSkeleton />}
+                {loadingExtras && activeTab === 'meta-ads' && <MetaAdsSkeleton />}
+                {loadingExtras && activeTab === 'flowbots' && <FlowBotsSkeleton />}
+
+                {!loadingExtras && activeTab === 'meta-ads' && extrasError?.status === 400 && (
+                    <ConnectState icon={Megaphone} title="Meta Ads not connected"
+                        description="Connect your Meta Ads account to see campaign performance here."
+                        actionLabel="Connect Meta Ads" onAction={() => navigate('/meta-ads')} />
                 )}
-                
-                {!loadingExtras && activeTab === 'ai' && <AiAnalyticsTab stats={aiStats} />}
-                {!loadingExtras && activeTab === 'meta-ads' && <MetaAdsTab ads={metaAds} />}
-                {!loadingExtras && activeTab === 'flowbots' && <FlowBotsTab flows={flowBots} />}
+                {!loadingExtras && extrasError && !(activeTab === 'meta-ads' && extrasError.status === 400) && (
+                    <div className="p-8 text-center text-sm text-amber-600 dark:text-amber-400">{extrasError.message}</div>
+                )}
+                {!loadingExtras && !extrasError && activeTab === 'ai' && <AiAnalyticsTab stats={aiStats} />}
+                {!loadingExtras && !extrasError && activeTab === 'meta-ads' && <MetaAdsTab ads={metaAds} onCreate={() => navigate('/meta-ads/wizard')} />}
+                {!loadingExtras && !extrasError && activeTab === 'flowbots' && <FlowBotsTab flows={flowBots} onCreate={() => navigate('/flowbot/create')} />}
 
             </div>
         </div>

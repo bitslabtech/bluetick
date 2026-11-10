@@ -23,7 +23,7 @@ function csrfProtection(req, res, next) {
         res.cookie(CSRF_COOKIE_NAME, token, {
             httpOnly: false, // Must be readable by frontend JS (if same-origin)
             secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            sameSite: 'lax',
             maxAge: 24 * 60 * 60 * 1000 // 1 day
         });
     }

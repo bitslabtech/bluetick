@@ -215,6 +215,7 @@ export default function PublicWaProduct({ customSlug }) {
 
     useEffect(() => {
         const fetchProductData = async () => {
+            let didRedirect = false;
             try {
                 const timestamp = new Date().getTime();
                 const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore/public/${slug}?t=${timestamp}`);
@@ -222,6 +223,7 @@ export default function PublicWaProduct({ customSlug }) {
                 // If store has a verified custom domain and visitor reached via platform domain,
                 // redirect to their custom domain product URL
                 if (s?.customDomain && s?.domainStatus === 'verified' && isPlatformDomain()) {
+                    didRedirect = true;
                     window.location.replace(`https://${s.customDomain}/product/${productId}`);
                     return;
                 }
@@ -258,7 +260,7 @@ export default function PublicWaProduct({ customSlug }) {
             } catch (error) {
                 toast.error("Failed to load product details");
             } finally {
-                setLoading(false);
+                if (!didRedirect) setLoading(false);
             }
         };
         fetchProductData();

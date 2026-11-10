@@ -256,6 +256,11 @@ const User = sequelize.define('User', {
         defaultValue: {},
         comment: 'Tracks the last threshold percentage sent per limit type (e.g., {messages: 80, contacts: 100})'
     },
+    lastInactiveReminderSent: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: 'Date the last inactive login reminder WA template was sent to this user'
+    },
     // Phase 5: Meta Conversions API (CAPI)
     capiConfig: {
         type: DataTypes.JSONB,

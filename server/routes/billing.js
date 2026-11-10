@@ -1078,12 +1078,50 @@ router.post('/verify-payment', async (req, res) => {
 
         if (itemId) {
             // It's a Store Item Purchase
+
+            // ── SECURITY: Replay / ownership / item-swap protection ──────────────
+            // 1. The order must have been created by our server (not fabricated).
+            // 2. It must not already be COMPLETED (replay attack).
+            // 3. It must belong to the requesting user (ownership).
+            // 4. The item in the request must match what was ordered (item-swap).
+            const orderRecord = await Transaction.findOne({ where: { transactionReference } });
+            if (!orderRecord) {
+                console.warn(`[SECURITY] store verify-payment rejected — transactionReference '${transactionReference}' not found. User: ${req.user.id}`);
+                return res.status(400).json({ error: 'Payment order not recognized. Please contact support.' });
+            }
+            if (orderRecord.status === 'COMPLETED') {
+                console.warn(`[SECURITY] store verify-payment rejected — already COMPLETED (replay). User: ${req.user.id}`);
+                return res.status(409).json({ error: 'This payment has already been processed.' });
+            }
+            if (orderRecord.userId !== req.user.id) {
+                console.warn(`[SECURITY] store verify-payment rejected — userId mismatch. Order owner: ${orderRecord.userId}, Requester: ${req.user.id}`);
+                return res.status(403).json({ error: 'Payment order does not belong to this account.' });
+            }
+
             const StoreItem = require('../models/StoreItem');
             const targetItem = await StoreItem.findByPk(itemId);
             if (!targetItem) return res.status(404).json({ error: `Store item not found.` });
 
+            // Item-swap check: planName stored at order time must match the item being claimed
+            const expectedPlanPrefix = `Store: ${targetItem.name}`;
+            if (orderRecord.planName && !orderRecord.planName.startsWith(expectedPlanPrefix)) {
+                console.warn(`[SECURITY] store verify-payment rejected — item mismatch. Order: '${orderRecord.planName}', Request item: '${targetItem.name}'. User: ${req.user.id}`);
+                return res.status(400).json({ error: 'Item mismatch detected. Please restart checkout.' });
+            }
+
+            // Optimistic lock: mark PROCESSING so concurrent requests cannot both pass the COMPLETED check
+            const [lockedRows] = await Transaction.update(
+                { status: 'PROCESSING' },
+                { where: { transactionReference, status: orderRecord.status } }
+            );
+            if (lockedRows === 0) {
+                console.warn(`[SECURITY] store verify-payment race condition blocked for txn '${transactionReference}'. User: ${req.user.id}`);
+                return res.status(409).json({ error: 'Payment is already being processed. Please wait a moment.' });
+            }
+            // ─────────────────────────────────────────────────────────────────────
+
             const user = await User.findByPk(req.user.id);
-            
+
             // Record Transaction with actual amount paid (subtract discount if any)
             const discountAppliedStore = parseFloat(discountApplied) || 0;
             const purchaseQty = (targetItem.itemType === 'team_members' && quantity) ? parseInt(quantity, 10) : 1;
@@ -1103,14 +1141,7 @@ router.post('/verify-payment', async (req, res) => {
                 ...(discountAppliedStore > 0 ? { discountApplied: discountAppliedStore, couponCode: couponCode || null } : {})
             };
 
-            let completedTxn;
-            const existingTxn = await Transaction.findOne({ where: { transactionReference } });
-            if (existingTxn) {
-                await existingTxn.update(txnData);
-                completedTxn = existingTxn;
-            } else {
-                completedTxn = await Transaction.create(txnData);
-            }
+            const completedTxn = await orderRecord.update(txnData);
 
             // Grant Resource
             if (targetItem.itemType === 'ai_tokens') {
@@ -1202,12 +1233,14 @@ router.post('/verify-payment', async (req, res) => {
             const targetPlan = await Plan.findOne({ where: { name: planName } });
             if (!targetPlan) return res.status(404).json({ error: `Plan '${planName}' not found.` });
 
-            // Override interval and price to match what user selected at checkout
-            if (interval) {
-                if (interval === 'month' && targetPlan.monthlyPrice > 0) targetPlan.price = targetPlan.monthlyPrice;
-                else if (interval === 'half-year' && targetPlan.halfYearlyPrice > 0) targetPlan.price = targetPlan.halfYearlyPrice;
-                else if (interval === 'year' && targetPlan.yearlyPrice > 0) targetPlan.price = targetPlan.yearlyPrice;
-                targetPlan.interval = interval;
+            // Use the interval that was recorded at order-creation time — never trust the body value,
+            // which would let someone pay the monthly price and claim the yearly plan.
+            const billingInterval = orderRecord.billingInterval || interval;
+            if (billingInterval) {
+                if (billingInterval === 'month' && targetPlan.monthlyPrice > 0) targetPlan.price = targetPlan.monthlyPrice;
+                else if (billingInterval === 'half-year' && targetPlan.halfYearlyPrice > 0) targetPlan.price = targetPlan.halfYearlyPrice;
+                else if (billingInterval === 'year' && targetPlan.yearlyPrice > 0) targetPlan.price = targetPlan.yearlyPrice;
+                targetPlan.interval = billingInterval;
             }
 
             // ─── HIGH-2 FIX: Re-validate coupon before incrementing usesCount ─────────────

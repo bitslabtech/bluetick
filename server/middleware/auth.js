@@ -30,12 +30,27 @@ module.exports = async function (req, res, next) {
             req.user.plan = dbUser.plan;
             req.user.planStatus = dbUser.planStatus;
             req.user.planExpiry = dbUser.planExpiry;
+            req.user.lastSeenRoadmapAt = dbUser.lastSeenRoadmapAt;
 
             // ─── Subscription Enforcement ─────────────────────────────────────────
+            // Verify admin token early so we can use it for the subscription bypass below.
+            // A mere presence check is not enough — any expired/invalid token must be rejected.
+            const adminTokenRaw = req.cookies?.bt_admin_token || req.header('x-admin-token');
+            let verifiedAdminUser = null;
+            if (adminTokenRaw) {
+                try {
+                    const adminDecoded = jwt.verify(adminTokenRaw, process.env.JWT_SECRET, { algorithms: ['HS256'] });
+                    if (adminDecoded.user && adminDecoded.user.isAdmin) {
+                        verifiedAdminUser = adminDecoded.user;
+                        req.impersonator = verifiedAdminUser; // set once here
+                    }
+                } catch (ignore) { /* invalid/expired token — treat as absent */ }
+            }
+
             // Admins and impersonated sessions are never blocked by subscription checks.
-            if (!dbUser.isAdmin && !req.cookies?.bt_admin_token && !req.header('x-admin-token')) {
+            if (!dbUser.isAdmin && !verifiedAdminUser) {
                 // Allow billing, auth, and public endpoints even if expired
-                const allowedPaths = ['/api/auth', '/api/billing', '/api/plans', '/api/system', '/api/webhook', '/api/coupons'];
+                const allowedPaths = ['/api/auth', '/api/billing', '/api/plans', '/api/system', '/api/webhook', '/api/coupons', '/api/support'];
                 const isAllowedPath = allowedPaths.some(p => req.originalUrl.startsWith(p));
 
                 if (!isAllowedPath) {
@@ -90,19 +105,6 @@ module.exports = async function (req, res, next) {
 
         if (config.lastSessionKill && tokenIssuedAt < config.lastSessionKill) {
             return res.status(401).json({ error: 'Session expired by admin. Please login again.' });
-        }
-
-        // Check for Impersonator — from HttpOnly cookie or header
-        const adminToken = req.cookies?.bt_admin_token || req.header('x-admin-token');
-        if (adminToken) {
-            try {
-                const adminDecoded = jwt.verify(adminToken, process.env.JWT_SECRET, { algorithms: ['HS256'] });
-                if (adminDecoded.user && adminDecoded.user.isAdmin) {
-                    req.impersonator = adminDecoded.user;
-                }
-            } catch (ignore) {
-                // Ignore invalid admin tokens, just don't set flag
-            }
         }
 
         next();
