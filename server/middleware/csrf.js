@@ -58,6 +58,17 @@ function csrfProtection(req, res, next) {
         return next();
     }
 
+    // 2b. Bearer-token (mobile / API) requests are exempt from CSRF.
+    // CSRF protects against a browser silently attaching the user's ambient cookie to a
+    // forged cross-site request. A Bearer token is NOT sent automatically by the browser —
+    // the client must set the Authorization header explicitly, and cross-site attackers
+    // cannot set custom headers without a CORS preflight they do not control. These
+    // requests therefore carry no CSRF risk. The OneDash mobile app authenticates this way.
+    const authHeader = req.headers['authorization'] || '';
+    if (authHeader.startsWith('Bearer ')) {
+        return next();
+    }
+
     // 3. For mutating requests, verify header matches cookie
     const headerToken = req.headers[CSRF_HEADER_NAME] || req.headers[CSRF_HEADER_NAME.toLowerCase()];
 
