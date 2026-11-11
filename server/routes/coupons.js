@@ -200,6 +200,17 @@ router.post('/validate', async (req, res) => {
             discountAmount = coupon.discountValue;
         }
 
+        // Partner coupons: only for that partner's referrals, capped at the partner's commission.
+        // Same rule checkout applies (billing.js evaluatePlanCoupon), so the preview matches the charge.
+        if (coupon.techPartnerId) {
+            const { getPartnerCouponCap } = require('../utils/partnerCoupon');
+            const cap = await getPartnerCouponCap(coupon, req.user.id, finalPrice);
+            if (!cap.allowed) {
+                return res.status(400).json({ error: 'This coupon is only valid for customers referred by its partner.' });
+            }
+            if (discountAmount > cap.maxDiscount) discountAmount = cap.maxDiscount;
+        }
+
         if (discountAmount > finalPrice) {
             discountAmount = finalPrice; // Can't discount more than the total
         }

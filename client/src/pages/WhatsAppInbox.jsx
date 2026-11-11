@@ -7,7 +7,7 @@ import { useUI } from '../context/UIContext';
 import {
     Search, MoreVertical, Paperclip, Smile, Send, Mic, Check, CheckCheck, Clock,
     MessageSquare, X, ChevronDown, Image as ImageIcon, FileText, Info, Bell, BellOff,
-    Tag, Users, UserCheck, Lock, Layout, ChevronRight, Eye, AlertCircle, Zap, Sparkles, Wand2, Hand, Bot, ChevronLeft, Trash2
+    Tag, Users, UserCheck, Lock, Layout, ChevronRight, Eye, AlertCircle, Zap, Sparkles, Wand2, Hand, Bot, ChevronLeft, Trash2, Eraser
 } from 'lucide-react';
 import { format, isToday, isYesterday, differenceInHours } from 'date-fns';
 import { useSocket } from '../context/SocketContext';
@@ -28,7 +28,26 @@ const WhatsAppInbox = () => {
     const { showToast } = useUI();
     const location = useLocation();
     const navigate = useNavigate();
-    const { socket, notificationsEnabled, setNotificationsEnabled, setActiveChatId } = useSocket();
+    const { socket, notificationsEnabled, setNotificationsEnabled, setActiveChatId, notificationPermission, soundUnlocked, enableAlerts, testSound } = useSocket();
+
+    // ── Message alerts (bell): sound + desktop pop-ups ─────────────────────────
+    const [showAlertsPanel, setShowAlertsPanel] = useState(false);
+    const alertsPanelRef = useRef(null);
+    const desktopAlertsOk = notificationPermission === 'granted' || notificationPermission === 'unsupported';
+    const alertsNeedAttention = notificationsEnabled && (!desktopAlertsOk || !soundUnlocked);
+    const ALERTS_BANNER_KEY = 'inbox_alerts_banner_dismissed_at';
+    const [alertsBannerDismissed, setAlertsBannerDismissed] = useState(() => {
+        try { return Date.now() - Number(localStorage.getItem(ALERTS_BANNER_KEY) || 0) < 7 * 24 * 60 * 60 * 1000; }
+        catch { return false; }
+    });
+    const showAlertsBanner = notificationsEnabled && notificationPermission === 'default' && !alertsBannerDismissed;
+    const BLOCKED_STEPS = 'Click the 🔒 next to the website address → Notifications → Allow, then reload this page.';
+    const bellTitle = !notificationsEnabled
+        ? 'Alerts off — click to turn on'
+        : notificationPermission === 'default' ? "Desktop alerts aren't allowed — click to fix"
+        : notificationPermission === 'denied' ? 'Desktop alerts are blocked — click to fix'
+        : !soundUnlocked ? 'Sound starts after you click anywhere on the page'
+        : 'Alerts on — click to turn off';
 
     // Core state
     const [conversations, setConversations] = useState([]);
@@ -85,6 +104,8 @@ const WhatsAppInbox = () => {
     // Modal states
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [showClearModal, setShowClearModal] = useState(false);
+    const [isClearing, setIsClearing] = useState(false);
 
     useEffect(() => {
         selectedChatRef.current = selectedChat;
@@ -163,6 +184,33 @@ const WhatsAppInbox = () => {
             setSendError('Failed to delete conversation. Please try again.');
         } finally {
             setIsDeleting(false);
+        }
+    };
+
+    // ── CLEAR CHAT ──────────────────────────────────────────────────────────
+    // Empties the message history but keeps the conversation (contact, labels, assignment).
+    const markChatCleared = (conversationId) => {
+        const clear = c => c.id === conversationId ? { ...c, lastMessage: '', unreadCount: 0 } : c;
+        setConversations(prev => prev.map(clear));
+        conversationsRef.current = conversationsRef.current.map(clear);
+        if (selectedChatRef.current?.id === conversationId) {
+            setMessages([]);
+            setReplyTo(null);
+        }
+    };
+
+    const handleClearChat = async () => {
+        if (!selectedChat) return;
+        setIsClearing(true);
+        try {
+            await axios.post(`${API_BASE}/api/whatsapp/chat/conversations/${selectedChat.id}/clear`);
+            markChatCleared(selectedChat.id);
+            setShowClearModal(false);
+            showToast({ type: 'success', title: 'Chat cleared', message: 'New messages will appear here as usual.' });
+        } catch (err) {
+            showToast({ type: 'error', title: 'Could not clear chat', message: err.response?.data?.error || 'Please try again.' });
+        } finally {
+            setIsClearing(false);
         }
     };
 
@@ -245,10 +293,12 @@ const WhatsAppInbox = () => {
         };
 
         // ── Message delivery status update ────────────────────────────────────
-        const handleStatusUpdate = ({ messageId, status, conversationId }) => {
+        const handleStatusUpdate = ({ messageId, status, conversationId, errorMessage }) => {
             setSelectedChat(prevChat => {
                 if (prevChat?.id === conversationId) {
-                    setMessages(prev => prev.map(m => m.messageId === messageId ? { ...m, status } : m));
+                    setMessages(prev => prev.map(m => m.messageId === messageId
+                        ? { ...m, status, ...(errorMessage ? { errorMessage } : {}) }
+                        : m));
                 }
                 return prevChat;
             });
@@ -274,11 +324,16 @@ const WhatsAppInbox = () => {
             });
         };
 
+        // ── Chat cleared by a teammate (or in another tab) ────────────────────
+        // markChatCleared only uses state setters and refs, so this closure never goes stale.
+        const handleChatCleared = ({ conversationId }) => markChatCleared(conversationId);
+
         socket.on('conversation_assigned', handleAssigned);
         socket.on('new_message', handleNewMessage);
         socket.on('message_status_update', handleStatusUpdate);
         socket.on('conversation_flow_state', handleFlowState);
         socket.on('conversation_bot_update', handleBotUpdate);
+        socket.on('conversation_cleared', handleChatCleared);
 
         return () => {
             // Detach only our handlers — never disconnect the shared global socket
@@ -287,6 +342,7 @@ const WhatsAppInbox = () => {
             socket.off('message_status_update', handleStatusUpdate);
             socket.off('conversation_flow_state', handleFlowState);
             socket.off('conversation_bot_update', handleBotUpdate);
+            socket.off('conversation_cleared', handleChatCleared);
         };
     }, [socket, isSubMember, teamPolicy.phonePrivacy]);
 
@@ -373,6 +429,20 @@ const WhatsAppInbox = () => {
             window.history.replaceState({}, document.title);
         }
     }, [location.state, loading, conversations]);
+
+    // Opened from a desktop pop-up click (Layout navigates here with the conversation id).
+    // Handled once per navigation (location.key), so later list updates never re-select it.
+    const handledOpenChatKeyRef = useRef(null);
+    useEffect(() => {
+        const openId = location.state?.openChatId;
+        if (loading || !openId || handledOpenChatKeyRef.current === location.key) return;
+        const chat = conversations.find(c => c.id === openId);
+        if (!chat) return; // not in the list yet — try again when it loads
+        handledOpenChatKeyRef.current = location.key;
+        setSelectedChat(chat);
+        setShowContactPanel(false);
+        setReplyTo(null);
+    }, [location.state, location.key, loading, conversations]);
 
     // Scroll FAB visibility
     const handleScroll = () => {
@@ -656,6 +726,7 @@ const WhatsAppInbox = () => {
             });
 
             setShowTemplateModal(false);
+            if (resp.data?.failed) notifyIfFailed({ status: 'failed', errorMessage: resp.data.error });
 
             // After a placeholder conversation was auto-created, the backend returns the real
             // conversationId. Update selectedChat so all follow-up calls use the real UUID.
@@ -798,6 +869,7 @@ const WhatsAppInbox = () => {
             setShowEmojiPicker(false);
             setShowQuickReplies(false);
             setMessages(prev => [...prev, res.data]);
+            notifyIfFailed(res.data);
             fetchConversations();
         } catch (err) {
             const errData = err.response?.data;
@@ -888,6 +960,7 @@ const WhatsAppInbox = () => {
                 }
             });
             setMessages(prev => [...prev, res.data]);
+            notifyIfFailed(res.data);
             fetchConversations();
         } catch (err) {
             const errData = err.response?.data;
@@ -943,10 +1016,59 @@ const WhatsAppInbox = () => {
 
     // ── Status tick ──────────────────────────────────────────────────────────
     const StatusTick = ({ status }) => {
+        if (status === 'failed') return <AlertCircle className="w-3.5 h-3.5 text-red-500" aria-label="Not delivered" />;
         if (status === 'read') return <CheckCheck className="w-3.5 h-3.5 text-blue-400" />;
         if (status === 'delivered') return <CheckCheck className="w-3.5 h-3.5 text-slate-400" />;
         if (status === 'sent') return <Check className="w-3.5 h-3.5 text-slate-400" />;
         return <Clock className="w-3 h-3 text-slate-400" />;
+    };
+
+    // ── Message alerts: actions (must run inside clicks — browsers require a user gesture) ──
+    const turnOnAlerts = async () => {
+        setNotificationsEnabled(true);
+        const { permission, soundOk } = await enableAlerts();
+        if (permission === 'granted') {
+            showToast({ type: 'success', title: 'Alerts on', message: soundOk ? "You'll hear a sound and see a pop-up for new messages." : 'Pop-ups are on. Sound starts after you click anywhere on the page.' });
+        } else if (permission === 'denied') {
+            showToast({ type: 'warning', title: 'Desktop alerts are blocked', message: `${BLOCKED_STEPS} Sound alerts are on.`, duration: 8000 });
+        } else if (permission === 'unsupported') {
+            showToast({ type: 'success', title: 'Sound alerts on', message: "This browser doesn't support desktop pop-ups." });
+        } else {
+            showToast({ type: 'info', title: 'Desktop alerts not allowed', message: "You'll still hear a sound. Click the bell anytime to allow pop-ups." });
+        }
+    };
+
+    const turnOffAlerts = () => {
+        setNotificationsEnabled(false);
+        setShowAlertsPanel(false);
+        showToast({ type: 'info', title: 'Alerts off', message: 'No sound or pop-ups for new messages.' });
+    };
+
+    const handleBellClick = () => {
+        if (!notificationsEnabled) return turnOnAlerts();
+        if (alertsNeedAttention) return setShowAlertsPanel(p => !p);
+        turnOffAlerts();
+    };
+
+    const dismissAlertsBanner = () => {
+        setAlertsBannerDismissed(true);
+        try { localStorage.setItem(ALERTS_BANNER_KEY, String(Date.now())); } catch { /* storage blocked */ }
+    };
+
+    // Close the alerts panel on outside click / Escape
+    useEffect(() => {
+        if (!showAlertsPanel) return;
+        const onDown = (e) => { if (alertsPanelRef.current && !alertsPanelRef.current.contains(e.target)) setShowAlertsPanel(false); };
+        const onKey = (e) => { if (e.key === 'Escape') setShowAlertsPanel(false); };
+        document.addEventListener('mousedown', onDown);
+        document.addEventListener('keydown', onKey);
+        return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
+    }, [showAlertsPanel]);
+
+    // Tell the user right away when a send comes back failed (e.g. recipient is a WhatsApp API number)
+    const notifyIfFailed = (msg) => {
+        if (msg?.status !== 'failed') return;
+        showToast({ type: 'error', title: 'Message not sent', message: msg.errorMessage || 'WhatsApp could not deliver this message.' });
     };
 
     // ── Quick Reply Creation ──────────────────────────────────────────────────────────
@@ -999,14 +1121,80 @@ const WhatsAppInbox = () => {
                             </div>
                         </div>
                     </div>
-                    <button
-                        onClick={() => setNotificationsEnabled(n => !n)}
-                        className={`p-2 rounded-full transition-colors ${notificationsEnabled ? 'text-green-500' : 'text-slate-400 dark:text-slate-500'} hover:bg-slate-100 dark:hover:bg-white/5`}
-                        title={notificationsEnabled ? 'Notifications On' : 'Notifications Off'}
-                    >
-                        {notificationsEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
-                    </button>
+                    <div className="relative" ref={alertsPanelRef}>
+                        <button
+                            onClick={handleBellClick}
+                            className={`relative p-2 rounded-full transition-colors ${!notificationsEnabled ? 'text-slate-400 dark:text-slate-500' : alertsNeedAttention ? 'text-amber-500' : 'text-green-500'} hover:bg-slate-100 dark:hover:bg-white/5`}
+                            title={bellTitle}
+                            aria-label={bellTitle}
+                            {...(alertsNeedAttention ? { 'aria-expanded': showAlertsPanel, 'aria-haspopup': 'dialog' } : {})}
+                        >
+                            {notificationsEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+                            {alertsNeedAttention && (
+                                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white dark:ring-[#111b21]" />
+                            )}
+                        </button>
+
+                        {showAlertsPanel && (
+                            <div role="dialog" aria-label="Message alerts" className="absolute right-0 top-full mt-2 w-72 z-50 rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#1f2c33] shadow-xl p-4 text-left">
+                                <p className="text-sm font-bold text-slate-900 dark:text-white">Message alerts</p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 mb-3">For new customer messages, on any page of OneDash.</p>
+
+                                {/* Desktop pop-ups */}
+                                <div className="flex items-start gap-2.5 py-2.5 border-t border-slate-100 dark:border-white/5">
+                                    {desktopAlertsOk
+                                        ? <Check className="w-4 h-4 mt-0.5 shrink-0 text-green-500" />
+                                        : <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-100">Desktop pop-ups</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                                            {notificationPermission === 'granted' ? 'Allowed'
+                                                : notificationPermission === 'denied' ? 'Blocked by your browser'
+                                                : notificationPermission === 'unsupported' ? 'Not supported in this browser'
+                                                : 'Not allowed yet'}
+                                        </p>
+                                        {notificationPermission === 'denied' && (
+                                            <p className="text-[11px] leading-snug text-slate-600 dark:text-slate-300 mt-1">{BLOCKED_STEPS}</p>
+                                        )}
+                                    </div>
+                                    {notificationPermission === 'default' && (
+                                        <button onClick={turnOnAlerts} className="shrink-0 px-2.5 py-1 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold">Allow</button>
+                                    )}
+                                </div>
+
+                                {/* Sound */}
+                                <div className="flex items-start gap-2.5 py-2.5 border-t border-slate-100 dark:border-white/5">
+                                    {soundUnlocked
+                                        ? <Check className="w-4 h-4 mt-0.5 shrink-0 text-green-500" />
+                                        : <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-100">Sound</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                                            {soundUnlocked ? 'On' : 'Starts after you click anywhere on the page'}
+                                        </p>
+                                    </div>
+                                    <button onClick={testSound} className="shrink-0 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 text-xs font-semibold">Test sound</button>
+                                </div>
+
+                                <button onClick={turnOffAlerts} className="mt-2 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white">
+                                    Turn alerts off
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
+
+                {/* One-time banner: desktop alerts not allowed yet */}
+                {showAlertsBanner && (
+                    <div className="mx-2 mt-2 flex items-center gap-2 rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 text-xs text-amber-900 dark:text-amber-200 shrink-0">
+                        <Bell className="w-4 h-4 shrink-0" />
+                        <span className="flex-1">Don't miss customer messages. Turn on desktop alerts.</span>
+                        <button onClick={turnOnAlerts} className="shrink-0 font-bold hover:underline">Turn on</button>
+                        <button onClick={dismissAlertsBanner} aria-label="Dismiss" className="shrink-0 p-0.5 rounded hover:bg-amber-100 dark:hover:bg-amber-900/40">
+                            <X className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+                )}
 
                 {/* Search */}
                 <div className="p-2 bg-white dark:bg-[#111b21] shrink-0">
@@ -1256,6 +1444,17 @@ const WhatsAppInbox = () => {
                                     <Info className="w-5 h-5" />
                                 </button>
 
+                                {canDeleteChats && !(typeof selectedChat.id === 'string' && selectedChat.id.startsWith('new-')) && (
+                                    <button
+                                        onClick={() => setShowClearModal(true)}
+                                        className="p-2 rounded-full transition-colors text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10"
+                                        title="Clear chat"
+                                        aria-label="Clear chat"
+                                    >
+                                        <Eraser className="w-5 h-5" />
+                                    </button>
+                                )}
+
                                 {canDeleteChats && (
                                     <button
                                         onClick={() => setShowDeleteModal(true)}
@@ -1328,10 +1527,10 @@ const WhatsAppInbox = () => {
                                                 ↩
                                             </button>
 
-                                            <div className={`rounded-2xl px-3 py-2 shadow-sm ${isMe
+                                            <div className={`relative rounded-2xl px-3 py-2 shadow-sm ${isMe
                                                 ? 'bg-[#d9fdd3] dark:bg-[#005c4b] rounded-tr-sm'
                                                 : 'bg-white dark:bg-[#202c33] rounded-tl-sm'
-                                                }`}>
+                                                } ${isMe && item.status === 'failed' ? 'ring-1 ring-red-300 dark:ring-red-500/50' : ''}`}>
                                                 {/* Quoted reply */}
                                                 {item.body?.startsWith('> ') && (
                                                     <div className="border-l-4 border-green-500 bg-black/5 dark:bg-white/5 rounded-lg px-2 py-1 mb-1.5 text-xs text-slate-500 dark:text-slate-400 max-w-full truncate">
@@ -1589,6 +1788,14 @@ const WhatsAppInbox = () => {
                                                     {isMe && <StatusTick status={item.status} />}
                                                 </div>
                                             </div>
+
+                                            {/* Why it failed — shown under the bubble */}
+                                            {isMe && item.status === 'failed' && (
+                                                <div role="alert" className="mt-1 flex items-start justify-end gap-1 text-[11px] leading-snug text-red-600 dark:text-red-400 text-right">
+                                                    <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-px" />
+                                                    <span>{item.errorMessage || 'Not delivered. WhatsApp could not deliver this message.'}</span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 );
@@ -2069,6 +2276,42 @@ const WhatsAppInbox = () => {
                 />
             )}
             </div>
+
+            {/* Clear Chat Confirmation Modal */}
+            {showClearModal && selectedChat && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !isClearing && setShowClearModal(false)} />
+                    <div role="dialog" aria-modal="true" aria-labelledby="clear-chat-title" className="bg-white dark:bg-[#1a2332] border border-slate-200 dark:border-white/10 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl relative animate-in zoom-in-95 duration-200">
+                        <div className="w-16 h-16 bg-slate-100 dark:bg-white/5 rounded-2xl flex items-center justify-center mb-6">
+                            <Eraser className="w-8 h-8 text-slate-600 dark:text-slate-300" />
+                        </div>
+                        <h3 id="clear-chat-title" className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Clear this chat?</h3>
+                        <p className="text-slate-500 dark:text-slate-400 mb-8">
+                            All messages with <strong className="text-slate-700 dark:text-slate-300">{renderName(selectedChat.contactName, selectedChat.phoneNumber)}</strong> will be removed from the inbox for your whole team. The contact, labels, notes and assignment stay, and new messages will appear as usual. This can't be undone.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShowClearModal(false)}
+                                disabled={isClearing}
+                                className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition-all disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleClearChat}
+                                disabled={isClearing}
+                                className="flex-1 px-4 py-3 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 rounded-xl font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                                {isClearing ? (
+                                    <><div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" /> Clearing...</>
+                                ) : (
+                                    <>Clear chat</>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Delete Chat Confirmation Modal */}
             {showDeleteModal && selectedChat && (

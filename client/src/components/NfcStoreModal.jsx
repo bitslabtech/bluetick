@@ -46,12 +46,13 @@ export default function NfcStoreModal({ isOpen, onClose }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        // Price is calculated on the server from the catalog; amount is not sent.
         const payload = {
+            productId: selectedProduct.id,
             productType: selectedProduct.name,
             quantity,
             shippingAddress,
             contactNumber,
-            amount: totalAmount,
             successUrl: `${window.location.origin}/dashboard`,
             cancelUrl: window.location.href
         };

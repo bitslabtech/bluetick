@@ -17,6 +17,17 @@ export default function Layout() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const navigate = useNavigate();
 
+    // A desktop pop-up for a new WhatsApp message was clicked (fired by SocketContext,
+    // which sits outside the router) → open the inbox at that conversation.
+    useEffect(() => {
+        const openChat = (e) => {
+            const conversationId = e.detail?.conversationId;
+            if (conversationId) navigate('/whatsapp', { state: { openChatId: conversationId } });
+        };
+        window.addEventListener('whatsapp_open_chat', openChat);
+        return () => window.removeEventListener('whatsapp_open_chat', openChat);
+    }, [navigate]);
+
     useEffect(() => {
         const fetchSystemConfig = async () => {
             try {

@@ -529,9 +529,33 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
 
         // Plan assignment: if user requested a trial and plan supports it, activate trial immediately.
         // Otherwise keep them on Free until checkout succeeds (Option 1 policy).
+        //
+        // SEC: a user who picked a plan but did not start a trial must NOT be given the default
+        // plan for free. If the default plan is paid, they go to 'Pending' (same state as a direct
+        // sign-up with no trial): the app is locked and the client sends them to checkout for the
+        // plan they picked (the response below returns that plan when status is Pending).
+        // If the default plan is free (or there is none), they start on it as before.
+        const keepUnpaidUntilCheckout = () => {
+            if (defaultPlan && parseFloat(defaultPlan.price) > 0) {
+                assignedPlan = 'Free';
+                planStatus = 'Pending';
+                planExpiry = new Date();
+            } else {
+                assignedPlan = defaultPlan ? defaultPlan.name : 'Free';
+                planStatus = 'Active';
+                planExpiry = null;
+            }
+        };
         let requestedPlanObj = null;
         if (selectedPlan) {
             requestedPlanObj = await Plan.findByPk(selectedPlan);
+            // Only plans that can be bought (public or the default plan, never internal)
+            // may be picked at sign-up — otherwise hidden/internal plans could be trialled.
+            const { isPlanPurchasable } = require('../utils/planRules');
+            if (requestedPlanObj && !isPlanPurchasable(requestedPlanObj, null)) {
+                console.warn(`[SECURITY] register: ignored non-purchasable selectedPlan '${requestedPlanObj.name}'`);
+                requestedPlanObj = null;
+            }
             if (requestedPlanObj && startTrial) {
                 let trialDaysToGive = requestedPlanObj.trialDays || 0;
                 if (isReferredByTechPartner) {
@@ -545,12 +569,12 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
                     planExpiry = new Date();
                     planExpiry.setDate(planExpiry.getDate() + trialDaysToGive);
                 } else {
-                    // Keep on Free until payment completes
-                    assignedPlan = defaultPlan ? defaultPlan.name : 'Free';
+                    // Plan has no trial — keep unpaid until checkout succeeds
+                    keepUnpaidUntilCheckout();
                 }
             } else {
-                // Keep on Free until payment completes
-                assignedPlan = defaultPlan ? defaultPlan.name : 'Free';
+                // No trial requested — keep unpaid until checkout succeeds
+                keepUnpaidUntilCheckout();
             }
         }
 
@@ -1046,7 +1070,8 @@ router.delete('/me', require('../middleware/auth'), async (req, res) => {
             try {
                 const Model = require(`../models/${modelName}`);
                 if (Model && typeof Model.destroy === 'function') {
-                    await Model.destroy({ where: { userId } });
+                    // force: true — permanent delete even for soft-delete models (e.g. Conversation)
+                    await Model.destroy({ where: { userId }, force: true });
                 }
             } catch (e) {
                 // Model file may not exist or field name may differ — skip silently

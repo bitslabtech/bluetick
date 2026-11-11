@@ -33,7 +33,8 @@ router.get('/public', async (req, res) => {
         const plans = await Plan.findAll({
             where: {
                 isPublic: true,
-                isActive: true
+                isActive: true,
+                name: { [Op.notIn]: require('../utils/planRules').INTERNAL_PLAN_NAMES }
             },
             order: [['price', 'ASC']]
         });

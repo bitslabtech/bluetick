@@ -254,13 +254,14 @@ export default function PublicWaStoreCategory({ customSlug }) {
     const flatShippingRate = checkoutConfig.flatShippingRate || 0;
     const freeShippingThreshold = checkoutConfig.freeShippingThreshold || 0;
     const minOrderValue = checkoutConfig.minOrderValue || 0;
-    const shippingCost = (flatShippingRate > 0 && (freeShippingThreshold === 0 || cartSubtotal < freeShippingThreshold)) ? flatShippingRate : 0;
     const estimatedTax = (store?.taxConfig?.enabled && store.taxConfig.taxInclusive === false)
         ? cart.reduce((sum, item) => {
             const taxRate = item.taxRate !== null && item.taxRate !== undefined ? parseFloat(item.taxRate) : (parseFloat(store.taxConfig.rate) || 0);
             return sum + (getItemPrice(item) * (taxRate / 100) * item.qty);
           }, 0)
         : 0;
+    // Same free-shipping rule as the main store page and the server (subtotal + exclusive tax)
+    const shippingCost = (flatShippingRate > 0 && (freeShippingThreshold === 0 || (cartSubtotal + estimatedTax) < freeShippingThreshold)) ? flatShippingRate : 0;
     const cartTotal = cartSubtotal + shippingCost + estimatedTax;
     const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
 

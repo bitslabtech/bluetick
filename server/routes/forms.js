@@ -229,8 +229,18 @@ router.post('/submit/:id', async (req, res) => {
             let checkoutAmount = 0;
             if (paymentConfig.amountType === 'dynamic' && paymentConfig.dynamicFieldId) {
                 const selectedValue = answers[paymentConfig.dynamicFieldId];
+                const priceField = (form.fields || []).find(f => f.id === paymentConfig.dynamicFieldId);
+                // For dropdown/radio price fields the answer must be one of the configured options —
+                // otherwise a submitter could send any text (e.g. "1") and set their own price.
+                // (Number fields are "pay what you enter" by design, per the form builder.)
+                if (selectedValue && priceField && ['select', 'radio'].includes(priceField.type)) {
+                    const options = Array.isArray(priceField.options) ? priceField.options : [];
+                    if (!options.includes(selectedValue)) {
+                        return res.status(400).json({ msg: 'Please choose one of the available options.' });
+                    }
+                }
                 if (selectedValue) {
-                    const dynamicField = (form.fields || []).find(f => f.id === paymentConfig.dynamicFieldId);
+                    const dynamicField = priceField;
                     if (dynamicField && dynamicField.optionPrices && dynamicField.optionPrices[selectedValue] !== undefined && dynamicField.optionPrices[selectedValue] !== '') {
                         checkoutAmount = parseFloat(dynamicField.optionPrices[selectedValue]);
                     } else {

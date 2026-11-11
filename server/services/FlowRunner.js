@@ -2,6 +2,7 @@ const ChatMessage = require('../models/ChatMessage');
 const ContactFlowState = require('../models/ContactFlowState');
 const FlowExecutionLog = require('../models/FlowExecutionLog');
 const { getIo } = require('../socket');
+const { isWhatsAppApiNumber, API_TO_API_ERROR } = require('../utils/apiNumberGuard');
 
 class FlowRunner {
     constructor(settings, conversation, userId, triggerType = 'keyword') {
@@ -1024,6 +1025,31 @@ class FlowRunner {
 
     async dispatchToMeta(payload, logBody, logType, extraData = {}) {
         try {
+            // Meta never delivers messages to another WhatsApp API number (but reports them
+            // "delivered"), so don't send — show the step in the inbox as failed with the reason.
+            if (this._toApiNumber === undefined) this._toApiNumber = await isWhatsAppApiNumber(payload.to);
+            if (this._toApiNumber) {
+                console.log(`[FLOW RUNNER] Not sent to ${payload.to} — WhatsApp API number`);
+                const failedMsg = await ChatMessage.create({
+                    conversationId: this.conversation.id,
+                    messageId: null,
+                    direction: 'OUTBOUND',
+                    type: logType,
+                    body: logBody,
+                    status: 'failed',
+                    errorMessage: API_TO_API_ERROR,
+                    source: 'flowbot',
+                    mediaUrl: extraData.mediaUrl || null,
+                    templateData: extraData.templateData || null,
+                    timestamp: new Date()
+                });
+                this.conversation.lastMessage = logBody;
+                this.conversation.lastMessageAt = new Date();
+                await this.conversation.save();
+                getIo().to(this.userId).emit('new_message', { conversation: this.conversation, message: failedMsg });
+                return;
+            }
+
             const res = await fetch(`https://graph.facebook.com/v21.0/${this.settings.metaPhoneNumberId}/messages`, {
                 method: 'POST',
                 headers: {

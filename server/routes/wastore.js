@@ -20,6 +20,7 @@ const { Op, fn, col, literal } = require('sequelize');
 const { sequelize } = require('../config/database'); // for transactions (FUNC-3, FUNC-4)
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { fireCAPIEvent } = require('../utils/capi');
+const { priceStoreCart } = require('../utils/storeOrderPricing');
 const dns = require('dns').promises;
 
 // ── Payment Credentials Helper ───────────────────────────────────────────────
@@ -389,14 +390,51 @@ router.get('/public/domain/:domain', async (req, res) => {
 // POST /api/wastore/orders  — Public: record a new order (called from storefront before WhatsApp redirect)
 router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate limited
     try {
-        const { storeId, customerName, customerPhone, customerEmail, customerAddress, customerNote, customerGstin, customerCompany, items, subtotal, originalTotal, discountAmount, couponCode, currency, taxAmount, taxRate, taxName, total, shippingCost, storeCustomerId } = req.body;
+        // NOTE: prices, subtotal, discount, tax, shipping, total and currency sent by the
+        // browser are NOT trusted — they are recalculated below from the database
+        // (utils/storeOrderPricing.js). `total` is only used to tell the shopper when
+        // their cart showed a different amount.
+        const { storeId, customerName, customerPhone, customerEmail, customerAddress, customerNote, customerGstin, customerCompany, items, couponCode, total: clientTotal, storeCustomerId } = req.body;
 
-        if (!storeId || !items || !Array.isArray(items) || items.length === 0 || subtotal === undefined || subtotal === null) {
+        if (!storeId || !items || !Array.isArray(items) || items.length === 0) {
             return res.status(400).json({ error: 'Missing required order fields' });
         }
 
         const store = await WaStore.findByPk(storeId);
         if (!store || !store.isActive) return res.status(404).json({ error: 'Store not found' });
+
+        // Validate cart lines: whole-number quantities >= 1, a product id, optional variant selection
+        const cartLines = [];
+        for (const raw of items) {
+            const qty = Number(raw?.qty);
+            if (!raw || typeof raw.id !== 'string' || !Number.isInteger(qty) || qty < 1) {
+                return res.status(400).json({ error: 'Your cart has an invalid item. Please refresh the page and try again.' });
+            }
+            const sel = raw.selectedVariants || raw.selectedOptions || null;
+            cartLines.push({
+                id: raw.id,
+                qty,
+                selection: (sel && typeof sel === 'object' && !Array.isArray(sel)) ? sel : null,
+                clientUnitPrice: raw.price,
+                imageUrls: raw.imageUrls
+            });
+        }
+
+        // Re-validate the coupon (same rules as /validate-coupon; minimum order is checked after pricing)
+        let storeCoupon = null;
+        if (couponCode) {
+            const WaStoreCoupon = require('../models/WaStoreCoupon');
+            storeCoupon = await WaStoreCoupon.findOne({ where: { storeId, code: String(couponCode).toUpperCase().trim() } });
+            const now = new Date();
+            let couponError = null;
+            if (!storeCoupon) couponError = 'Invalid coupon code. Please remove it and try again.';
+            else if (!storeCoupon.isActive) couponError = 'This coupon is currently inactive.';
+            else if (storeCoupon.expiresAt && now > new Date(storeCoupon.expiresAt)) couponError = 'This coupon has expired.';
+            else if (storeCoupon.startsAt && now < new Date(storeCoupon.startsAt)) couponError = 'This coupon is not yet active.';
+            else if (storeCoupon.usageLimit !== null && storeCoupon.usageLimit !== undefined
+                && (storeCoupon.timesUsed || 0) >= parseInt(storeCoupon.usageLimit)) couponError = 'This coupon has reached its usage limit.';
+            if (couponError) return res.status(400).json({ error: couponError });
+        }
 
         // Generate order number config (used inside transaction)
         const prefixOnline = store.invoiceConfig?.prefixOnline || 'ORD-';
@@ -431,23 +469,45 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
         // TAX-FIX-7: Declare validatedCustomerId in outer scope so it's accessible
         // after the transaction (used in notification dispatchers below).
         let validatedCustomerId = null;
+        let serverPricing = null;
 
         const order = await sequelize.transaction({ isolationLevel: 'SERIALIZABLE' }, async (t) => {
             // Re-generate order number inside the transaction so the COUNT is consistent
             const txCount = await WaOrder.count({ where: { storeId, source: 'online' }, transaction: t });
             const txOrderNumber = `${prefixOnline}${String(txCount + startSeq).padStart(4, '0')}`;
 
-            // Re-validate stock atomically inside the transaction
-            for (const item of (items || [])) {
-                const product = await WaProduct.findByPk(item.id, { transaction: t, lock: t.LOCK.UPDATE });
-                if (product && product.trackQuantity) {
+            // Load every product from THIS store (locked), then re-validate stock atomically.
+            // Quantities are summed per product so two lines of the same product can't oversell.
+            const pricedLines = [];
+            const qtyByProduct = {};
+            for (const line of cartLines) {
+                const product = await WaProduct.findOne({ where: { id: line.id, storeId }, transaction: t, lock: t.LOCK.UPDATE });
+                if (!product) {
+                    const err = new Error('A product in your cart is no longer available. Please refresh the page and try again.');
+                    err.userStatus = 400;
+                    throw err;
+                }
+                qtyByProduct[product.id] = (qtyByProduct[product.id] || 0) + line.qty;
+                if (product.trackQuantity) {
                     const available = product.stockQuantity || 0;
-                    if (available < (item.qty || 1)) {
+                    if (available < qtyByProduct[product.id]) {
                         const err = new Error(`STOCK_ERROR:${product.name}:${available}`);
                         throw err;
                     }
                 }
+                pricedLines.push({ ...line, product });
             }
+
+            // Server-side price calculation (what is saved and charged)
+            const pricing = priceStoreCart(store, pricedLines, storeCoupon);
+            if (storeCoupon && !pricing.couponMinimumMet) {
+                const currSymbols = { USD: '$', EUR: '€', GBP: '£', INR: '₹', AED: 'د.إ', SGD: 'S$', AUD: 'A$', CAD: 'C$' };
+                const sym = currSymbols[store.currency] || store.currency || '';
+                const err = new Error(`Minimum order value of ${sym}${pricing.couponMinOrderValue.toFixed(2)} required for this coupon.`);
+                err.userStatus = 400;
+                throw err;
+            }
+            serverPricing = pricing;
 
             // SEC-4 FIX: Validate storeCustomerId belongs to this store (prevent order hijacking)
             let validatedCustomerId = null;
@@ -493,29 +553,36 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
                 }
             }
 
+            const taxEnabled = !!store.taxConfig?.enabled;
+            const taxName = taxEnabled
+                ? (store.taxConfig?.type === 'gst' ? 'GST' : (store.taxConfig?.type === 'vat' ? 'VAT' : 'Tax'))
+                : null;
+
             const newOrder = await WaOrder.create({
                 storeId, orderNumber: txOrderNumber,
                 customerName, customerPhone, customerEmail, customerAddress, customerNote,
                 customerCompany: customerCompany || null,
                 customerGstin: customerGstin || null,
-                items, subtotal, currency: currency || store.currency,
-                originalTotal: originalTotal || null,
-                discountAmount: parseFloat(discountAmount) || 0,
-                couponCode: couponCode || null,
-                taxAmount: parseFloat(taxAmount) || 0,
-                taxRate: parseFloat(taxRate) || 0,
-                taxName: taxName || null,
-                total: parseFloat(total) || subtotal,
-                shippingCost: parseFloat(shippingCost) || 0,
+                items: pricing.items,
+                subtotal: pricing.subtotal,
+                currency: store.currency,                 // never the browser's currency
+                originalTotal: pricing.originalTotal,
+                discountAmount: pricing.discountAmount,
+                couponCode: storeCoupon ? storeCoupon.code : null,
+                taxAmount: pricing.taxAmount,
+                taxRate: pricing.taxRate,
+                taxName,
+                total: pricing.total,
+                shippingCost: pricing.shippingCost,
                 status: 'pending',
                 storeCustomerId: validatedCustomerId,
             }, { transaction: t });
 
             // Deduct inventory atomically
-            for (const item of (items || [])) {
+            for (const item of pricing.items) {
                 const product = await WaProduct.findByPk(item.id, { transaction: t, lock: t.LOCK.UPDATE });
                 if (product && product.trackQuantity) {
-                    const deduction = item.qty || 1;
+                    const deduction = item.qty;
                     const newQty = (product.stockQuantity || 0) - deduction;
                     product.stockQuantity = newQty;
                     if (store.inventoryConfig?.autoOutOfStock && newQty <= 0) {
@@ -532,24 +599,32 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
         const orderNumber = order.orderNumber;
 
         // SEC-3 FIX: Increment coupon timesUsed counter when an order is successfully placed with it.
-        if (couponCode) {
+        if (storeCoupon) {
             try {
                 const WaStoreCoupon = require('../models/WaStoreCoupon');
                 await WaStoreCoupon.increment('timesUsed', {
                     by: 1,
-                    where: { storeId, code: String(couponCode).toUpperCase().trim() }
+                    where: { id: storeCoupon.id }
                 });
             } catch (couponErr) {
                 console.warn('[Coupon] Failed to increment timesUsed:', couponErr.message);
             }
         }
 
+        // Tell the shopper when the server price differs from what their cart showed
+        // (e.g. a saved cart with an old price). The server price is what is charged.
+        const priceAdjusted = clientTotal !== undefined && clientTotal !== null
+            && Math.abs((parseFloat(clientTotal) || 0) - serverPricing.total) > 0.01;
+        if (priceAdjusted) {
+            console.warn(`[WaStore] Order ${order.orderNumber}: cart total ${clientTotal} differs from server total ${serverPricing.total} — server price used.`);
+        }
+
         // ── Zero-total bypass (100% coupon, free product, etc.) ──────────────────
         // Payment gateways (Razorpay, PhonePe) reject amount=0 orders.
-        // If the final total is 0, skip the gateway, mark it paid immediately,
-        // and return the same response shape as a WhatsApp/manual checkout.
-        if (store.checkoutMode === 'gateway' && parseFloat(order.total || order.subtotal || 0) === 0) {
-            await order.update({ status: 'paid', paymentStatus: 'paid' });
+        // If the SERVER-calculated total is 0, skip the gateway and confirm it immediately
+        // ('confirmed' is the same status a verified gateway payment gets).
+        if (store.checkoutMode === 'gateway' && serverPricing.total === 0) {
+            await order.update({ status: 'confirmed' });
             fireCAPICheckout(store, order).catch(() => {});
             User.findByPk(store.userId).then(storeUser => {
                 if (storeUser) {
@@ -558,7 +633,7 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
                     dispatchInAppNotifications(store, storeUser, order, validatedCustomerId).catch(() => {});
                 }
             }).catch(() => {});
-            return res.json({ order, orderNumber });
+            return res.json({ order, orderNumber, priceAdjusted });
         }
 
         // If checkout mode is gateway, initialize payment
@@ -591,6 +666,7 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
                 return res.json({
                     order,
                     orderNumber,
+                    priceAdjusted,
                     gatewayOptions: {
                         provider: 'razorpay',
                         keyId: pgCreds.razorpay.keyId,
@@ -641,6 +717,7 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
                 return res.json({
                     order,
                     orderNumber,
+                    priceAdjusted,
                     gatewayOptions: {
                         provider: 'phonepe',
                         redirectUrl: response.data?.data?.instrumentResponse?.redirectInfo?.url
@@ -673,7 +750,7 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
             }
         }).catch(() => {});
 
-        res.json({ order, orderNumber });
+        res.json({ order, orderNumber, priceAdjusted });
     } catch (error) {
         // FUNC-3 FIX: Translate internal stock error to user-facing 409 response
         if (error.message?.startsWith('STOCK_ERROR:')) {
@@ -681,6 +758,10 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
             return res.status(409).json({
                 error: `Sorry, "${productName}" only has ${available} unit(s) available. Please adjust your cart.`
             });
+        }
+        // Cart/coupon problems found while pricing the order on the server
+        if (error.userStatus) {
+            return res.status(error.userStatus).json({ error: error.message });
         }
         console.error('Create order error:', error);
         res.status(500).json({ error: 'Failed to create order' });
@@ -1115,7 +1196,10 @@ router.post('/public/:slug/verify-payment', verifyPaymentLimiter, async (req, re
 
         if (provider === 'razorpay') {
             const crypto = require('crypto');
-            const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = paymentData;
+            const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = paymentData || {};
+            if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+                return res.status(400).json({ error: 'Missing payment details.' });
+            }
             // Use credentials from global Settings (centralised), fallback to legacy store config
             const pgCreds = await getStorePaymentCredentials(store);
 
@@ -1137,9 +1221,40 @@ router.post('/public/:slug/verify-payment', verifyPaymentLimiter, async (req, re
                 .digest('hex');
                 
             if (expectedSignature === razorpay_signature) {
-                order.status = 'confirmed';
-                order.notes = (order.notes ? order.notes + '\n' : '') + `Payment ID: ${razorpay_payment_id}`;
-                await order.save();
+                // SEC: A valid signature only proves the payment belongs to *some* Razorpay order
+                // on this account. Fetch that order and make sure it was created for THIS store
+                // order (receipt = orderNumber) and for THIS amount/currency — otherwise one
+                // small payment could confirm any number of orders.
+                if (!pgCreds.razorpay.keyId) {
+                    return res.status(500).json({ error: 'Payment gateway not configured on this store.' });
+                }
+                let rzpOrder;
+                try {
+                    const Razorpay = require('razorpay');
+                    const rzp = new Razorpay({ key_id: pgCreds.razorpay.keyId, key_secret: pgCreds.razorpay.keySecret });
+                    rzpOrder = await rzp.orders.fetch(razorpay_order_id);
+                } catch (fetchErr) {
+                    console.error('[WaStore] Razorpay order lookup failed:', fetchErr?.error?.description || fetchErr.message);
+                    return res.status(502).json({ error: 'Could not confirm the payment with Razorpay. Please contact the store.' });
+                }
+                const expectedPaise = Math.round(parseFloat(order.total || order.subtotal) * 100);
+                const amountMatches = Math.abs(Number(rzpOrder.amount) - expectedPaise) <= 1; // ±1 paise rounding
+                const currencyMatches = String(rzpOrder.currency || '').toUpperCase() === String(order.currency || 'INR').toUpperCase();
+                if (rzpOrder.receipt !== order.orderNumber || !amountMatches || !currencyMatches) {
+                    console.warn(`[SECURITY] WaStore verify rejected — Razorpay order ${razorpay_order_id} (receipt ${rzpOrder.receipt}, ${rzpOrder.amount} ${rzpOrder.currency}) does not match order ${order.orderNumber} (${expectedPaise} ${order.currency}). Store: ${store.id}`);
+                    return res.status(400).json({ error: 'This payment was not made for this order.' });
+                }
+
+                // Atomic: only one request confirms the order (no duplicate invoices/notifications)
+                const [confirmedRows] = await WaOrder.update(
+                    {
+                        status: 'confirmed',
+                        notes: (order.notes ? order.notes + '\n' : '') + `Payment ID: ${razorpay_payment_id}`
+                    },
+                    { where: { id: order.id, status: { [Op.ne]: 'confirmed' } } }
+                );
+                if (confirmedRows === 0) return res.json({ success: true, order });
+                await order.reload();
 
                 const storeUser = await User.findByPk(store.userId);
                 if (storeUser) {

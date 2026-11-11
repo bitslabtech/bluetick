@@ -22,29 +22,48 @@ const { sendAdminAlert } = require('../services/systemMessenger');
 // @desc    Submit a purchase order for NFC products and initialize checkout
 router.post('/order', async (req, res) => {
     try {
-        const { productType, quantity, shippingAddress, contactNumber, amount } = req.body;
-        
+        // NOTE: any `amount` in the body is ignored — the price comes from the admin catalog.
+        const { productId, productType, quantity, shippingAddress, contactNumber } = req.body;
+
+        // Resolve the product from the catalog (by id; by name for older clients)
+        const config = await SystemConfig.getCachedConfig();
+        const catalog = Array.isArray(config?.settings?.nfcCatalog) ? config.settings.nfcCatalog : [];
+        const product = (productId && catalog.find(p => p.id === productId))
+            || (!productId && productType && catalog.find(p => p.name === productType))
+            || null;
+        if (!product) return res.status(400).json({ error: 'Please select a valid product.' });
+
+        const unitPrice = parseFloat(product.price);
+        if (!Number.isFinite(unitPrice) || unitPrice <= 0) {
+            return res.status(400).json({ error: 'This product is not available for purchase right now.' });
+        }
+        const qty = parseInt(quantity, 10);
+        if (!Number.isInteger(qty) || qty < 1 || qty > 100) {
+            return res.status(400).json({ error: 'Quantity must be between 1 and 100.' });
+        }
+        const amount = Math.round(unitPrice * qty * 100) / 100;
+
         // Find user for email prefill
         const user = await User.findByPk(req.user.id);
-        
+
         const order = await NfcOrder.create({
             userId: req.user.id,
-            productType,
-            quantity: quantity || 1,
+            productType: product.name,
+            quantity: qty,
             shippingAddress,
             contactNumber,
-            amount: amount || 0,
+            amount,
             status: 'pending',
             paymentStatus: 'pending'
         });
 
         const { successUrl, cancelUrl } = req.body;
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-        
+
         const paymentIntent = await PaymentService.createPaymentIntent({
-            amount: amount || 0,
+            amount,
             currency: 'INR',
-            description: `NFC Product - ${productType}`,
+            description: `NFC Product - ${product.name}`,
             orderNotes: { userId: req.user.id, orderId: order.id },
             userEmail: user.email,
             userName: user.name,
@@ -54,7 +73,11 @@ router.post('/order', async (req, res) => {
         });
 
         order.paymentGateway = paymentIntent.gateway;
-        order.paymentSessionId = paymentIntent.orderId || paymentIntent.sessionId || paymentIntent.transactionId;
+        order.paymentSessionId = PaymentService.getIntentReference(paymentIntent);
+        if (!order.paymentSessionId) {
+            console.error('[NFC] order: gateway returned no order reference', paymentIntent?.gateway);
+            return res.status(502).json({ error: 'Could not start the payment. Please try again.' });
+        }
         await order.save();
 
         return res.json({
@@ -73,9 +96,20 @@ router.post('/order', async (req, res) => {
 router.post('/verify-payment', async (req, res) => {
     try {
         const { gateway, payload, nfcOrderId } = req.body;
-        
-        const order = await NfcOrder.findByPk(nfcOrderId);
+
+        // The payment must be the one created for this order, by this user.
+        const transactionReference = PaymentService.getPayloadReference(gateway, payload);
+        if (!transactionReference) return res.status(400).json({ error: 'Missing payment reference.' });
+
+        // Redirect gateways don't carry nfcOrderId back, so fall back to the payment reference
+        const order = nfcOrderId
+            ? await NfcOrder.findOne({ where: { id: nfcOrderId, userId: req.user.id } })
+            : await NfcOrder.findOne({ where: { paymentSessionId: transactionReference, userId: req.user.id } });
         if (!order) return res.status(404).json({ error: 'Order not found' });
+        if (order.paymentGateway !== gateway || order.paymentSessionId !== transactionReference) {
+            console.warn(`[SECURITY] NFC verify rejected — payment '${transactionReference}' (${gateway}) is not for order ${order.id}. User: ${req.user.id}`);
+            return res.status(400).json({ error: 'This payment was not made for this order.' });
+        }
         if (order.paymentStatus === 'paid') return res.json({ success: true, message: 'Already paid' });
 
         try {
@@ -86,12 +120,14 @@ router.post('/verify-payment', async (req, res) => {
             return res.status(400).json({ error: e.message || 'Payment verification failed.' });
         }
 
-        // Signature/Session is valid, mark order paid!
-        let transactionReference = payload.razorpay_order_id || payload.session_id || payload.txn_id || payload.order_id || order.paymentSessionId || 'unknown';
-
+        // Atomic: only one request can mark this order paid (prevents duplicate records/alerts)
+        const [updatedRows] = await NfcOrder.update(
+            { paymentStatus: 'paid', paymentId: transactionReference },
+            { where: { id: order.id, paymentStatus: ['pending', 'failed'] } }
+        );
+        if (updatedRows === 0) return res.json({ success: true, message: 'Already paid' });
         order.paymentStatus = 'paid';
         order.paymentId = transactionReference;
-        await order.save();
 
         // Log Transaction for global analytics
         await Transaction.create({

@@ -1,5 +1,6 @@
 import { useAuth } from '../context/AuthContext';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { hasUsablePlan } from '../utils/planAccess';
 
 const ProtectedRoute = () => {
     const { user, loading, isTransitioning } = useAuth();
@@ -18,19 +19,15 @@ const ProtectedRoute = () => {
     if (user && !user.isAdmin) {
         let pendingPlan = localStorage.getItem('pendingPlan');
 
-        // Check if user has a currently-valid plan (Active OR Trial with a future expiry).
-        // This is used to clear any stale pendingPlan that may have been written to
-        // localStorage during the brief window when the cached user had old/expired data
-        // (e.g., right after a superadmin grants a trial — the server DB is updated but
-        // the browser still holds the old planStatus/planExpiry until /auth/me refreshes).
-        const hasValidActivePlan = user.plan !== 'Free'
-            && user.planExpiry
-            && new Date(user.planExpiry) >= new Date()
-            && (user.planStatus === 'Active' || user.planStatus === 'Trial');
+        // Check if the user's current plan is usable right now (Active/Trial and not past expiry).
+        // A plan with NO expiry date counts as usable (Free plan, free default plan, lifetime or
+        // admin-granted plans). Previously this required an expiry date and plan !== 'Free', so
+        // those users were locked into /checkout forever as soon as they opened an upgrade.
+        const hasValidActivePlan = hasUsablePlan(user);
 
-        // Clear stale pendingPlan for any user whose plan is currently valid.
-        // Without this, a stale pendingPlan written during the expired-state window
-        // would keep trapping Trial users in /checkout even after fetchUser() refreshes.
+        // A pendingPlan for a user who can already use the app is just an upgrade they looked at
+        // and left. Clear it once they navigate away, so checkout never traps them. Users who
+        // really must pay (Pending / Expired / past expiry) are still locked by the rules below.
         if (hasValidActivePlan && pendingPlan && location.pathname !== '/checkout' && location.pathname !== '/billing') {
             localStorage.removeItem('pendingPlan');
             pendingPlan = null;

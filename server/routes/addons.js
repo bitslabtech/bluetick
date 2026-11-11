@@ -9,6 +9,7 @@ const logActivity = require('../utils/logger');
 const crypto = require('crypto');
 
 const PaymentService = require('../services/PaymentService');
+const Transaction = require('../models/Transaction');
 const { sendAdminAlert } = require('../services/systemMessenger');
 
 // Protect all addon routes
@@ -202,6 +203,26 @@ router.post('/:id/create-order', async (req, res) => {
             cancelUrl: cancelUrl || `${process.env.FRONTEND_URL || 'http://localhost:5173'}/app/marketplace/${addon.id}`
         });
 
+        // Record the order so verify-payment can bind the payment to THIS add-on, THIS user,
+        // and use it only once. Logged as FAILED until verified (same pattern as plan checkout).
+        const gatewayRef = PaymentService.getIntentReference(paymentIntent);
+        if (!gatewayRef) {
+            console.error('[ADDON] create-order: gateway returned no order reference', paymentIntent?.gateway);
+            return res.status(502).json({ error: 'Could not start the payment. Please try again.' });
+        }
+        await Transaction.create({
+            userId: req.user.id,
+            amount: finalPriceToCharge,
+            currency: addon.currency || 'USD', // same currency the gateway order was created in
+            planName: `Addon: ${addon.name}`,
+            status: 'FAILED',
+            paymentGateway: paymentIntent.gateway,
+            transactionReference: gatewayRef,
+            userName: req.user.name || null,
+            userEmail: req.user.email || null,
+            userPhone: req.user.phone || null
+        });
+
         res.json({
             ...paymentIntent,
             addonName: addon.name,
@@ -226,13 +247,45 @@ router.post('/:id/verify-payment', async (req, res) => {
         const addon = await AddonModel.findByPk(req.params.id);
         if (!addon) return res.status(404).json({ error: 'Addon not found' });
 
+        // ── SECURITY: bind the payment to the order create-order recorded ──────
+        // A valid gateway signature only proves *some* payment happened. The order
+        // record proves it was for this add-on, by this user, and not used before.
+        const transactionRef = PaymentService.getPayloadReference(gateway, payload);
+        if (!transactionRef) return res.status(400).json({ error: 'Missing payment reference.' });
+
+        const orderRecord = await Transaction.findOne({ where: { transactionReference: transactionRef } });
+        if (!orderRecord) {
+            console.warn(`[SECURITY] addon verify rejected — reference '${transactionRef}' not found. User: ${req.user.id}`);
+            return res.status(400).json({ error: 'Payment order not recognized. Please contact support.' });
+        }
+        if (orderRecord.userId !== req.user.id) {
+            console.warn(`[SECURITY] addon verify rejected — owner mismatch. Owner: ${orderRecord.userId}, Requester: ${req.user.id}`);
+            return res.status(403).json({ error: 'Payment order does not belong to this account.' });
+        }
+        if (orderRecord.paymentGateway !== gateway || orderRecord.planName !== `Addon: ${addon.name}`) {
+            console.warn(`[SECURITY] addon verify rejected — order is for '${orderRecord.planName}' via ${orderRecord.paymentGateway}, request is '${addon.name}' via ${gateway}. User: ${req.user.id}`);
+            return res.status(400).json({ error: 'This payment was not made for this add-on.' });
+        }
+        if (orderRecord.status === 'COMPLETED') {
+            return res.status(409).json({ error: 'This payment has already been processed.' });
+        }
+
         try {
             await PaymentService.verifyPayment({ gateway, payload });
         } catch (e) {
             return res.status(400).json({ error: e.message || 'Payment verification failed.' });
         }
 
-        // Signature is valid, activate the addon!
+        // Atomic lock: only one request can move the order out of FAILED
+        const [lockedRows] = await Transaction.update(
+            { status: 'PROCESSING' },
+            { where: { id: orderRecord.id, status: 'FAILED' } }
+        );
+        if (lockedRows === 0) {
+            return res.status(409).json({ error: 'This payment has already been processed.' });
+        }
+
+        // Signature is valid and the order is ours, activate the addon!
         const buyer = await User.findByPk(req.user.id);
         const existing = await UserAddonModel.findOne({
             where: {
@@ -266,30 +319,15 @@ router.post('/:id/verify-payment', async (req, res) => {
             });
         }
 
-        // ── CRITICAL FIX: Create Transaction record for addon purchase ─────────
-        // Previously missing — addon purchases had no Transaction audit trail.
-        // Idempotency: skip if a COMPLETED transaction already exists for this reference.
-        const Transaction = require('../models/Transaction');
-        const transactionRef = payload.razorpay_order_id || payload.session_id || payload.txn_id || `addon_${Date.now()}`;
-        let completedTxn = await Transaction.findOne({
-            where: { transactionReference: transactionRef, status: 'COMPLETED' }
+        // ── Complete the order record (the amount is what the gateway was asked to charge) ──
+        const completedTxn = await orderRecord.update({
+            status: 'COMPLETED',
+            razorpayOrderId: payload.razorpay_order_id || null,
+            razorpayPaymentId: payload.razorpay_payment_id || null,
+            userName: buyer?.name || orderRecord.userName || null,
+            userEmail: buyer?.email || orderRecord.userEmail || null,
+            userPhone: buyer?.phone || orderRecord.userPhone || null
         });
-        if (!completedTxn) {
-            completedTxn = await Transaction.create({
-                userId: req.user.id,
-                amount: parseFloat(addon.price),
-                currency: addon.currency || 'INR',
-                planName: `Addon: ${addon.name}`,
-                status: 'COMPLETED',
-                paymentGateway: gateway,
-                transactionReference: transactionRef,
-                razorpayOrderId: payload.razorpay_order_id || null,
-                razorpayPaymentId: payload.razorpay_payment_id || null,
-                userName: buyer?.name || null,
-                userEmail: buyer?.email || null,
-                userPhone: buyer?.phone || null
-            });
-        }
 
         await logActivity(req, 'Addon Purchased', `User securely purchased add-on: ${addon.name} via Razorpay`);
 

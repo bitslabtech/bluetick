@@ -257,6 +257,38 @@ class PaymentService {
     }
 
     /**
+     * The gateway's own order/session id from a createPaymentIntent() result.
+     * Store this on the pending order so verify can bind the payment to it.
+     */
+    static getIntentReference(intent) {
+        if (!intent) return null;
+        switch (intent.gateway) {
+            case 'razorpay': return intent.orderId || null;
+            case 'stripe':   return intent.sessionId || null;
+            case 'phonepe':  return intent.transactionId || null;
+            case 'cashfree': return intent.orderId || null;
+            default:         return null;
+        }
+    }
+
+    /**
+     * The same reference, read from a verify payload for that one gateway only.
+     * (No cross-gateway fallback chain: the field must match the gateway being verified.)
+     */
+    static getPayloadReference(gateway, payload) {
+        if (!payload || typeof payload !== 'object') return null;
+        let ref = null;
+        switch (gateway) {
+            case 'razorpay': ref = payload.razorpay_order_id; break;
+            case 'stripe':   ref = payload.session_id; break;
+            case 'phonepe':  ref = payload.txn_id; break;
+            case 'cashfree': ref = payload.order_id; break;
+            default:         ref = null;
+        }
+        return (typeof ref === 'string' && ref.trim()) ? ref.trim() : null;
+    }
+
+    /**
      * Verify payment status across any gateway
      */
     static async verifyPayment({ gateway, payload }) {

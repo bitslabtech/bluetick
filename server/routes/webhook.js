@@ -23,6 +23,25 @@ const { getMonthlyMessageCount, getUserPlanLimits } = require('../utils/planLimi
 const { applyAutoTags } = require('../services/AutoTagger'); // Auto-Tagging Engine
 const { processAndStoreBuffer } = require('../utils/storageProvider');
 const path = require('path');
+const { isWhatsAppApiNumber, API_TO_API_ERROR } = require('../utils/apiNumberGuard');
+
+// Map a Meta 'failed' status to a clear, user-facing reason.
+// Shared by campaign logs and the live inbox so both show the same wording.
+const friendlyMetaError = (statusUpdate) => {
+    const code = statusUpdate?.errors?.[0]?.code;
+    const raw = statusUpdate?.errors?.[0]?.title || 'Meta Error';
+    switch (code) {
+        case 131026: return 'Number is not on WhatsApp';
+        case 131009: return 'Invalid WhatsApp number';
+        case 131021: return 'Recipient opted out of messages';
+        case 131051: return 'Message type not supported for this recipient';
+        case 131008: return 'Required parameter missing';
+        case 131047: return 'Message failed — recipient not reachable';
+        case 131031: return 'Business account restricted by Meta';
+        case 130472: return 'Recipient is in a Meta A/B test — message not sent';
+        default:     return raw || 'Message delivery failed';
+    }
+};
 const fs = require('fs');
 const { MAX_RETRIES, RETRY_DELAYS_HOURS } = require('../utils/retryConfig'); // Bug #13 — single source of truth
 
@@ -367,23 +386,7 @@ router.post('/:userId', (req, res, next) => {
                                 log.status = upperStatus;
                                 if (statusUpdate.timestamp) log.metaTimestamp = statusUpdate.timestamp;
                                 if (rawStatus === 'failed') {
-                                    const errCode = statusUpdate.errors?.[0]?.code;
-                                    const errTitle = statusUpdate.errors?.[0]?.title || 'Meta Error';
-                                    // Map Meta error codes to clear, user-friendly messages
-                                    const webhookFriendlyError = (code, raw) => {
-                                        switch (code) {
-                                            case 131026: return 'Number is not on WhatsApp';
-                                            case 131009: return 'Invalid WhatsApp number';
-                                            case 131021: return 'Recipient opted out of messages';
-                                            case 131051: return 'Message type not supported for this recipient';
-                                            case 131008: return 'Required parameter missing';
-                                            case 131047: return 'Message failed — recipient not reachable';
-                                            case 131031: return 'Business account restricted by Meta';
-                                            case 130472: return 'Recipient is in a Meta A/B test — message not sent';
-                                            default:     return raw || 'Message delivery failed';
-                                        }
-                                    };
-                                    log.error = webhookFriendlyError(errCode, errTitle);
+                                    log.error = friendlyMetaError(statusUpdate);
                                 }
                                 await log.save();
                                 console.log(`[WEBHOOK] MessageLog updated OK`);
@@ -401,13 +404,16 @@ router.post('/:userId', (req, res, next) => {
                                 // Message already in inbox (e.g. inbound reply, or manual send)
                                 console.log(`[WEBHOOK] Found ChatMessage (inbox): ${chatMsg.id} | Updating status: ${chatMsg.status} → ${rawStatus}`);
                                 chatMsg.status = rawStatus;
+                                // Keep the reason so the inbox can show why it failed (was a silent clock icon)
+                                if (rawStatus === 'failed') chatMsg.errorMessage = friendlyMetaError(statusUpdate);
                                 await chatMsg.save();
 
                                 try {
                                     getIo().to(userId).emit('message_status_update', {
                                         messageId: metaMessageId,
                                         conversationId: chatMsg.conversationId,
-                                        status: rawStatus
+                                        status: rawStatus,
+                                        errorMessage: chatMsg.errorMessage || null
                                     });
                                     console.log(`[WEBHOOK] Socket emit message_status_update to room: ${userId}`);
                                 } catch (socketErr) {
@@ -564,6 +570,12 @@ router.post('/:userId', (req, res, next) => {
                         const contactName = value.contacts?.[0]?.profile?.name || 'Unknown';
                         const contactWaId = message.from; // Customer's WhatsApp ID (phone number)
                         const messageId = message.id;
+
+                        // Meta never delivers replies to another WhatsApp API number (it still reports
+                        // them "delivered"), so automated replies to one are not sent — see apiNumberGuard.
+                        // Looked up at most once per message, and only when a reply is about to go out.
+                        let _senderIsApiNumber;
+                        const senderIsApiNumber = async () => (_senderIsApiNumber ??= await isWhatsAppApiNumber(contactWaId));
                         const timestamp = message.timestamp * 1000; // Unix seconds → ms
 
                         // ─── CTWA: Extract referral data from Meta Ad clicks ───
@@ -896,18 +908,23 @@ router.post('/:userId', (req, res, next) => {
                                             ? (automations.optOutAck || defaultOptOutAck)
                                             : (automations.optInAck  || defaultOptInAck);
 
-                                        await axios.post(
-                                            `https://graph.facebook.com/v22.0/${optSettings.metaPhoneNumberId}/messages`,
-                                            {
-                                                messaging_product: 'whatsapp',
-                                                to: contactWaId,
-                                                type: 'text',
-                                                text: { body: ackText }
-                                            },
-                                            { headers: { Authorization: `Bearer ${optSettings.metaAccessToken}`, 'Content-Type': 'application/json' } }
-                                        );
-                                        console.log(`[WEBHOOK][OPT] Ack sent to ${contactWaId}: "${ackText.substring(0, 60)}..."`);
-                                        
+                                        const ackBlocked = await senderIsApiNumber();
+                                        if (ackBlocked) {
+                                            console.log(`[WEBHOOK][OPT] Ack not sent to ${contactWaId} — WhatsApp API number`);
+                                        } else {
+                                            await axios.post(
+                                                `https://graph.facebook.com/v22.0/${optSettings.metaPhoneNumberId}/messages`,
+                                                {
+                                                    messaging_product: 'whatsapp',
+                                                    to: contactWaId,
+                                                    type: 'text',
+                                                    text: { body: ackText }
+                                                },
+                                                { headers: { Authorization: `Bearer ${optSettings.metaAccessToken}`, 'Content-Type': 'application/json' } }
+                                            );
+                                            console.log(`[WEBHOOK][OPT] Ack sent to ${contactWaId}: "${ackText.substring(0, 60)}..."`);
+                                        }
+
                                         // Save ack text to Live Inbox
                                         if (conversation) {
                                             const ackMessageId = 'sys_ack_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
@@ -917,7 +934,8 @@ router.post('/:userId', (req, res, next) => {
                                                 direction: 'OUTBOUND',
                                                 type: 'text',
                                                 body: ackText,
-                                                status: 'sent',
+                                                status: ackBlocked ? 'failed' : 'sent',
+                                                errorMessage: ackBlocked ? API_TO_API_ERROR : null,
                                                 source: 'auto_reply',
                                                 timestamp: new Date()
                                             });
@@ -1307,7 +1325,25 @@ router.post('/:userId', (req, res, next) => {
                                                 replyText = welcomeMessage.text;
                                             }
 
-                                        if (replyText) {
+                                        if (replyText && await senderIsApiNumber()) {
+                                            // Not sent: show it in the inbox as failed with the reason
+                                            console.log(`[WEBHOOK] Auto-reply not sent to ${contactWaId} — WhatsApp API number`);
+                                            const outMsg = await ChatMessage.create({
+                                                conversationId: conversation.id,
+                                                messageId: null,
+                                                direction: 'OUTBOUND',
+                                                type: 'text',
+                                                body: replyText,
+                                                status: 'failed',
+                                                errorMessage: API_TO_API_ERROR,
+                                                source: 'auto_reply',
+                                                timestamp: new Date()
+                                            });
+                                            conversation.lastMessage = replyText;
+                                            conversation.lastMessageAt = new Date();
+                                            await conversation.save();
+                                            getIo().to(userId).emit('new_message', { conversation, message: outMsg });
+                                        } else if (replyText) {
                                             console.log(`[WEBHOOK] Sending Auto-Reply to ${contactWaId}`);
                                             const metaPayload = {
                                                 messaging_product: "whatsapp",
@@ -1366,7 +1402,10 @@ router.post('/:userId', (req, res, next) => {
                                     if (addon) {
                                         const userAddon = await UserAddon.findOne({ where: { userId, addonId: addon.id, status: 'active' } });
                                         const isAddonExpired = userAddon?.currentPeriodEnd && new Date(userAddon.currentPeriodEnd) < new Date();
-                                        if (userAddon && !isAddonExpired) {
+                                        if (userAddon && !isAddonExpired && await senderIsApiNumber()) {
+                                            // Don't generate an AI reply (and spend tokens) that Meta would never deliver
+                                            console.log(`[WEBHOOK-AI] Skipped for ${contactWaId} — WhatsApp API number`);
+                                        } else if (userAddon && !isAddonExpired) {
                                             const aiBotPluginPath = path.join(__dirname, '../plugins/addon_ai_bot/index.js');
                                             if (fs.existsSync(aiBotPluginPath)) {
                                                 const aiBot = require(aiBotPluginPath); // correct requiring

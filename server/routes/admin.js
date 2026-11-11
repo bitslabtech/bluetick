@@ -401,7 +401,8 @@ router.delete('/users/:id', async (req, res) => {
             try {
                 const Model = require(`../models/${modelName}`);
                 if (Model && typeof Model.destroy === 'function') {
-                    await Model.destroy({ where: { userId: uid } });
+                    // force: true — permanent delete even for soft-delete models (e.g. Conversation)
+                    await Model.destroy({ where: { userId: uid }, force: true });
                 }
             } catch (e) {
                 // Model file may not exist or field name may differ — skip silently

@@ -91,6 +91,63 @@ const computePlanExpiry = (interval, currentExpiryDate, isRenewal) => {
     return null; // lifetime → no expiry
 };
 
+// ─── Plan rules: which plans can be bought, and the price/duration per interval ──
+const { INTERNAL_PLAN_NAMES, isPlanPurchasable, resolvePlanPricing } = require('../utils/planRules');
+
+// ─── Helper: validate a platform coupon for a plan purchase ───────────────────
+// Single rule set shared by online checkout and bank-transfer requests.
+// Returns { coupon, discount } or null when the coupon does not apply.
+const { getPartnerCouponCap } = require('../utils/partnerCoupon');
+const evaluatePlanCoupon = async ({ couponCode, user, planName, interval, listPrice, baseAmount, isUpgrade }) => {
+    if (!couponCode) return null;
+    const coupon = await Coupon.findOne({ where: { code: String(couponCode).toUpperCase() } });
+    if (!coupon || !coupon.isActive) return null;
+
+    const now = new Date();
+    if (isUpgrade && !coupon.isValidForUpgrades) return null;
+    if (coupon.startDate && new Date(coupon.startDate) > now) return null;
+    if (coupon.expiryDate && new Date(coupon.expiryDate) < now) return null;
+    if (coupon.maxUses > 0 && coupon.usesCount >= coupon.maxUses) return null;
+    if (coupon.applicablePlans && coupon.applicablePlans.length > 0 && !coupon.applicablePlans.includes(planName)) return null;
+    if (coupon.minPurchaseAmount > 0 && parseFloat(listPrice) < coupon.minPurchaseAmount) return null;
+    if (coupon.validIntervals && coupon.validIntervals.length > 0) {
+        if (!interval || !coupon.validIntervals.includes(interval)) return null;
+    }
+    if (coupon.isFirstPurchaseOnly) {
+        const anyPastTxn = await Transaction.count({ where: { userId: user.id, status: 'COMPLETED' } });
+        if (anyPastTxn > 0) return null;
+    }
+    if (coupon.allowedEmails && coupon.allowedEmails.length > 0) {
+        const userEmail = (user.email || '').toLowerCase();
+        const isMatch = coupon.allowedEmails.some(allowed => {
+            const term = allowed.toLowerCase().trim();
+            return term.startsWith('@') ? userEmail.endsWith(term) : userEmail === term;
+        });
+        if (!isMatch) return null;
+    }
+
+    let discount = 0;
+    if (coupon.discountType === 'percentage') {
+        discount = baseAmount * (coupon.discountValue / 100);
+        if (coupon.maxDiscountCap && coupon.maxDiscountCap > 0 && discount > coupon.maxDiscountCap) {
+            discount = coupon.maxDiscountCap;
+        }
+    } else if (coupon.discountType === 'fixed') {
+        discount = parseFloat(coupon.discountValue) || 0;
+    }
+
+    // Partner coupons: only for that partner's referrals, capped at their commission
+    if (coupon.techPartnerId) {
+        const cap = await getPartnerCouponCap(coupon, user.id, baseAmount);
+        if (!cap.allowed) return null;
+        if (discount > cap.maxDiscount) discount = cap.maxDiscount;
+    }
+
+    discount = Math.max(0, Math.min(discount, baseAmount));
+    discount = Math.round(discount * 100) / 100;
+    return { coupon, discount };
+};
+
 const applyUpgrade = async (userId, targetPlan, extraTxnFields = {}) => {
     const user = await User.findByPk(userId);
     const fullPrice = parseFloat(targetPlan.price);
@@ -284,15 +341,18 @@ const applyUpgrade = async (userId, targetPlan, extraTxnFields = {}) => {
                             const _tpActualPaid = _referralAmountPaid > 0 ? _referralAmountPaid : parseFloat(targetPlan.price);
                             let commissionAmount = Math.round((_tpActualPaid * commissionRate / 100) * 100) / 100;
 
-                            // --- NEW: Subsidize custom tech partner coupon ---
+                            // --- Subsidize custom tech partner coupon ---
+                            // discountApplied always comes from our own order record (never the request body).
                             if (extraTxnFields && extraTxnFields.couponCode) {
                                 const Coupon = require('../models/Coupon');
                                 const usedCoupon = await Coupon.findOne({ where: { code: extraTxnFields.couponCode.toUpperCase() } });
                                 const TechPartner = require('../models/TechPartner');
-                                const tpProfile = await TechPartner.findOne({ where: { userId: referrer.id } });
-                                if (usedCoupon && tpProfile && usedCoupon.techPartnerId === tpProfile.id) {
-                                    const discountAmount = extraTxnFields.discountApplied || 0;
-                                    commissionAmount = commissionAmount - discountAmount;
+                                const tpProfile = usedCoupon?.techPartnerId
+                                    ? await TechPartner.findOne({ where: { id: usedCoupon.techPartnerId, userId: referrer.id } })
+                                    : null;
+                                if (usedCoupon && tpProfile) {
+                                    const discountAmount = Math.max(0, parseFloat(extraTxnFields.discountApplied) || 0);
+                                    commissionAmount = Math.max(0, Math.round((commissionAmount - discountAmount) * 100) / 100);
                                     console.log(`[TECH PARTNER] Deducted ${discountAmount} from commission due to subsidized coupon. Net commission: ${commissionAmount}`);
                                 }
                             }
@@ -360,7 +420,7 @@ const applyUpgrade = async (userId, targetPlan, extraTxnFields = {}) => {
                         const Coupon = require('../models/Coupon');
                         const usedCoupon = await Coupon.findOne({ where: { code: extraTxnFields.couponCode.toUpperCase() } });
                         if (usedCoupon && usedCoupon.techPartnerId === partner.id) {
-                            const discountAmount = extraTxnFields.discountApplied || 0;
+                            const discountAmount = Math.max(0, parseFloat(extraTxnFields.discountApplied) || 0);
                             // Only deduct if it's cash commission
                             if (partner.commissionType !== 'validity_months') {
                                 commissionAmount = commissionAmount - discountAmount;
@@ -491,7 +551,7 @@ const calculateUpgradeDiscount = async (user, targetPlan) => {
 router.get('/plans', async (req, res) => {
     try {
         const plans = await Plan.findAll({
-            where: { isPublic: true, isActive: true },
+            where: { isPublic: true, isActive: true, name: { [Op.notIn]: INTERNAL_PLAN_NAMES } },
             order: [['price', 'ASC']]
         });
         res.json(plans);
@@ -648,6 +708,7 @@ router.get('/usage-breakdown', async (req, res) => {
                ON "ChatMessages"."conversationId" = "Conversations"."id"
              WHERE "ChatMessages"."direction" = 'OUTBOUND'
                AND ("ChatMessages"."source" IS NULL OR "ChatMessages"."source" != 'campaign')
+               AND ("ChatMessages"."status" IS NULL OR "ChatMessages"."status" != 'failed')
                AND "ChatMessages"."createdAt" >= :startOfMonth
                AND "Conversations"."userId" = :userId
              GROUP BY DATE("ChatMessages"."createdAt"),
@@ -665,6 +726,7 @@ router.get('/usage-breakdown', async (req, res) => {
                ON "ChatMessages"."conversationId" = "Conversations"."id"
              WHERE "ChatMessages"."direction" = 'OUTBOUND'
                AND ("ChatMessages"."source" IS NULL OR "ChatMessages"."source" != 'campaign')
+               AND ("ChatMessages"."status" IS NULL OR "ChatMessages"."status" != 'failed')
                AND "ChatMessages"."createdAt" >= :startOfMonth
                AND "Conversations"."userId" = :userId
              GROUP BY COALESCE("ChatMessages"."source", 'live_inbox')`,
@@ -719,10 +781,11 @@ router.get('/calculate-upgrade/:planName', async (req, res) => {
         let targetPlan = await Plan.findOne({ where: { name: planName } });
         if (!targetPlan) return res.status(404).json({ error: `Plan '${planName}' not found.` });
 
-        // Override targetPlan.price based on requested interval
-        if (interval === 'month' && targetPlan.monthlyPrice > 0) targetPlan.price = targetPlan.monthlyPrice;
-        else if (interval === 'half-year' && targetPlan.halfYearlyPrice > 0) targetPlan.price = targetPlan.halfYearlyPrice;
-        else if (interval === 'year' && targetPlan.yearlyPrice > 0) targetPlan.price = targetPlan.yearlyPrice;
+        // Same price resolution as create-order, so the preview matches what is charged
+        const pricing = resolvePlanPricing(targetPlan, interval);
+        if (!pricing) return res.status(400).json({ error: 'This billing period is not available for this plan.' });
+        targetPlan.price = pricing.price;
+        targetPlan.interval = pricing.interval;
 
         const user = await User.findByPk(req.user.id);
         const upgradeCalc = await calculateUpgradeDiscount(user, targetPlan);
@@ -757,6 +820,8 @@ router.post('/create-order', async (req, res) => {
         
         let finalPriceToCharge = 0;
         let appliedDiscount = 0;
+        let appliedCouponCode = null; // only set when the coupon actually applied
+        let targetPlan = null;
         let targetCurrency = 'USD';
         let orderNotes = { userId: req.user.id };
 
@@ -788,26 +853,34 @@ router.post('/create-order', async (req, res) => {
             const targetItem = await StoreItem.findByPk(itemId);
             if (!targetItem || !targetItem.isActive) return res.status(404).json({ error: `Store item not found or inactive.` });
             
-            finalPriceToCharge = parseFloat(targetItem.price);
-            // For team_members, multiply by quantity if user selected more than 1
-            if (targetItem.itemType === 'team_members' && quantity && quantity > 1) {
-                finalPriceToCharge = finalPriceToCharge * parseInt(quantity, 10);
+            // Quantity only applies to team seats. It is recorded on the order (planName)
+            // so verify-payment never has to trust a quantity sent by the browser.
+            let purchaseQty = 1;
+            if (targetItem.itemType === 'team_members') {
+                const q = parseInt(quantity, 10);
+                purchaseQty = Number.isInteger(q) && q > 0 ? q : 1;
             }
+            finalPriceToCharge = parseFloat(targetItem.price) * purchaseQty;
             targetCurrency = targetItem.currency || 'USD';
             orderNotes.itemId = itemId;
             orderNotes.itemName = targetItem.name;
-            orderNotes.quantity = (targetItem.itemType === 'team_members' && quantity) ? parseInt(quantity, 10) : 1;
+            orderNotes.quantity = purchaseQty;
             orderNotes.validityMonths = targetItem.validityMonths || 12;
         } else {
             // It's a Plan purchase
-            let targetPlan = await Plan.findOne({ where: { name: planName } });
+            targetPlan = await Plan.findOne({ where: { name: planName } });
             if (!targetPlan) return res.status(404).json({ error: `Plan '${planName}' not found.` });
+            if (!isPlanPurchasable(targetPlan, user)) {
+                console.warn(`[SECURITY] create-order blocked — plan '${planName}' is not purchasable. User: ${req.user.id}`);
+                return res.status(404).json({ error: `Plan '${planName}' not found.` });
+            }
 
-            // Override price and interval based on user selection FIRST (before any comparisons)
-            if (interval === 'month' && targetPlan.monthlyPrice > 0) targetPlan.price = targetPlan.monthlyPrice;
-            else if (interval === 'half-year' && targetPlan.halfYearlyPrice > 0) targetPlan.price = targetPlan.halfYearlyPrice;
-            else if (interval === 'year' && targetPlan.yearlyPrice > 0) targetPlan.price = targetPlan.yearlyPrice;
-            if (interval) targetPlan.interval = interval;
+            // Resolve price + duration from the plan's own interval prices FIRST (before any comparisons).
+            // Unknown intervals (e.g. 'lifetime') or intervals with no price are rejected.
+            const pricing = resolvePlanPricing(targetPlan, interval);
+            if (!pricing) return res.status(400).json({ error: 'This billing period is not available for this plan.' });
+            targetPlan.price = pricing.price;
+            targetPlan.interval = pricing.interval;
 
             // Trial is NOT a paid subscription — trial users can freely pick any plan
             const isMidSubscription = user.planStatus === 'Active' && user.plan !== 'Free' && (!user.planExpiry || new Date(user.planExpiry) > new Date());
@@ -854,47 +927,19 @@ router.post('/create-order', async (req, res) => {
             }
 
             // Apply Coupon if provided (only for plans for now)
-            if (couponCode) {
-                const coupon = await Coupon.findOne({ where: { code: couponCode.toUpperCase() } });
-                if (coupon && coupon.isActive) {
-                    let isValid = true;
-                    const now = new Date();
-                    
-                    if (isUpgrade && !coupon.isValidForUpgrades) isValid = false;
-                    if (coupon.startDate && new Date(coupon.startDate) > now) isValid = false;
-                    if (coupon.expiryDate && new Date(coupon.expiryDate) < now) isValid = false;
-                    if (coupon.maxUses > 0 && coupon.usesCount >= coupon.maxUses) isValid = false;
-                    if (coupon.applicablePlans && coupon.applicablePlans.length > 0 && !coupon.applicablePlans.includes(planName)) isValid = false;
-                    if (coupon.minPurchaseAmount > 0 && parseFloat(targetPlan.price) < coupon.minPurchaseAmount) isValid = false;
-                    
-                    if (coupon.validIntervals && coupon.validIntervals.length > 0) {
-                        if (!targetPlan.interval || !coupon.validIntervals.includes(targetPlan.interval)) isValid = false;
-                    }
-                    if (coupon.isFirstPurchaseOnly) {
-                        const anyPastTxn = await Transaction.count({ where: { userId: req.user.id, status: 'COMPLETED' } });
-                        if (anyPastTxn > 0) isValid = false;
-                    }
-                    if (coupon.allowedEmails && coupon.allowedEmails.length > 0) {
-                        const userEmail = user.email.toLowerCase();
-                        const isMatch = coupon.allowedEmails.some(allowed => {
-                            const term = allowed.toLowerCase().trim();
-                            return term.startsWith('@') ? userEmail.endsWith(term) : userEmail === term;
-                        });
-                        if (!isMatch) isValid = false;
-                    }
-                    if (isValid) {
-                        if (coupon.discountType === 'percentage') {
-                            appliedDiscount = finalPriceToCharge * (coupon.discountValue / 100);
-                            if (coupon.maxDiscountCap && coupon.maxDiscountCap > 0 && appliedDiscount > coupon.maxDiscountCap) {
-                                appliedDiscount = coupon.maxDiscountCap;
-                            }
-                        } else if (coupon.discountType === 'fixed') {
-                            appliedDiscount = coupon.discountValue;
-                        }
-                        if (appliedDiscount > finalPriceToCharge) appliedDiscount = finalPriceToCharge;
-                        finalPriceToCharge = finalPriceToCharge - appliedDiscount;
-                    }
-                }
+            const couponResult = await evaluatePlanCoupon({
+                couponCode,
+                user,
+                planName,
+                interval: targetPlan.interval,
+                listPrice: targetPlan.price,
+                baseAmount: finalPriceToCharge,
+                isUpgrade
+            });
+            if (couponResult) {
+                appliedDiscount = couponResult.discount;
+                appliedCouponCode = couponResult.coupon.code;
+                finalPriceToCharge = Math.round((finalPriceToCharge - appliedDiscount) * 100) / 100;
             }
         }
 
@@ -937,28 +982,18 @@ router.post('/create-order', async (req, res) => {
                 await user.save();
                 
             } else {
-                // Plan Upgrade (Free)
-                const targetPlan = await Plan.findOne({ where: { name: planName } });
-                
-                // Override interval and price for free coupon upgrades too
-                if (interval) {
-                    if (interval === 'month' && targetPlan.monthlyPrice > 0) targetPlan.price = targetPlan.monthlyPrice;
-                    else if (interval === 'half-year' && targetPlan.halfYearlyPrice > 0) targetPlan.price = targetPlan.halfYearlyPrice;
-                    else if (interval === 'year' && targetPlan.yearlyPrice > 0) targetPlan.price = targetPlan.yearlyPrice;
-                    targetPlan.interval = interval;
-                }
-                
-                if (couponCode) {
-                    const coupon = await Coupon.findOne({ where: { code: couponCode.toUpperCase() } });
-                    if (coupon) await coupon.increment('usesCount', { by: 1 });
+                // Plan Upgrade (Free) — targetPlan already validated and priced above
+                if (appliedCouponCode) {
+                    await Coupon.increment('usesCount', { by: 1, where: { code: appliedCouponCode } });
                 }
 
                 await applyUpgrade(req.user.id, targetPlan, {
                     paymentGateway: 'system',
                     transactionReference: `free_${Date.now()}`,
-                    couponCode: couponCode || null,
-                    discountApplied: typeof appliedDiscount !== 'undefined' ? appliedDiscount : 0,
-                    amountPaid: 0
+                    couponCode: appliedCouponCode,
+                    discountApplied: appliedDiscount || 0,
+                    amountPaid: 0,
+                    billingInterval: targetPlan.interval
                 });
             }
 
@@ -1004,25 +1039,32 @@ router.post('/create-order', async (req, res) => {
             // Store upgradeCredit as 0 in the attempt log; it gets set properly when
             // the manual payment flow stores it. Online flow uses amount directly.
         }
-        try {
-            await Transaction.create({
-                userId: user.id,
-                amount: finalPriceToCharge,      // ← actual Razorpay-charged amount
-                currency: targetCurrency,
-                planName: planName || (orderNotes.itemName ? `Store: ${orderNotes.itemName}` : 'Unknown'),
-                billingInterval: (!itemId && (interval || orderNotes?.interval)) ? (interval || orderNotes?.interval) : null,
-                status: 'FAILED',
-                paymentGateway: paymentIntent.gateway || 'razorpay',
-                transactionReference: paymentIntent.orderId || paymentIntent.id || `attempt_${Date.now()}`,
-                userName: user.name || null,
-                userEmail: user.email || null,
-                userPhone: user.phone || null,
-                couponCode: couponCode || null,
-                discountApplied: appliedDiscount || 0,
-            });
-        } catch (txnErr) {
-            console.error('Failed to log checkout attempt transaction:', txnErr.message);
+        // The gateway's own order/session id — verify-payment looks the order up by this,
+        // so it must be the same id the gateway sends back (Stripe session, PhonePe txn, ...).
+        const gatewayRef = PaymentService.getIntentReference(paymentIntent);
+        if (!gatewayRef) {
+            console.error('[BILLING] create-order: gateway returned no order reference', paymentIntent?.gateway);
+            return res.status(502).json({ error: 'Could not start the payment. Please try again.' });
         }
+        // This record is the source of truth for verify-payment (amount, plan/item,
+        // quantity, interval, coupon). If it cannot be saved, do not let the user pay.
+        await Transaction.create({
+            userId: user.id,
+            amount: finalPriceToCharge,      // ← actual gateway-charged amount
+            currency: targetCurrency,
+            planName: itemId
+                ? `Store: ${orderNotes.itemName}${orderNotes.quantity > 1 ? ` × ${orderNotes.quantity}` : ''}`
+                : planName,
+            billingInterval: !itemId ? orderNotes.interval : null,
+            status: 'FAILED',
+            paymentGateway: paymentIntent.gateway,
+            transactionReference: gatewayRef,
+            userName: user.name || null,
+            userEmail: user.email || null,
+            userPhone: user.phone || null,
+            couponCode: appliedCouponCode,
+            discountApplied: appliedDiscount || 0,
+        });
 
         res.json({
             ...paymentIntent,
@@ -1040,10 +1082,18 @@ router.post('/create-order', async (req, res) => {
 // ─── POST /verify-payment ── Step 2: verify signature then upgrade ────────────
 router.post('/verify-payment', async (req, res) => {
     try {
-        const { gateway, payload, planName, couponCode, discountApplied, itemId, interval, quantity } = req.body;
+        // NOTE: couponCode / discountApplied / interval / quantity in the body are ignored on purpose —
+        // all of them come from the order record written by create-order.
+        const { gateway, payload, planName, itemId } = req.body;
 
         if (!gateway || !payload || (!planName && !itemId)) {
             return res.status(400).json({ error: 'Missing payment verification fields.' });
+        }
+
+        // The gateway's own order/session id, read only from the field that gateway uses
+        const gatewayRef = PaymentService.getPayloadReference(gateway, payload);
+        if (!gatewayRef) {
+            return res.status(400).json({ error: 'Missing payment reference.' });
         }
 
         try {
@@ -1073,8 +1123,7 @@ router.post('/verify-payment', async (req, res) => {
             return res.status(400).json({ error: e.message || 'Payment verification failed.' });
         }
 
-        // Extract generic reference for transaction
-        let transactionReference = payload.razorpay_order_id || payload.session_id || payload.txn_id || payload.order_id || 'unknown';
+        let transactionReference = gatewayRef;
 
         if (itemId) {
             // It's a Store Item Purchase
@@ -1097,14 +1146,29 @@ router.post('/verify-payment', async (req, res) => {
                 console.warn(`[SECURITY] store verify-payment rejected — userId mismatch. Order owner: ${orderRecord.userId}, Requester: ${req.user.id}`);
                 return res.status(403).json({ error: 'Payment order does not belong to this account.' });
             }
+            if (orderRecord.paymentGateway !== gateway) {
+                console.warn(`[SECURITY] store verify-payment rejected — gateway mismatch. Order: '${orderRecord.paymentGateway}', Request: '${gateway}'. User: ${req.user.id}`);
+                return res.status(400).json({ error: 'Payment order not recognized. Please contact support.' });
+            }
 
             const StoreItem = require('../models/StoreItem');
             const targetItem = await StoreItem.findByPk(itemId);
             if (!targetItem) return res.status(404).json({ error: `Store item not found.` });
 
-            // Item-swap check: planName stored at order time must match the item being claimed
-            const expectedPlanPrefix = `Store: ${targetItem.name}`;
-            if (orderRecord.planName && !orderRecord.planName.startsWith(expectedPlanPrefix)) {
+            // Item-swap check: the order must be for exactly this item.
+            // create-order records "Store: <name>" or "Store: <name> × <qty>" for seat packs.
+            const unitPrice = parseFloat(targetItem.price);
+            const expectedPlanName = `Store: ${targetItem.name}`;
+            let purchaseQty = null;
+            if (orderRecord.planName === expectedPlanName) {
+                // Orders created before quantity was recorded: derive it from the charged amount
+                const derived = unitPrice > 0 ? Math.round(parseFloat(orderRecord.amount) / unitPrice) : 1;
+                purchaseQty = (targetItem.itemType === 'team_members' && derived > 1) ? derived : 1;
+            } else if (orderRecord.planName && orderRecord.planName.startsWith(`${expectedPlanName} × `)) {
+                const qtyStr = orderRecord.planName.slice(`${expectedPlanName} × `.length);
+                if (/^\d+$/.test(qtyStr) && targetItem.itemType === 'team_members') purchaseQty = parseInt(qtyStr, 10);
+            }
+            if (!purchaseQty || purchaseQty < 1) {
                 console.warn(`[SECURITY] store verify-payment rejected — item mismatch. Order: '${orderRecord.planName}', Request item: '${targetItem.name}'. User: ${req.user.id}`);
                 return res.status(400).json({ error: 'Item mismatch detected. Please restart checkout.' });
             }
@@ -1122,11 +1186,8 @@ router.post('/verify-payment', async (req, res) => {
 
             const user = await User.findByPk(req.user.id);
 
-            // Record Transaction with actual amount paid (subtract discount if any)
-            const discountAppliedStore = parseFloat(discountApplied) || 0;
-            const purchaseQty = (targetItem.itemType === 'team_members' && quantity) ? parseInt(quantity, 10) : 1;
-            const unitPrice = parseFloat(targetItem.price);
-            const actualAmountPaid = Math.max(0, (unitPrice * purchaseQty) - discountAppliedStore);
+            // Record Transaction with the amount the gateway was actually asked to charge
+            const actualAmountPaid = parseFloat(orderRecord.amount) || 0;
 
             const txnData = {
                 userId: user.id,
@@ -1137,8 +1198,7 @@ router.post('/verify-payment', async (req, res) => {
                 paymentGateway: gateway,
                 transactionReference: transactionReference,
                 razorpayOrderId: payload.razorpay_order_id || null,
-                razorpayPaymentId: payload.razorpay_payment_id || null,
-                ...(discountAppliedStore > 0 ? { discountApplied: discountAppliedStore, couponCode: couponCode || null } : {})
+                razorpayPaymentId: payload.razorpay_payment_id || null
             };
 
             const completedTxn = await orderRecord.update(txnData);
@@ -1177,8 +1237,7 @@ router.post('/verify-payment', async (req, res) => {
             }
 
             // 🚨 ADMIN NOTIFICATION - PURCHASE MADE 🚨
-            const discountAppliedStoreForAlert = parseFloat(discountApplied) || 0;
-            const amountPaidForStoreAlert = Math.max(0, parseFloat(targetItem.price) - discountAppliedStoreForAlert);
+            const amountPaidForStoreAlert = actualAmountPaid;
             try {
                 await AdminNotification.create({
                     type: 'PLAN_CHANGE',
@@ -1210,11 +1269,45 @@ router.post('/verify-payment', async (req, res) => {
                 console.warn(`[SECURITY] verify-payment rejected — transactionReference '${transactionReference}' already COMPLETED. Possible replay attack. User: ${req.user.id}`);
                 return res.status(409).json({ error: 'This payment has already been processed.' });
             }
+            // Ownership: only the account that created the order can claim it
+            if (orderRecord.userId !== req.user.id) {
+                console.warn(`[SECURITY] verify-payment rejected — userId mismatch. Order owner: ${orderRecord.userId}, Requester: ${req.user.id}`);
+                return res.status(403).json({ error: 'Payment order does not belong to this account.' });
+            }
+            if (orderRecord.paymentGateway !== gateway) {
+                console.warn(`[SECURITY] verify-payment rejected — gateway mismatch. Order: '${orderRecord.paymentGateway}', Request: '${gateway}'. User: ${req.user.id}`);
+                return res.status(400).json({ error: 'Payment order not recognized. Please contact support.' });
+            }
             // Plan-swap check: body planName must match what was logged at create-order time
-            if (orderRecord.planName && orderRecord.planName !== planName) {
+            if (orderRecord.planName !== planName) {
                 console.warn(`[SECURITY] verify-payment rejected — planName mismatch. Order: '${orderRecord.planName}', Request: '${planName}'. User: ${req.user.id}`);
                 return res.status(400).json({ error: 'Plan mismatch detected. Please restart checkout.' });
             }
+
+            const targetPlan = await Plan.findOne({ where: { name: planName } });
+            if (!targetPlan) return res.status(404).json({ error: `Plan '${planName}' not found.` });
+
+            // Use the interval recorded at order-creation time — never the body value.
+            // Re-resolve it so an order carrying an interval that is not sold (e.g. 'lifetime')
+            // can never grant a longer plan than was paid for.
+            const pricing = resolvePlanPricing(targetPlan, orderRecord.billingInterval || 'month');
+            if (!pricing) {
+                console.warn(`[SECURITY] verify-payment rejected — order interval '${orderRecord.billingInterval}' is not sold for plan '${planName}'. User: ${req.user.id}`);
+                try {
+                    await AdminNotification.create({
+                        type: 'SYSTEM_ERROR',
+                        message: `Payment needs review: ${planName} order ${transactionReference} (₹${orderRecord.amount}) has billing period '${orderRecord.billingInterval}', which this plan does not sell. Plan was NOT activated.`,
+                        data: { userId: req.user.id, plan: planName, transactionReference }
+                    });
+                } catch (_) {}
+                return res.status(400).json({ error: 'This billing period is not available for this plan. Please contact support.' });
+            }
+            targetPlan.price = pricing.price;
+            targetPlan.interval = pricing.interval;
+
+            // Coupon + discount come from the order record, never from the request body
+            const orderCouponCode = orderRecord.couponCode || null;
+            const orderDiscount = Math.max(0, parseFloat(orderRecord.discountApplied) || 0);
 
             // ─── HIGH-1 FIX: Optimistic lock — mark PROCESSING before any work ──────────────
             // This prevents a race condition where two concurrent verify-payment calls both
@@ -1230,19 +1323,6 @@ router.post('/verify-payment', async (req, res) => {
             }
             // ─────────────────────────────────────────────────────────────────────────────────
 
-            const targetPlan = await Plan.findOne({ where: { name: planName } });
-            if (!targetPlan) return res.status(404).json({ error: `Plan '${planName}' not found.` });
-
-            // Use the interval that was recorded at order-creation time — never trust the body value,
-            // which would let someone pay the monthly price and claim the yearly plan.
-            const billingInterval = orderRecord.billingInterval || interval;
-            if (billingInterval) {
-                if (billingInterval === 'month' && targetPlan.monthlyPrice > 0) targetPlan.price = targetPlan.monthlyPrice;
-                else if (billingInterval === 'half-year' && targetPlan.halfYearlyPrice > 0) targetPlan.price = targetPlan.halfYearlyPrice;
-                else if (billingInterval === 'year' && targetPlan.yearlyPrice > 0) targetPlan.price = targetPlan.yearlyPrice;
-                targetPlan.interval = billingInterval;
-            }
-
             // ─── HIGH-2 FIX: Re-validate coupon before incrementing usesCount ─────────────
             // At create-order the coupon was valid. By verify-payment time it may have:
             //   - expired (expiryDate passed)  
@@ -1250,8 +1330,8 @@ router.post('/verify-payment', async (req, res) => {
             //   - been deactivated by admin
             // We still complete the payment (Razorpay already charged the user), but we
             // log a revenue alert so admin is aware the discount was applied on a stale coupon.
-            if (couponCode) {
-                const coupon = await Coupon.findOne({ where: { code: couponCode.toUpperCase() } });
+            if (orderCouponCode) {
+                const coupon = await Coupon.findOne({ where: { code: orderCouponCode.toUpperCase() } });
                 if (coupon) {
                     const now = new Date();
                     const couponStillValid = coupon.isActive
@@ -1261,12 +1341,12 @@ router.post('/verify-payment', async (req, res) => {
                         await coupon.increment('usesCount', { by: 1 });
                     } else {
                         // Coupon no longer valid — log for admin review but do NOT block payment
-                        console.warn(`[BILLING] Coupon '${couponCode}' was invalid at verify-payment time (expired/maxed/inactive). Payment still completed. User: ${req.user.id}`);
+                        console.warn(`[BILLING] Coupon '${orderCouponCode}' was invalid at verify-payment time (expired/maxed/inactive). Payment still completed. User: ${req.user.id}`);
                         try {
                             await AdminNotification.create({
                                 type: 'SYSTEM_ERROR',
-                                message: `Revenue alert: Coupon '${couponCode}' was stale at verification for user ${req.user.id} (${planName}). Discount was applied but coupon is now invalid.`,
-                                data: { userId: req.user.id, couponCode, planName }
+                                message: `Revenue alert: Coupon '${orderCouponCode}' was stale at verification for user ${req.user.id} (${planName}). Discount was applied but coupon is now invalid.`,
+                                data: { userId: req.user.id, couponCode: orderCouponCode, planName }
                             });
                         } catch (_) {}
                     }
@@ -1290,14 +1370,14 @@ router.post('/verify-payment', async (req, res) => {
 
             if (pendingManualSamePlan) {
                 // ── Same plan: convert in-place ────────────────────────────────────────────────
-                const actualAmountPaidConverted = Math.max(0, parseFloat(targetPlan.price) - (parseFloat(discountApplied) || 0));
+                const actualAmountPaidConverted = parseFloat(orderRecord.amount) || 0;
                 await pendingManualSamePlan.update({
                     paymentGateway: gateway,
                     transactionReference,
                     razorpayOrderId: payload.razorpay_order_id || null,
                     razorpayPaymentId: payload.razorpay_payment_id || null,
-                    couponCode: couponCode || pendingManualSamePlan.couponCode || null,
-                    discountApplied: parseFloat(discountApplied) || pendingManualSamePlan.discountApplied || 0,
+                    couponCode: orderCouponCode,
+                    discountApplied: orderDiscount,
                     amount: actualAmountPaidConverted,
                     manualPaymentRef: null,  // clear UTR — not relevant for online payment
                     manualPaymentNote: null,
@@ -1337,17 +1417,16 @@ router.post('/verify-payment', async (req, res) => {
             // (created at create-order time with the exact finalPriceToCharge Razorpay was given).
             // Recalculating here with plan.price - couponDiscount ignores upgrade credits and
             // any other server-side adjustments, leading to an inflated amountPaid in the audit log.
-            const preLoggedTxn = await Transaction.findOne({ where: { transactionReference } });
-            const actualAmountCharged = preLoggedTxn ? parseFloat(preLoggedTxn.amount) : Math.max(0, parseFloat(targetPlan.price) - (parseFloat(discountApplied) || 0));
+            const actualAmountCharged = parseFloat(orderRecord.amount) || 0;
 
             const upgradeResult = await applyUpgrade(req.user.id, targetPlan, {
                 paymentGateway: gateway,
                 transactionReference: transactionReference,
                 razorpayOrderId: payload.razorpay_order_id || null,
                 razorpayPaymentId: payload.razorpay_payment_id || null,
-                couponCode: couponCode || null,
-                discountApplied: discountApplied || 0,
-                amountPaid: actualAmountCharged   // ← exact amount Razorpay charged, never recalculated
+                couponCode: orderCouponCode,
+                discountApplied: orderDiscount,   // ← from our order record; feeds partner commission maths
+                amountPaid: actualAmountCharged   // ← exact amount the gateway charged, never recalculated
             });
 
             // ─── Trigger WhatsApp Plan Purchase Notification ───
@@ -1526,13 +1605,18 @@ router.post('/start-trial', async (req, res) => {
             return res.status(404).json({ error: `Plan '${planName}' not found.` });
         }
 
+        const user = await User.findByPk(req.user.id);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        if (!isPlanPurchasable(targetPlan, user)) {
+            console.warn(`[SECURITY] start-trial blocked — plan '${planName}' is not available. User: ${req.user.id}`);
+            return res.status(404).json({ error: `Plan '${planName}' not found.` });
+        }
+
         if (!targetPlan.trialDays || targetPlan.trialDays <= 0) {
             return res.status(400).json({ error: `Plan '${planName}' does not offer a free trial.` });
         }
 
-        const user = await User.findByPk(req.user.id);
-        if (!user) return res.status(404).json({ error: 'User not found' });
-        
         if (user.hasUsedTrial) {
             return res.status(403).json({ error: 'You have already used a free trial on this account.' });
         }
@@ -1641,38 +1725,47 @@ router.post('/manual-payment-request', async (req, res) => {
         let targetPlan = await Plan.findOne({ where: { name: planName } });
         if (!targetPlan) return res.status(404).json({ error: `Plan '${planName}' not found.` });
 
-        // Override price for selected interval
-        if (interval === 'month' && targetPlan.monthlyPrice > 0) targetPlan.price = targetPlan.monthlyPrice;
-        else if (interval === 'half-year' && targetPlan.halfYearlyPrice > 0) targetPlan.price = targetPlan.halfYearlyPrice;
-        else if (interval === 'year' && targetPlan.yearlyPrice > 0) targetPlan.price = targetPlan.yearlyPrice;
-        if (interval) targetPlan.interval = interval;
-
         const user = await User.findByPk(req.user.id);
+
+        if (!isPlanPurchasable(targetPlan, user)) {
+            console.warn(`[SECURITY] manual-payment-request blocked — plan '${planName}' is not purchasable. User: ${req.user.id}`);
+            return res.status(404).json({ error: `Plan '${planName}' not found.` });
+        }
+
+        // Same price + duration rules as online checkout
+        const pricing = resolvePlanPricing(targetPlan, interval);
+        if (!pricing) return res.status(400).json({ error: 'This billing period is not available for this plan.' });
+        targetPlan.price = pricing.price;
+        targetPlan.interval = pricing.interval;
 
         // Calculate final price (upgrade credit + coupon)
         let finalPrice = parseFloat(targetPlan.price);
         let appliedDiscount = 0;
+        let appliedCouponCode = null;
 
         const isUpgrade = user.planStatus === 'Active' && user.planExpiry && user.plan !== 'Free';
+        let upgradeCreditApplied = false;
         if (isUpgrade) {
             const math = await calculateUpgradeDiscount(user, targetPlan);
             finalPrice = math.finalPrice;
+            upgradeCreditApplied = math.creditAmount > 0;
         }
 
-        if (couponCode) {
-            const coupon = await Coupon.findOne({ where: { code: couponCode.toUpperCase() } });
-            if (coupon && coupon.isActive) {
-                if (coupon.discountType === 'percentage') {
-                    appliedDiscount = finalPrice * (coupon.discountValue / 100);
-                    if (coupon.maxDiscountCap && coupon.maxDiscountCap > 0 && appliedDiscount > coupon.maxDiscountCap) {
-                        appliedDiscount = coupon.maxDiscountCap;
-                    }
-                } else if (coupon.discountType === 'fixed') {
-                    appliedDiscount = coupon.discountValue;
-                }
-                if (appliedDiscount > finalPrice) appliedDiscount = finalPrice;
-                finalPrice = finalPrice - appliedDiscount;
-            }
+        // Same coupon rules as online checkout (dates, limits, plan, interval, emails, partner cap).
+        // "Upgrade" here means an upgrade credit was applied — same meaning as the online checkout page.
+        const couponResult = await evaluatePlanCoupon({
+            couponCode,
+            user,
+            planName,
+            interval: targetPlan.interval,
+            listPrice: targetPlan.price,
+            baseAmount: finalPrice,
+            isUpgrade: upgradeCreditApplied
+        });
+        if (couponResult) {
+            appliedDiscount = couponResult.discount;
+            appliedCouponCode = couponResult.coupon.code;
+            finalPrice = Math.round((finalPrice - appliedDiscount) * 100) / 100;
         }
 
         // Block if user has ANY existing pending or in-flight manual payment request.
@@ -1720,14 +1813,14 @@ router.post('/manual-payment-request', async (req, res) => {
             amount: finalPrice,
             currency: targetPlan.currency || 'INR',
             planName,
-            billingInterval: interval || targetPlan.interval || 'month', // Bug #1 fix: persist interval
+            billingInterval: targetPlan.interval, // resolved + validated interval (never a raw body value)
             status: 'PENDING_APPROVAL',
             paymentGateway: 'manual',
             transactionReference: `manual_${crypto.randomUUID().replace(/-/g, '')}`,
             userName: user.name || null,
             userEmail: user.email || null,
             userPhone: user.phone || null,
-            couponCode: couponCode || null,
+            couponCode: appliedCouponCode,
             discountApplied: appliedDiscount || 0,
             upgradeCredit: upgradeCredit || 0, // Bug #2 fix: track upgrade credit separately
             manualPaymentRef: utrNumber ? utrNumber.trim() : null,
@@ -1798,10 +1891,15 @@ router.post('/approve-manual-payment/:transactionId', adminMiddleware, async (re
             return 'month';
         })();
 
-        if (resolvedInterval === 'year' && targetPlan.yearlyPrice > 0) targetPlan.price = targetPlan.yearlyPrice;
-        else if (resolvedInterval === 'half-year' && targetPlan.halfYearlyPrice > 0) targetPlan.price = targetPlan.halfYearlyPrice;
-        else if (resolvedInterval === 'month' && targetPlan.monthlyPrice > 0) targetPlan.price = targetPlan.monthlyPrice;
-        targetPlan.interval = resolvedInterval;
+        // Re-check the stored interval: requests submitted before this check existed may carry
+        // an interval the plan does not sell (e.g. 'lifetime' for a monthly price).
+        const approvedPricing = resolvePlanPricing(targetPlan, resolvedInterval);
+        if (!approvedPricing) {
+            await txn.update({ status: 'PENDING_APPROVAL' });
+            return res.status(400).json({ error: `This request has billing period '${resolvedInterval}', which the ${txn.planName} plan does not sell. Reject it and ask the user to submit a new request.` });
+        }
+        targetPlan.price = approvedPricing.price;
+        targetPlan.interval = approvedPricing.interval;
 
         // Update coupon usage if applicable
         if (txn.couponCode) {

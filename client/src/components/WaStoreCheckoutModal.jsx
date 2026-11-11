@@ -307,8 +307,11 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                     pincode: formData.pincode
                 },
                 customerNote: formData.notes,
+                // The server re-prices every line from the database; selectedVariants lets it
+                // pick the right variant price (and shows the store owner which variant was ordered).
                 items: cart.map(item => ({
-                    id: item.id, name: item.name, price: getItemPrice(item), qty: item.qty, imageUrls: item.imageUrls
+                    id: item.id, name: item.name, price: getItemPrice(item), qty: item.qty, imageUrls: item.imageUrls,
+                    selectedVariants: item.selectedVariants || item.selectedOptions || null
                 })),
                 subtotal: finalTotal, // discounted subtotal
                 shippingCost: shippingCost,
@@ -327,12 +330,18 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                 storeCustomerId: storeCustomer ? storeCustomer.id : null,
             });
 
-            const { order, orderNumber, gatewayOptions } = res.data;
+            const { order, orderNumber, gatewayOptions, priceAdjusted } = res.data;
+
+            // The server calculates the real price. If the cart showed something else
+            // (e.g. a saved cart with an old price), tell the shopper before they pay.
+            if (priceAdjusted && order) {
+                toast(`Prices were updated to the store's current prices. Your total is ${getCurrencySymbol(store.currency)}${parseFloat(order.total).toFixed(2)}.`, { duration: 6000 });
+            }
 
             // Track E-commerce Purchase in GA4 / Meta Pixel
             trackPurchase({
                 orderNumber: orderNumber || order?.orderNumber,
-                total: finalTotal + shippingCost,
+                total: order?.total != null ? parseFloat(order.total) : finalTotal + shippingCost,
                 currency: store.currency,
                 items: cart.map(item => ({
                     id: item.id,
@@ -408,6 +417,39 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
             message += `Address: ${formData.address}, ${formData.city}, ${formData.state} - ${formData.pincode}\n\n`;
             
             message += `*Order Items:*\n`;
+            if (priceAdjusted && order && Array.isArray(order.items)) {
+                // Prices changed since the cart was built — use the server's order so the
+                // store owner sees exactly what was recorded.
+                const sym = getCurrencySymbol(store.currency);
+                const num = (v) => parseFloat(v) || 0;
+                order.items.forEach((item, i) => {
+                    let variantText = '';
+                    if (item.selectedVariants) {
+                        const variantsStr = Object.entries(item.selectedVariants).map(([k, v]) => `${k}: ${v}`).join(', ');
+                        if (variantsStr) variantText = ` (${variantsStr})`;
+                    }
+                    message += `${i+1}. *${item.name}*${variantText}\n   └ ${item.qty} x ${sym} ${num(item.price).toFixed(2)}\n\n`;
+                });
+                const itemsSubtotal = order.items.reduce((s, it) => s + num(it.price) * it.qty, 0);
+                const orderShipping = Math.max(0, num(order.total) - num(order.subtotal));
+                message += `-----------------------------------\n`;
+                message += `*Subtotal:* ${sym} ${itemsSubtotal.toFixed(2)}\n`;
+                if (order.couponCode && num(order.discountAmount) > 0) {
+                    message += `*Discount (${order.couponCode}):* -${sym} ${num(order.discountAmount).toFixed(2)}\n`;
+                }
+                if (orderShipping > 0) {
+                    message += `*Shipping:* ${sym} ${orderShipping.toFixed(2)}\n`;
+                }
+                if (taxEnabled) {
+                    if (store.taxConfig.taxInclusive) {
+                        message += `*(Includes Tax: ${sym} ${num(order.taxAmount).toFixed(2)})*\n`;
+                    } else {
+                        message += `*Tax:* ${sym} ${num(order.taxAmount).toFixed(2)}\n`;
+                    }
+                }
+                message += `*Final Total:* ${sym} ${num(order.total).toFixed(2)}\n`;
+                message += `-----------------------------------\n\n`;
+            } else {
             cart.forEach((item, i) => {
                 // Include variant text if present (e.g. "T-Shirt - Size: L")
                 let variantText = '';
@@ -444,7 +486,8 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
             }
             message += `*Final Total:* ${getCurrencySymbol(store.currency)} ${(calculateFinalTotal() + shippingCost).toFixed(2)}\n`;
             message += `-----------------------------------\n\n`;
-            
+            }
+
             if (formData.notes) message += `*Note:* ${formData.notes}\n\n`;
 
             const encodedMsg = encodeURIComponent(message);

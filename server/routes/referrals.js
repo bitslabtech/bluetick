@@ -240,8 +240,23 @@ router.post('/tech-partner/coupons', auth, async (req, res) => {
         const tpProfile = await TechPartner.findOne({ where: { userId } });
         if (!tpProfile) return res.status(403).json({ error: 'Not an approved partner' });
 
+        // Basic shape checks. The real limit is enforced at checkout: a partner coupon only
+        // works for that partner's referrals and never exceeds the partner's commission
+        // on that purchase (utils/partnerCoupon.js) — this also covers older coupons.
+        const type = discountType || 'fixed';
+        const value = parseFloat(discountValue);
+        if (!code || typeof code !== 'string' || !code.trim()) {
+            return res.status(400).json({ error: 'Coupon code is required.' });
+        }
+        if (!['percentage', 'fixed'].includes(type)) {
+            return res.status(400).json({ error: 'Discount type must be percentage or fixed.' });
+        }
+        if (!Number.isFinite(value) || value <= 0) {
+            return res.status(400).json({ error: 'Discount must be greater than 0.' });
+        }
+
         // Ensure code doesn't exist globally
-        const existing = await Coupon.findOne({ where: { code: code.toUpperCase() } });
+        const existing = await Coupon.findOne({ where: { code: code.trim().toUpperCase() } });
         if (existing) return res.status(400).json({ error: 'This coupon code is already taken globally. Try another one.' });
 
         const config = require('../models/SystemConfig');
@@ -249,14 +264,14 @@ router.post('/tech-partner/coupons', auth, async (req, res) => {
         const tpConfig = sysConfig.settings?.techPartnerProgram || {};
         const maxCommission = tpProfile.commissionType === 'percentage' ? tpProfile.commissionValue : (tpConfig.commissionRate || 20);
 
-        if (discountType === 'percentage' && parseFloat(discountValue) > maxCommission) {
+        if (type === 'percentage' && value > maxCommission) {
             return res.status(400).json({ error: `Discount cannot exceed your commission rate (${maxCommission}%).` });
         }
 
         const newCoupon = await Coupon.create({
-            code: code.toUpperCase(),
-            discountType: discountType || 'fixed',
-            discountValue: parseFloat(discountValue),
+            code: code.trim().toUpperCase(),
+            discountType: type,
+            discountValue: value,
             maxUses: maxUses || 0,
             expiryDate: expiryDate || null,
             techPartnerId: tpProfile.id,

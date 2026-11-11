@@ -422,9 +422,16 @@ const Register = () => {
                 }
             }
 
-            // If user explicitly selected a plan (and didn't request a trial) OR it's a direct registration that got pushed to Pending
+            // Send to checkout when:
+            //  - the account is Pending (must pay before using the app), OR
+            //  - the user picked a plan (e.g. on the landing page) but was not put on it — e.g. they
+            //    started on the free default plan. They can buy/trial the plan they chose, or press
+            //    "Keep my current plan" on checkout to stay on the free plan.
             const registeredUser = res.user;
-            if (registeredUser?.planStatus === 'Pending') {
+            const gotSelectedPlan = !!selectedPlan
+                && registeredUser?.plan === selectedPlan.name
+                && ['Active', 'Trial'].includes(registeredUser?.planStatus);
+            if (registeredUser?.planStatus === 'Pending' || (selectedPlan && !gotSelectedPlan)) {
                 let targetPlanForCheckout = selectedPlan;
 
                 // If direct registration (selectedPlan is null), we use the assigned plan details (the default plan)

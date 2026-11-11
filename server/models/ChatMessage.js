@@ -34,6 +34,11 @@ const ChatMessage = sequelize.define('ChatMessage', {
         type: DataTypes.STRING, // sent, delivered, read, failed
         defaultValue: 'sent'
     },
+    errorMessage: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: 'Why an outbound message failed (Meta error, or blocked API-to-API send). Shown under the bubble.'
+    },
     mediaUrl: {
         type: DataTypes.STRING,
         allowNull: true

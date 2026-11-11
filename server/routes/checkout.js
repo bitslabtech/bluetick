@@ -102,28 +102,95 @@ router.post('/init/:sessionId', async (req, res) => {
     }
 });
 
+// Confirm a form payment with the gateway itself. The browser's `status` field is never trusted.
+// Returns null when verified, or { code, msg } describing why not.
+async function verifyFormPayment(session, gatewayResponse) {
+    if (session.gateway !== 'razorpay') {
+        return { code: 400, msg: `Payments via ${session.gateway} are not supported for forms yet.` };
+    }
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = gatewayResponse || {};
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+        return { code: 400, msg: 'Missing payment details.' };
+    }
+
+    const form = session.Form || await Form.findOne({ where: { id: session.formId }, attributes: ['userId'] });
+    const settings = form ? await Settings.findOne({ where: { userId: form.userId } }) : null;
+    const keyId = settings?.paymentGateways?.razorpay?.keyId;
+    const keySecret = settings?.paymentGateways?.razorpay?.keySecret;
+    if (!keyId || !keySecret) return { code: 400, msg: 'Razorpay is not configured by the form owner.' };
+
+    // 1. Signature proves the payment belongs to that Razorpay order
+    const crypto = require('crypto');
+    const expected = crypto.createHmac('sha256', keySecret)
+        .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+        .digest('hex');
+    const sigOk = typeof razorpay_signature === 'string'
+        && expected.length === razorpay_signature.length
+        && crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(razorpay_signature));
+    if (!sigOk) return { code: 400, msg: 'Invalid payment signature.' };
+
+    // 2. The Razorpay order must have been created for THIS session and amount (/init sets receipt = transactionId)
+    let rzpOrder;
+    try {
+        const instance = new Razorpay({ key_id: keyId, key_secret: keySecret });
+        rzpOrder = await instance.orders.fetch(razorpay_order_id);
+    } catch (e) {
+        console.error('[CHECKOUT/VERIFY] Razorpay order lookup failed:', e?.error?.description || e.message);
+        return { code: 502, msg: 'Could not confirm the payment with Razorpay. Please contact the form owner.' };
+    }
+    const expectedPaise = Math.round(parseFloat(session.amount) * 100);
+    const amountOk = Math.abs(Number(rzpOrder.amount) - expectedPaise) <= 1;
+    const currencyOk = String(rzpOrder.currency || '').toUpperCase() === String(session.currency || 'INR').toUpperCase();
+    if (rzpOrder.receipt !== session.transactionId || !amountOk || !currencyOk) {
+        console.warn(`[SECURITY] Form payment rejected — Razorpay order ${razorpay_order_id} (receipt ${rzpOrder.receipt}, ${rzpOrder.amount} ${rzpOrder.currency}) does not match session ${session.id} (${session.transactionId}, ${expectedPaise} ${session.currency})`);
+        return { code: 400, msg: 'This payment was not made for this form.' };
+    }
+    return null;
+}
+
 // Finalize payment and fire all automations
 router.post('/verify', async (req, res) => {
-    const { sessionId, status, gatewayResponse } = req.body;
+    const { sessionId, gatewayResponse } = req.body;
     try {
-        const session = await PaymentSession.findOne({ where: { id: sessionId } });
+        const session = await PaymentSession.findOne({
+            where: { id: sessionId },
+            include: [{ model: Form, attributes: ['userId'] }]
+        });
         if (!session) return res.status(404).json({ msg: 'Session not found' });
 
-        if (status === 'success') {
-            // 1. Save the FormResponse
-            const response = await FormResponse.create({
-                formId: session.formId,
-                contactNumber: session.answersData.contactNumber,
-                answers: session.answersData.answers,
-                ipAddress: session.answersData.ipAddress,
-                status: 'paid',
-                transactionId: session.transactionId,
-                amountPaid: session.amount,
-                currency: session.currency,
-                gatewayUsed: session.gateway
-            });
+        const verifyError = await verifyFormPayment(session, gatewayResponse);
+        if (verifyError) {
+            return res.status(verifyError.code).json({ msg: verifyError.msg });
+        }
 
-            await session.destroy(); // cleanup
+        // Atomic claim: only one request can turn this session into a saved response
+        const claimed = await PaymentSession.destroy({ where: { id: session.id } });
+        if (!claimed) return res.status(409).json({ msg: 'This payment has already been processed.' });
+
+        {
+            // 1. Save the FormResponse
+            let response;
+            try {
+                response = await FormResponse.create({
+                    formId: session.formId,
+                    contactNumber: session.answersData.contactNumber,
+                    answers: session.answersData.answers,
+                    ipAddress: session.answersData.ipAddress,
+                    status: 'paid',
+                    transactionId: session.transactionId,
+                    amountPaid: session.amount,
+                    currency: session.currency,
+                    gatewayUsed: session.gateway
+                });
+            } catch (saveErr) {
+                // The payment is verified and the session is already claimed — log everything needed to recover it
+                console.error('[CHECKOUT/VERIFY] PAID response could not be saved. Recover manually:', JSON.stringify({
+                    formId: session.formId, transactionId: session.transactionId, amount: session.amount,
+                    currency: session.currency, razorpayPaymentId: gatewayResponse?.razorpay_payment_id,
+                    answersData: session.answersData
+                }));
+                throw saveErr;
+            }
 
             // 2. Fire automations (Fire & Forget — same as regular submit flow)
             const axios = require('axios');
@@ -279,8 +346,6 @@ router.post('/verify', async (req, res) => {
             }
 
             return res.json({ msg: 'Payment verified and response saved.', responseId: response.id });
-        } else {
-            return res.status(400).json({ msg: 'Payment failed' });
         }
     } catch(err) {
         console.error('Verify error:', err);

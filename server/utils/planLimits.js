@@ -95,9 +95,13 @@ const getMonthlyMessageCount = async (userId) => {
             direction: 'OUTBOUND',
             source: { [Op.is]: null },
             createdAt: { [Op.gte]: startOfMonth },
-            '$Conversation.userId$': userId
+            '$Conversation.userId$': userId,
+            // Failed messages were never delivered (incl. blocked API-to-API sends) —
+            // same rule as campaigns below, which exclude FAILED.
+            [Op.or]: [{ status: { [Op.is]: null } }, { status: { [Op.ne]: 'failed' } }]
         },
-        include: [{ model: Conversation, attributes: [] }]
+        // paranoid: false — messages from deleted chats still count toward this month's usage
+        include: [{ model: Conversation, attributes: [], paranoid: false }]
     });
 
     const campaignMessageCount = await MessageLog.count({

@@ -13,6 +13,7 @@ const { getIo } = require('../socket');
 const { applyPrivacyMask } = require('../utils/privacy');
 const Contact = require('../models/Contact');
 const ContactFlowState = require('../models/ContactFlowState');
+const { isWhatsAppApiNumber, API_TO_API_ERROR } = require('../utils/apiNumberGuard');
 
 router.use(auth);
 
@@ -169,7 +170,11 @@ router.get('/conversations/:id/messages', async (req, res) => {
         }
 
         const messages = await ChatMessage.findAll({
-            where: { conversationId: req.params.id },
+            where: {
+                conversationId: req.params.id,
+                // "Clear chat" hides older messages; the rows stay for usage/billing counts
+                ...(conversation.clearedAt ? { createdAt: { [Op.gt]: conversation.clearedAt } } : {})
+            },
             order: [['timestamp', 'ASC']]
         });
         console.log(`[CHAT API] Found ${messages.length} messages for conversation ${req.params.id}`);
@@ -231,19 +236,73 @@ router.delete('/conversations/:id', async (req, res) => {
             return res.status(404).json({ error: 'Conversation not found' });
         }
 
-        // Delete all chat messages first (assuming no automatic cascade set up)
-        await ChatMessage.destroy({
-            where: { conversationId: conversation.id }
-        });
+        // Erase the content but keep a content-free record of each message, so deleting a chat
+        // can't lower the monthly message count used for plan limits. Meta's message id is kept
+        // so late delivery/read webhooks update the record instead of re-creating the chat.
+        // Both steps run in one transaction: never leave a half-erased chat behind.
+        const { sequelize } = require('../config/database');
+        await sequelize.transaction(async (t) => {
+            await ChatMessage.update(
+                { body: null, mediaUrl: null, templateData: null, referral: null, errorMessage: null },
+                { where: { conversationId: conversation.id }, transaction: t }
+            );
 
-        // Delete the conversation
-        await conversation.destroy();
+            // Anonymise, then soft-delete (paranoid): hidden from the inbox and every lookup.
+            // If the contact writes again, a fresh conversation is started.
+            await conversation.update({
+                phoneNumber: 'deleted',
+                contactName: null,
+                lastMessage: null,
+                notes: null,
+                labels: [],
+                assignedTo: null,
+                assignedToName: null,
+                unreadCount: 0
+            }, { transaction: t });
+            await conversation.destroy({ transaction: t });
+        });
 
         // Emit an event to update clients if needed, though mostly the UI will handle it locally
         res.json({ success: true, message: 'Conversation deleted successfully' });
     } catch (err) {
         console.error('[CHAT DELETE ERROR]', err);
         res.status(500).json({ error: 'Failed to delete conversation' });
+    }
+});
+
+// POST /conversations/:id/clear - "Clear chat": empty the message history but keep the
+// conversation (contact, labels, notes, assignment, 24h window). Messages are hidden, not
+// deleted, so clearing can never lower the monthly message count used for plan limits.
+router.post('/conversations/:id/clear', async (req, res) => {
+    try {
+        const ownerId = req.user.parentUserId || req.user.id;
+
+        // Same permission as deleting a chat (it empties the chat for the whole team)
+        if (req.user.parentUserId && !req.user.teamPolicy?.canDeleteChats) {
+            return res.status(403).json({ error: 'You do not have permission to clear chats. Contact your team admin.' });
+        }
+
+        const conversation = await Conversation.findOne({ where: { id: req.params.id, userId: ownerId } });
+        if (!conversation) return res.status(404).json({ error: 'Conversation not found' });
+
+        conversation.clearedAt = new Date();
+        conversation.lastMessage = '';
+        conversation.unreadCount = 0;
+        await conversation.save();
+
+        // Update every open inbox in this workspace (owner + team members)
+        try {
+            const payload = { conversationId: conversation.id, clearedAt: conversation.clearedAt };
+            getIo().to(ownerId).emit('conversation_cleared', payload);
+            getIo().to(`team_${ownerId}`).emit('conversation_cleared', payload);
+        } catch (socketErr) {
+            console.error('[CHAT CLEAR] Socket emit failed:', socketErr.message);
+        }
+
+        res.json({ success: true, conversationId: conversation.id, clearedAt: conversation.clearedAt });
+    } catch (err) {
+        console.error('[CHAT CLEAR ERROR]', err);
+        res.status(500).json({ error: 'Failed to clear chat' });
     }
 });
 
@@ -314,7 +373,13 @@ router.post('/send/text', async (req, res) => {
             text: { preview_url: false, body }
         };
 
-        const metaRes = await sendToMeta(settings, payload);
+        // Meta won't deliver API-to-API messages but still reports them "delivered" —
+        // don't send; save the message as failed with the reason instead.
+        const blockedApiNumber = await isWhatsAppApiNumber(targetPhone);
+        let metaRes = {};
+        if (!blockedApiNumber) {
+            metaRes = await sendToMeta(settings, payload);
+        }
 
         if (metaRes.contacts?.[0]?.wa_id && metaRes.contacts[0].wa_id !== conversation.phoneNumber) {
             const oldPhone = conversation.phoneNumber;
@@ -329,7 +394,8 @@ router.post('/send/text', async (req, res) => {
             direction: 'OUTBOUND',
             type: 'text',
             body,
-            status: 'sent',
+            status: blockedApiNumber ? 'failed' : 'sent',
+            errorMessage: blockedApiNumber ? API_TO_API_ERROR : null,
             timestamp: new Date()
         });
 
@@ -410,7 +476,13 @@ router.post('/send/media', async (req, res) => {
             payload[mediaType].caption = caption;
         }
 
-        const metaRes = await sendToMeta(settings, payload);
+        // Meta won't deliver API-to-API messages but still reports them "delivered" —
+        // don't send; save the message as failed with the reason instead.
+        const blockedApiNumber = await isWhatsAppApiNumber(targetPhone);
+        let metaRes = {};
+        if (!blockedApiNumber) {
+            metaRes = await sendToMeta(settings, payload);
+        }
 
         if (metaRes.contacts?.[0]?.wa_id && metaRes.contacts[0].wa_id !== conversation.phoneNumber) {
             const oldPhone = conversation.phoneNumber;
@@ -426,7 +498,8 @@ router.post('/send/media', async (req, res) => {
             type: mediaType,
             body: caption || '',
             mediaUrl: mediaUrl, // Save the actual URL for frontend rendering
-            status: 'sent',
+            status: blockedApiNumber ? 'failed' : 'sent',
+            errorMessage: blockedApiNumber ? API_TO_API_ERROR : null,
             timestamp: new Date()
         });
 
@@ -554,7 +627,13 @@ router.post('/send/template', async (req, res) => {
             }
         };
 
-        const metaRes = await sendToMeta(settings, payload);
+        // Meta won't deliver API-to-API messages but still reports them "delivered" —
+        // don't send; save the message as failed with the reason instead.
+        const blockedApiNumber = await isWhatsAppApiNumber(targetPhone);
+        let metaRes = {};
+        if (!blockedApiNumber) {
+            metaRes = await sendToMeta(settings, payload);
+        }
 
         if (metaRes.contacts?.[0]?.wa_id && metaRes.contacts[0].wa_id !== conversation.phoneNumber) {
             const oldPhone = conversation.phoneNumber;
@@ -651,7 +730,8 @@ router.post('/send/template', async (req, res) => {
                 language: languageCode || 'en_US',
                 components: richTemplateComponents
             },
-            status: 'sent',
+            status: blockedApiNumber ? 'failed' : 'sent',
+            errorMessage: blockedApiNumber ? API_TO_API_ERROR : null,
             timestamp: new Date()
         });
 
@@ -660,7 +740,11 @@ router.post('/send/template', async (req, res) => {
         await conversation.save();
 
         // Return conversationId so the frontend can update placeholder 'new-...' IDs
-        res.json({ success: true, conversationId: conversation.id });
+        res.json({
+            success: !blockedApiNumber,
+            conversationId: conversation.id,
+            ...(blockedApiNumber ? { failed: true, error: API_TO_API_ERROR } : {})
+        });
 
     } catch (err) {
         console.error("Send Template Error:", err);
@@ -883,8 +967,18 @@ router.post('/ai-draft', async (req, res) => {
             return res.status(402).json({ error: `Insufficient AI tokens. Required: ${finalCost}` });
         }
 
+        // Only this workspace's conversations (previously any id was accepted, letting a user
+        // have the AI read another account's chat history)
+        const ownerId = req.user.parentUserId || req.user.id;
+        const draftConversation = await Conversation.findOne({ where: { id: conversationId, userId: ownerId } });
+        if (!draftConversation) return res.status(404).json({ error: 'Conversation not found' });
+
         const messages = await ChatMessage.findAll({
-            where: { conversationId },
+            where: {
+                conversationId,
+                // Respect "Clear chat": don't draft from messages the team has cleared
+                ...(draftConversation.clearedAt ? { createdAt: { [Op.gt]: draftConversation.clearedAt } } : {})
+            },
             order: [['timestamp', 'DESC']],
             limit: 15
         });

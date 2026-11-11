@@ -59,9 +59,19 @@ const Conversation = sequelize.define('Conversation', {
     botStatus: {
         type: DataTypes.ENUM('active', 'paused'),
         defaultValue: 'active'
+    },
+    clearedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: '"Clear chat": messages created before this are hidden in the inbox (kept for billing/usage counts)'
     }
 }, {
     timestamps: true,
+    // "Delete conversation" is a soft delete: the row stays (anonymised) with its messages
+    // emptied of content, so monthly usage counts can't be reset by deleting chats.
+    // Every normal query skips deleted rows automatically; usage/stat counts opt in
+    // with `paranoid: false`. Account deletion uses `force: true` to remove them for good.
+    paranoid: true,
     indexes: [
         { fields: ['userId'] },
         { fields: ['updatedAt'] } // For sorting by recent

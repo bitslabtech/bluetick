@@ -18,9 +18,14 @@ const GuestRoute = () => {
         );
     }
 
-    // Authenticated users get redirected to dashboard
+    // Authenticated users get redirected to dashboard — or to checkout when a plan purchase is
+    // in progress. Right after sign-up, Register saves the chosen plan and goes to /checkout,
+    // but this guard re-renders with the new user first; sending them to /dashboard here would
+    // override that and drop the plan they picked on the landing page.
     if (user) {
-        return <Navigate to="/dashboard" replace />;
+        let hasPendingCheckout = false;
+        try { hasPendingCheckout = !!localStorage.getItem('pendingPlan'); } catch { /* storage blocked */ }
+        return <Navigate to={hasPendingCheckout ? '/checkout' : '/dashboard'} replace />;
     }
 
     // Not logged in – render the guest page (Login, Register, etc.)

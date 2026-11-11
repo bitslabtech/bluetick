@@ -32,6 +32,28 @@
   }
 }
 
+/* Tailwind v4 no longer gives buttons a pointer cursor. Restore it for every
+   interactive element. Kept in @layer base so explicit cursor-* utilities
+   (cursor-grab, cursor-default, cursor-not-allowed, ...) still win. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href],
+  summary,
+  select:not(:disabled),
+  label[for],
+  input:is([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="submit"], [type="button"], [type="reset"], [type="color"]):not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [role="button"][aria-disabled="true"],
+  select:disabled,
+  input:is([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="submit"], [type="button"], [type="reset"]):disabled {
+    cursor: not-allowed;
+  }
+}
+
 body {
   font-family: 'Inter', sans-serif;
   @apply bg-background-light dark:bg-background-dark text-slate-900 dark:text-white;

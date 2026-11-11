@@ -218,7 +218,8 @@ router.get('/stats', async (req, res) => {
             const chatInclude = [{
                 model: Conversation,
                 where: { userId },
-                attributes: []
+                attributes: [],
+                paranoid: false // keep stats stable when chats are deleted
             }];
 
             totalMessages = await ChatMessage.count({
@@ -450,7 +451,8 @@ router.get('/chart', async (req, res) => {
                 include: [{
                     model: Conversation,
                     where: { userId },
-                    attributes: []
+                    attributes: [],
+                    paranoid: false // keep the chart stable when chats are deleted
                 }],
                 group: [
                     sequelize.fn('date_trunc', dateTruncUnit, sequelize.col('ChatMessage.createdAt')),

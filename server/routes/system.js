@@ -423,7 +423,8 @@ router.post('/actions/:action', superAdmin, async (req, res) => {
                         contactLimit: 999999999,
                         templateLimit: 999,
                         teamMemberLimit: 999,
-                        features: ['Unlimited']
+                        features: ['Unlimited'],
+                        isPublic: false // internal plan — never listed or sold
                     });
                 }
 
@@ -466,7 +467,8 @@ router.post('/actions/:action', superAdmin, async (req, res) => {
                         contactLimit: 999999999,
                         templateLimit: 999,
                         teamMemberLimit: 999,
-                        features: ['Unlimited']
+                        features: ['Unlimited'],
+                        isPublic: false // internal plan — never listed or sold
                     });
                 }
 

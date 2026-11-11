@@ -5,6 +5,8 @@ import { Check, Shield, ArrowLeft, Loader, Tag, Calendar, MessageSquare, Users, 
 import { useUI } from '../context/UIContext';
 import BillingProfileComp from '../components/BillingProfile';
 import { usePayment } from '../hooks/usePayment';
+import { useAuth } from '../context/AuthContext';
+import { hasUsablePlan } from '../utils/planAccess';
 
 const API = import.meta.env.VITE_API_URL || '';
 
@@ -27,6 +29,10 @@ const Checkout = () => {
     const { showToast, showModal } = useUI();
     const navigate = useNavigate();
     const location = useLocation();
+
+    // A user whose current plan still works is only *looking* at an upgrade — let them leave.
+    const { user: authUser } = useAuth();
+    const canKeepCurrentPlan = hasUsablePlan(authUser) && !!authUser?.plan;
 
     // Track if user has a billing profile (to show GST warning)
     const [billingProfile, setBillingProfile] = useState(null);
@@ -443,15 +449,31 @@ const Checkout = () => {
                     </div>
                 )}
                 <div className="max-w-6xl mx-auto">
-                    {/* Back Button */}
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white mb-8 transition-colors font-medium"
-                        disabled={processing || isProcessing}
-                    >
-                        <ArrowLeft className="w-4 h-4" />
-                        Back to Plans
-                    </button>
+                    <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
+                        {/* Back Button — always to the plans page (history may not contain it) */}
+                        <button
+                            onClick={() => navigate('/billing')}
+                            className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors font-medium"
+                            disabled={processing || isProcessing}
+                        >
+                            <ArrowLeft className="w-4 h-4" />
+                            Back to Plans
+                        </button>
+
+                        {/* Users whose current plan still works can leave checkout without buying */}
+                        {canKeepCurrentPlan && (
+                            <button
+                                onClick={() => {
+                                    localStorage.removeItem('pendingPlan');
+                                    navigate('/dashboard');
+                                }}
+                                className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+                                disabled={processing || isProcessing}
+                            >
+                                Keep my current plan ({authUser.plan})
+                            </button>
+                        )}
+                    </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
                         {/* Left: Order Summary (3/5 width) */}
