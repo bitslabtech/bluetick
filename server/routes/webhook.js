@@ -5,6 +5,7 @@ const axios = require('axios');
 const { Sequelize, Op } = require('sequelize');
 const { normalizePhone, phoneVariants } = require('../utils/normalizePhone');
 const { getIo } = require('../socket');
+const { pushToWorkspace } = require('../utils/pushNotifications');
 const Conversation = require('../models/Conversation');
 const ChatMessage = require('../models/ChatMessage');
 const MessageLog = require('../models/MessageLog');
@@ -814,6 +815,13 @@ router.post('/:userId', (req, res, next) => {
                         } catch (e) {
                             console.error('[WEBHOOK ERROR] Socket emit failed:', e.message);
                         }
+
+                        // Mobile push (best-effort, not awaited)
+                        pushToWorkspace(userId, {
+                            title: contactName || contactWaId,
+                            body: messageType === 'text' ? (messageBody || 'New message') : `📎 ${messageType}`,
+                            data: { type: 'new_message', conversationId: conversation.id },
+                        });
 
                         // ------ CHECK MONTHLY LIMITS ------
                         let isLimitHit = false;

@@ -52,6 +52,7 @@ require('./models/NfcOrder');       // Physical NFC Orders
 require('./models/FlowExecutionLog'); // FlowBot execution analytics
 require('./models/AutoTagRule');      // Auto-tagging rules engine
 require('./models/QuickReply');       // QuickReplies model
+require('./models/DeviceToken');      // Mobile Expo push tokens
 require('./models/Invoice');           // GST Invoices (generated on every purchase)
 
 // Import Routes
@@ -334,6 +335,7 @@ app.get('/:token.html', async (req, res, next) => {
 app.use('/api/system', require('./routes/system')); // NEW // NEW
 app.use('/api/billing', require('./routes/billing')); // NEW
 app.use('/api/invoices', require('./routes/invoices')); // Invoice management & downloads
+app.use('/api/devices', require('./routes/devices')); // Mobile push token registration
 app.use('/api/labels', require('./routes/labels')); // NEW
 app.use('/api/coupons', require('./routes/coupons')); // NEW
 app.use('/api/versioning', require('./routes/versioning')); // Versioning & Changelog

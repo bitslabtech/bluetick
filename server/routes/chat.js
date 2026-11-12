@@ -169,6 +169,52 @@ router.get('/conversations/:id/messages', async (req, res) => {
             return res.status(404).json({ error: 'Conversation not found' });
         }
 
+        // ── Windowed history (WhatsApp-style) ─────────────────────────────────────
+        // Opt-in via query params so existing clients (web) that send none still get
+        // the full history. Mobile passes:
+        //   ?sinceDays=7            → first load: only the last N days (oldest→newest)
+        //   ?before=<ISO>&limit=50  → older page: up to `limit` messages before the cursor
+        // The response stays a plain array; `X-Has-More: true|false` says if older exist.
+        const { before, sinceDays } = req.query;
+        if (before || sinceDays) {
+            const pageSize = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 200);
+            const base = { conversationId: req.params.id };
+            const latest = async () => {
+                // Newest `pageSize` messages, returned oldest→newest.
+                const rows = await ChatMessage.findAll({ where: base, order: [['timestamp', 'DESC']], limit: pageSize + 1 });
+                const more = rows.length > pageSize;
+                return { rows: rows.slice(0, pageSize).reverse(), more };
+            };
+            let rows, hasMore;
+            if (before) {
+                const cursor = new Date(before);
+                if (isNaN(cursor.getTime())) return res.status(400).json({ error: 'Invalid before cursor' });
+                const found = await ChatMessage.findAll({
+                    where: { ...base, timestamp: { [Op.lt]: cursor } },
+                    order: [['timestamp', 'DESC']],
+                    limit: pageSize + 1
+                });
+                hasMore = found.length > pageSize;
+                rows = found.slice(0, pageSize).reverse();
+            } else {
+                const days = Math.min(Math.max(parseInt(sinceDays, 10) || 7, 1), 365);
+                const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+                rows = await ChatMessage.findAll({
+                    where: { ...base, timestamp: { [Op.gte]: since } },
+                    order: [['timestamp', 'ASC']],
+                    limit: 1000
+                });
+                if (rows.length === 0) {
+                    // Quiet chat: nothing in the window — show the latest few, like WhatsApp does.
+                    ({ rows, more: hasMore } = await latest());
+                } else {
+                    hasMore = !!(await ChatMessage.findOne({ where: { ...base, timestamp: { [Op.lt]: rows[0].timestamp } }, attributes: ['id'] }));
+                }
+            }
+            res.set('X-Has-More', hasMore ? 'true' : 'false');
+            return res.json(rows);
+        }
+
         const messages = await ChatMessage.findAll({
             where: {
                 conversationId: req.params.id,
