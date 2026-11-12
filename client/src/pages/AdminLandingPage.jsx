@@ -136,6 +136,13 @@ const MultiSelectDropdown = ({ options, value, onChange, placeholder, allowCreat
     );
 };
 
+const toPageSlug = (value) => String(value || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+
 const AdminLandingPage = () => {
     const { user } = useAuth();
     const { showModal, showToast } = useUI();
@@ -478,7 +485,52 @@ const AdminLandingPage = () => {
         }
     };
 
+    const customPages = config?.customPages || [];
+
+    const updateCustomPage = (id, updates) => {
+        setConfig(prev => ({
+            ...prev,
+            customPages: (prev.customPages || []).map(p => p.id === id ? { ...p, ...updates } : p)
+        }));
+    };
+
+    const handleAddCustomPage = () => {
+        const taken = new Set(customPages.map(p => p.slug));
+        let slug = 'new-page';
+        for (let n = 2; taken.has(slug); n++) slug = `new-page-${n}`;
+        const page = { id: `${Date.now()}`, title: 'New Page', slug, content: '' };
+        setConfig(prev => ({ ...prev, customPages: [...(prev.customPages || []), page] }));
+    };
+
+    const handleDeleteCustomPage = (page) => {
+        showModal({
+            type: 'warning',
+            title: 'Delete Page',
+            message: `Delete "${page.title}"? Its link /p/${page.slug} will stop working after you click Save Changes.`,
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            onConfirm: () => {
+                setConfig(prev => ({ ...prev, customPages: (prev.customPages || []).filter(p => p.id !== page.id) }));
+            }
+        });
+    };
+
     const handleSave = async () => {
+        const seenSlugs = new Set();
+        for (const p of customPages) {
+            const slug = toPageSlug(p.slug);
+            const problem = !p.title?.trim() ? 'Every custom page needs a title.'
+                : !slug ? `"${p.title}" needs a URL slug.`
+                : seenSlugs.has(slug) ? `Two pages use the URL /p/${slug}. Give each page a different slug.`
+                : null;
+            if (problem) {
+                setContentTab('public_pages');
+                showToast({ type: 'error', title: 'Check Custom Pages', message: problem });
+                return;
+            }
+            seenSlugs.add(slug);
+        }
+
         setSaving(true);
         try {
             // Save landing page config
@@ -492,7 +544,7 @@ const AdminLandingPage = () => {
         } catch (err) {
             console.error(err);
             setSaving(false);
-            showToast({ type: 'error', title: 'Error', message: 'Failed to save changes' });
+            showToast({ type: 'error', title: 'Error', message: err.response?.data?.error || 'Failed to save changes' });
         }
     };
 
@@ -1636,16 +1688,103 @@ const AdminLandingPage = () => {
                                 {/* PUBLIC PAGES */}
                                 {contentTab === 'public_pages' && (
                                     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                                        <div className="flex justify-between items-start">
+                                        <div className="flex justify-between items-start gap-4">
                                             <div>
-                                                <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-1">Company & Legal Pages</h3>
-                                                <p className="text-sm text-slate-500 dark:text-slate-400">Edit the content for public pages like About Us, Privacy Policy, etc.</p>
+                                                <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-1">Your Custom Pages</h3>
+                                                <p className="text-sm text-slate-500 dark:text-slate-400">Create as many public pages as you need (Careers, Press, SLA...). Each one gets its own link at <span className="font-mono">/p/your-slug</span>. Pages go live after you click Save Changes.</p>
                                             </div>
+                                            <button
+                                                onClick={handleAddCustomPage}
+                                                className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-indigo-100 transition-colors shrink-0"
+                                            >
+                                                <Plus className="w-3 h-3" /> Add Page
+                                            </button>
+                                        </div>
+
+                                        {customPages.length === 0 ? (
+                                            <div className="p-8 rounded-2xl border border-dashed border-slate-300 dark:border-white/10 text-center text-sm text-slate-500 dark:text-slate-400">
+                                                No custom pages yet. Click <strong>Add Page</strong> to create your first one.
+                                            </div>
+                                        ) : (
+                                            <div className="grid grid-cols-1 gap-4">
+                                                {customPages.map((page) => (
+                                                    <div key={page.id} className="p-5 rounded-2xl bg-white dark:bg-black/20 border border-slate-200 dark:border-white/5 space-y-4 shadow-sm">
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                            <div className="space-y-1.5">
+                                                                <label className="text-xs font-bold uppercase text-slate-400 tracking-wider">Page Title</label>
+                                                                <input
+                                                                    value={page.title}
+                                                                    onChange={e => {
+                                                                        const title = e.target.value;
+                                                                        // Keep the slug following the title until the admin edits the slug by hand
+                                                                        const followsTitle = !page.slug || page.slug === toPageSlug(page.title) || /^new-page(-\d+)?$/.test(page.slug);
+                                                                        updateCustomPage(page.id, followsTitle ? { title, slug: toPageSlug(title) } : { title });
+                                                                    }}
+                                                                    className="w-full px-4 py-2.5 bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white"
+                                                                    placeholder="e.g. Careers"
+                                                                />
+                                                            </div>
+                                                            <div className="space-y-1.5">
+                                                                <label className="text-xs font-bold uppercase text-slate-400 tracking-wider">Page Link</label>
+                                                                <div className="flex items-center bg-white dark:bg-background-dark border border-slate-200 dark:border-white/10 rounded-xl focus-within:ring-2 focus-within:ring-indigo-500 overflow-hidden">
+                                                                    <span className="pl-4 text-sm font-mono text-slate-400 shrink-0">/p/</span>
+                                                                    <input
+                                                                        value={page.slug}
+                                                                        onChange={e => updateCustomPage(page.id, { slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-') })}
+                                                                        onBlur={e => updateCustomPage(page.id, { slug: toPageSlug(e.target.value) })}
+                                                                        className="flex-1 min-w-0 px-1 py-2.5 bg-transparent outline-none font-mono text-sm dark:text-white"
+                                                                        placeholder="careers"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                                            <p className="text-xs text-slate-400">
+                                                                {page.content?.replace(/<[^>]*>?/gm, '').trim() ? 'Content added' : 'No content yet — click Edit Content'}
+                                                            </p>
+                                                            <div className="flex gap-2">
+                                                                {page.slug && (
+                                                                    <a
+                                                                        href={`/p/${page.slug}`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="px-3 py-2 text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors"
+                                                                    >
+                                                                        <ExternalLink className="w-4 h-4" /> View
+                                                                    </a>
+                                                                )}
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setEditingPageKey(`custom:${page.id}`);
+                                                                        setPageEditorTitle(page.title);
+                                                                        setPageEditorContent(page.content || '');
+                                                                        setShowPageEditor(true);
+                                                                    }}
+                                                                    className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors"
+                                                                >
+                                                                    <Edit className="w-4 h-4" /> Edit Content
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteCustomPage(page)}
+                                                                    className="px-3 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors"
+                                                                    aria-label={`Delete ${page.title}`}
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        <div className="pt-4 border-t border-slate-200 dark:border-white/5">
+                                            <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-1">Company & Legal Pages</h3>
+                                            <p className="text-sm text-slate-500 dark:text-slate-400">Edit the content for built-in pages like About Us, Privacy Policy, etc.</p>
                                         </div>
                                         <div className="grid grid-cols-1 gap-4">
                                             {[
                                                 { key: 'about', title: 'About Us', path: '/about' },
-                                                { key: 'partner', title: 'Partner with Us', path: '/partner' },
                                                 { key: 'privacy', title: 'Privacy Policy', path: '/privacy' },
                                                 { key: 'terms', title: 'Terms of Service', path: '/terms' },
                                                 { key: 'refund-policy', title: 'Refund Policy', path: '/refund-policy' }
@@ -2626,13 +2765,17 @@ const AdminLandingPage = () => {
                                 </button>
                                 <button
                                     onClick={() => {
-                                        setConfig({
-                                            ...config,
-                                            publicPages: {
-                                                ...config.publicPages,
-                                                [editingPageKey]: pageEditorContent
-                                            }
-                                        });
+                                        if (editingPageKey?.startsWith('custom:')) {
+                                            updateCustomPage(editingPageKey.slice('custom:'.length), { content: pageEditorContent });
+                                        } else {
+                                            setConfig({
+                                                ...config,
+                                                publicPages: {
+                                                    ...config.publicPages,
+                                                    [editingPageKey]: pageEditorContent
+                                                }
+                                            });
+                                        }
                                         setShowPageEditor(false);
                                         showToast({ type: 'success', title: 'Content Updated', message: 'Click Save Changes to publish your changes.' });
                                     }}

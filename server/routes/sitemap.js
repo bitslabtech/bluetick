@@ -4,6 +4,7 @@ const { Op } = require('sequelize');
 const WaStore = require('../models/WaStore');
 const WaProduct = require('../models/WaProduct');
 const Blog = require('../models/Blog');
+const LandingPage = require('../models/LandingPage');
 const auth = require('../middleware/auth');
 const admin = require('../middleware/admin');
 const fs = require('fs');
@@ -242,6 +243,17 @@ async function buildPlatformSitemapXml(baseUrl) {
     staticRoutes.forEach(r => {
         xml += urlEntry(`${baseUrl}${r.url}`, { lastmod: now, changefreq: r.changefreq, priority: r.priority });
     });
+
+    // 1b. Superadmin-created custom pages (/p/:slug)
+    try {
+        const landing = await LandingPage.getSettings();
+        for (const page of (Array.isArray(landing.customPages) ? landing.customPages : [])) {
+            if (!page.slug) continue;
+            xml += urlEntry(`${baseUrl}/p/${page.slug}`, { lastmod: now, changefreq: 'monthly', priority: 0.4 });
+        }
+    } catch (pagesErr) {
+        console.error('[Sitemap] Error fetching custom pages:', pagesErr.message);
+    }
 
     // 2. Dynamic blog routes
     try {

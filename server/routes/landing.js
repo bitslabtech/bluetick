@@ -26,6 +26,32 @@ router.get('/', async (req, res) => {
     }
 });
 
+const toPageSlug = (value) => String(value || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+
+// @route   GET /api/landing/page/:slug
+// @desc    Get one superadmin-created custom page (Public)
+router.get('/page/:slug', async (req, res) => {
+    try {
+        let settings = _landingCache.get();
+        if (!settings) {
+            settings = await LandingPage.getSettings();
+            _landingCache.set(settings);
+        }
+        const slug = toPageSlug(req.params.slug);
+        const page = (Array.isArray(settings.customPages) ? settings.customPages : []).find(p => p.slug === slug);
+        if (!page) return res.status(404).json({ error: 'Page not found' });
+        res.json({ title: page.title, slug: page.slug, content: page.content || '' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 // @route   PUT /api/landing
 // @desc    Update landing page configuration (Admin only)
 router.put('/', [auth, admin], async (req, res) => {
@@ -33,6 +59,30 @@ router.put('/', [auth, admin], async (req, res) => {
         let settings = await LandingPage.findOne();
         if (!settings) {
             settings = await LandingPage.create();
+        }
+
+        if (req.body.customPages !== undefined) {
+            if (!Array.isArray(req.body.customPages)) {
+                return res.status(400).json({ error: 'customPages must be a list.' });
+            }
+            const seen = new Set();
+            const cleaned = [];
+            for (const p of req.body.customPages) {
+                const title = String(p?.title || '').trim().slice(0, 150);
+                const slug = toPageSlug(p?.slug);
+                if (!title) return res.status(400).json({ error: 'Every custom page needs a title.' });
+                if (!slug) return res.status(400).json({ error: `Page "${title}" needs a URL slug.` });
+                if (seen.has(slug)) return res.status(400).json({ error: `Two pages use the same URL "/p/${slug}". Each page needs a different slug.` });
+                seen.add(slug);
+                cleaned.push({
+                    id: String(p?.id || `${Date.now()}-${cleaned.length}`),
+                    title,
+                    slug,
+                    content: typeof p?.content === 'string' ? p.content : ''
+                });
+            }
+            settings.customPages = cleaned;
+            settings.changed('customPages', true);
         }
 
         // Force Sequelize to detect JSON changes
@@ -529,8 +579,17 @@ router.post('/upload-hero', [auth, admin], storageProvider('hero', { fileFilter:
 // @desc    Reset landing page to default (Admin only)
 router.post('/reset', [auth, admin], async (req, res) => {
     try {
+        // Custom pages are content the admin wrote, not part of the defaults — keep them
+        const existing = await LandingPage.findOne();
+        const keepCustomPages = Array.isArray(existing?.customPages) ? existing.customPages : [];
+
         await LandingPage.destroy({ where: {}, truncate: true });
         const settings = await LandingPage.getSettings(); // Re-creates with defaults
+        if (keepCustomPages.length) {
+            settings.customPages = keepCustomPages;
+            settings.changed('customPages', true);
+            await settings.save();
+        }
 
         // Invalidate landing page cache
         cacheManager.invalidate('landing_page');

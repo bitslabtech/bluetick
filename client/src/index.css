@@ -343,3 +343,25 @@ section {
   from { transform: translateX(-100%); }
   to   { transform: translateX(0); }
 }
+
+/* Superadmin-written pages at /p/:slug — Tailwind resets headings/lists, so style the editor's output here */
+.custom-page-content { color: #334155; font-size: 1rem; line-height: 1.75; }
+.custom-page-content > :first-child { margin-top: 0; }
+.custom-page-content h1 { font-size: 2rem; font-weight: 800; line-height: 1.2; margin: 2rem 0 1rem; color: #0f172a; }
+.custom-page-content h2 { font-size: 1.5rem; font-weight: 700; line-height: 1.3; margin: 2rem 0 0.75rem; color: #0f172a; }
+.custom-page-content h3 { font-size: 1.25rem; font-weight: 700; line-height: 1.4; margin: 1.5rem 0 0.5rem; color: #0f172a; }
+.custom-page-content h4 { font-size: 1.05rem; font-weight: 700; margin: 1.25rem 0 0.5rem; color: #0f172a; }
+.custom-page-content p { margin: 0 0 1rem; }
+.custom-page-content ul { list-style: disc; padding-left: 1.5rem; margin: 0 0 1rem; }
+.custom-page-content ol { list-style: decimal; padding-left: 1.5rem; margin: 0 0 1rem; }
+.custom-page-content li { margin: 0.25rem 0; }
+.custom-page-content a { color: #4f46e5; text-decoration: underline; text-underline-offset: 2px; }
+.custom-page-content a:hover { color: #3730a3; }
+.custom-page-content strong { font-weight: 700; color: #0f172a; }
+.custom-page-content blockquote { border-left: 4px solid #c7d2fe; padding-left: 1rem; margin: 1rem 0; color: #475569; font-style: italic; }
+.custom-page-content img { max-width: 100%; height: auto; border-radius: 0.75rem; margin: 1rem 0; }
+.custom-page-content hr { border: 0; border-top: 1px solid #e2e8f0; margin: 2rem 0; }
+.custom-page-content table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+.custom-page-content th, .custom-page-content td { border: 1px solid #e2e8f0; padding: 0.5rem 0.75rem; text-align: left; }
+.custom-page-content pre { background: #0f172a; color: #e2e8f0; padding: 1rem; border-radius: 0.75rem; overflow-x: auto; margin: 1rem 0; font-size: 0.875rem; }
+.custom-page-content code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; }

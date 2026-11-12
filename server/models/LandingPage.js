@@ -158,6 +158,11 @@ const LandingPage = sequelize.define('LandingPage', {
             terms: ''
         }
     },
+    customPages: {
+        type: DataTypes.JSON,
+        defaultValue: [],
+        comment: 'Superadmin-created public pages served at /p/:slug: [{ id, title, slug, content }]'
+    },
     bookDemo: {
         type: DataTypes.JSON,
         defaultValue: {

@@ -134,6 +134,7 @@ const AboutUs = React.lazy(() => import('./pages/AboutUs'));
 const ContactUs = React.lazy(() => import('./pages/ContactUs'));
 const FAQ = React.lazy(() => import('./pages/FAQ'));
 const PartnerWithUs = React.lazy(() => import('./pages/PartnerWithUs'));
+const CustomPublicPage = React.lazy(() => import('./pages/CustomPublicPage'));
 const MediaGallery = React.lazy(() => import('./pages/MediaGallery'));
 const NotFound404 = React.lazy(() => import('./pages/NotFound404'));
 const StoreNotFound = React.lazy(() => import('./components/StoreNotFound'));
@@ -650,6 +651,7 @@ function App() {
                                         <Route path="/contact" element={<ContactUs />} />
                                         <Route path="/faq" element={<FAQ />} />
                                         <Route path="/partner" element={<PartnerWithUs />} />
+                                        <Route path="/p/:slug" element={<CustomPublicPage />} />
 
                                         {/* Google OAuth Relay — must be public, no auth */}
                                         <Route path="/google-relay" element={<GoogleRelay />} />

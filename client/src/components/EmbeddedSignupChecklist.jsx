@@ -144,7 +144,7 @@ export default function EmbeddedSignupChecklist({ isOpen, onClose, onProceed, fb
                         <div>
                             <h3 className="text-sm font-bold text-gray-900 mb-1">4. Your WhatsApp Number</h3>
                             <p className="text-sm text-gray-600 leading-relaxed">
-                                Use a new phone number or any number that is not currently active on WhatsApp. Make sure that the number can receive SMS/call verification.<br />
+                                Use a new phone number or any number that is not currently active on WhatsApp & WhatsApp Business. Make sure that the number can receive SMS/call verification.<br />
 
                             </p>
                         </div>
