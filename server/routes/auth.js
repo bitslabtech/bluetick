@@ -16,7 +16,10 @@ const { sendSystemMessage, sendAdminAlert } = require('../services/systemMesseng
 const { setAuthCookies, clearAuthCookies } = require('../utils/cookieHelper');
 
 // Generate Token Helper
-const generateToken = (user) => {
+// Mobile tokens live 365 days and are renewed (sliding) by /mobile-refresh, so an app that
+// is opened at least once a year never asks the user to sign in again. Admin tokens stay short.
+const MOBILE_TOKEN_TTL = '365d';
+const generateToken = (user, { mobile = false } = {}) => {
     const payload = {
         user: {
             id: user.id,
@@ -25,7 +28,7 @@ const generateToken = (user) => {
             isAdmin: user.isAdmin // Include isAdmin
         }
     };
-    const expiresIn = user.isAdmin ? '2h' : '7d';
+    const expiresIn = user.isAdmin ? '2h' : (mobile ? MOBILE_TOKEN_TTL : '7d');
     return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn, algorithm: 'HS256' });
 };
 
@@ -716,7 +719,7 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
         }
 
         // Set HttpOnly cookie and return user data (no token in response body)
-        const token = generateToken(user);
+        const token = generateToken(user, { mobile: includeTokenInBody });
         setAuthCookies(res, token);
         // Fetch the actual assigned plan details to return to frontend
         let returnedPlanDetails = await Plan.findOne({ where: { name: assignedPlan } });
@@ -799,7 +802,7 @@ async function handleLogin(req, res, { includeTokenInBody = false } = {}) {
         const planDetails = await Plan.findOne({ where: { name: user.plan } });
 
         // Set HttpOnly cookie (web) — harmless for mobile, which ignores it.
-        const token = generateToken(user);
+        const token = generateToken(user, { mobile: includeTokenInBody });
         setAuthCookies(res, token);
 
         const payload = {
@@ -837,6 +840,25 @@ router.post('/login', authLimiter, verifyTurnstile, (req, res) => handleLogin(re
 // MOBILE LOGIN — same credentials, no Turnstile, returns the JWT in the body for
 // Bearer-token auth from the OneDash mobile app.
 router.post('/mobile-login', authLimiter, (req, res) => handleLogin(req, res, { includeTokenInBody: true }));
+
+// MOBILE REFRESH — swap a still-valid token for a fresh 365-day one (sliding session).
+// Goes through the normal auth middleware, so an expired token, a deleted user or an admin
+// "kill all sessions" is refused with 401 and the app then asks the user to sign in.
+router.post('/mobile-refresh', require('../middleware/auth'), async (req, res) => {
+    try {
+        const user = await User.findByPk(req.user.realId || req.user.id);
+        if (!user || user.status === 'deleted') {
+            return res.status(401).json({ error: 'This account no longer exists.' });
+        }
+        if (user.status === 'suspended') {
+            return res.status(403).json({ error: 'Your account has been suspended. Please contact support.' });
+        }
+        res.json({ token: generateToken(user, { mobile: true }) });
+    } catch (err) {
+        console.error('[MOBILE REFRESH] Error:', err);
+        res.status(500).json({ error: 'Could not refresh the session.' });
+    }
+});
 
 // LOGOUT — Clear HttpOnly auth cookies
 router.post('/logout', (req, res) => {

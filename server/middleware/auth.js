@@ -109,6 +109,11 @@ module.exports = async function (req, res, next) {
 
         next();
     } catch (err) {
-        res.status(401).json({ error: 'Token is not valid' });
+        // Only a bad / expired token means "log in again". A database or other server fault must
+        // not look like a dead session, or clients (mobile especially) would be signed out by an outage.
+        const tokenProblem = ['JsonWebTokenError', 'TokenExpiredError', 'NotBeforeError'].includes(err?.name);
+        if (tokenProblem) return res.status(401).json({ error: 'Token is not valid' });
+        console.error('[AUTH MIDDLEWARE] Server error (session not rejected):', err?.message);
+        res.status(503).json({ error: 'Service temporarily unavailable. Please try again.' });
     }
 };
