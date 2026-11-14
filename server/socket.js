@@ -50,6 +50,35 @@ function _isSocketOriginAllowed(origin) {
     return false;
 }
 
+/**
+ * Join the rooms this authenticated user needs, using the verified JWT (never client input):
+ *   - `<userId>`            personal room (assignment notices, and the owner's workspace room,
+ *                           which is where the WhatsApp webhook emits new_message)
+ *   - `team_<ownerId>`      the workspace team room (team members receive new_message here)
+ * and mark them online for team presence. Mirrors what the web client does by emitting
+ * join_waba / join_personal / user_connected, so web behaviour is unchanged.
+ * Best-effort: a failure here must never drop the connection.
+ */
+async function autoJoinRooms(socket) {
+    try {
+        const userId = socket.user?.id;
+        if (!userId) return;
+        const User = require('./models/User'); // lazy: avoids a circular import at load time
+        const dbUser = await User.findByPk(userId, { attributes: ['id', 'parentUserId'] });
+        if (!dbUser) return;
+        const ownerId = dbUser.parentUserId || dbUser.id;
+
+        socket.join(userId);
+        socket.join(`team_${ownerId}`);
+
+        onlineUsers.set(socket.id, userId);
+        userRooms.set(socket.id, ownerId);
+        io.to(`team_${ownerId}`).emit('user_status_change', { userId, isOnline: true });
+    } catch (e) {
+        console.error('[SOCKET] autoJoinRooms failed:', e.message);
+    }
+}
+
 const initSocket = (server) => {
     io = socketIo(server, {
         cors: {
@@ -94,6 +123,10 @@ const initSocket = (server) => {
 
     io.on('connection', (socket) => {
         console.log('New client connected: ' + socket.id);
+
+        // Mobile clients cannot be trusted to send (or know) their room ids, and they emit
+        // join_waba / join_personal with no arguments. Derive the rooms from the verified token.
+        autoJoinRooms(socket);
 
         // Frontend will emit this when they load the WhatsApp Inbox
         socket.on('join_waba', (wabaId) => {
