@@ -362,6 +362,23 @@ router.post('/:userId', (req, res, next) => {
                     continue;
                 }
 
+                // ─── WhatsApp voice calls (customer-initiated). Needs the "calls" webhook field subscribed. ───
+                if (change.field === 'calls') {
+                    try {
+                        const callSettings = foundSettings || await Settings.findOne({ where: { userId } });
+                        if (callSettings) {
+                            await require('../services/CallService').handleCallsWebhook({
+                                ownerId: userId,
+                                settings: callSettings,
+                                value: change.value,
+                            });
+                        }
+                    } catch (err) {
+                        console.error('[WEBHOOK ERROR] Failed to handle calls event:', err.message);
+                    }
+                    continue;
+                }
+
                 if (change.field !== 'messages') continue;
 
 
