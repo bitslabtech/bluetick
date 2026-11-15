@@ -30,6 +30,8 @@ module.exports = async function (req, res, next) {
             req.user.plan = dbUser.plan;
             req.user.planStatus = dbUser.planStatus;
             req.user.planExpiry = dbUser.planExpiry;
+            req.user.extraTopupTeamMembers = dbUser.extraTopupTeamMembers;
+            req.user.teamMemberTopupExpiry = dbUser.teamMemberTopupExpiry;
             req.user.lastSeenRoadmapAt = dbUser.lastSeenRoadmapAt;
 
             // ─── Subscription Enforcement ─────────────────────────────────────────
