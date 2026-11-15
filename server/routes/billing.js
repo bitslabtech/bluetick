@@ -1176,7 +1176,7 @@ router.post('/verify-payment', async (req, res) => {
             // Optimistic lock: mark PROCESSING so concurrent requests cannot both pass the COMPLETED check
             const [lockedRows] = await Transaction.update(
                 { status: 'PROCESSING' },
-                { where: { transactionReference, status: orderRecord.status } }
+                { where: { transactionReference, status: 'FAILED' } }  // only the first request may take an order that is still FAILED
             );
             if (lockedRows === 0) {
                 console.warn(`[SECURITY] store verify-payment race condition blocked for txn '${transactionReference}'. User: ${req.user.id}`);
