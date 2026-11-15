@@ -258,22 +258,38 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
         }
 
         const newErrors = {};
-        if (!formData.name?.trim()) newErrors.name = true;
-        if (!formData.phone?.trim()) newErrors.phone = true;
-        if (!formData.address?.trim()) newErrors.address = true;
-        if (!formData.city?.trim()) newErrors.city = true;
-        if (!formData.state?.trim()) newErrors.state = true;
-        if (!formData.pincode?.trim()) newErrors.pincode = true;
+        const nameVal = formData.name?.trim() || '';
+        const phoneVal = formData.phone?.trim() || '';
+        const addressVal = formData.address?.trim() || '';
+        const cityVal = formData.city?.trim() || '';
+        const stateVal = formData.state?.trim() || '';
+        const pincodeVal = formData.pincode?.trim() || '';
+
+        if (nameVal.length < 2) newErrors.name = true;
+        if (!phoneVal) newErrors.phone = true;
+        if (addressVal.length < 5) newErrors.address = true;
+        if (cityVal.length < 2 || !/^[A-Za-z\s\-.]+$/.test(cityVal)) newErrors.city = true;
+        if (!stateVal) newErrors.state = true;
+        if (!/^\d{6}$/.test(pincodeVal)) newErrors.pincode = true;
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
-            toast.error("Please fill in all the required delivery fields.");
+            if (newErrors.name) toast.error("Enter a valid full name (at least 2 characters).");
+            else if (newErrors.pincode) toast.error("Pincode must be exactly 6 digits.");
+            else if (newErrors.city) toast.error("City name can only contain letters, spaces, and hyphens.");
+            else if (newErrors.address) toast.error("Please enter a complete delivery address.");
+            else toast.error("Please fill in all the required delivery fields.");
             return;
         }
         setErrors({});
 
-        if (countryCode === '+91' && formData.phone.length !== 10) {
+        const phoneDigits = phoneVal.replace(/\D/g, '');
+        if (countryCode === '+91' && phoneDigits.length !== 10) {
             toast.error("Please enter a valid 10-digit Indian phone number.");
+            return;
+        }
+        if (countryCode !== '+91' && (phoneDigits.length < 7 || phoneDigits.length > 15)) {
+            toast.error("Please enter a valid phone number (7–15 digits).");
             return;
         }
 
@@ -639,7 +655,7 @@ export default function WaStoreCheckoutModal({ store, cart, cartSubtotal, shippi
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Pincode *</label>
-                                            <input required type="text" pattern="[0-9]{6}" maxLength="6" minLength="6" title="Please enter a valid 6-digit Pincode" name="pincode" value={formData.pincode} onChange={(e) => { handleInputChange(e); if(errors.pincode) setErrors({...errors, pincode: false}); }} className={`w-full border rounded-lg px-3 py-2 text-sm outline-none transition-colors ${errors.pincode ? 'border-red-500 ring-1 ring-red-500 bg-red-50' : 'border-gray-300 focus:ring-2 focus:ring-black focus:border-black'}`} />
+                                            <input required type="text" inputMode="numeric" pattern="[0-9]{6}" maxLength="6" minLength="6" title="Please enter a valid 6-digit Pincode" name="pincode" value={formData.pincode} onChange={(e) => { const v = e.target.value.replace(/\D/g, ''); setFormData(f => ({ ...f, pincode: v })); if(errors.pincode) setErrors(prev => ({...prev, pincode: false})); }} className={`w-full border rounded-lg px-3 py-2 text-sm outline-none transition-colors ${errors.pincode ? 'border-red-500 ring-1 ring-red-500 bg-red-50' : 'border-gray-300 focus:ring-2 focus:ring-black focus:border-black'}`} />
                                         </div>
                                     </div>
 
