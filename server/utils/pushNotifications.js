@@ -19,8 +19,14 @@ async function workspaceUserIds(ownerId) {
 async function pushToWorkspace(ownerId, { title, body, data }) {
     try {
         const userIds = await workspaceUserIds(ownerId);
-        const devices = await DeviceToken.findAll({ where: { userId: { [Op.in]: userIds } } });
-        if (!devices.length) return;
+        // Expo tokens only: call tokens (fcm / apns_voip) are not Expo tokens and are used just for calls.
+        const devices = await DeviceToken.findAll({
+            where: { userId: { [Op.in]: userIds }, kind: { [Op.or]: ['expo', null] } },
+        });
+        if (!devices.length) {
+            console.warn(`[PUSH] no registered devices for workspace ${ownerId}; nothing sent`);
+            return;
+        }
 
         const messages = devices.map((d) => ({
             to: d.token,
@@ -41,7 +47,11 @@ async function pushToWorkspace(ownerId, { title, body, data }) {
             const tickets = res?.data || [];
             const dead = [];
             tickets.forEach((t, idx) => {
-                if (t.status === 'error' && t.details?.error === 'DeviceNotRegistered') dead.push(chunk[idx].to);
+                if (t.status === 'error') {
+                    // e.g. InvalidCredentials / MismatchSenderId = FCM key missing or wrong in EAS
+                    console.warn(`[PUSH] Expo rejected a push: ${t.details?.error || 'error'} - ${t.message}`);
+                    if (t.details?.error === 'DeviceNotRegistered') dead.push(chunk[idx].to);
+                }
             });
             if (dead.length) await DeviceToken.destroy({ where: { token: { [Op.in]: dead } } });
         }
