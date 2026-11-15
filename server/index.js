@@ -336,6 +336,7 @@ app.use('/api/system', require('./routes/system')); // NEW // NEW
 app.use('/api/billing', require('./routes/billing')); // NEW
 app.use('/api/invoices', require('./routes/invoices')); // Invoice management & downloads
 app.use('/api/devices', require('./routes/devices')); // Mobile push token registration
+app.use('/api/calls', require('./routes/calls')); // WhatsApp voice calling (mobile app)
 app.use('/api/labels', require('./routes/labels')); // NEW
 app.use('/api/coupons', require('./routes/coupons')); // NEW
 app.use('/api/versioning', require('./routes/versioning')); // Versioning & Changelog
@@ -1137,6 +1138,7 @@ const startServer = async () => {
 
         require('./models/WaStoreCoupon'); // Ensure WaStoreCoupon is loaded before sync
         require('./models/MediaFile');     // Ensure MediaFile is loaded before sync
+        require('./models/Call');          // WhatsApp voice calls
 
         // Ensure SYSTEM_ALERT is added to the enum for Postgres databases
         // since sequelize.sync({ alter: true }) often fails to update ENUMs dynamically
@@ -1192,6 +1194,31 @@ const startServer = async () => {
 
         // Run one-time mediaType backfill (fixes legacy records on production after deploy)
         await backfillMediaTypes();
+
+        // Voice calling: make sure the add-on exists (inactive and free until a superadmin prices and
+        // activates it; it can already be included in plans via Plan.includedAddons), then start
+        // the ringing sweep (stage-2 fallback + no-answer timeout).
+        try {
+            const Addon = require('./models/Addon');
+            await Addon.findOrCreate({
+                where: { module_key: 'voice_calling' },
+                defaults: {
+                    name: 'Voice Calling',
+                    slug: 'voice-calling',
+                    shortDescription: 'Answer WhatsApp voice calls from your customers in the OneDash mobile app.',
+                    description: 'Customers call your WhatsApp Business number and your team answers from the OneDash mobile app. Requires a messaging limit of 2,000 or more.',
+                    features: ['Incoming WhatsApp calls in the mobile app', 'Rings the assigned team member first', 'Call history', 'Automatic missed-call message'],
+                    price: 0,
+                    isActive: false,
+                    isRecurring: true,
+                    recurringInterval: 'month',
+                    badge: 'New',
+                },
+            });
+            require('./services/CallService').startSweep();
+        } catch (e) {
+            console.error('[CALL] startup setup failed (calls unavailable until fixed):', e.message);
+        }
 
         // Initialize Scheduler
         const { initScheduler } = require('./utils/scheduler');

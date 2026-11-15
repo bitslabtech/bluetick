@@ -1,0 +1,276 @@
+/**
+ * Voice calling: eligibility rules (pure) and the ringing/lifecycle rules in CallService,
+ * with every model, Meta call and push mocked (no DB, no network).
+ */
+const elig = require('../utils/callEligibility');
+
+describe('callEligibility', () => {
+    test('parses Meta tiers', () => {
+        expect(elig.parseMessagingLimit('TIER_250')).toBe(250);
+        expect(elig.parseMessagingLimit('TIER_1K')).toBe(1000);
+        expect(elig.parseMessagingLimit('TIER_2K')).toBe(2000);
+        expect(elig.parseMessagingLimit('TIER_10K')).toBe(10000);
+        expect(elig.parseMessagingLimit('TIER_100K')).toBe(100000);
+        expect(elig.parseMessagingLimit('TIER_UNLIMITED')).toBeGreaterThan(1e9);
+        expect(elig.parseMessagingLimit('2000')).toBe(2000);
+        expect(elig.parseMessagingLimit(null)).toBe(0);
+    });
+
+    test('2,000+ is eligible, below is not', () => {
+        expect(elig.checkTier('TIER_1K').eligible).toBe(false);
+        expect(elig.checkTier('TIER_250').eligible).toBe(false);
+        expect(elig.checkTier(null).eligible).toBe(false);
+        expect(elig.checkTier('TIER_2K').eligible).toBe(true);
+        expect(elig.checkTier('TIER_UNLIMITED').eligible).toBe(true);
+    });
+
+    test('business hours', () => {
+        const hours = { timezone: 'UTC', schedule: [{ day: 1, enabled: true, startTime: '09:00', endTime: '17:00' }] };
+        expect(elig.isWithinHours(hours, new Date('2026-11-16T10:00:00Z'))).toBe(true);  // Monday 10:00
+        expect(elig.isWithinHours(hours, new Date('2026-11-16T18:00:00Z'))).toBe(false); // Monday 18:00
+        expect(elig.isWithinHours(hours, new Date('2026-11-17T10:00:00Z'))).toBe(false); // Tuesday: not scheduled
+        expect(elig.isWithinHours(null)).toBe(true);                                      // no schedule = always open
+        expect(elig.isWithinHours({ schedule: [] })).toBe(true);
+    });
+
+    test('falls back to the WhatsApp off-hours schedule', () => {
+        const schedule = [{ day: 1, enabled: true, startTime: '09:00', endTime: '17:00' }];
+        const cs = elig.resolveCallSettings({});
+        expect(elig.effectiveHours(cs, { offHoursMessage: { timezone: 'Asia/Kolkata', schedule } })).toEqual({ timezone: 'Asia/Kolkata', schedule });
+        expect(elig.effectiveHours(cs, {})).toBeNull();
+        const own = { timezone: 'UTC', schedule };
+        expect(elig.effectiveHours(elig.resolveCallSettings({ hours: own }), { offHoursMessage: { schedule: [] } })).toEqual(own);
+    });
+
+    test('settings merge over defaults', () => {
+        const s = elig.resolveCallSettings({ enabled: true, missedCallMessage: { enabled: false } });
+        expect(s.enabled).toBe(true);
+        expect(s.allowOutsideHours).toBe(false);
+        expect(s.missedCallMessage.enabled).toBe(false);
+        expect(s.missedCallMessage.text).toBeTruthy();
+        expect(s.fallbackAfterSec).toBe(20);
+    });
+});
+
+// ── CallService with mocked collaborators ────────────────────────────────────────────────────────
+const mockStore = { calls: [], conv: null, users: [], devices: [], settings: null, addon: true, owner: { id: 'owner', metaTier: 'TIER_2K' } };
+
+jest.mock('../models/Call', () => {
+    const matches = (row, where) => Object.entries(where).every(([k, v]) => row[k] === v);
+    const wrap = (row) => Object.assign(row, {
+        update: async (patch) => Object.assign(row, patch),
+        reload: async () => row,
+    });
+    return {
+        findOne: async ({ where }) => mockStore.calls.find((r) => matches(r, where)) || null,
+        findAll: async ({ where }) => mockStore.calls.filter((r) => matches(r, where)),
+        create: async (row) => { const r = wrap({ id: `call-${mockStore.calls.length + 1}`, declinedBy: [], ringTargets: [], ringStage: 1, startedAt: new Date(), ...row }); mockStore.calls.push(r); return r; },
+        update: async (patch, { where }) => {
+            const rows = mockStore.calls.filter((r) => matches(r, where));
+            rows.forEach((r) => Object.assign(r, patch));
+            return [rows.length];
+        },
+    };
+});
+jest.mock('../models/Conversation', () => ({
+    findOne: async () => mockStore.conv,
+    create: async (row) => { mockStore.conv = { id: 'conv-new', ...row }; return mockStore.conv; },
+}));
+jest.mock('../models/Settings', () => ({ findOne: async () => mockStore.settings }));
+jest.mock('../models/User', () => ({
+    findAll: async () => mockStore.users,
+    findByPk: async () => mockStore.owner,
+}));
+jest.mock('../models/Addon', () => ({ findOne: async () => (mockStore.addon ? { id: 'addon' } : null) }));
+jest.mock('../models/UserAddon', () => ({ findOne: async () => (mockStore.addon ? { id: 'ua' } : null) }));
+jest.mock('../models/DeviceToken', () => ({
+    findAll: async ({ where }) => mockStore.devices.filter((d) => where.userId[require('sequelize').Op.in].includes(d.userId)),
+    destroy: async () => 0,
+}));
+jest.mock('../utils/metaCalling', () => ({
+    rejectCall: jest.fn().mockResolvedValue({}),
+    acceptCall: jest.fn().mockResolvedValue({}),
+    terminateCall: jest.fn().mockResolvedValue({}),
+}));
+jest.mock('../utils/callPush', () => ({
+    pushIncomingCall: jest.fn().mockResolvedValue({ ok: true, dead: false }),
+    pushCallEnded: jest.fn().mockResolvedValue({ ok: true, dead: false }),
+}));
+jest.mock('../utils/whatsappSender', () => ({ sendWhatsAppAndLog: jest.fn().mockResolvedValue({}) }));
+jest.mock('../socket', () => ({ getIo: () => ({ to: () => ({ emit: () => {} }) }) }));
+
+const meta = require('../utils/metaCalling');
+const push = require('../utils/callPush');
+const { sendWhatsAppAndLog } = require('../utils/whatsappSender');
+const CallService = require('../services/CallService');
+
+const connect = (id = 'wacid1') => ({ calls: [{ id, from: '919999999999', event: 'connect', direction: 'USER_INITIATED', session: { sdp_type: 'offer', sdp: 'v=0 offer' } }], contacts: [{ profile: { name: 'Asha' } }] });
+const dev = (userId, kind = 'fcm') => ({ userId, token: `${userId}-${kind}-token-xxxxxxxxxxxx`, kind });
+
+beforeEach(() => {
+    jest.clearAllMocks();
+    mockStore.calls = [];
+    mockStore.conv = { id: 'conv1', phoneNumber: '919999999999', contactName: 'Asha', assignedTo: null, userId: 'owner' };
+    mockStore.users = [
+        { id: 'owner', name: 'Owner', teamRole: 'owner', parentUserId: null },
+        { id: 'admin1', name: 'Admin', teamRole: 'admin', parentUserId: 'owner' },
+        { id: 'agent1', name: 'Agent', teamRole: 'editor', parentUserId: 'owner' },
+        { id: 'agent2', name: 'Agent2', teamRole: 'editor', parentUserId: 'owner' },
+    ];
+    mockStore.devices = [dev('owner'), dev('admin1'), dev('agent1'), dev('agent2', 'apns_voip')];
+    mockStore.addon = true;
+    mockStore.owner = { id: 'owner', metaTier: 'TIER_2K' };
+    mockStore.settings = {
+        userId: 'owner', metaAccessToken: 't', metaPhoneNumberId: 'p', whatsappAutomations: {},
+        callSettings: { enabled: true, allowOutsideHours: true, fallbackAfterSec: 20 },
+    };
+});
+
+const run = (value = connect()) => CallService.handleCallsWebhook({ ownerId: 'owner', settings: mockStore.settings, value });
+const ringedUsers = () => push.pushIncomingCall.mock.calls.map(([d]) => d.userId).sort();
+
+describe('CallService ringing rules', () => {
+    test('unassigned caller rings owner + admins only', async () => {
+        await run();
+        expect(ringedUsers()).toEqual(['admin1', 'owner']);
+        expect(mockStore.calls[0]).toMatchObject({ status: 'ringing', ringStage: 1, conversationId: 'conv1' });
+    });
+
+    test('assigned caller rings only the assignee', async () => {
+        mockStore.conv.assignedTo = 'agent1';
+        await run();
+        expect(ringedUsers()).toEqual(['agent1']);
+    });
+
+    test('assignee without a call device falls back to owner + admins', async () => {
+        mockStore.conv.assignedTo = 'agent2';
+        mockStore.devices = [dev('owner'), dev('admin1')];
+        await run();
+        expect(ringedUsers()).toEqual(['admin1', 'owner']);
+    });
+
+    test('after the fallback delay everyone not yet rung is rung', async () => {
+        mockStore.conv.assignedTo = 'agent1';
+        await run();
+        push.pushIncomingCall.mockClear();
+        mockStore.calls[0].startedAt = new Date(Date.now() - 25_000);
+        await CallService.sweep();
+        expect(mockStore.calls[0].ringStage).toBe(2);
+        expect(ringedUsers()).toEqual(['admin1', 'agent2', 'owner']);
+    });
+
+    test('no answer: missed, rejected at Meta, caller gets the auto message', async () => {
+        await run();
+        mockStore.calls[0].startedAt = new Date(Date.now() - 45_000);
+        await CallService.sweep();
+        expect(mockStore.calls[0]).toMatchObject({ status: 'missed', endReason: 'no_answer' });
+        expect(meta.rejectCall).toHaveBeenCalledTimes(1);
+        expect(sendWhatsAppAndLog).toHaveBeenCalledTimes(1);
+    });
+
+    test('caller hangs up while ringing: missed + auto message', async () => {
+        await run();
+        await run({ calls: [{ id: 'wacid1', event: 'terminate' }] });
+        expect(mockStore.calls[0]).toMatchObject({ status: 'missed', endReason: 'caller_hung_up' });
+        expect(sendWhatsAppAndLog).toHaveBeenCalledTimes(1);
+    });
+
+    test('a retried webhook does not create a second call', async () => {
+        await run();
+        await run();
+        expect(mockStore.calls).toHaveLength(1);
+    });
+});
+
+describe('CallService refusals', () => {
+    test('no add-on: rejected, nobody rung', async () => {
+        mockStore.addon = false;
+        await run();
+        expect(mockStore.calls[0]).toMatchObject({ status: 'rejected', endReason: 'addon_required' });
+        expect(meta.rejectCall).toHaveBeenCalled();
+        expect(push.pushIncomingCall).not.toHaveBeenCalled();
+    });
+
+    test('messaging limit under 2,000: rejected', async () => {
+        mockStore.owner.metaTier = 'TIER_1K';
+        await run();
+        expect(mockStore.calls[0]).toMatchObject({ status: 'rejected', endReason: 'not_eligible' });
+    });
+
+    test('calling switched off: rejected', async () => {
+        mockStore.settings.callSettings.enabled = false;
+        await run();
+        expect(mockStore.calls[0]).toMatchObject({ status: 'rejected', endReason: 'disabled' });
+    });
+
+    test('outside business hours: rejected with the closed message', async () => {
+        mockStore.settings.callSettings.allowOutsideHours = false;
+        mockStore.settings.whatsappAutomations = { offHoursMessage: { timezone: 'UTC', schedule: [{ day: 0, enabled: false }] } };
+        // every day disabled in this schedule => always closed
+        mockStore.settings.whatsappAutomations.offHoursMessage.schedule = [0, 1, 2, 3, 4, 5, 6].map((day) => ({ day, enabled: false }));
+        await run();
+        expect(mockStore.calls[0]).toMatchObject({ status: 'rejected', endReason: 'outside_hours' });
+        expect(sendWhatsAppAndLog).toHaveBeenCalledTimes(1);
+    });
+
+    test('outside hours but allowed by the business: rings', async () => {
+        mockStore.settings.callSettings.allowOutsideHours = true;
+        mockStore.settings.whatsappAutomations = { offHoursMessage: { timezone: 'UTC', schedule: [0, 1, 2, 3, 4, 5, 6].map((day) => ({ day, enabled: false })) } };
+        await run();
+        expect(mockStore.calls[0].status).toBe('ringing');
+    });
+
+    test('nobody has a call device: rejected as no_devices', async () => {
+        mockStore.devices = [];
+        await run();
+        expect(mockStore.calls[0]).toMatchObject({ status: 'rejected', endReason: 'no_devices' });
+    });
+});
+
+describe('CallService answer / decline', () => {
+    test('first answer wins, second gets already_handled; others stop ringing', async () => {
+        await run();
+        const call = mockStore.calls[0];
+        const a = await CallService.answer(call, { id: 'owner', name: 'Owner' }, 'v=0 answer', mockStore.settings);
+        expect(a.ok).toBe(true);
+        expect(meta.acceptCall).toHaveBeenCalledWith(mockStore.settings, 'wacid1', 'v=0 answer');
+        expect(call).toMatchObject({ status: 'answered', answeredBy: 'owner' });
+        expect(push.pushCallEnded).toHaveBeenCalled(); // admin1's phone stops ringing
+        const b = await CallService.answer(call, { id: 'admin1', name: 'Admin' }, 'v=0 answer', mockStore.settings);
+        expect(b).toMatchObject({ ok: false, code: 'already_handled' });
+        expect(meta.acceptCall).toHaveBeenCalledTimes(1);
+    });
+
+    test('Meta refusing the accept marks the call failed', async () => {
+        await run();
+        meta.acceptCall.mockRejectedValueOnce(new Error('boom'));
+        const r = await CallService.answer(mockStore.calls[0], { id: 'owner', name: 'Owner' }, 'v=0 answer', mockStore.settings);
+        expect(r.ok).toBe(false);
+        expect(mockStore.calls[0].status).toBe('failed');
+    });
+
+    test('everyone in stage 1 declining advances to the whole team', async () => {
+        mockStore.conv.assignedTo = 'agent1';
+        await run();
+        push.pushIncomingCall.mockClear();
+        await CallService.decline(mockStore.calls[0], 'agent1', mockStore.settings);
+        expect(mockStore.calls[0].ringStage).toBe(2);
+        expect(ringedUsers()).toEqual(['admin1', 'agent2', 'owner']);
+    });
+
+    test('everyone declining in stage 2 rejects the call', async () => {
+        mockStore.devices = [dev('owner')];
+        await run();
+        await CallService.decline(mockStore.calls[0], 'owner', mockStore.settings);
+        expect(mockStore.calls[0]).toMatchObject({ status: 'declined' });
+        expect(meta.rejectCall).toHaveBeenCalled();
+    });
+
+    test('answered call ends with a duration when the customer hangs up', async () => {
+        await run();
+        const call = mockStore.calls[0];
+        await CallService.answer(call, { id: 'owner', name: 'Owner' }, 'v=0 answer', mockStore.settings);
+        await run({ calls: [{ id: 'wacid1', event: 'terminate', duration: 42 }] });
+        expect(call).toMatchObject({ status: 'ended', durationSec: 42 });
+    });
+});
