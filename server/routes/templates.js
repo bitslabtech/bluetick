@@ -302,13 +302,15 @@ router.post('/upload-url', async (req, res) => {
         if (mimeType === 'application/octet-stream') {
             if (url.toLowerCase().endsWith('.jpg') || url.toLowerCase().endsWith('.jpeg')) mimeType = 'image/jpeg';
             else if (url.toLowerCase().endsWith('.png')) mimeType = 'image/png';
+            else if (url.toLowerCase().endsWith('.webp')) mimeType = 'image/webp';
             else if (url.toLowerCase().endsWith('.mp4')) mimeType = 'video/mp4';
             else if (url.toLowerCase().endsWith('.pdf')) mimeType = 'application/pdf';
         }
 
-        // Validate types
+        // Template headers only support JPEG, PNG, MP4, and PDF (not WebP — Meta restriction)
         if (!['image/jpeg', 'image/png', 'image/jpg', 'video/mp4', 'application/pdf'].includes(mimeType)) {
-            return res.status(400).json({ error: `Unsupported file type (${mimeType}) fetched from URL.` });
+            const hint = mimeType === 'image/webp' ? ' WhatsApp template headers do not support WebP images.' : '';
+            return res.status(400).json({ error: `Unsupported file type (${mimeType}) for template media.${hint}` });
         }
 
         // Check Max Sizes (5MB image, 16MB video, 100MB PDF)
@@ -371,7 +373,7 @@ const axios = require('axios');
 const fs = require('fs');
 const storageProvider = require('../utils/storageProvider');
 
-router.post('/upload-message-media', storageProvider('campaign-media', { fileFilter: storageProvider.whatsappMediaFilter }).single('file'), async (req, res) => {
+router.post('/upload-message-media', storageProvider('campaign-media', { fileFilter: storageProvider.whatsappRegularMediaFilter }).single('file'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file provided' });
 
