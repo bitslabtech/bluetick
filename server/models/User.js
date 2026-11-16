@@ -309,6 +309,15 @@ const User = sequelize.define('User', {
             phone: ''        // Billing contact phone (may differ from login phone)
         },
         comment: 'User billing/GST details used for invoice generation. Snapshotted at purchase time.'
+    },
+
+    // Immutable consent record written once at registration.
+    // { registeredAt, ip, privacyVersion, termsVersion, policies: ['privacy','terms'] }
+    consentLog: {
+        type: DataTypes.JSONB,
+        allowNull: true,
+        defaultValue: null,
+        comment: 'Immutable record of policy versions the user consented to at registration.'
     }
 }, {
     timestamps: true

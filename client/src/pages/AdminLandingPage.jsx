@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
 
-import { Save, RefreshCw, LayoutTemplate, MessageSquare, BarChart, Users, Type, Image as ImageIcon, Plus, Trash2, CheckCircle, CheckCircle2, Smartphone, Globe, Monitor, Target, Zap, Tag, DollarSign, Percent, Calendar, FileText, Palette, Key, Server, Edit, X, Phone, Upload, ChevronUp, ChevronDown, Search, ArrowUpRight, ExternalLink, Activity, Eye, ShieldCheck } from 'lucide-react';
+import { Save, RefreshCw, LayoutTemplate, MessageSquare, BarChart, Users, Type, Image as ImageIcon, Plus, Trash2, CheckCircle, CheckCircle2, Smartphone, Globe, Monitor, Target, Zap, Tag, DollarSign, Percent, Calendar, FileText, Palette, Key, Server, Edit, X, Phone, Upload, ChevronUp, ChevronDown, Search, ArrowUpRight, ExternalLink, Activity, Eye, ShieldCheck, History, Badge } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
 import AdminHeader from '../components/AdminHeader';
@@ -159,6 +159,14 @@ const AdminLandingPage = () => {
     const [pageEditorTitle, setPageEditorTitle] = useState('');
     const [pageEditorContent, setPageEditorContent] = useState('');
     const [showHtmlEditor, setShowHtmlEditor] = useState(false);
+    // Policy versioning state
+    const [pageEditorVersionNote, setPageEditorVersionNote] = useState('');
+    const [policyVersionBumps, setPolicyVersionBumps] = useState({});
+    const [showVersionHistory, setShowVersionHistory] = useState(false);
+    const [versionHistoryKey, setVersionHistoryKey] = useState(null);
+    const [versionHistoryList, setVersionHistoryList] = useState([]);
+    const [versionHistoryLoading, setVersionHistoryLoading] = useState(false);
+    const [versionContentPreview, setVersionContentPreview] = useState(null);
 
     // Branding Settings (from /api/settings)
     const [brandingSettings, setBrandingSettings] = useState({
@@ -533,8 +541,12 @@ const AdminLandingPage = () => {
 
         setSaving(true);
         try {
-            // Save landing page config
-            await axios.put(`${import.meta.env.VITE_API_URL}/api/landing`, config);
+            // Save landing page config (include any pending policy version bumps)
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/landing`, {
+                ...config,
+                ...(Object.keys(policyVersionBumps).length > 0 ? { policyVersionBumps } : {})
+            });
+            setPolicyVersionBumps({});
             // If on branding tab, also save branding settings
             if (mainTab === 'content' && contentTab === 'brand') {
                 await axios.post(`${import.meta.env.VITE_API_URL}/api/settings`, brandingSettings);
@@ -1788,18 +1800,52 @@ const AdminLandingPage = () => {
                                                 { key: 'privacy', title: 'Privacy Policy', path: '/privacy' },
                                                 { key: 'terms', title: 'Terms of Service', path: '/terms' },
                                                 { key: 'refund-policy', title: 'Refund Policy', path: '/refund-policy' }
-                                            ].map((page) => (
+                                            ].map((page) => {
+                                                const verMeta = config.publicPagesVersions?.[page.key];
+                                                const hasPendingBump = !!policyVersionBumps[page.key];
+                                                return (
                                                 <div key={page.key} className="p-5 rounded-2xl bg-white dark:bg-black/20 border border-slate-200 dark:border-white/5 flex items-center justify-between hover:border-indigo-500/30 transition-colors shadow-sm">
                                                     <div>
-                                                        <h4 className="font-bold text-slate-900 dark:text-white">{page.title}</h4>
+                                                        <div className="flex items-center gap-2">
+                                                            <h4 className="font-bold text-slate-900 dark:text-white">{page.title}</h4>
+                                                            {verMeta?.version && (
+                                                                <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${hasPendingBump ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-400'}`}>
+                                                                    v{verMeta.version}{hasPendingBump ? ' (unsaved)' : ''}
+                                                                </span>
+                                                            )}
+                                                            {!verMeta?.version && (
+                                                                <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-400 dark:bg-white/5 dark:text-slate-500">unversioned</span>
+                                                            )}
+                                                        </div>
                                                         <p className="text-sm text-slate-500 font-mono mt-1">{page.path}</p>
+                                                        {verMeta?.updatedAt && (
+                                                            <p className="text-xs text-slate-400 mt-0.5">Updated {new Date(verMeta.updatedAt).toLocaleDateString()}{verMeta.note ? ` — ${verMeta.note}` : ''}</p>
+                                                        )}
                                                     </div>
                                                     <div className="flex gap-2">
+                                                        <button
+                                                            onClick={async () => {
+                                                                setVersionHistoryKey(page.key);
+                                                                setVersionHistoryList([]);
+                                                                setVersionContentPreview(null);
+                                                                setShowVersionHistory(true);
+                                                                setVersionHistoryLoading(true);
+                                                                try {
+                                                                    const r = await axios.get(`${import.meta.env.VITE_API_URL}/api/landing/policy-versions/${page.key}`);
+                                                                    setVersionHistoryList(r.data.versions || []);
+                                                                } catch (e) { console.error(e); }
+                                                                setVersionHistoryLoading(false);
+                                                            }}
+                                                            className="px-3 py-2 bg-slate-50 dark:bg-white/5 text-slate-500 dark:text-slate-400 rounded-lg text-sm font-bold flex items-center gap-1.5 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                                                        >
+                                                            <History className="w-4 h-4" /> History
+                                                        </button>
                                                         <button
                                                             onClick={() => {
                                                                 setEditingPageKey(page.key);
                                                                 setPageEditorTitle(page.title);
                                                                 setPageEditorContent(config.publicPages?.[page.key] || '');
+                                                                setPageEditorVersionNote('');
                                                                 setShowPageEditor(true);
                                                             }}
                                                             className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors"
@@ -1808,7 +1854,8 @@ const AdminLandingPage = () => {
                                                         </button>
                                                     </div>
                                                 </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 )}
@@ -2696,6 +2743,66 @@ const AdminLandingPage = () => {
                 )}
 
                 {/* Page Editor Modal */}
+                {/* ── Policy Version History Drawer ── */}
+                {showVersionHistory && (
+                    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm cursor-pointer" onClick={() => { setShowVersionHistory(false); setVersionContentPreview(null); }}></div>
+                        <div className="relative bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col animate-in zoom-in-95 duration-200">
+                            <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-white/10">
+                                <div>
+                                    <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2"><History className="w-5 h-5 text-indigo-500" /> Version History</h2>
+                                    <p className="text-xs text-slate-500 mt-0.5 font-mono">{versionHistoryKey}</p>
+                                </div>
+                                <button onClick={() => { setShowVersionHistory(false); setVersionContentPreview(null); }} className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"><X className="w-5 h-5" /></button>
+                            </div>
+                            <div className="flex flex-1 min-h-0 overflow-hidden">
+                                {/* Version list */}
+                                <div className="w-56 shrink-0 border-r border-slate-100 dark:border-white/10 overflow-y-auto p-3 space-y-1">
+                                    {versionHistoryLoading && <p className="text-xs text-slate-400 p-2">Loading...</p>}
+                                    {!versionHistoryLoading && versionHistoryList.length === 0 && (
+                                        <p className="text-xs text-slate-400 p-2">No archived versions yet. Save changes to create the first snapshot.</p>
+                                    )}
+                                    {versionHistoryList.map(v => (
+                                        <button key={v.id} onClick={async () => {
+                                            try {
+                                                const r = await axios.get(`${import.meta.env.VITE_API_URL}/api/landing/policy-versions/${versionHistoryKey}/${v.version}`);
+                                                setVersionContentPreview(r.data.record);
+                                            } catch (e) { console.error(e); }
+                                        }} className={`w-full text-left p-3 rounded-xl transition-colors ${versionContentPreview?.version === v.version ? 'bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-500/30' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`}>
+                                            <div className="font-bold text-sm text-slate-900 dark:text-white">v{v.version}</div>
+                                            <div className="text-[10px] text-slate-400 mt-0.5">{new Date(v.publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                                            {v.note && <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">{v.note}</div>}
+                                        </button>
+                                    ))}
+                                </div>
+                                {/* Content preview */}
+                                <div className="flex-1 overflow-y-auto p-5">
+                                    {!versionContentPreview && (
+                                        <p className="text-sm text-slate-400 italic mt-4">Select a version to preview its content.</p>
+                                    )}
+                                    {versionContentPreview && (
+                                        <>
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <span className="font-bold text-slate-900 dark:text-white text-base">v{versionContentPreview.version}</span>
+                                                <span className="text-xs text-slate-400">{new Date(versionContentPreview.publishedAt).toLocaleString()}</span>
+                                                {versionContentPreview.note && <span className="text-xs text-slate-500 italic">— {versionContentPreview.note}</span>}
+                                            </div>
+                                            {versionContentPreview.content ? (
+                                                <div
+                                                    className="prose prose-sm dark:prose-invert max-w-none text-slate-700 dark:text-slate-300"
+                                                    dangerouslySetInnerHTML={{ __html: versionContentPreview.content }}
+                                                />
+                                            ) : (
+                                                <p className="text-sm text-slate-400 italic">Content not archived (pre-versioning registration).</p>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {showPageEditor && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm cursor-pointer" onClick={() => setShowPageEditor(false)}></div>
@@ -2756,34 +2863,52 @@ const AdminLandingPage = () => {
                                 )}
                             </div>
 
-                            <div className="p-4 md:p-6 border-t border-slate-100 dark:border-white/10 flex justify-end gap-3 bg-slate-50/50 dark:bg-black/20 rounded-b-2xl">
-                                <button
-                                    onClick={() => setShowPageEditor(false)}
-                                    className="px-4 md:px-6 py-2.5 font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors"
-                                >
-                                    Done
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        if (editingPageKey?.startsWith('custom:')) {
-                                            updateCustomPage(editingPageKey.slice('custom:'.length), { content: pageEditorContent });
-                                        } else {
-                                            setConfig({
-                                                ...config,
-                                                publicPages: {
-                                                    ...config.publicPages,
-                                                    [editingPageKey]: pageEditorContent
-                                                }
-                                            });
-                                        }
-                                        setShowPageEditor(false);
-                                        showToast({ type: 'success', title: 'Content Updated', message: 'Click Save Changes to publish your changes.' });
-                                    }}
-                                    className="px-4 md:px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl shadow-lg shadow-indigo-500/30 transition-all font-bold flex items-center gap-2"
-                                >
-                                    <Save className="w-4 h-4" />
-                                    Save to Config
-                                </button>
+                            <div className="p-4 md:p-6 border-t border-slate-100 dark:border-white/10 bg-slate-50/50 dark:bg-black/20 rounded-b-2xl space-y-3">
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        type="text"
+                                        value={pageEditorVersionNote}
+                                        onChange={e => setPageEditorVersionNote(e.target.value)}
+                                        placeholder="Version note (optional) — e.g. Added AI data section"
+                                        className="flex-1 px-3 py-2 text-sm border border-slate-200 dark:border-white/10 rounded-xl bg-white dark:bg-black/20 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    />
+                                </div>
+                                <div className="flex justify-end gap-3">
+                                    <button
+                                        onClick={() => setShowPageEditor(false)}
+                                        className="px-4 md:px-6 py-2.5 font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-colors"
+                                    >
+                                        Done
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            const noteVal = pageEditorVersionNote.trim() || null;
+                                            if (editingPageKey?.startsWith('custom:')) {
+                                                updateCustomPage(editingPageKey.slice('custom:'.length), { content: pageEditorContent });
+                                            } else {
+                                                setConfig({
+                                                    ...config,
+                                                    publicPages: {
+                                                        ...config.publicPages,
+                                                        [editingPageKey]: pageEditorContent
+                                                    }
+                                                });
+                                            }
+                                            // Record version bump to send on next save
+                                            setPolicyVersionBumps(prev => ({
+                                                ...prev,
+                                                [editingPageKey]: { note: noteVal }
+                                            }));
+                                            setPageEditorVersionNote('');
+                                            setShowPageEditor(false);
+                                            showToast({ type: 'success', title: 'Content Updated', message: 'Click Save Changes to publish your changes.' });
+                                        }}
+                                        className="px-4 md:px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl shadow-lg shadow-indigo-500/30 transition-all font-bold flex items-center gap-2"
+                                    >
+                                        <Save className="w-4 h-4" />
+                                        Save to Config
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>

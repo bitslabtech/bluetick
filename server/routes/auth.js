@@ -9,6 +9,7 @@ const User = require('../models/User');
 const Settings = require('../models/Settings');
 const AdminNotification = require('../models/AdminNotification');
 const SystemConfig = require('../models/SystemConfig');
+const LandingPage = require('../models/LandingPage');
 const otpStore = require('../utils/otpStore');
 
 const logActivity = require('../utils/logger');
@@ -585,6 +586,27 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
         const userCount = await User.count();
         const isFirstUser = userCount === 0;
 
+        // Build consent log — capture which policy versions the user agreed to at signup
+        let consentLog = null;
+        try {
+            const consentPolicies = Array.isArray(req.body.consentPolicies) ? req.body.consentPolicies : ['privacy', 'terms'];
+            const landingSettings = await LandingPage.findOne({ attributes: ['publicPagesVersions'] });
+            const versions = landingSettings?.publicPagesVersions || {};
+            consentLog = {
+                registeredAt: new Date().toISOString(),
+                ip: req.ip || req.headers['x-forwarded-for'] || null,
+                policies: consentPolicies,
+                privacyVersion: versions.privacy?.version || null,
+                termsVersion: versions.terms?.version || null,
+                allVersions: consentPolicies.reduce((acc, key) => {
+                    acc[key] = versions[key]?.version || null;
+                    return acc;
+                }, {})
+            };
+        } catch (consentErr) {
+            console.error('[REGISTER] Failed to build consent log:', consentErr.message);
+        }
+
         // Create User with assigned plan
         user = await User.create({
             name, email, password: hashedPassword,
@@ -600,7 +622,8 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
             jobTitle: req.body.jobTitle || null,
             techPartnerId: techPartnerId,
             isAdmin: isFirstUser, // Automatically make first user the superadmin
-            lastLogin: new Date()
+            lastLogin: new Date(),
+            consentLog
         });
 
         // ==========================================

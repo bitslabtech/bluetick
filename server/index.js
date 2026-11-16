@@ -54,6 +54,7 @@ require('./models/AutoTagRule');      // Auto-tagging rules engine
 require('./models/QuickReply');       // QuickReplies model
 require('./models/DeviceToken');      // Mobile Expo push tokens
 require('./models/Invoice');           // GST Invoices (generated on every purchase)
+require('./models/PolicyVersion');    // Append-only archive of published policy versions
 
 // Import Routes
 const contactsRoute = require('./routes/contacts');

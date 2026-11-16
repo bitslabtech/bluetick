@@ -405,7 +405,7 @@ const Register = () => {
         // Pass selected plan ID, trial intent, and phone to backend
         const isTrial = selectedPlan?.startTrial || false;
         setIsSubmitting(true);
-        const res = await register(name, email, password, selectedPlan?.id, referralCode, partnerCode, phone, isTrial, turnstileToken, phoneVerifiedToken);
+        const res = await register(name, email, password, selectedPlan?.id, referralCode, partnerCode, phone, isTrial, turnstileToken, phoneVerifiedToken, ['privacy', 'terms']);
         setIsSubmitting(false);
 
         if (res.success) {

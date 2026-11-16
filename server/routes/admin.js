@@ -903,6 +903,44 @@ router.get('/users/:id/details', async (req, res) => {
     }
 });
 
+// GET User Consent Log
+router.get('/users/:id/consent', async (req, res) => {
+    try {
+        const targetUser = await User.findByPk(req.params.id, { attributes: ['id', 'name', 'email', 'consentLog', 'createdAt'] });
+        if (!targetUser) return res.status(404).json({ error: 'User not found' });
+
+        const PolicyVersion = require('../models/PolicyVersion');
+        const LandingPage = require('../models/LandingPage');
+
+        const consentLog = targetUser.consentLog || null;
+        const currentVersions = (await LandingPage.findOne({ attributes: ['publicPagesVersions'] }))?.publicPagesVersions || {};
+
+        // For each policy the user consented to, fetch the archived version content
+        const versionDetails = {};
+        if (consentLog?.allVersions) {
+            for (const [key, ver] of Object.entries(consentLog.allVersions)) {
+                if (!ver) continue;
+                const record = await PolicyVersion.findOne({
+                    where: { policyKey: key, version: ver },
+                    attributes: ['id', 'policyKey', 'version', 'note', 'publishedAt', 'content'],
+                    order: [['publishedAt', 'DESC']]
+                });
+                versionDetails[key] = record ? record.toJSON() : { version: ver, content: null, note: 'Content not archived (pre-versioning)' };
+                // Add gap indicator: is current version newer than what user agreed to?
+                versionDetails[key].currentVersion = currentVersions[key]?.version || null;
+                versionDetails[key].isOutdated = currentVersions[key]?.version
+                    ? currentVersions[key].version !== ver
+                    : false;
+            }
+        }
+
+        res.json({ consentLog, versionDetails, user: { id: targetUser.id, name: targetUser.name, email: targetUser.email, createdAt: targetUser.createdAt } });
+    } catch (err) {
+        console.error('Consent log error:', err);
+        res.status(500).json({ error: 'Server Error: ' + err.message });
+    }
+});
+
 // GET User Impersonation History
 router.get('/users/:id/impersonation-history', async (req, res) => {
     try {
