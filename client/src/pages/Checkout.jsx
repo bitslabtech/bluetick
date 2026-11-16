@@ -30,9 +30,9 @@ const Checkout = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // A user whose current plan still works is only *looking* at an upgrade — let them leave.
+    // A user whose current plan still works is only *looking* at an upgrade/downgrade — let them leave.
     const { user: authUser } = useAuth();
-    const canKeepCurrentPlan = hasUsablePlan(authUser) && !!authUser?.plan;
+    const canKeepCurrentPlan = hasUsablePlan(authUser) && !!authUser?.plan && plan?.name !== authUser?.plan;
 
     // Track if user has a billing profile (to show GST warning)
     const [billingProfile, setBillingProfile] = useState(null);
