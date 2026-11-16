@@ -317,6 +317,50 @@ router.get('/stats', async (req, res) => {
     }
 });
 
+// GET Failed message breakdown by reason (for dashboard modal)
+router.get('/stats/failed-breakdown', async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+        let dateFilter = {};
+        if (startDate && endDate) {
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            dateFilter = { createdAt: { [Op.between]: [new Date(startDate), end] } };
+        } else {
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            dateFilter = { createdAt: { [Op.gte]: thirtyDaysAgo } };
+        }
+
+        const rows = await ChatMessage.findAll({
+            attributes: [
+                'errorMessage',
+                [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+            ],
+            where: {
+                direction: 'OUTBOUND',
+                [Op.and]: [Sequelize.where(Sequelize.fn('lower', Sequelize.col('status')), 'failed')],
+                ...dateFilter
+            },
+            group: ['errorMessage'],
+            order: [[sequelize.literal('"count"'), 'DESC']],
+            raw: true
+        });
+
+        const total = rows.reduce((sum, r) => sum + parseInt(r.count), 0);
+        const breakdown = rows.map(r => ({
+            reason: r.errorMessage || 'Unknown error',
+            count: parseInt(r.count),
+            pct: total > 0 ? ((parseInt(r.count) / total) * 100).toFixed(1) : '0.0'
+        }));
+
+        res.json({ total, breakdown });
+    } catch (err) {
+        console.error('Failed breakdown error:', err);
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
 // --- User Management ---
 
 // GET All Users (Existing - Keeping it for User Management Table if needed, or can be removed if dashboard covers it)
