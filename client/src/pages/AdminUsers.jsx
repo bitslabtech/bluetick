@@ -699,6 +699,21 @@ const ViewUserModal = ({ user, details, loading, onClose }) => {
     const [consentData, setConsentData] = useState(null);
     const [consentLoading, setConsentLoading] = useState(false);
     const [previewVersion, setPreviewVersion] = useState(null);
+    const [waCheck, setWaCheck] = useState(null);
+    const [waCheckLoading, setWaCheckLoading] = useState(false);
+
+    const loadWaCheck = (refresh = false) => {
+        if (!user?.id) return;
+        setWaCheckLoading(true);
+        axios.get(`${import.meta.env.VITE_API_URL}/api/admin/users/${user.id}/usage-check${refresh ? '?refresh=1' : ''}`)
+            .then(r => setWaCheck(r.data))
+            .catch(e => console.error(e))
+            .finally(() => setWaCheckLoading(false));
+    };
+
+    useEffect(() => {
+        if (activeTab === 'wa_usage' && !waCheck) loadWaCheck();
+    }, [activeTab, user?.id]);
 
     useEffect(() => {
         if (details?.user?.aiTokenBalance !== undefined) {
@@ -721,6 +736,7 @@ const ViewUserModal = ({ user, details, loading, onClose }) => {
         { id: 'usage', label: 'Usage & Quotas', icon: Activity },
         { id: 'purchases', label: 'Purchases', icon: CreditCard },
         { id: 'referrals', label: 'Referrals', icon: Share2 },
+        { id: 'wa_usage', label: 'WhatsApp Usage Check', icon: Zap },
         { id: 'legal', label: 'Legal & Consent', icon: FileText }
     ];
 
@@ -961,6 +977,60 @@ const ViewUserModal = ({ user, details, loading, onClose }) => {
                                 <div className="p-4 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-xl border border-amber-200 dark:border-amber-800/30 text-sm">
                                     Detailed referral breakdown and commission history is available via the Tech Partner / Affiliate manager section.
                                 </div>
+                            </div>
+                        )}
+
+                        {/* WHATSAPP USAGE CHECK TAB */}
+                        {activeTab === 'wa_usage' && (
+                            <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="text-lg font-bold text-slate-900 dark:text-white">WhatsApp Usage Check{waCheck?.month ? ` (${waCheck.month})` : ''}</h4>
+                                    <button onClick={() => loadWaCheck(true)} disabled={waCheckLoading} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400 hover:bg-indigo-100 disabled:opacity-50">
+                                        {waCheckLoading ? 'Checking…' : 'Re-check with Meta'}
+                                    </button>
+                                </div>
+                                {waCheckLoading && !waCheck && <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div></div>}
+                                {waCheck && !waCheck.connected && (
+                                    <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-xl text-sm text-slate-500">This user has not connected a WhatsApp Business Account.</div>
+                                )}
+                                {waCheck?.connected && (
+                                    <>
+                                        {waCheck.syncError && (
+                                            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30 rounded-xl text-sm text-amber-700 dark:text-amber-400">
+                                                Could not refresh from Meta ({waCheck.syncError}). Figures below may be stale.
+                                            </div>
+                                        )}
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                            {[
+                                                ['Meta delivered', waCheck.metaDelivered],
+                                                ['Bluetick logged', waCheck.loggedDelivered],
+                                                ['Unattributed', waCheck.unattributed],
+                                                ['Gap', waCheck.gap]
+                                            ].map(([label, val]) => (
+                                                <div key={label} className={`p-4 rounded-xl border ${label === 'Gap' && val > 0 ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/30' : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5'}`}>
+                                                    <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">{label}</p>
+                                                    <p className="text-xl font-bold text-slate-900 dark:text-white mt-1">{Number(val || 0).toLocaleString()}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <p className="text-xs text-slate-500">
+                                            A gap above zero means Meta delivered messages Bluetick has no record of: sent from another tool, or a feature that is not recording its sends. Unattributed messages are logged but have no sending feature.
+                                        </p>
+                                        <div className="rounded-xl border border-slate-100 dark:border-white/5 overflow-hidden">
+                                            <table className="w-full text-sm">
+                                                <thead className="bg-slate-50 dark:bg-white/[0.03] text-[10px] uppercase tracking-wider text-slate-500">
+                                                    <tr><th className="text-left px-4 py-2">Feature</th><th className="text-right px-4 py-2">Delivered</th><th className="text-right px-4 py-2">Paid</th></tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                                                    {waCheck.byFeature.length === 0 && <tr><td colSpan="3" className="px-4 py-4 text-center text-slate-500">No logged messages this month.</td></tr>}
+                                                    {waCheck.byFeature.map(f => (
+                                                        <tr key={f.key}><td className="px-4 py-2 text-slate-800 dark:text-slate-200">{f.label}</td><td className="px-4 py-2 text-right">{f.delivered.toLocaleString()}</td><td className="px-4 py-2 text-right">{f.paid.toLocaleString()}</td></tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         )}
 
