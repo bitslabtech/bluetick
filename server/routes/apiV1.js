@@ -11,6 +11,7 @@ const Conversation = require('../models/Conversation');
 const ChatMessage = require('../models/ChatMessage');
 const Settings = require('../models/Settings');
 const ApiUsageLog = require('../models/ApiUsageLog');
+const { tagOutbound } = require('../utils/messageBilling');
 
 // Utilities
 const { getUserPlanLimits, checkLimit, getMonthlyMessageCount, getContactCount } = require('../utils/planLimits');
@@ -87,6 +88,7 @@ const sendToMeta = async (settings, payload) => {
     if (!res.ok) {
         throw new Error(data.error?.message || 'Meta API Error');
     }
+    tagOutbound(settings.userId, data?.messages?.[0]?.id, 'api');
     return data;
 };
 

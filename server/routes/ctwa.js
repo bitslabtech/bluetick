@@ -5,6 +5,7 @@ const auth = require('../middleware/auth');
 const User = require('../models/User');
 const Contact = require('../models/Contact');
 const ChatMessage = require('../models/ChatMessage');
+const { tagOutbound } = require('../utils/messageBilling');
 const { Sequelize } = require('sequelize');
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -543,7 +544,7 @@ router.post('/retarget', auth, async (req, res) => {
 
         for (const lead of leads) {
             try {
-                await axios.post(
+                const retargetRes = await axios.post(
                     `https://graph.facebook.com/v22.0/${user.whatsappPhoneNumberId}/messages`,
                     {
                         messaging_product: 'whatsapp',
@@ -561,6 +562,7 @@ router.post('/retarget', auth, async (req, res) => {
                         }
                     }
                 );
+                tagOutbound(req.user.id, retargetRes.data?.messages?.[0]?.id, 'ads');
                 sentCount++;
             } catch (err) {
                 failCount++;

@@ -28,6 +28,7 @@ const Settings = require('../models/Settings');
 const Conversation = require('../models/Conversation');
 const ChatMessage = require('../models/ChatMessage');
 const { getIo } = require('../socket');
+const { tagOutbound } = require('./messageBilling');
 const { MAX_RETRIES, RETRY_DELAYS_HOURS } = require('./retryConfig'); // Bug #13 — single source of truth
 
 /**
@@ -284,6 +285,7 @@ async function processRetries() {
                 if (metaRes.ok) {
                     // ✅ SUCCESS — message accepted by Meta
                     const sentMessageId = data.messages?.[0]?.id;
+                    tagOutbound(userId, sentMessageId, 'campaign');
                     console.log(`[RETRY] ✅ Success for log ${log.id} (phone: ${phone}). New Meta msgId: ${sentMessageId}`);
 
                     await log.update({

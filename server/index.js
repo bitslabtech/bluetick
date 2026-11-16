@@ -55,6 +55,8 @@ require('./models/QuickReply');       // QuickReplies model
 require('./models/DeviceToken');      // Mobile Expo push tokens
 require('./models/Invoice');           // GST Invoices (generated on every purchase)
 require('./models/PolicyVersion');    // Append-only archive of published policy versions
+require('./models/MessageBilling');   // Per-message source + Meta pricing category (usage page)
+require('./models/WaUsageDaily');     // Daily snapshot of Meta pricing_analytics (usage page)
 
 // Import Routes
 const contactsRoute = require('./routes/contacts');

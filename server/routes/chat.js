@@ -4,6 +4,7 @@ const { Op } = require('sequelize');
 const Conversation = require('../models/Conversation');
 const ChatMessage = require('../models/ChatMessage');
 const Settings = require('../models/Settings');
+const { tagOutbound } = require('../utils/messageBilling');
 const Template = require('../models/Template');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
@@ -48,6 +49,7 @@ const sendToMeta = async (settings, payload) => {
     if (!res.ok) {
         throw new Error(data.error?.message || 'Meta API Error');
     }
+    tagOutbound(settings.userId, data?.messages?.[0]?.id, 'inbox');
     return data;
 };
 

@@ -3,6 +3,7 @@ const ContactFlowState = require('../models/ContactFlowState');
 const FlowExecutionLog = require('../models/FlowExecutionLog');
 const { getIo } = require('../socket');
 const { isWhatsAppApiNumber, API_TO_API_ERROR } = require('../utils/apiNumberGuard');
+const { tagOutbound } = require('../utils/messageBilling');
 
 class FlowRunner {
     constructor(settings, conversation, userId, triggerType = 'keyword') {
@@ -1061,6 +1062,7 @@ class FlowRunner {
             const metaRes = await res.json();
             
             if (metaRes.messages && metaRes.messages.length > 0) {
+                tagOutbound(this.userId, metaRes.messages[0].id, 'flowbot');
                 const outMsg = await ChatMessage.create({
                     conversationId: this.conversation.id,
                     messageId: metaRes.messages[0].id,

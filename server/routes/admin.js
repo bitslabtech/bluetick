@@ -947,6 +947,37 @@ router.get('/users/:id/details', async (req, res) => {
     }
 });
 
+// GET WhatsApp usage reconciliation: messages Meta billed/delivered vs messages Bluetick logged for one user.
+// A positive gap means some sender is not recording its messages (or the webhook missed them).
+router.get('/users/:id/usage-check', async (req, res) => {
+    try {
+        const { getUsageSummary, ymd } = require('../utils/waUsage');
+        const month = /^\d{4}-\d{2}$/.test(req.query.month || '') ? req.query.month : ymd(new Date()).slice(0, 7);
+        const [y, m] = month.split('-').map(Number);
+        const from = `${month}-01`;
+        const to = ymd(new Date(Date.UTC(y, m, 0)));
+        const s = await getUsageSummary(req.params.id, from, to, { force: req.query.refresh === '1' });
+        if (!s.connected) return res.json({ connected: false, month });
+
+        const other = s.byFeature.find(f => f.key === 'other');
+        res.json({
+            connected: true,
+            month,
+            currency: s.currency,
+            syncError: s.syncError,
+            metaDelivered: s.totals.volume,
+            loggedDelivered: s.loggedDelivered,
+            unattributed: other ? other.delivered : 0,
+            gap: s.totals.volume - s.loggedDelivered,
+            spend: s.totals.spend,
+            byFeature: s.byFeature
+        });
+    } catch (err) {
+        console.error('Usage check error:', err);
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
 // GET User Consent Log
 router.get('/users/:id/consent', async (req, res) => {
     try {

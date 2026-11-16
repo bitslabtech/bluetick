@@ -2,6 +2,7 @@ const express = require('express');
 const axios = require('axios');
 const router = express.Router();
 const Settings = require('../models/Settings');
+const { tagOutbound } = require('../utils/messageBilling');
 const auth = require('../middleware/auth');
 const logActivity = require('../utils/logger');
 const User = require('../models/User');
@@ -795,7 +796,7 @@ router.post('/test', auth, async (req, res) => {
             // Returns the axios response on success, throws on failure
             // -----------------------------------------------------------------
             const sendTemplate = async (templateName, langCode) => {
-                return axios.post(
+                const testRes = await axios.post(
                     `https://graph.facebook.com/v21.0/${metaPhoneNumberId}/messages`,
                     {
                         messaging_product: 'whatsapp',
@@ -805,6 +806,8 @@ router.post('/test', auth, async (req, res) => {
                     },
                     { headers: { Authorization: `Bearer ${metaAccessToken}`, 'Content-Type': 'application/json' } }
                 );
+                tagOutbound(req.user.id, testRes.data?.messages?.[0]?.id, 'system');
+                return testRes;
             };
 
             // -----------------------------------------------------------------

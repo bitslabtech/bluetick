@@ -3,6 +3,7 @@ const Conversation = require('../models/Conversation');
 const ChatMessage = require('../models/ChatMessage');
 const Contact = require('../models/Contact');
 const { getIo } = require('../socket');
+const { tagOutbound } = require('./messageBilling');
 
 /**
  * Sends a WhatsApp message via Meta API and logs it to the Live Inbox (Conversation/ChatMessage).
@@ -15,7 +16,8 @@ async function sendWhatsAppAndLog({
     toPhone,
     type, // 'text', 'template', 'document', 'image', etc.
     payload,
-    summaryBody // String used for preview in inbox (e.g. "Sent document: Invoice.pdf" or the text body)
+    summaryBody, // String used for preview in inbox (e.g. "Sent document: Invoice.pdf" or the text body)
+    source = 'store_order' // Feature key for the usage page (see utils/messageBilling.js)
 }) {
     try {
         const cleanPhone = String(toPhone).replace(/\D/g, '');
@@ -44,6 +46,7 @@ async function sendWhatsAppAndLog({
 
         // 3. Log to ChatMessage
         if (metaMsgId) {
+            tagOutbound(userId, metaMsgId, source);
             const outMsg = await ChatMessage.create({
                 conversationId: conversation.id,
                 messageId: metaMsgId,
@@ -51,6 +54,7 @@ async function sendWhatsAppAndLog({
                 type: type,
                 body: summaryBody || 'Sent an outbound message',
                 status: 'sent',
+                source,
                 timestamp: new Date(),
                 templateData: type === 'template' && payload.template ? { templateName: payload.template.name } : null
             });

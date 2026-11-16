@@ -673,6 +673,30 @@ function initScheduler() {
             console.error('[SCHEDULER] Retry processor error:', err.message);
         }
     }, 30 * 60 * 1000); // Every 30 minutes
+
+    // ==========================================
+    // 📊 WHATSAPP USAGE SNAPSHOT (Runs every 6 hours)
+    // Copies the last 3 days of Meta pricing_analytics for every workspace that
+    // sent messages this week, so billing history is stored before Meta's 1-year window expires.
+    // ==========================================
+    setInterval(async () => {
+        try {
+            const MessageBilling = require('../models/MessageBilling');
+            const { syncRange, ymd } = require('./waUsage');
+            const rows = await MessageBilling.findAll({
+                where: { createdAt: { [Op.gte]: new Date(Date.now() - 7 * 86400000) } },
+                attributes: ['userId'], group: ['userId'], raw: true
+            });
+            const to = ymd(new Date());
+            const from = ymd(new Date(Date.now() - 2 * 86400000));
+            for (const { userId } of rows) {
+                await syncRange(userId, from, to).catch(err => console.error('[USAGE-SYNC]', userId, err.message));
+                await new Promise(r => setTimeout(r, 500));
+            }
+        } catch (err) {
+            console.error('[SCHEDULER] Usage snapshot error:', err.message);
+        }
+    }, 6 * 60 * 60 * 1000);
 }
 
 module.exports = { initScheduler };

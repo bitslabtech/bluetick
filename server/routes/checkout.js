@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const PaymentSession = require('../models/PaymentSession');
 const Settings = require('../models/Settings');
+const { tagOutbound } = require('../utils/messageBilling');
 const FormResponse = require('../models/FormResponse');
 const Form = require('../models/Form');
 // We require Stripe and Razorpay for actual integrations
@@ -323,7 +324,7 @@ router.post('/verify', async (req, res) => {
                                 components.push({ type: 'carousel', cards: carouselCards });
                             }
 
-                            await axios.post(
+                            const automationRes = await axios.post(
                                 `https://graph.facebook.com/v21.0/${settings.metaPhoneNumberId}/messages`,
                                 {
                                     messaging_product: 'whatsapp',
@@ -337,6 +338,7 @@ router.post('/verify', async (req, res) => {
                                 },
                                 { headers: { Authorization: `Bearer ${settings.metaAccessToken}` } }
                             );
+                            tagOutbound(settings.userId, automationRes.data?.messages?.[0]?.id, 'forms');
                             console.log(`[CHECKOUT] WhatsApp automation sent to ${contactNumber} after payment for form ${form.id}`);
                         } catch (err) {
                             console.error('[CHECKOUT] WhatsApp Automation Dispatch Failed:', err.response?.data || err.message);

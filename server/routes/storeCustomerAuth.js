@@ -44,6 +44,8 @@ const DUMMY_HASH = '$2b$10$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXYZ01234
 
 // ── Helper ──────────────────────────────────────────────────────────────────
 
+const { tagOutbound } = require('../utils/messageBilling');
+
 const signToken = (customer) =>
     jwt.sign(
         { storeCustomer: { id: customer.id, storeId: customer.storeId } },
@@ -103,11 +105,12 @@ const sendWhatsAppOtp = async (store, phone, otp) => {
         }
 
         try {
-            await axios.post(
+            const otpRes = await axios.post(
                 `https://graph.facebook.com/v21.0/${phoneId}/messages`,
                 payload,
                 { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
             );
+            tagOutbound(store.userId, otpRes.data?.messages?.[0]?.id, 'store_otp');
             return { sent: true };
         } catch (err) {
             // Meta API Error 131008: Required parameter is missing.
@@ -122,11 +125,12 @@ const sendWhatsAppOtp = async (store, phone, otp) => {
                 });
                 
                 try {
-                    await axios.post(
+                    const retryRes = await axios.post(
                         `https://graph.facebook.com/v21.0/${phoneId}/messages`,
                         payload,
                         { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
                     );
+                    tagOutbound(store.userId, retryRes.data?.messages?.[0]?.id, 'store_otp');
                     return { sent: true };
                 } catch (retryErr) {
                     console.error('[StoreCustomerAuth] WhatsApp OTP retry failed:', retryErr.response?.data || retryErr.message);

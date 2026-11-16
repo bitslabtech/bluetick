@@ -1,5 +1,6 @@
 const axios = require('axios');
 const Settings = require('../models/Settings');
+const { tagOutbound } = require('./messageBilling');
 const SystemConfig = require('../models/SystemConfig');
 
 /**
@@ -79,6 +80,7 @@ async function sendSystemMessage(toPhone, type, content) {
             }
         );
 
+        tagOutbound(linkedAdminId, response.data?.messages?.[0]?.id, 'system');
         return response.data;
     } catch (err) {
         console.error('[SystemMessenger] Error:', err.response?.data || err.message);

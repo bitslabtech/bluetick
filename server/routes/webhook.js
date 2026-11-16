@@ -25,6 +25,7 @@ const { applyAutoTags } = require('../services/AutoTagger'); // Auto-Tagging Eng
 const { processAndStoreBuffer } = require('../utils/storageProvider');
 const path = require('path');
 const { isWhatsAppApiNumber, API_TO_API_ERROR } = require('../utils/apiNumberGuard');
+const { tagOutbound, recordPricing } = require('../utils/messageBilling');
 
 // Map a Meta 'failed' status to a clear, user-facing reason.
 // Shared by campaign logs and the live inbox so both show the same wording.
@@ -395,6 +396,8 @@ router.post('/:userId', (req, res, next) => {
 
                         console.log(`[WEBHOOK] Status Update: ${upperStatus} for messageId: ${metaMessageId}`);
 
+                        // Usage page: record Meta's pricing category (paid/free) + sending feature for this message
+                        await recordPricing(userId, statusUpdate, rawStatus);
 
                         // --- Update Campaign MessageLog ---
                         try {
@@ -937,7 +940,7 @@ router.post('/:userId', (req, res, next) => {
                                         if (ackBlocked) {
                                             console.log(`[WEBHOOK][OPT] Ack not sent to ${contactWaId} — WhatsApp API number`);
                                         } else {
-                                            await axios.post(
+                                            const ackRes = await axios.post(
                                                 `https://graph.facebook.com/v22.0/${optSettings.metaPhoneNumberId}/messages`,
                                                 {
                                                     messaging_product: 'whatsapp',
@@ -947,6 +950,7 @@ router.post('/:userId', (req, res, next) => {
                                                 },
                                                 { headers: { Authorization: `Bearer ${optSettings.metaAccessToken}`, 'Content-Type': 'application/json' } }
                                             );
+                                            tagOutbound(userId, ackRes.data?.messages?.[0]?.id, 'auto_reply');
                                             console.log(`[WEBHOOK][OPT] Ack sent to ${contactWaId}: "${ackText.substring(0, 60)}..."`);
                                         }
 
@@ -1093,6 +1097,7 @@ router.post('/:userId', (req, res, next) => {
                                                             toPhone: contactWaId,
                                                             type: 'template',
                                                             payload: ctwaAutoReplyPayload,
+                                                            source: 'auto_reply',
                                                             summaryBody: `Sent auto-reply template: ${ctwaTemplate.templateName}`
                                                         });
 
@@ -1388,6 +1393,7 @@ router.post('/:userId', (req, res, next) => {
                                                 body: JSON.stringify(metaPayload)
                                             }).then(res => res.json()).then(async metaRes => {
                                                 if (metaRes.messages && metaRes.messages.length > 0) {
+                                                    tagOutbound(userId, metaRes.messages[0].id, 'auto_reply');
                                                     const outMsg = await ChatMessage.create({
                                                         conversationId: conversation.id,
                                                         messageId: metaRes.messages[0].id,
@@ -1463,6 +1469,7 @@ router.post('/:userId', (req, res, next) => {
                                             body: JSON.stringify(metaPayload)
                                         }).then(res => res.json()).then(async metaRes => {
                                             if (metaRes.messages && metaRes.messages.length > 0) {
+                                                tagOutbound(userId, metaRes.messages[0].id, 'ai_bot');
                                                 const outMsg = await ChatMessage.create({
                                                     conversationId: conversation.id,
                                                     messageId: metaRes.messages[0].id,

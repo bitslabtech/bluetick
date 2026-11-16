@@ -2,6 +2,7 @@ const axios = require('axios');
 const SystemConfig = require('../models/SystemConfig');
 const User = require('../models/User');
 const Settings = require('../models/Settings');
+const { tagOutbound } = require('../utils/messageBilling');
 
 /**
  * Variable map: each event's ordered variable keys that get injected into
@@ -80,6 +81,8 @@ const sendSystemMessage = async (to, type, payload) => {
                 'Content-Type': 'application/json'
             }
         });
+
+        tagOutbound(linkedAdminId, res.data?.messages?.[0]?.id, 'system');
 
         // Track stats for the admin user
         if (adminUser.totalMessagesSent !== undefined) {

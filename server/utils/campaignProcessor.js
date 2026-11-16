@@ -7,6 +7,7 @@ const Settings = require('../models/Settings');
 const Conversation = require('../models/Conversation');
 const ChatMessage = require('../models/ChatMessage');
 const { getIo } = require('../socket');
+const { tagOutbound } = require('./messageBilling');
 const { getUserPlanLimits, checkLimit, getMonthlyMessageCount } = require('../utils/planLimits');
 
 const processCampaign = async (campaignId, isRecovery = false) => {
@@ -427,6 +428,7 @@ const processCampaign = async (campaignId, isRecovery = false) => {
                         }
                     } else {
                         const sentMessageId = data.messages?.[0]?.id;
+                        tagOutbound(userId, sentMessageId, 'campaign');
 
                         // 1. Create Log (Analytics)
                         await MessageLog.create({

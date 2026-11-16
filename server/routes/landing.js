@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const LandingPage = require('../models/LandingPage');
 const PolicyVersion = require('../models/PolicyVersion');
+const { tagOutbound } = require('../utils/messageBilling');
 const Blog = require('../models/Blog');
 const auth = require('../middleware/auth');
 const admin = require('../middleware/admin');
@@ -591,6 +592,7 @@ Extract the phone number starting with the country code (e.g. +1234567890) and s
                                 body: JSON.stringify(payload)
                             }).then(res => res.json()).then(async (data) => {
                                 if (data.messages && data.messages[0]) {
+                                    tagOutbound(ownerSettings.userId, data.messages[0].id, 'landing');
                                     await ChatMessage.create({
                                         userId: primaryOwnerId,
                                         conversationId: conversation.id,
