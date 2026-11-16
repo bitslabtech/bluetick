@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { Op } = require('sequelize');
 const User = require('../models/User');
+const Settings = require('../models/Settings');
 const WaUsageDaily = require('../models/WaUsageDaily');
 const MessageBilling = require('../models/MessageBilling');
 const { groupFor } = require('./messageBilling');
@@ -25,6 +26,17 @@ const CATEGORY_LABELS = {
     REFERRAL_CONVERSION: 'Ad referral (free)'
 };
 const titleCase = (s) => String(s || 'Other').toLowerCase().replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase());
+
+// Manual (key-based) connections store credentials in Settings; embedded signup stores them on User.
+async function getCredentials(userId) {
+    const settings = await Settings.findOne({ where: { userId }, attributes: ['metaAccessToken', 'metaBusinessAccountId'] });
+    if (settings?.metaAccessToken && settings?.metaBusinessAccountId) {
+        return { token: settings.metaAccessToken, wabaId: settings.metaBusinessAccountId };
+    }
+    const user = await User.findByPk(userId, { attributes: ['id', 'fbAccessToken', 'wabaId'] });
+    if (user?.fbAccessToken && user?.wabaId) return { token: user.fbAccessToken, wabaId: user.wabaId };
+    return null;
+}
 
 const ymd = (d) => d.toISOString().slice(0, 10);
 const startOfDayUtc = (s) => new Date(`${s}T00:00:00.000Z`);
@@ -51,10 +63,10 @@ async function fetchCurrency(wabaId, token) {
 
 // Pull [from, to] (YYYY-MM-DD) from Meta and replace our stored snapshot for that window.
 async function syncRange(userId, from, to) {
-    const user = await User.findByPk(userId, { attributes: ['id', 'fbAccessToken', 'wabaId'] });
-    if (!user?.fbAccessToken || !user?.wabaId) return { ok: false, reason: 'not_connected' };
+    const creds = await getCredentials(userId);
+    if (!creds) return { ok: false, reason: 'not_connected' };
 
-    const currency = await fetchCurrency(user.wabaId, user.fbAccessToken);
+    const currency = await fetchCurrency(creds.wabaId, creds.token);
     const rows = [];
     let sawPoints = false, sawCost = false;
     try {
@@ -64,7 +76,7 @@ async function syncRange(userId, from, to) {
             const chunkEnd = new Date(Math.min(end.getTime(), cursor.getTime() + (CHUNK_DAYS - 1) * 86400000));
             const startTs = Math.floor(cursor.getTime() / 1000);
             const endTs = Math.floor(chunkEnd.getTime() / 1000) + 86399;
-            const points = await fetchChunk(user.wabaId, user.fbAccessToken, startTs, endTs);
+            const points = await fetchChunk(creds.wabaId, creds.token, startTs, endTs);
             for (const p of points) {
                 sawPoints = true;
                 if (p.cost !== undefined && p.cost !== null) sawCost = true;
@@ -134,8 +146,7 @@ function clampRange(from, to) {
 }
 
 async function getUsageSummary(userId, rawFrom, rawTo, opts = {}) {
-    const user = await User.findByPk(userId, { attributes: ['id', 'fbAccessToken', 'wabaId'] });
-    if (!user?.fbAccessToken || !user?.wabaId) return { connected: false };
+    if (!(await getCredentials(userId))) return { connected: false };
 
     const { from, to } = clampRange(rawFrom, rawTo);
     // Sync from the 1st of the month so the 1,000 free service messages can be counted from the start.
