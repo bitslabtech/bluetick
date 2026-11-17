@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
 import {
-    Users, MessageSquare, DollarSign, Activity, AlertCircle, CheckCircle2,
+    Users, MessageSquare, Activity, AlertCircle, CheckCircle2,
     TrendingUp, CreditCard, PieChart as PieChartIcon, MoreHorizontal,
-    Search, Bell, Sparkles
+    Search, Bell, Sparkles, X, ChevronRight
 } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
 import AdminHeader from '../components/AdminHeader';
@@ -18,6 +18,7 @@ import {
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { subDays, subMonths, subYears, startOfDay, endOfDay } from 'date-fns';
+import { formatDate as fmtDate, formatDateTime, formatShortDate as fmtShortDate } from '../utils/dateFormat';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -26,6 +27,9 @@ const SuperAdminDashboard = () => {
     const { settings } = useUI();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [showFailedBreakdown, setShowFailedBreakdown] = useState(false);
+    const [failedBreakdown, setFailedBreakdown] = useState(null);
+    const [failedBreakdownLoading, setFailedBreakdownLoading] = useState(false);
 
     // Date Filter State
     const [startDate, setStartDate] = useState(new Date('2000-01-01'));
@@ -54,6 +58,22 @@ const SuperAdminDashboard = () => {
         setStartDate(start);
         setEndDate(end);
         setIsCustomOpen(false);
+    };
+
+    const openFailedBreakdown = async () => {
+        setShowFailedBreakdown(true);
+        setFailedBreakdownLoading(true);
+        try {
+            const startStr = startDate.toISOString();
+            const endStr = endDate.toISOString();
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/stats/failed-breakdown?startDate=${startStr}&endDate=${endStr}`);
+            setFailedBreakdown(res.data);
+        } catch (err) {
+            console.error('Failed breakdown error:', err);
+            setFailedBreakdown(null);
+        } finally {
+            setFailedBreakdownLoading(false);
+        }
     };
 
     useEffect(() => {
@@ -88,7 +108,7 @@ const SuperAdminDashboard = () => {
     const currencyCode = settings?.currency || 'USD';
     const locale = currencyCode === 'INR' ? 'en-IN' : 'en-US';
     const formatCurrency = (val) => new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode, maximumFractionDigits: 0 }).format(val);
-    const formatDate = (dateStr) => new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const formatDate = (dateStr) => fmtShortDate(dateStr);
 
 
     let messageChartData = data?.graphs?.messageVolume?.map(item => ({
@@ -182,6 +202,9 @@ const SuperAdminDashboard = () => {
         );
     }
 
+    // Failure reason color — top reason red, rest amber/slate gradient
+    const reasonColor = (i) => i === 0 ? 'bg-red-500' : i === 1 ? 'bg-orange-400' : i === 2 ? 'bg-amber-400' : 'bg-slate-400';
+
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-background-dark overflow-y-auto fade-in transition-colors duration-300">
             {/* Header */}
@@ -245,6 +268,70 @@ const SuperAdminDashboard = () => {
                 </div>
             </div>
 
+            {/* Failed Rate Breakdown Modal */}
+            {showFailedBreakdown && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowFailedBreakdown(false)}>
+                    <div className="bg-white dark:bg-[#111827] rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-white/10 overflow-hidden" onClick={e => e.stopPropagation()}>
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-white/5">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20">
+                                    <AlertCircle className="w-5 h-5 text-red-500" />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-bold text-slate-900 dark:text-white">Failure Breakdown</h3>
+                                    <p className="text-xs text-slate-400">Why messages failed in this period</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setShowFailedBreakdown(false)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
+                                <X className="w-4 h-4 text-slate-500" />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-5">
+                            {failedBreakdownLoading ? (
+                                <div className="space-y-3 animate-pulse">
+                                    {[1,2,3,4].map(i => (
+                                        <div key={i} className="h-14 bg-slate-100 dark:bg-white/5 rounded-xl" />
+                                    ))}
+                                </div>
+                            ) : !failedBreakdown || failedBreakdown.total === 0 ? (
+                                <div className="text-center py-10 text-slate-500">
+                                    <AlertCircle className="w-10 h-10 mx-auto mb-3 text-slate-300 dark:text-white/10" />
+                                    <p className="font-medium">No failed messages in this period</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                                        <span className="font-bold text-slate-900 dark:text-white">{failedBreakdown.total.toLocaleString()}</span> failed messages total
+                                    </p>
+                                    <div className="space-y-3">
+                                        {failedBreakdown.breakdown.map((item, i) => (
+                                            <div key={i} className="bg-slate-50 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 rounded-xl p-3.5">
+                                                <div className="flex items-start justify-between gap-2 mb-2">
+                                                    <span className="text-sm font-medium text-slate-800 dark:text-slate-200 leading-snug">{item.reason}</span>
+                                                    <span className="shrink-0 text-sm font-bold text-slate-900 dark:text-white">{item.pct}%</span>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex-1 h-1.5 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
+                                                        <div
+                                                            className={`h-full rounded-full ${reasonColor(i)}`}
+                                                            style={{ width: `${item.pct}%` }}
+                                                        />
+                                                    </div>
+                                                    <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0">{item.count.toLocaleString()} msg{item.count !== 1 ? 's' : ''}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <main className="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 lg:gap-8 max-w-7xl mx-auto w-full pb-7 sm:pb-20">
 
                 {loading ? (
@@ -272,14 +359,57 @@ const SuperAdminDashboard = () => {
                             {/* Active Plans */}
                             <KpiCard icon={CheckCircle2} label="Active Plans" value={data.kpi.activePlans} color="green" />
                             {/* Revenue */}
-                            <KpiCard icon={DollarSign} label="Total Revenue" value={formatCurrency(data.kpi.totalRevenue)} color="amber" />
+                            <KpiCard icon={TrendingUp} label="Total Revenue" value={formatCurrency(data.kpi.totalRevenue)} color="amber" />
                             {/* Messages */}
                             <KpiCard icon={MessageSquare} label="Messages Sent" value={data.kpi.totalMessages.toLocaleString()} color="purple" />
                             {/* Delivery Rate */}
                             <KpiCard icon={TrendingUp} label="Delivery Rate" value={`${data.kpi.deliveryRate}%`} color="indigo" />
                             {/* Failed Rate */}
-                            <KpiCard icon={AlertCircle} label="Failed Rate" value={`${data.kpi.failedRate}%`} color="red" />
+                            <KpiCard icon={AlertCircle} label="Failed Rate" value={`${data.kpi.failedRate}%`} color="red" onBreakdown={openFailedBreakdown} />
                         </div>
+
+                        {/* 1b. Messages sent from Bluetick's own number (what Bluetick pays Meta for) */}
+                        {data.platformMessages?.bySource?.length > 0 && (
+                            <div className="bg-white/80 dark:bg-[#111827]/90 backdrop-blur-xl p-5 md:p-7 rounded-3xl border border-slate-200/80 dark:border-white/[0.05] shadow-lg shadow-slate-200/40 dark:shadow-none">
+                                <div className="flex flex-wrap items-start justify-between gap-2 mb-4">
+                                    <div>
+                                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Messages from Bluetick's number</h3>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                            OTPs, billing, invoices, alerts and store-owner alerts sent for stores without WhatsApp. Not included in the totals above.
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-2xl font-bold text-slate-900 dark:text-white">{data.platformMessages.total.sent.toLocaleString()}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">{data.platformMessages.total.billable.toLocaleString()} paid by Bluetick · {data.platformMessages.total.failed.toLocaleString()} failed</p>
+                                    </div>
+                                </div>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="text-left text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-white/10">
+                                                <th className="py-2 pr-4 font-semibold">Kind</th>
+                                                <th className="py-2 px-2 font-semibold text-right">Sent</th>
+                                                <th className="py-2 px-2 font-semibold text-right">Delivered</th>
+                                                <th className="py-2 px-2 font-semibold text-right">Paid</th>
+                                                <th className="py-2 pl-2 font-semibold text-right">Failed</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {data.platformMessages.bySource.map(r => (
+                                                <tr key={r.source} className="border-b border-slate-100 dark:border-white/5 last:border-0">
+                                                    <td className="py-2 pr-4 text-slate-700 dark:text-slate-200">{r.label}</td>
+                                                    <td className="py-2 px-2 text-right tabular-nums text-slate-900 dark:text-white">{r.sent.toLocaleString()}</td>
+                                                    <td className="py-2 px-2 text-right tabular-nums text-slate-600 dark:text-slate-300">{r.delivered.toLocaleString()}</td>
+                                                    <td className="py-2 px-2 text-right tabular-nums text-slate-600 dark:text-slate-300">{r.billable.toLocaleString()}</td>
+                                                    <td className="py-2 pl-2 text-right tabular-nums text-red-600 dark:text-red-400">{r.failed.toLocaleString()}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <p className="text-[11px] text-slate-400 mt-3">"Paid" = messages Meta marked billable. Rupee amounts are on the Usage &amp; Spend page of the linked platform account.</p>
+                            </div>
+                        )}
 
                         {/* 2. GRAPHS ROW */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -407,7 +537,7 @@ const SuperAdminDashboard = () => {
                                                         {formatCurrency(tx.amount)}
                                                     </td>
                                                     <td className="px-4 md:px-6 py-4 text-slate-500">
-                                                        {new Date(tx.createdAt).toLocaleDateString()}
+                                                        {fmtDate(tx.createdAt)}
                                                     </td>
                                                 </tr>
                                             ))}
@@ -567,7 +697,7 @@ const SuperAdminDashboard = () => {
                                                 <span className="font-bold">{log.userName}</span> {log.details}
                                             </p>
                                             <p className="text-xs text-slate-500 dark:text-text-secondary mt-1">
-                                                {new Date(log.createdAt).toLocaleString()} • {log.ip || 'IP Hidden'}
+                                                {formatDateTime(log.createdAt)} • {log.ip || 'IP Hidden'}
                                             </p>
                                         </div>
                                     </div>
@@ -585,7 +715,7 @@ const SuperAdminDashboard = () => {
 };
 
 // Simple KPI Card Component
-const KpiCard = ({ icon: Icon, label, value, color }) => {
+const KpiCard = ({ icon: Icon, label, value, color, onBreakdown }) => {
     const colorClasses = {
         blue: "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400",
         green: "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400",
@@ -596,7 +726,7 @@ const KpiCard = ({ icon: Icon, label, value, color }) => {
     };
 
     return (
-        <div className="bg-white dark:bg-surface-dark p-5 rounded-xl border border-slate-200 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-white dark:bg-surface-dark p-5 rounded-xl border border-slate-200 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow flex flex-col">
             <div className="flex justify-between items-start mb-2">
                 <div className={`p-2 rounded-lg ${colorClasses[color] || colorClasses.blue}`}>
                     <Icon className="w-5 h-5" />
@@ -604,6 +734,14 @@ const KpiCard = ({ icon: Icon, label, value, color }) => {
             </div>
             <p className="text-slate-500 dark:text-text-secondary text-xs font-medium uppercase tracking-wider">{label}</p>
             <p className="text-xl font-bold text-slate-900 dark:text-white mt-1">{value}</p>
+            {onBreakdown && (
+                <button
+                    onClick={onBreakdown}
+                    className="mt-3 flex items-center gap-1 text-xs font-medium text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors self-start"
+                >
+                    View breakdown <ChevronRight className="w-3 h-3" />
+                </button>
+            )}
         </div>
     );
 };

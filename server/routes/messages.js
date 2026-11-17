@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const metrics = require('../services/outbound/metrics');
+const OutboundMessage = require('../models/OutboundMessage');
 const { Op } = require('sequelize');
 const pLimit = require('p-limit');
 const Message = require('../models/Message');
@@ -124,11 +126,9 @@ router.get('/:id', async (req, res) => {
         if (!message) return res.status(404).json({ error: 'Campaign not found' });
 
         // Calculate stats via DB aggregates instead of pulling all logs into memory
-        const sentCount = await MessageLog.count({ where: { campaignId: message.id, status: { [Op.in]: ['SENT', 'DELIVERED', 'READ', 'CLICKED'] } } });
-        const deliveredCount = await MessageLog.count({ where: { campaignId: message.id, status: { [Op.in]: ['DELIVERED', 'READ', 'CLICKED'] } } });
-        const readCount = await MessageLog.count({ where: { campaignId: message.id, status: { [Op.in]: ['READ', 'CLICKED'] } } });
-        const clickedCount = await MessageLog.count({ where: { campaignId: message.id, status: 'CLICKED' } });
-        const failedCount = await MessageLog.count({ where: { campaignId: message.id, status: 'FAILED' } });
+        // Counts from the outbound ledger: same definitions as Dashboard and Reports
+        const st = (await metrics.byCampaign([message.id]))[message.id];
+        const { sent: sentCount, delivered: deliveredCount, read: readCount, clicked: clickedCount, failed: failedCount } = st;
 
         // Fetch logs paginated to avoid returning 10,000+ items at once
         const page = parseInt(req.query.page) || 1;
@@ -165,6 +165,24 @@ router.get('/:id', async (req, res) => {
         responseHelper.readCount = readCount;
         responseHelper.clickedCount = clickedCount;
         responseHelper.failedCount = failedCount;
+        responseHelper.retryPendingCount = st.retrying;
+        // Compact status events for every recipient (not just the loaded log page), for the timeline
+        // and read-hour charts: [status, unix seconds of that status]
+        const evRows = await OutboundMessage.findAll({
+            where: { campaignId: message.id, status: { [Op.in]: ['delivered', 'read', 'clicked', 'failed'] } },
+            attributes: ['status', 'deliveredAt', 'readAt', 'clickedAt', 'failedAt', 'updatedAt'],
+            raw: true
+        });
+        responseHelper.chartEvents = evRows.map(r => {
+            const at = r.status === 'clicked' ? (r.clickedAt || r.readAt)
+                : r.status === 'read' ? r.readAt
+                : r.status === 'failed' ? r.failedAt
+                : r.deliveredAt;
+            return [r.status.toUpperCase(), Math.floor(new Date(at || r.updatedAt).getTime() / 1000)];
+        });
+        responseHelper.pendingCount = st.pending;
+        responseHelper.attemptedCount = st.attempted;
+        responseHelper.blockedCount = st.blocked;
 
         responseHelper.totalLogs = totalLogs;
         responseHelper.totalPages = Math.ceil(totalLogs / limit);
@@ -195,25 +213,22 @@ router.get('/', async (req, res) => {
         });
 
         // Manual aggregate queries for each campaign to prevent memory exhaustion
-        const responseData = await Promise.all(messages.map(async msg => {
+        // One grouped query for all campaigns, from the outbound ledger
+        const stats = await metrics.byCampaign(messages.map(m => m.id));
+        const responseData = messages.map(msg => {
             const jsonMsg = msg.toJSON();
+            const st = stats[msg.id] || metrics.EMPTY;
 
-            const [sentCount, deliveredCount, readCount, failedCount] = await Promise.all([
-                MessageLog.count({ where: { campaignId: msg.id, status: { [Op.in]: ['SENT', 'DELIVERED', 'READ'] } } }),
-                MessageLog.count({ where: { campaignId: msg.id, status: { [Op.in]: ['DELIVERED', 'READ'] } } }),
-                MessageLog.count({ where: { campaignId: msg.id, status: 'READ' } }),
-                MessageLog.count({ where: { campaignId: msg.id, status: 'FAILED' } })
-            ]);
-
-            jsonMsg.sentCount = sentCount;
-            jsonMsg.deliveredCount = deliveredCount;
-            jsonMsg.readCount = readCount;
-            jsonMsg.failedCount = failedCount;
+            jsonMsg.sentCount = st.sent;
+            jsonMsg.deliveredCount = st.delivered;
+            jsonMsg.readCount = st.read;
+            jsonMsg.failedCount = st.failed;
+            jsonMsg.retryPendingCount = st.retrying;
 
             if (jsonMsg.logs) delete jsonMsg.logs;
 
             return jsonMsg;
-        }));
+        });
 
         // Keep standard array format for older clients, but we can append pagination metadata via headers if needed, 
         // or just return the array if the client expects an array.
@@ -232,7 +247,8 @@ router.delete('/:id', async (req, res) => {
         const message = await Message.findOne({ where: { id: req.params.id, userId: req.user.id } });
         if (!message) return res.status(404).json({ error: 'Campaign not found' });
 
-        // Delete associated logs first
+        // Delete associated logs first. The outbound ledger rows are kept, so the messages still
+        // count in dashboard totals, usage and the plan limit (deleting a campaign never gives quota back).
         await MessageLog.destroy({ where: { campaignId: message.id } });
 
         // Delete campaign

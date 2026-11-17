@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
+import { formatDate as fmtDate, formatShortDate as fmtShortDate, formatTime as fmtTime } from '../utils/dateFormat';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 const STATUS_COLORS = {
@@ -70,17 +71,15 @@ function formatCurrency(val, currency = 'INR') {
 
 function formatDate(dateStr) {
     if (!dateStr) return '';
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return fmtShortDate(dateStr);
 }
 
 function formatDateTime(dateStr) {
     if (!dateStr) return { date: '', time: '', full: '' };
     try {
-        const d = new Date(dateStr);
-        if (isNaN(d.getTime())) return { date: '', time: '', full: '' };
-        const date = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-        const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        const date = fmtDate(dateStr, { fallback: '' });
+        const time = fmtTime(dateStr, { fallback: '' });
+        if (!date) return { date: '', time: '', full: '' };
         return { date, time, full: `${date} • ${time}` };
     } catch {
         return { date: dateStr, time: '', full: dateStr };
@@ -1082,7 +1081,7 @@ const StoreAnalytics = () => {
                                             {cart.customerName || cart.customerPhone || 'Guest'}
                                         </p>
                                         <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                                            {new Date(cart.createdAt).toLocaleDateString()} • {cart.items?.length || 0} item{cart.items?.length !== 1 ? 's' : ''}
+                                            {fmtDate(cart.createdAt)} • {cart.items?.length || 0} item{cart.items?.length !== 1 ? 's' : ''}
                                         </p>
                                     </div>
                                     <div className="text-xs font-black text-slate-900 dark:text-white whitespace-nowrap ml-2">

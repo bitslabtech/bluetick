@@ -9,6 +9,7 @@ import axios from 'axios';
 import ThemeToggle from '../components/ThemeToggle';
 import NotificationBell from '../components/NotificationBell';
 import UserDropdown from '../components/UserDropdown';
+import { formatDate as fmtDate, formatDateTime as fmtDateTime } from '../utils/dateFormat';
 
 const FAST_POLL_MS = 3000;   // 3s when campaigns are actively sending
 const SLOW_POLL_MS = 30000;  // 30s when all campaigns are idle
@@ -27,7 +28,7 @@ export default function CampaignList() {
                 const formattedCampaigns = res.data.map(msg => {
                     return {
                         id: msg.id,
-                        name: msg.campaignName || (msg.Template ? `${msg.Template.name} Campaign` : `Campaign ${new Date(msg.createdAt).toLocaleDateString()}`),
+                        name: msg.campaignName || (msg.Template ? `${msg.Template.name} Campaign` : `Campaign ${fmtDate(msg.createdAt)}`),
                         status: msg.status.toLowerCase(),
                         sent: msg.sentCount || 0,
                         audience: msg.recipientCount,
@@ -99,14 +100,7 @@ export default function CampaignList() {
         }
     };
 
-    const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
+    const formatDate = (dateString) => fmtDateTime(dateString);
 
     const filteredCampaigns = campaigns.filter(c => {
         const matchesStatus = filterStatus === 'all' || c.status === filterStatus;

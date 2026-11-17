@@ -7,6 +7,7 @@ import {
     Calendar, MessageCircle, CreditCard
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { formatDate } from '../../utils/dateFormat';
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -14,7 +15,7 @@ const CURRENCY_SYMBOLS = { USD: '$', EUR: '€', GBP: '£', INR: '₹', AED: 'د
 const sym = (code) => CURRENCY_SYMBOLS[code] || code;
 
 function fmt(dateStr) {
-    return new Date(dateStr).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    return formatDate(dateStr);
 }
 
 // ─── Metric Card ──────────────────────────────────────────────────────────────

@@ -53,7 +53,7 @@ describe('callEligibility', () => {
 });
 
 // ── CallService with mocked collaborators ────────────────────────────────────────────────────────
-const mockStore = { calls: [], conv: null, users: [], devices: [], settings: null, addon: true, owner: { id: 'owner', metaTier: 'TIER_2K' } };
+const mockStore = { messages: [], templates: [], calls: [], conv: null, users: [], devices: [], settings: null, addon: true, owner: { id: 'owner', metaTier: 'TIER_2K' } };
 
 jest.mock('../models/Call', () => {
     const matches = (row, where) => Object.entries(where).every(([k, v]) => row[k] === v);
@@ -72,7 +72,16 @@ jest.mock('../models/Call', () => {
         },
     };
 });
+jest.mock('../models/ChatMessage', () => ({
+    findOne: async ({ where }) => mockStore.messages.find((m) => m.messageId === where.messageId) || null,
+    create: async (row) => { mockStore.messages.push(row); return row; },
+}));
+jest.mock('../models/Template', () => ({
+    findOne: async ({ where }) => mockStore.templates.find((t) => t.id === where.id) || null,
+}));
+jest.mock('../utils/pushNotifications', () => ({ pushToWorkspace: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('../models/Conversation', () => ({
+    findByPk: async () => mockStore.conv,
     findOne: async () => mockStore.conv,
     create: async (row) => { mockStore.conv = { id: 'conv-new', ...row }; return mockStore.conv; },
 }));
@@ -102,6 +111,7 @@ jest.mock('../socket', () => ({ getIo: () => ({ to: () => ({ emit: () => {} }) }
 const meta = require('../utils/metaCalling');
 const push = require('../utils/callPush');
 const { sendWhatsAppAndLog } = require('../utils/whatsappSender');
+const { pushToWorkspace } = require('../utils/pushNotifications');
 const CallService = require('../services/CallService');
 
 const connect = (id = 'wacid1') => ({ calls: [{ id, from: '919999999999', event: 'connect', direction: 'USER_INITIATED', session: { sdp_type: 'offer', sdp: 'v=0 offer' } }], contacts: [{ profile: { name: 'Asha' } }] });
@@ -110,7 +120,10 @@ const dev = (userId, kind = 'fcm') => ({ userId, token: `${userId}-${kind}-token
 beforeEach(() => {
     jest.clearAllMocks();
     mockStore.calls = [];
-    mockStore.conv = { id: 'conv1', phoneNumber: '919999999999', contactName: 'Asha', assignedTo: null, userId: 'owner' };
+    mockStore.templates = [];
+    mockStore.messages = [];
+    // the customer wrote recently, so their 24 h window is open
+    mockStore.conv = { id: 'conv1', phoneNumber: '919999999999', contactName: 'Asha', assignedTo: null, userId: 'owner', lastInboundMessageAt: new Date(), save: async () => {} };
     mockStore.users = [
         { id: 'owner', name: 'Owner', teamRole: 'owner', parentUserId: null },
         { id: 'admin1', name: 'Admin', teamRole: 'admin', parentUserId: 'owner' },
@@ -272,5 +285,178 @@ describe('CallService answer / decline', () => {
         await CallService.answer(call, { id: 'owner', name: 'Owner' }, 'v=0 answer', mockStore.settings);
         await run({ calls: [{ id: 'wacid1', event: 'terminate', duration: 42 }] });
         expect(call).toMatchObject({ status: 'ended', durationSec: 42 });
+    });
+});
+
+
+describe('automatic call messages', () => {
+    const tmpl = (over = {}) => ({ id: 't1', name: 'missed_call_x', content: 'Hi {{1}}, sorry we missed you.', language: 'en_US', status: 'APPROVED', category: 'UTILITY', archetype: 'standard', headerType: 'NONE', ...over });
+    const miss = async () => { await run(); await run({ calls: [{ id: 'wacid1', event: 'terminate' }] }); };
+
+    test('text is skipped when the 24 h window is closed', async () => {
+        mockStore.conv.lastInboundMessageAt = new Date(Date.now() - 30 * 3600 * 1000);
+        await miss();
+        expect(sendWhatsAppAndLog).not.toHaveBeenCalled();
+        expect(mockStore.calls[0].autoMessage).toMatchObject({ outcome: 'skipped', reason: 'window_closed' });
+    });
+
+    test('a brand-new caller (never wrote) gets no free text', async () => {
+        mockStore.conv.lastInboundMessageAt = null;
+        await miss();
+        expect(sendWhatsAppAndLog).not.toHaveBeenCalled();
+    });
+
+    test('disabled message is not sent', async () => {
+        mockStore.settings.callSettings.missedCallMessage = { enabled: false };
+        await miss();
+        expect(sendWhatsAppAndLog).not.toHaveBeenCalled();
+        expect(mockStore.calls[0].autoMessage.reason).toBe('disabled');
+    });
+
+    test('template mode sends even when the window is closed, filling in the first name', async () => {
+        mockStore.conv.lastInboundMessageAt = null;
+        mockStore.templates = [tmpl()];
+        mockStore.settings.callSettings.missedCallMessage = { enabled: true, mode: 'template', templateId: 't1' };
+        await miss();
+        const arg = sendWhatsAppAndLog.mock.calls[0][0];
+        expect(arg.type).toBe('template');
+        expect(arg.payload.template).toMatchObject({ name: 'missed_call_x', language: { code: 'en_US' }, components: [{ type: 'body', parameters: [{ type: 'text', text: 'Asha' }] }] });
+        expect(mockStore.calls[0].autoMessage).toMatchObject({ outcome: 'sent', mode: 'template' });
+    });
+
+    test('number-only callers are greeted as "there"', async () => {
+        mockStore.conv.contactName = '919999999999';
+        mockStore.templates = [tmpl()];
+        mockStore.settings.callSettings.missedCallMessage = { enabled: true, mode: 'template', templateId: 't1' };
+        await miss();
+        expect(sendWhatsAppAndLog.mock.calls[0][0].payload.template.components[0].parameters[0].text).toBe('there');
+    });
+
+    test('template still pending: falls back to text only if the window is open', async () => {
+        mockStore.templates = [tmpl({ status: 'PENDING' })];
+        mockStore.settings.callSettings.missedCallMessage = { enabled: true, mode: 'template', templateId: 't1', text: 'fallback text' };
+        await miss();
+        expect(sendWhatsAppAndLog.mock.calls[0][0].type).toBe('text');
+        expect(mockStore.calls[0].autoMessage).toMatchObject({ outcome: 'sent', reason: 'template_pending' });
+    });
+
+    test('template pending and window closed: nothing is sent', async () => {
+        mockStore.conv.lastInboundMessageAt = null;
+        mockStore.templates = [tmpl({ status: 'PENDING' })];
+        mockStore.settings.callSettings.missedCallMessage = { enabled: true, mode: 'template', templateId: 't1', text: 'fallback text' };
+        await miss();
+        expect(sendWhatsAppAndLog).not.toHaveBeenCalled();
+        expect(mockStore.calls[0].autoMessage.outcome).toBe('skipped');
+    });
+
+    test('a Meta failure is recorded, not thrown', async () => {
+        sendWhatsAppAndLog.mockRejectedValueOnce(new Error('meta down'));
+        await miss();
+        expect(mockStore.calls[0].autoMessage).toMatchObject({ outcome: 'failed' });
+    });
+});
+
+describe('missed-call notification', () => {
+    const miss = async () => { await run(); await run({ calls: [{ id: 'wacid1', event: 'terminate' }] }); };
+
+    test('owner, admins and everyone who was rung are notified', async () => {
+        mockStore.conv.assignedTo = 'agent1';
+        await miss();
+        const arg = pushToWorkspace.mock.calls[0][1];
+        expect(arg.userIds.sort()).toEqual(['admin1', 'agent1', 'owner']);
+        expect(arg).toMatchObject({ title: 'Missed call', data: { type: 'missed_call', callId: mockStore.calls[0].id } });
+    });
+
+    test('an answered call sends no missed-call notification', async () => {
+        await run();
+        await CallService.answer(mockStore.calls[0], { id: 'owner', name: 'Owner' }, 'v=0 answer', mockStore.settings);
+        await run({ calls: [{ id: 'wacid1', event: 'terminate', duration: 5 }] });
+        expect(pushToWorkspace).not.toHaveBeenCalled();
+    });
+
+    test('a member who declined is not notified, the owner and admins are', async () => {
+        mockStore.conv.assignedTo = 'agent1';
+        mockStore.devices = [dev('agent1')];
+        await run();
+        await CallService.decline(mockStore.calls[0], 'agent1', mockStore.settings);
+        // stage 2: nobody else has a device -> all declined -> declined
+        const arg = pushToWorkspace.mock.calls[0]?.[1];
+        expect(arg.userIds).not.toContain('agent1');
+        expect(arg.userIds).toEqual(expect.arrayContaining(['owner', 'admin1']));
+    });
+
+    test('a call refused for being outside hours still notifies the business', async () => {
+        mockStore.settings.callSettings.allowOutsideHours = false;
+        mockStore.settings.whatsappAutomations = { offHoursMessage: { timezone: 'UTC', schedule: [0, 1, 2, 3, 4, 5, 6].map((day) => ({ day, enabled: false })) } };
+        await run();
+        expect(pushToWorkspace.mock.calls[0][1].body).toMatch(/outside business hours/);
+    });
+});
+
+describe('template rules', () => {
+    test('variable counting and usability', () => {
+        expect(elig.templateVariableCount('Hi {{1}} and {{2}}')).toBe(2);
+        expect(elig.templateVariableCount('no vars')).toBe(0);
+        expect(elig.templateVariableCount('Hi {{name}}')).toBe(-1);
+        const base = { status: 'APPROVED', archetype: 'standard', headerType: 'NONE', category: 'UTILITY', content: 'Hi {{1}}' };
+        expect(elig.templateUsable(base).ok).toBe(true);
+        expect(elig.templateUsable({ ...base, status: 'PENDING' }).ok).toBe(false);
+        expect(elig.templateUsable({ ...base, content: 'Hi {{1}} {{2}}' }).ok).toBe(false);
+        expect(elig.templateUsable({ ...base, headerType: 'IMAGE' }).ok).toBe(false);
+        expect(elig.templateUsable({ ...base, archetype: 'carousel' }).ok).toBe(false);
+        expect(elig.templateUsable({ ...base, category: 'AUTHENTICATION' }).ok).toBe(false);
+    });
+
+    test('24 h window', () => {
+        const now = new Date('2026-11-16T12:00:00Z');
+        expect(elig.isWindowOpen('2026-11-16T01:00:00Z', now)).toBe(true);
+        expect(elig.isWindowOpen('2026-11-15T11:00:00Z', now)).toBe(false);
+        expect(elig.isWindowOpen(null, now)).toBe(false);
+    });
+});
+
+describe('call detail', () => {
+    test('lists who was rung and who declined', async () => {
+        mockStore.conv.assignedTo = 'agent1';
+        await run();
+        await CallService.decline(mockStore.calls[0], 'agent1', mockStore.settings);
+        const rang = await CallService.rangMembers(mockStore.calls[0]);
+        expect(rang.find((r) => r.id === 'agent1')).toMatchObject({ name: 'Agent', declined: true });
+        expect(rang.find((r) => r.id === 'owner')).toMatchObject({ declined: false });
+    });
+});
+
+describe('call events in the chat thread', () => {
+    const miss = async () => { await run(); await run({ calls: [{ id: 'wacid1', event: 'terminate' }] }); };
+
+    test('a missed call adds one event and updates the chat preview, not the 24 h window', async () => {
+        const before = mockStore.conv.lastInboundMessageAt;
+        await miss();
+        expect(mockStore.messages).toHaveLength(1);
+        expect(mockStore.messages[0]).toMatchObject({ type: 'call', direction: 'INBOUND', source: 'call', body: 'Missed voice call', conversationId: 'conv1' });
+        expect(mockStore.conv.lastMessage).toBe('Missed voice call');
+        expect(mockStore.conv.lastInboundMessageAt).toBe(before);
+    });
+
+    test('an answered call logs its duration, once', async () => {
+        await run();
+        await CallService.answer(mockStore.calls[0], { id: 'owner', name: 'Owner' }, 'v=0 answer', mockStore.settings);
+        await run({ calls: [{ id: 'wacid1', event: 'terminate', duration: 134 }] });
+        await CallService.logCallEvent(mockStore.calls[0]); // a second attempt must not duplicate
+        expect(mockStore.messages).toHaveLength(1);
+        expect(mockStore.messages[0].body).toBe('Voice call · 2:14');
+    });
+
+    test('calls refused for plan reasons are not added to the chat', async () => {
+        mockStore.addon = false;
+        await run();
+        expect(mockStore.messages).toHaveLength(0);
+    });
+
+    test('calls refused outside business hours are', async () => {
+        mockStore.settings.callSettings.allowOutsideHours = false;
+        mockStore.settings.whatsappAutomations = { offHoursMessage: { timezone: 'UTC', schedule: [0, 1, 2, 3, 4, 5, 6].map((day) => ({ day, enabled: false })) } };
+        await run();
+        expect(mockStore.messages[0].body).toBe('Voice call outside business hours');
     });
 });

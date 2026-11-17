@@ -1,4 +1,5 @@
 const express = require('express');
+const { GRAPH_URL } = require('../config/metaGraph');
 const router = express.Router();
 const axios = require('axios');
 const auth = require('../middleware/auth');
@@ -43,7 +44,7 @@ router.post('/exchange-token', auth, async (req, res) => {
             // Standard OAuth flow: exchange 'code' for 'access_token'
             console.log("[WA DEBUG] Step 1: Exchanging code for token via Graph API...");
             console.log("[WA DEBUG] GET https://graph.facebook.com/v22.0/oauth/access_token");
-            const tokenResponse = await axios.get('https://graph.facebook.com/v22.0/oauth/access_token', {
+            const tokenResponse = await axios.get(`${GRAPH_URL}/oauth/access_token`, {
                 params: {
                     client_id: clientId,
                     client_secret: clientSecret,
@@ -65,7 +66,7 @@ router.post('/exchange-token', auth, async (req, res) => {
         console.log("[WA DEBUG] Step 1b: Upgrading to long-lived token...");
         let accessToken = shortLivedToken;
         try {
-            const longLivedRes = await axios.get('https://graph.facebook.com/v22.0/oauth/access_token', {
+            const longLivedRes = await axios.get(`${GRAPH_URL}/oauth/access_token`, {
                 params: {
                     grant_type: 'fb_exchange_token',
                     client_id: clientId,
@@ -87,7 +88,7 @@ router.post('/exchange-token', auth, async (req, res) => {
         // 2. Debug the token to extract 'waba_id' (WhatsApp Business Account ID)
         console.log("[WA DEBUG] Step 2: Debugging token to fetch WABA ID...");
         console.log("[WA DEBUG] GET https://graph.facebook.com/v22.0/debug_token");
-        const debugResponse = await axios.get('https://graph.facebook.com/v22.0/debug_token', {
+        const debugResponse = await axios.get(`${GRAPH_URL}/debug_token`, {
             params: {
                 input_token: accessToken,
                 access_token: `${clientId}|${clientSecret}` // App Access Token
@@ -118,7 +119,7 @@ router.post('/exchange-token', auth, async (req, res) => {
         if (!wabaId) {
             console.log('[WA DEBUG] Attempting Graph API fallback to fetch WABA ID...');
             try {
-                const wabaListRes = await axios.get('https://graph.facebook.com/v22.0/me/businesses', {
+                const wabaListRes = await axios.get(`${GRAPH_URL}/me/businesses`, {
                     params: {
                         fields: 'whatsapp_business_accounts{id,name}',
                         access_token: accessToken
@@ -169,7 +170,7 @@ router.post('/exchange-token', auth, async (req, res) => {
             // Best path: we have the exact Phone Number ID from the browser postMessage
             console.log('[WA DEBUG] Using hintPhoneNumberId directly:', phoneIdToUse);
             try {
-                const phoneRes = await axios.get(`https://graph.facebook.com/v22.0/${phoneIdToUse}`, {
+                const phoneRes = await axios.get(`${GRAPH_URL}/${phoneIdToUse}`, {
                     params: {
                         fields: 'id,display_phone_number,quality_rating,messaging_limit_tier,verified_name,name_status,code_verification_status',
                         access_token: accessToken
@@ -195,7 +196,7 @@ router.post('/exchange-token', auth, async (req, res) => {
         if (!user.metaPhoneNumberId && wabaId) {
             console.log('[WA DEBUG] Fetching phone list from WABA:', wabaId);
             try {
-                const phoneResponse = await axios.get(`https://graph.facebook.com/v22.0/${wabaId}/phone_numbers`, {
+                const phoneResponse = await axios.get(`${GRAPH_URL}/${wabaId}/phone_numbers`, {
                     params: {
                         fields: 'id,display_phone_number,quality_rating,messaging_limit_tier,verified_name,name_status,code_verification_status',
                         access_token: accessToken
@@ -226,7 +227,7 @@ router.post('/exchange-token', auth, async (req, res) => {
         // --- Fetch WABA Portfolio Limit ---
         if (wabaId) {
             try {
-                const wabaRes = await axios.get(`https://graph.facebook.com/v22.0/${wabaId}`, {
+                const wabaRes = await axios.get(`${GRAPH_URL}/${wabaId}`, {
                     params: {
                         fields: 'whatsapp_business_manager_messaging_limit',
                         access_token: accessToken
@@ -246,7 +247,7 @@ router.post('/exchange-token', auth, async (req, res) => {
         let permanentToken = null;
         let businessId = null; // capture here so we can reuse below
         try {
-            const bizRes = await axios.get('https://graph.facebook.com/v22.0/me/businesses', {
+            const bizRes = await axios.get(`${GRAPH_URL}/me/businesses`, {
                 params: { access_token: accessToken }
             });
             businessId = bizRes.data?.data?.[0]?.id;
@@ -255,7 +256,7 @@ router.post('/exchange-token', auth, async (req, res) => {
             if (businessId) {
                 // Create (or re-use existing) System User under this business
                 const sysUserRes = await axios.post(
-                    `https://graph.facebook.com/v22.0/${businessId}/system_users`,
+                    `${GRAPH_URL}/${businessId}/system_users`,
                     null,
                     {
                         params: {
@@ -271,7 +272,7 @@ router.post('/exchange-token', auth, async (req, res) => {
                 if (systemUserId) {
                     // Generate a never-expiring token for this system user
                     const sysTokenRes = await axios.post(
-                        `https://graph.facebook.com/v22.0/${systemUserId}/access_tokens`,
+                        `${GRAPH_URL}/${systemUserId}/access_tokens`,
                         null,
                         {
                             params: {
@@ -328,7 +329,7 @@ router.post('/exchange-token', auth, async (req, res) => {
                 console.log(`[WA DEBUG] Step REGISTER: Registering phone ${user.metaDisplayPhoneNumber} (ID: ${user.metaPhoneNumberId}) with PIN derived from last 6 digits...`);
 
                 const regRes = await axios.post(
-                    `https://graph.facebook.com/v22.0/${user.metaPhoneNumberId}/register`,
+                    `${GRAPH_URL}/${user.metaPhoneNumberId}/register`,
                     {
                         messaging_product: 'whatsapp',
                         pin: registrationPin
@@ -411,7 +412,7 @@ router.post('/exchange-token', auth, async (req, res) => {
             try {
                 console.log(`[WA DEBUG] Subscribing app to WABA webhooks for WABA: ${wabaId}`);
                 const subRes = await axios.post(
-                    `https://graph.facebook.com/v22.0/${wabaId}/subscribed_apps`,
+                    `${GRAPH_URL}/${wabaId}/subscribed_apps`,
                     null,
                     {
                         headers: { 'Authorization': `Bearer ${finalToken}` }
@@ -481,7 +482,7 @@ router.get('/status', auth, async (req, res) => {
             } else if (settings?.metaAccessToken && settings?.metaPhoneNumberId) {
                 // Settings path without WABA ID — fetch phone number info directly
                 try {
-                    const phoneRes = await axios.get(`https://graph.facebook.com/v22.0/${settings.metaPhoneNumberId}`, {
+                    const phoneRes = await axios.get(`${GRAPH_URL}/${settings.metaPhoneNumberId}`, {
                         params: {
                             fields: 'id,display_phone_number,quality_rating,messaging_limit_tier,verified_name,name_status',
                             access_token: settings.metaAccessToken
@@ -521,7 +522,7 @@ router.get('/status', auth, async (req, res) => {
         }
 
         // Fetch phone numbers from WABA
-        const phoneResponse = await axios.get(`https://graph.facebook.com/v22.0/${wabaId}/phone_numbers`, {
+        const phoneResponse = await axios.get(`${GRAPH_URL}/${wabaId}/phone_numbers`, {
             params: {
                 fields: 'id,display_phone_number,quality_rating,messaging_limit_tier,verified_name,name_status',
                 access_token: accessToken
@@ -539,7 +540,7 @@ router.get('/status', auth, async (req, res) => {
             // Fetch new portfolio-level messaging limit from WABA
             let portfolioLimit = null;
             try {
-                const wabaRes = await axios.get(`https://graph.facebook.com/v22.0/${wabaId}`, {
+                const wabaRes = await axios.get(`${GRAPH_URL}/${wabaId}`, {
                     params: {
                         fields: 'whatsapp_business_manager_messaging_limit',
                         access_token: accessToken
@@ -561,7 +562,7 @@ router.get('/status', auth, async (req, res) => {
             try {
                 const nowTs = Math.floor(Date.now() / 1000);
                 const dayAgoTs = nowTs - (24 * 60 * 60);
-                const analyticsRes = await axios.get(`https://graph.facebook.com/v22.0/${wabaId}`, {
+                const analyticsRes = await axios.get(`${GRAPH_URL}/${wabaId}`, {
                     params: {
                         fields: `conversation_analytics.start(${dayAgoTs}).end(${nowTs}).granularity(DAILY).conversation_types(["BUSINESS_INITIATED"]).dimensions(["conversation_type"])`,
                         access_token: accessToken
@@ -767,7 +768,7 @@ router.post('/register-phone', auth, async (req, res) => {
         console.log(`[WA REGISTER] Registering phone ${displayPhone} (ID: ${phoneNumberId}) for user ${user.id}...`);
 
         const regRes = await axios.post(
-            `https://graph.facebook.com/v22.0/${phoneNumberId}/register`,
+            `${GRAPH_URL}/${phoneNumberId}/register`,
             {
                 messaging_product: 'whatsapp',
                 pin: registrationPin
@@ -830,7 +831,7 @@ router.get('/quality-insights', auth, async (req, res) => {
         }
 
         // Call Meta Graph API — quality_score field returns: { score: "RED"|"YELLOW"|"GREEN", reasons: [...] }
-        const metaRes = await axios.get(`https://graph.facebook.com/v22.0/${phoneNumberId}`, {
+        const metaRes = await axios.get(`${GRAPH_URL}/${phoneNumberId}`, {
             params: {
                 fields: 'quality_score,display_phone_number',
                 access_token: accessToken

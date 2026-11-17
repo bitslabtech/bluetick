@@ -11,6 +11,8 @@ const Conversation = require('../models/Conversation');
 const ChatMessage = require('../models/ChatMessage');
 const Settings = require('../models/Settings');
 const ApiUsageLog = require('../models/ApiUsageLog');
+const outbound = require('../services/outbound');
+const { resolveSendSettings } = require('../services/outbound/credentials');
 
 // Utilities
 const { getUserPlanLimits, checkLimit, getMonthlyMessageCount, getContactCount } = require('../utils/planLimits');
@@ -74,20 +76,15 @@ router.use((req, res, next) => {
 // ==========================================
 // Helper: Send to Meta API
 // ==========================================
+// Sends through the outbound gateway (ledger, plan allowance, API-to-API guard). Throws on failure.
 const sendToMeta = async (settings, payload) => {
-    const res = await fetch(`https://graph.facebook.com/v21.0/${settings.metaPhoneNumberId}/messages`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${settings.metaAccessToken}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
+    const r = await outbound.sendOrThrow({
+        ownerId: settings.userId,
+        source: 'api',
+        payload,
+        credentials: { token: settings.metaAccessToken, phoneNumberId: settings.metaPhoneNumberId }
     });
-    const data = await res.json();
-    if (!res.ok) {
-        throw new Error(data.error?.message || 'Meta API Error');
-    }
-    return data;
+    return r.data;
 };
 
 // ==========================================
@@ -282,7 +279,7 @@ const getOwnerContext = async (ownerId) => {
     const limits = await getUserPlanLimits(ownerId);
     const sentThisMonth = await getMonthlyMessageCount(ownerId);
     const msgCheck = checkLimit(sentThisMonth, limits.messageLimit);
-    const settings = await Settings.findOne({ where: { userId: ownerId } });
+    const settings = await resolveSendSettings(ownerId);
     return { limits, sentThisMonth, msgCheck, settings };
 };
 
@@ -476,7 +473,7 @@ router.post('/messages/bulk', async (req, res) => {
         const ownerId = req.user.id;
 
         // Load settings once
-        const settings = await Settings.findOne({ where: { userId: ownerId } });
+        const settings = await resolveSendSettings(ownerId);
         if (!settings?.metaAccessToken) {
             return res.status(403).json({ error: 'WhatsApp is not configured in your dashboard. Please add your Meta credentials.' });
         }

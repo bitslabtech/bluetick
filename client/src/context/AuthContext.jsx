@@ -137,7 +137,7 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const register = async (name, email, password, selectedPlan = null, referralCode = null, partnerCode = null, phone = '', startTrial = false, turnstileToken = '', phoneVerifiedToken = null) => {
+    const register = async (name, email, password, selectedPlan = null, referralCode = null, partnerCode = null, phone = '', startTrial = false, turnstileToken = '', phoneVerifiedToken = null, consentPolicies = ['privacy', 'terms']) => {
         try {
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/register`, {
                 name,
@@ -149,7 +149,8 @@ export const AuthProvider = ({ children }) => {
                 partnerCode: partnerCode || undefined,
                 phone,
                 'cf-turnstile-response': turnstileToken,
-                phoneVerifiedToken: phoneVerifiedToken || undefined
+                phoneVerifiedToken: phoneVerifiedToken || undefined,
+                consentPolicies
             });
             // Cookie is set automatically by the server response
             const { user } = res.data;

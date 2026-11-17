@@ -44,6 +44,8 @@ const DUMMY_HASH = '$2b$10$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXYZ01234
 
 // ── Helper ──────────────────────────────────────────────────────────────────
 
+const outbound = require('../services/outbound');
+
 const signToken = (customer) =>
     jwt.sign(
         { storeCustomer: { id: customer.id, storeId: customer.storeId } },
@@ -103,16 +105,18 @@ const sendWhatsAppOtp = async (store, phone, otp) => {
         }
 
         try {
-            await axios.post(
-                `https://graph.facebook.com/v21.0/${phoneId}/messages`,
-                payload,
-                { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
-            );
+            await outbound.sendOrThrow({
+                ownerId: store.userId, source: 'store_otp', payload,
+                refs: { refType: 'store', refId: store.id },
+                credentials: { token, phoneNumberId: phoneId }
+            });
             return { sent: true };
         } catch (err) {
             // Meta API Error 131008: Required parameter is missing.
             // This happens if the template requires a button component (e.g. autofill).
             if (tmplName && err.response?.data?.error?.code === 131008) {
+                // This attempt is replaced by the retry below; only the retry counts
+                if (err.outbound?.outboundId) await outbound.markRetried({ id: err.outbound.outboundId });
                 console.log('[StoreCustomerAuth] Retrying OTP template with URL button component...');
                 payload.template.components.push({
                     type: 'button',
@@ -122,11 +126,11 @@ const sendWhatsAppOtp = async (store, phone, otp) => {
                 });
                 
                 try {
-                    await axios.post(
-                        `https://graph.facebook.com/v21.0/${phoneId}/messages`,
-                        payload,
-                        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
-                    );
+                    await outbound.sendOrThrow({
+                        ownerId: store.userId, source: 'store_otp', payload,
+                        refs: { refType: 'store', refId: store.id },
+                        credentials: { token, phoneNumberId: phoneId }
+                    });
                     return { sent: true };
                 } catch (retryErr) {
                     console.error('[StoreCustomerAuth] WhatsApp OTP retry failed:', retryErr.response?.data || retryErr.message);

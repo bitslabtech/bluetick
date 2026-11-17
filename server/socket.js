@@ -128,37 +128,22 @@ const initSocket = (server) => {
         // join_waba / join_personal with no arguments. Derive the rooms from the verified token.
         autoJoinRooms(socket);
 
-        // Frontend will emit this when they load the WhatsApp Inbox
-        socket.on('join_waba', (wabaId) => {
-            if (wabaId) {
-                console.log(`Socket ${socket.id} joining room: ${wabaId}`);
-                socket.join(wabaId);
-            }
-        });
-
-        // Join a personal room (userId) for direct targeted notifications like chat assignment
-        socket.on('join_personal', (userId) => {
-            if (userId) {
-                socket.join(userId);
-                console.log(`Socket ${socket.id} joined personal room: ${userId}`);
-            }
-        });
+        // join_waba / join_personal: rooms are already joined by autoJoinRooms above.
+        // These stubs exist only so older web/mobile clients that still emit the events
+        // don't get a "no handler" warning — the client-supplied id is ignored.
+        socket.on('join_waba', () => {});
+        socket.on('join_personal', () => {});
 
         // Team Live Status & Presence Tracking
-        socket.on('user_connected', (data) => {
-            const { userId, parentId } = data;
+        // userId and parentId are derived from the verified token, never from client input.
+        socket.on('user_connected', () => {
+            const userId = socket.user?.id;
             if (userId) {
-                onlineUsers.set(socket.id, userId);
-
-                // The "room" is based on the parent account. If they are the parent, they use their own ID.
-                const roomToJoin = parentId || userId;
-                userRooms.set(socket.id, roomToJoin);
-
-                socket.join(`team_${roomToJoin}`);
-                console.log(`User ${userId} joined team room team_${roomToJoin}`);
-
-                // Broadcast to the team room that this specific user is now online
-                io.to(`team_${roomToJoin}`).emit('user_status_change', { userId, isOnline: true });
+                const roomToJoin = userRooms.get(socket.id);
+                if (roomToJoin) {
+                    console.log(`User ${userId} confirmed in team room team_${roomToJoin}`);
+                    io.to(`team_${roomToJoin}`).emit('user_status_change', { userId, isOnline: true });
+                }
             }
         });
 

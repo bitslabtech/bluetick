@@ -6,10 +6,10 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { formatDistanceToNow } from 'date-fns';
 import { useUI } from '../../context/UIContext';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
+import { formatRelative } from '../../utils/dateFormat';
 
 const StatCard = ({ title, value, icon: Icon, trend, colorClass }) => (
     <motion.div
@@ -204,7 +204,7 @@ const MetaAdsDashboard = () => {
                                             {campaign.objective?.replace('_', ' ')}
                                         </td>
                                         <td className="p-4 pr-6 text-right text-sm text-slate-500">
-                                            {formatDistanceToNow(new Date(campaign.createdAt), { addSuffix: true })}
+                                            {formatRelative(campaign.createdAt)}
                                         </td>
                                     </tr>
                                 ))}

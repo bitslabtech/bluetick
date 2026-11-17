@@ -13,6 +13,7 @@ import {
 // eslint-disable-next-line no-unused-vars
 import { motion } from 'framer-motion';
 import ThemeToggle from '../components/ThemeToggle';
+import { formatShortDate, formatWeekday } from '../utils/dateFormat';
 
 const API_BASE = `${import.meta.env.VITE_API_URL}`;
 
@@ -521,7 +522,7 @@ const AiTokenHistory = () => {
                                         [...dailyData].reverse().map((day, i) => (
                                             <tr key={i} className={`hover:bg-slate-50 dark:hover:bg-[#1e3345] transition-colors ${day.total === 0 ? 'opacity-40' : ''}`}>
                                                 <td className="px-4 md:px-6 py-3.5 font-medium text-slate-900 dark:text-white">
-                                                    {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                                    {formatWeekday(day.date)}, {formatShortDate(day.date)}
                                                 </td>
                                                 <td className="px-4 md:px-6 py-3.5 text-right">
                                                     {day.ai_chatbot > 0

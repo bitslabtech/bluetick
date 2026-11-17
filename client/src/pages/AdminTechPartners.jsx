@@ -5,6 +5,7 @@ import { Briefcase, DollarSign, Users, RefreshCw, X, Check, ChevronDown, Chevron
 import { useUI } from '../context/UIContext';
 import AdminHeader from '../components/AdminHeader';
 import ThemeToggle from '../components/ThemeToggle';
+import { formatDate } from '../utils/dateFormat';
 
 const Toggle = ({ enabled, onChange, danger }) => (
     <button
@@ -576,7 +577,7 @@ const AdminTechPartners = () => {
                                                         <div className="text-xs text-slate-500">{app.email}</div>
                                                     </td>
                                                     <td className="px-4 md:px-6 py-4 text-sm text-slate-500">
-                                                        {new Date(app.createdAt).toLocaleDateString()}
+                                                        {formatDate(app.createdAt)}
                                                     </td>
                                                     <td className="px-4 md:px-6 py-4">
                                                         <div className="text-sm font-medium text-slate-800 dark:text-slate-300 max-w-sm truncate" title={pNotes.notes}>{pNotes.notes}</div>
@@ -795,7 +796,7 @@ const AdminTechPartners = () => {
                                                 <td className="px-5 py-3 text-sm font-bold text-emerald-600 dark:text-emerald-400">
                                                     ₹{payout.commissionAmount}
                                                 </td>
-                                                <td className="px-5 py-3 text-xs text-slate-500">{new Date(payout.createdAt).toLocaleDateString()}</td>
+                                                <td className="px-5 py-3 text-xs text-slate-500">{formatDate(payout.createdAt)}</td>
                                                 <td className="px-5 py-3">
                                                     {payout.status === 'pending' ? (
                                                         <button
@@ -806,7 +807,7 @@ const AdminTechPartners = () => {
                                                         </button>
                                                     ) : (
                                                         <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 rounded-full text-xs font-bold">
-                                                            ✓ Paid {payout.paidAt && `(${new Date(payout.paidAt).toLocaleDateString()})`}
+                                                            ✓ Paid {payout.paidAt && `(${formatDate(payout.paidAt)})`}
                                                         </span>
                                                     )}
                                                 </td>
@@ -845,7 +846,7 @@ const AdminTechPartners = () => {
                                                     <div className="text-xs text-slate-400">{u.email}</div>
                                                 </td>
                                                 <td className="px-5 py-4 text-sm text-slate-500">{u.plan}</td>
-                                                <td className="px-5 py-4 text-xs text-slate-400">{new Date(u.createdAt).toLocaleDateString()}</td>
+                                                <td className="px-5 py-4 text-xs text-slate-400">{formatDate(u.createdAt)}</td>
                                             </tr>
                                         ))}
                                     </tbody>

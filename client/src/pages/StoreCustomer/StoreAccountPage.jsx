@@ -7,6 +7,7 @@ import WaStoreFooter from '../../components/WaStoreFooter';
 import { getThemeConfig } from '../../utils/wastoreThemes';
 import toast from 'react-hot-toast';
 import { getStoreRoute } from '../../utils/storeRouting';
+import { formatDateTime, formatMonth } from '../../utils/dateFormat';
 
 const STATUS_COLORS = {
     pending: 'bg-amber-50 text-amber-700 border-amber-200/60',
@@ -112,6 +113,32 @@ export default function StoreAccountPage({ store, products = [] }) {
             toast.error("All address fields are mandatory.");
             return;
         }
+        if (name.trim().length < 2) {
+            toast.error("Name must be at least 2 characters.");
+            return;
+        }
+        const phoneDigits = phone.replace(/\D/g, '');
+        if (phoneDigits.length < 7 || phoneDigits.length > 15) {
+            toast.error("Enter a valid phone number (digits only, 7–15 digits).");
+            return;
+        }
+        if (address.trim().length < 5) {
+            toast.error("Please enter a complete street address.");
+            return;
+        }
+        if (!/^[A-Za-z\s\-.]+$/.test(city.trim())) {
+            toast.error("City name can only contain letters, spaces, and hyphens.");
+            return;
+        }
+        if (!/^[A-Za-z\s\-.]+$/.test(state.trim())) {
+            toast.error("State name can only contain letters, spaces, and hyphens.");
+            return;
+        }
+        const pincodeDigits = pincode.replace(/\D/g, '');
+        if (pincodeDigits.length < 4 || pincodeDigits.length > 10 || pincodeDigits !== pincode.trim()) {
+            toast.error("Postal code must be digits only (4–10 digits).");
+            return;
+        }
         try {
             if (editingAddr !== null) {
                 const updated = await updateAddress(editingAddr.idx, addrForm);
@@ -210,7 +237,7 @@ export default function StoreAccountPage({ store, products = [] }) {
                                 <p className="text-sm text-slate-300 mt-1 font-medium">{customer?.email || customer?.phone || 'Logged in'}</p>
                                 {customer?.createdAt && (
                                     <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
-                                        <Calendar size={12} /> Joined {new Date(customer.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                                        <Calendar size={12} /> Joined {formatMonth(customer.createdAt)}
                                     </p>
                                 )}
                             </div>
@@ -330,7 +357,7 @@ export default function StoreAccountPage({ store, products = [] }) {
                                                         </div>
                                                         <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
                                                             <Clock size={12} />
-                                                            {new Date(order.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                            {formatDateTime(order.createdAt)}
                                                         </p>
                                                     </div>
 
@@ -425,17 +452,24 @@ export default function StoreAccountPage({ store, products = [] }) {
                                             {[
                                                 { key: 'label', label: 'Address Label *', placeholder: 'Home / Work / Office' },
                                                 { key: 'name', label: 'Full Name *', placeholder: 'John Doe' },
-                                                { key: 'phone', label: 'Contact Phone *', placeholder: '+1 234 567 8900' },
+                                                { key: 'phone', label: 'Contact Phone *', placeholder: '+91 98765 43210', type: 'tel' },
                                                 { key: 'address', label: 'Street Address *', placeholder: 'House No., Building, Street', cols: 2 },
                                                 { key: 'city', label: 'City *', placeholder: 'City' },
                                                 { key: 'state', label: 'State / Province *', placeholder: 'State' },
-                                                { key: 'pincode', label: 'Postal / ZIP Code *', placeholder: '10001' },
+                                                { key: 'pincode', label: 'Postal / ZIP Code *', placeholder: '400001', inputMode: 'numeric', maxLength: 10 },
                                             ].map(f => (
                                                 <div key={f.key} className={f.cols === 2 ? 'sm:col-span-2' : ''}>
                                                     <label className="block text-xs font-semibold text-slate-700 mb-1">{f.label}</label>
-                                                    <input 
-                                                        value={addrForm[f.key] || ''} 
-                                                        onChange={e => setAddrForm(a => ({ ...a, [f.key]: e.target.value }))}
+                                                    <input
+                                                        type={f.type || 'text'}
+                                                        inputMode={f.inputMode}
+                                                        maxLength={f.maxLength}
+                                                        value={addrForm[f.key] || ''}
+                                                        onChange={e => {
+                                                            const raw = e.target.value;
+                                                            const val = f.key === 'pincode' ? raw.replace(/\D/g, '') : raw;
+                                                            setAddrForm(a => ({ ...a, [f.key]: val }));
+                                                        }}
                                                         placeholder={f.placeholder}
                                                         className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-all"
                                                         style={{ '--tw-ring-color': themeColor }}

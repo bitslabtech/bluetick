@@ -37,6 +37,8 @@ const Call = sequelize.define('Call', {
     answeredAt: { type: DataTypes.DATE, allowNull: true },
     endedAt: { type: DataTypes.DATE, allowNull: true },
     durationSec: { type: DataTypes.INTEGER, defaultValue: 0 },
+    // What we auto-sent the caller: { which, mode, outcome: sent|skipped|failed, reason }
+    autoMessage: { type: DataTypes.JSON, allowNull: true },
 }, {
     timestamps: true,
     indexes: [

@@ -6,11 +6,11 @@ import {
     CheckCheck, Bell, Send, Trash2, Users, Layers, User, Eye, History
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
 import AdminHeader from '../components/AdminHeader';
 import ThemeToggle from '../components/ThemeToggle';
+import { formatRelative } from '../utils/dateFormat';
 
 const AdminNotifications = () => {
     const { user } = useAuth();
@@ -334,7 +334,7 @@ const AdminNotifications = () => {
                                                                 <h3 className="font-bold text-slate-900 dark:text-white line-clamp-1">{b.title}</h3>
                                                                 <div className="flex items-center gap-2">
                                                                     <span className="text-xs font-medium text-slate-400 whitespace-nowrap">
-                                                                        {formatDistanceToNow(new Date(b.createdAt), { addSuffix: true })}
+                                                                        {formatRelative(b.createdAt)}
                                                                     </span>
                                                                     <button
                                                                         onClick={() => handleDelete(b.id)}

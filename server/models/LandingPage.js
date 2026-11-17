@@ -158,6 +158,14 @@ const LandingPage = sequelize.define('LandingPage', {
             terms: ''
         }
     },
+    // Current version metadata for each policy page.
+    // { privacy: { version: '1.0', updatedAt: '...', note: '' }, terms: { ... } }
+    publicPagesVersions: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        defaultValue: null,
+        comment: 'Version metadata for each public policy page. Updated whenever the admin bumps a version.'
+    },
     customPages: {
         type: DataTypes.JSON,
         defaultValue: [],

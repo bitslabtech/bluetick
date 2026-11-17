@@ -3,6 +3,7 @@ import axios from 'axios';
 import { CalendarCheck, CheckCircle, Trash2, Mail, Phone, CalendarClock } from 'lucide-react';
 import { useUI } from '../../context/UIContext';
 import Skeleton from 'react-loading-skeleton';
+import { formatDateTime } from '../../utils/dateFormat';
 
 export default function VcardBookings() {
     const [bookings, setBookings] = useState([]);
@@ -98,7 +99,7 @@ export default function VcardBookings() {
                                         </td>
                                         <td className="block sm:table-cell px-0 sm:px-4 py-3 sm:py-4 font-bold text-indigo-600 dark:text-indigo-400 sm:whitespace-nowrap">
                                             <span className="sm:hidden text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Requested Time</span>
-                                            {booking.appointmentDate ? new Date(booking.appointmentDate).toLocaleString() : 'N/A'}
+                                            {booking.appointmentDate ? formatDateTime(booking.appointmentDate) : 'N/A'}
                                         </td>
                                         <td className="block sm:table-cell px-0 sm:px-4 py-3 sm:py-4 text-slate-600 dark:text-slate-300 break-words sm:max-w-xs sm:truncate" title={booking.message}>
                                             <span className="sm:hidden text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Notes</span>

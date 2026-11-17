@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const PaymentSession = require('../models/PaymentSession');
 const Settings = require('../models/Settings');
+const outbound = require('../services/outbound');
 const FormResponse = require('../models/FormResponse');
 const Form = require('../models/Form');
 // We require Stripe and Razorpay for actual integrations
@@ -323,9 +324,12 @@ router.post('/verify', async (req, res) => {
                                 components.push({ type: 'carousel', cards: carouselCards });
                             }
 
-                            await axios.post(
-                                `https://graph.facebook.com/v21.0/${settings.metaPhoneNumberId}/messages`,
-                                {
+                            await outbound.sendOrThrow({
+                        ownerId: settings.userId,
+                        source: 'checkout',
+                        refs: { refType: 'form', refId: form.id },
+                        credentials: { token: settings.metaAccessToken, phoneNumberId: settings.metaPhoneNumberId },
+                        payload: {
                                     messaging_product: 'whatsapp',
                                     to: contactNumber.replace(/\D/g, ''),
                                     type: 'template',
@@ -334,9 +338,8 @@ router.post('/verify', async (req, res) => {
                                         language: { code: automation.whatsappTemplate.language || 'en_US' },
                                         components
                                     }
-                                },
-                                { headers: { Authorization: `Bearer ${settings.metaAccessToken}` } }
-                            );
+                                }
+                    });
                             console.log(`[CHECKOUT] WhatsApp automation sent to ${contactNumber} after payment for form ${form.id}`);
                         } catch (err) {
                             console.error('[CHECKOUT] WhatsApp Automation Dispatch Failed:', err.response?.data || err.message);

@@ -1,10 +1,11 @@
 import React from 'react';
 import PublicLayout from '../components/landing/PublicLayout';
+import { formatMonth } from '../utils/dateFormat';
 
 const RefundPolicy = () => {
     return (
         <PublicLayout title="Cancellation & Refund Policy" pageKey="refund-policy">
-            <p className="text-slate-500 mb-8 font-medium">Last updated: {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</p>
+            <p className="text-slate-500 mb-8 font-medium">Last updated: {formatMonth(new Date())}</p>
             
             <div className="bg-emerald-50 dark:bg-emerald-900/20 border-l-4 border-emerald-500 p-6 rounded-r-xl mb-10 shadow-sm">
                 <h3 className="text-lg font-bold text-emerald-800 dark:text-emerald-400 mb-2">48-Hour Satisfaction Guarantee</h3>

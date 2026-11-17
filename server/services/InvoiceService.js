@@ -541,7 +541,7 @@ async function sendInvoiceWhatsApp(toPhone, inv, ic, pdfPublicUrl) {
             templateName: ic.invoiceWaTemplateName,
             languageCode: ic.invoiceWaLanguageCode || 'en',
             components
-        });
+        }, { source: 'platform_invoice' });
 
         return result;
     } catch (err) {

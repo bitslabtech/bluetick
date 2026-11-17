@@ -3,6 +3,7 @@ import axios from 'axios';
 import { ClipboardList, CheckCircle, Trash2, Mail, Phone, CalendarClock } from 'lucide-react';
 import { useUI } from '../../context/UIContext';
 import Skeleton from 'react-loading-skeleton';
+import { formatDate } from '../../utils/dateFormat';
 
 export default function VcardEnquiries() {
     const [enquiries, setEnquiries] = useState([]);
@@ -110,7 +111,7 @@ export default function VcardEnquiries() {
                                             <span className="sm:hidden text-[11px] font-bold text-slate-400 uppercase tracking-wider">Date</span>
                                             <div className="flex items-center gap-1">
                                                 <CalendarClock className="w-4 h-4" />
-                                                {new Date(enq.createdAt).toLocaleDateString()}
+                                                {formatDate(enq.createdAt)}
                                             </div>
                                         </td>
                                         <td className="block sm:table-cell px-0 sm:px-4 pt-4 sm:py-4 mt-2 sm:mt-0 border-t border-slate-100 dark:border-white/5 sm:border-0">

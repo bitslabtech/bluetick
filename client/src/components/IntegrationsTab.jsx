@@ -10,6 +10,7 @@ import {
 import { useUI } from '../context/UIContext';
 import { useAuth } from '../context/AuthContext';
 import ApiDocs from './ApiDocs';
+import { formatDate, formatDateTime, formatTime } from '../utils/dateFormat';
 
 const IntegrationsTab = () => {
     const { showToast, showModal } = useUI();
@@ -403,7 +404,7 @@ const IntegrationsTab = () => {
                                                         </div>
                                                     </td>
                                                     <td className="px-4 md:px-6 py-4 text-right text-slate-500">
-                                                        {new Date(key.createdAt).toLocaleDateString()}
+                                                        {formatDate(key.createdAt)}
                                                     </td>
                                                     <td className="px-4 md:px-6 py-4 text-center">
                                                         {key.isActive ? (
@@ -440,7 +441,7 @@ const IntegrationsTab = () => {
                                                 <div>
                                                     <h4 className="font-bold text-slate-900 dark:text-white">{key.label}</h4>
                                                     <div className="text-xs text-slate-500 mt-0.5">
-                                                        {new Date(key.createdAt).toLocaleDateString()}
+                                                        {formatDate(key.createdAt)}
                                                     </div>
                                                 </div>
                                                 <button 
@@ -721,7 +722,7 @@ const IntegrationsTab = () => {
                                                                 {call.responseTimeMs ? `${call.responseTimeMs}ms` : '—'}
                                                             </td>
                                                             <td className="px-5 py-3 text-right text-xs text-slate-400">
-                                                                {new Date(call.createdAt).toLocaleString()}
+                                                                {formatDateTime(call.createdAt)}
                                                             </td>
                                                         </tr>
                                                     ))}
@@ -744,7 +745,7 @@ const IntegrationsTab = () => {
                                                         </code>
                                                         <div className="shrink-0 text-right flex flex-col items-end">
                                                             <div className="text-[11px] text-slate-400 font-mono">
-                                                                {new Date(call.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                                                {formatTime(call.timestamp, { seconds: true })}
                                                             </div>
                                                             <div className="text-[11px] text-slate-400 mt-0.5 font-medium bg-slate-100 dark:bg-white/5 px-1.5 py-0.5 rounded">
                                                                 {call.responseTimeMs}ms

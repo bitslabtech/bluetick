@@ -169,6 +169,12 @@ const User = sequelize.define('User', {
         type: DataTypes.STRING,
         allowNull: true
     },
+    // Time zone used to count days and months in reports and the plan message limit
+    timezone: {
+        type: DataTypes.STRING(64),
+        allowNull: false,
+        defaultValue: 'Asia/Kolkata'
+    },
     metaQualityRating: {
         type: DataTypes.STRING,
         allowNull: true
@@ -309,6 +315,15 @@ const User = sequelize.define('User', {
             phone: ''        // Billing contact phone (may differ from login phone)
         },
         comment: 'User billing/GST details used for invoice generation. Snapshotted at purchase time.'
+    },
+
+    // Immutable consent record written once at registration.
+    // { registeredAt, ip, privacyVersion, termsVersion, policies: ['privacy','terms'] }
+    consentLog: {
+        type: DataTypes.JSONB,
+        allowNull: true,
+        defaultValue: null,
+        comment: 'Immutable record of policy versions the user consented to at registration.'
     }
 }, {
     timestamps: true

@@ -9,6 +9,7 @@ import ThemeToggle from '../components/ThemeToggle';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { formatDateTime } from '../utils/dateFormat';
 
 const AdminPlans = () => {
     const { user } = useAuth();
@@ -364,7 +365,7 @@ const AdminPlans = () => {
 
                                     {metaRatesLastUpdated && (
                                         <p className="text-[11px] text-slate-400 dark:text-slate-500">
-                                            Last updated: {new Date(metaRatesLastUpdated).toLocaleString()}
+                                            Last updated: {formatDateTime(metaRatesLastUpdated)}
                                         </p>
                                     )}
 

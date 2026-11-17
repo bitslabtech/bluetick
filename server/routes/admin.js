@@ -97,6 +97,19 @@ router.get('/activity-logs', async (req, res) => {
 });
 
 // 2. GET System Stats
+// Superadmin date ranges, counted in India time (default account time zone)
+const outboundMetrics = require('../services/outbound/metrics');
+const outboundTime = require('../services/outbound/time');
+const ADMIN_TZ = outboundTime.DEFAULT_TZ;
+const adminRange = (startDate, endDate) => {
+    if (startDate && endDate) {
+        const { start, end } = outboundTime.resolveRange('custom', startDate, endDate, ADMIN_TZ);
+        return { start, end };
+    }
+    const now = new Date();
+    return { start: outboundTime.addDays(outboundTime.startOfDay(now, ADMIN_TZ), -29, ADMIN_TZ), end: now };
+};
+
 router.get('/stats', async (req, res) => {
     try {
         // --- DATE FILTERING ---
@@ -121,6 +134,8 @@ router.get('/stats', async (req, res) => {
             };
         }
 
+        const msgRange = adminRange(startDate, endDate);
+
         // --- A. KPI CARDS ---
         // Users & Active Plans usually represent "Current State", so we might keep them all-time.
         // But let's filter NEW users if requested? No, usually "Total Users" is the current base.
@@ -130,10 +145,9 @@ router.get('/stats', async (req, res) => {
             totalUsers,
             activePlans,
             revenueResult,
-            totalMessages,
-            deliveredCount,
-            failedCount,
-            messagesForGraph,
+            msgCounts,
+            messageVolumeRaw,
+            platformMessages,
             revenueForGraph,
             recentPurchases,
             planDistribution,
@@ -144,27 +158,10 @@ router.get('/stats', async (req, res) => {
             User.count(),
             User.count({ where: { planStatus: 'Active' } }),
             Transaction.aggregate('amount', 'sum', { where: { status: 'COMPLETED', ...dateFilter } }),
-            ChatMessage.count({ where: { direction: 'OUTBOUND', ...dateFilter } }),
-            ChatMessage.count({ 
-                where: { 
-                    direction: 'OUTBOUND', 
-                    [Op.or]: [
-                        Sequelize.where(Sequelize.fn('lower', Sequelize.col('status')), 'delivered'),
-                        Sequelize.where(Sequelize.fn('lower', Sequelize.col('status')), 'read')
-                    ], 
-                    ...dateFilter 
-                } 
-            }),
-            ChatMessage.count({ 
-                where: { 
-                    direction: 'OUTBOUND', 
-                    [Op.and]: [
-                        Sequelize.where(Sequelize.fn('lower', Sequelize.col('status')), 'failed')
-                    ],
-                    ...dateFilter 
-                } 
-            }),
-            ChatMessage.findAll({ attributes: ['createdAt'], where: { direction: 'OUTBOUND', ...dateFilter }, order: [['createdAt', 'ASC']], raw: true }),
+            // Messages: one ledger, every feature, excluding Bluetick's own number and outside sends
+            outboundMetrics.summary(msgRange),
+            outboundMetrics.dailyVolume(msgRange, ADMIN_TZ),
+            outboundMetrics.platformBySource(msgRange),
             Transaction.findAll({ attributes: ['createdAt', 'amount'], where: { status: 'COMPLETED', ...dateFilter }, order: [['createdAt', 'ASC']], raw: true }),
             Transaction.findAll({ limit: 5, order: [['createdAt', 'DESC']], where: { status: 'COMPLETED', ...dateFilter } }),
             User.findAll({ attributes: ['plan', [sequelize.fn('count', sequelize.col('id')), 'count']], group: ['plan'], raw: true }),
@@ -186,8 +183,8 @@ router.get('/stats', async (req, res) => {
         ]);
 
         const totalRevenue = revenueResult || 0;
-        const deliveryRate = totalMessages > 0 ? ((deliveredCount / totalMessages) * 100).toFixed(1) : 0;
-        const failedRate = totalMessages > 0 ? ((failedCount / totalMessages) * 100).toFixed(1) : 0;
+        const totalMessages = msgCounts.sent; // accepted by Meta (failed and blocked not included)
+        const { deliveryRate, failedRate } = msgCounts;
 
         // --- B. GRAPHS (Filtered & Gap-Filled) ---
         const generateDailyBuckets = (start, end) => {
@@ -208,20 +205,6 @@ router.get('/stats', async (req, res) => {
 
         const rangeStart = startDate ? new Date(startDate) : new Date(new Date().setDate(new Date().getDate() - 30));
         const rangeEnd = endDate ? new Date(endDate) : new Date();
-
-        const volumeMap = generateDailyBuckets(rangeStart, rangeEnd) || {};
-        messagesForGraph.forEach(msg => {
-            const rawDate = msg.createdAt || msg.created_at || msg.date || msg.Date;
-            if (rawDate) {
-                const d = new Date(rawDate);
-                if (!isNaN(d.getTime())) {
-                    const key = d.toISOString().split('T')[0];
-                    volumeMap[key] = (volumeMap[key] || 0) + 1;
-                }
-            }
-        });
-
-        const messageVolumeRaw = Object.entries(volumeMap).map(([date, count]) => ({ date, count })).sort((a, b) => new Date(a.date) - new Date(b.date));
 
         const revenueMap = generateDailyBuckets(rangeStart, rangeEnd) || {};
         revenueForGraph.forEach(tx => {
@@ -298,13 +281,20 @@ router.get('/stats', async (req, res) => {
                 totalRevenue,
                 totalMessages,
                 deliveryRate,
-                failedRate
+                failedRate,
+                attemptedMessages: msgCounts.attempted,
+                deliveredMessages: msgCounts.delivered,
+                readMessages: msgCounts.read,
+                failedMessages: msgCounts.failed,
+                blockedMessages: msgCounts.blocked
             },
             graphs: {
                 messageVolume: messageVolumeRaw,
                 revenueGrowth: revenueGrowthRaw,
                 aiTokenVolume: aiTokenVolumeRaw
             },
+            // Bluetick's own number (OTPs, billing, invoices, alerts, store-owner fallback). Not in the totals above.
+            platformMessages,
             recentPurchases: purchasesWithUser,
             planDistribution,
             activityLogs: logsWithUser,
@@ -314,6 +304,30 @@ router.get('/stats', async (req, res) => {
     } catch (err) {
         console.error("Admin Stats Error:", err);
         res.status(500).json({ error: 'Server Error', details: err.message });
+    }
+});
+
+// GET Failed message breakdown by reason (for dashboard modal)
+router.get('/stats/failed-breakdown', async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+        let dateFilter = {};
+        if (startDate && endDate) {
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            dateFilter = { createdAt: { [Op.between]: [new Date(startDate), end] } };
+        } else {
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            dateFilter = { createdAt: { [Op.gte]: thirtyDaysAgo } };
+        }
+
+        // Every failed message from every feature (campaign send-time failures included), one wording per reason
+        const { total, breakdown } = await outboundMetrics.failedReasons(adminRange(startDate, endDate));
+        res.json({ total, breakdown });
+    } catch (err) {
+        console.error('Failed breakdown error:', err);
+        res.status(500).json({ error: 'Server Error' });
     }
 });
 
@@ -899,6 +913,75 @@ router.get('/users/:id/details', async (req, res) => {
         });
     } catch (err) {
         console.error("User Details Error:", err);
+        res.status(500).json({ error: 'Server Error: ' + err.message });
+    }
+});
+
+// GET WhatsApp usage reconciliation: messages Meta billed/delivered vs messages Bluetick logged for one user.
+// A positive gap means some sender is not recording its messages (or the webhook missed them).
+router.get('/users/:id/usage-check', async (req, res) => {
+    try {
+        const { getUsageSummary, ymd } = require('../utils/waUsage');
+        const month = /^\d{4}-\d{2}$/.test(req.query.month || '') ? req.query.month : ymd(new Date()).slice(0, 7);
+        const [y, m] = month.split('-').map(Number);
+        const from = `${month}-01`;
+        const to = ymd(new Date(Date.UTC(y, m, 0)));
+        const s = await getUsageSummary(req.params.id, from, to, { force: req.query.refresh === '1' });
+        if (!s.connected) return res.json({ connected: false, month });
+
+        const other = s.byFeature.find(f => f.key === 'external');
+        res.json({
+            connected: true,
+            month,
+            currency: s.currency,
+            syncError: s.syncError,
+            metaDelivered: s.totals.volume,
+            loggedDelivered: s.loggedDelivered,
+            unattributed: other ? other.delivered : 0,
+            gap: s.totals.volume - s.loggedDelivered,
+            spend: s.totals.spend,
+            byFeature: s.byFeature
+        });
+    } catch (err) {
+        console.error('Usage check error:', err);
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
+// GET User Consent Log
+router.get('/users/:id/consent', async (req, res) => {
+    try {
+        const targetUser = await User.findByPk(req.params.id, { attributes: ['id', 'name', 'email', 'consentLog', 'createdAt'] });
+        if (!targetUser) return res.status(404).json({ error: 'User not found' });
+
+        const PolicyVersion = require('../models/PolicyVersion');
+        const LandingPage = require('../models/LandingPage');
+
+        const consentLog = targetUser.consentLog || null;
+        const currentVersions = (await LandingPage.findOne({ attributes: ['publicPagesVersions'] }))?.publicPagesVersions || {};
+
+        // For each policy the user consented to, fetch the archived version content
+        const versionDetails = {};
+        if (consentLog?.allVersions) {
+            for (const [key, ver] of Object.entries(consentLog.allVersions)) {
+                if (!ver) continue;
+                const record = await PolicyVersion.findOne({
+                    where: { policyKey: key, version: ver },
+                    attributes: ['id', 'policyKey', 'version', 'note', 'publishedAt', 'content'],
+                    order: [['publishedAt', 'DESC']]
+                });
+                versionDetails[key] = record ? record.toJSON() : { version: ver, content: null, note: 'Content not archived (pre-versioning)' };
+                // Add gap indicator: is current version newer than what user agreed to?
+                versionDetails[key].currentVersion = currentVersions[key]?.version || null;
+                versionDetails[key].isOutdated = currentVersions[key]?.version
+                    ? currentVersions[key].version !== ver
+                    : false;
+            }
+        }
+
+        res.json({ consentLog, versionDetails, user: { id: targetUser.id, name: targetUser.name, email: targetUser.email, createdAt: targetUser.createdAt } });
+    } catch (err) {
+        console.error('Consent log error:', err);
         res.status(500).json({ error: 'Server Error: ' + err.message });
     }
 });

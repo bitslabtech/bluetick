@@ -4,6 +4,8 @@ const { Op } = require('sequelize');
 const Conversation = require('../models/Conversation');
 const ChatMessage = require('../models/ChatMessage');
 const Settings = require('../models/Settings');
+const outbound = require('../services/outbound');
+const { resolveSendSettings } = require('../services/outbound/credentials');
 const Template = require('../models/Template');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
@@ -35,20 +37,18 @@ router.use((req, res, next) => {
 });
 
 // Helper: Send to Meta API
-const sendToMeta = async (settings, payload) => {
-    const res = await fetch(`https://graph.facebook.com/v21.0/${settings.metaPhoneNumberId}/messages`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${settings.metaAccessToken}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
+// Sends through the outbound gateway (ledger, plan allowance, status tracking). Throws on failure.
+const sendToMeta = async (settings, payload, ctx = {}) => {
+    const r = await outbound.sendOrThrow({
+        ownerId: settings.userId,
+        source: 'inbox',
+        payload,
+        refs: { conversationId: ctx.conversationId },
+        actorId: ctx.actorId,
+        credentials: { token: settings.metaAccessToken, phoneNumberId: settings.metaPhoneNumberId },
+        skipApiGuard: true // the routes check API-to-API themselves and save the failed bubble
     });
-    const data = await res.json();
-    if (!res.ok) {
-        throw new Error(data.error?.message || 'Meta API Error');
-    }
-    return data;
+    return r.data;
 };
 
 // GET /conversations - List of chats (supports teamPolicy visibility + assignedFilter)
@@ -403,7 +403,7 @@ router.post('/send/text', async (req, res) => {
         }
 
         // 2. Get Settings
-        const settings = await Settings.findOne({ where: { userId: ownerId } });
+        const settings = await resolveSendSettings(ownerId);
         if (!settings?.metaAccessToken) return res.status(403).json({ error: 'WhatsApp not configured' });
 
         // 3. Send to Meta
@@ -423,8 +423,11 @@ router.post('/send/text', async (req, res) => {
         // don't send; save the message as failed with the reason instead.
         const blockedApiNumber = await isWhatsAppApiNumber(targetPhone);
         let metaRes = {};
+        const sendCtx = { conversationId: conversation.id, actorId: req.user.realId || req.user.id };
         if (!blockedApiNumber) {
-            metaRes = await sendToMeta(settings, payload);
+            metaRes = await sendToMeta(settings, payload, sendCtx);
+        } else {
+            outbound.recordLocalFailure({ ownerId, source: 'inbox', to: targetPhone, refs: { conversationId: conversation.id }, code: 'API_TO_API', actorId: sendCtx.actorId });
         }
 
         if (metaRes.contacts?.[0]?.wa_id && metaRes.contacts[0].wa_id !== conversation.phoneNumber) {
@@ -502,7 +505,7 @@ router.post('/send/media', async (req, res) => {
         }
 
         // 2. Get Settings
-        const settings = await Settings.findOne({ where: { userId: ownerId } });
+        const settings = await resolveSendSettings(ownerId);
         if (!settings?.metaAccessToken) return res.status(403).json({ error: 'WhatsApp not configured' });
 
         // 3. Send to Meta
@@ -526,8 +529,11 @@ router.post('/send/media', async (req, res) => {
         // don't send; save the message as failed with the reason instead.
         const blockedApiNumber = await isWhatsAppApiNumber(targetPhone);
         let metaRes = {};
+        const sendCtx = { conversationId: conversation.id, actorId: req.user.realId || req.user.id };
         if (!blockedApiNumber) {
-            metaRes = await sendToMeta(settings, payload);
+            metaRes = await sendToMeta(settings, payload, sendCtx);
+        } else {
+            outbound.recordLocalFailure({ ownerId, source: 'inbox', to: targetPhone, refs: { conversationId: conversation.id }, code: 'API_TO_API', actorId: sendCtx.actorId });
         }
 
         if (metaRes.contacts?.[0]?.wa_id && metaRes.contacts[0].wa_id !== conversation.phoneNumber) {
@@ -655,7 +661,7 @@ router.post('/send/template', async (req, res) => {
             }
         }
 
-        const settings = await Settings.findOne({ where: { userId: ownerId } });
+        const settings = await resolveSendSettings(ownerId);
         if (!settings?.metaAccessToken) return res.status(403).json({ error: 'WhatsApp not configured' });
 
         const targetPhone = conversation.phoneNumber.startsWith('0') 
@@ -677,8 +683,11 @@ router.post('/send/template', async (req, res) => {
         // don't send; save the message as failed with the reason instead.
         const blockedApiNumber = await isWhatsAppApiNumber(targetPhone);
         let metaRes = {};
+        const sendCtx = { conversationId: conversation.id, actorId: req.user.realId || req.user.id };
         if (!blockedApiNumber) {
-            metaRes = await sendToMeta(settings, payload);
+            metaRes = await sendToMeta(settings, payload, sendCtx);
+        } else {
+            outbound.recordLocalFailure({ ownerId, source: 'inbox', to: targetPhone, refs: { conversationId: conversation.id }, code: 'API_TO_API', actorId: sendCtx.actorId });
         }
 
         if (metaRes.contacts?.[0]?.wa_id && metaRes.contacts[0].wa_id !== conversation.phoneNumber) {
@@ -1022,6 +1031,7 @@ router.post('/ai-draft', async (req, res) => {
         const messages = await ChatMessage.findAll({
             where: {
                 conversationId,
+                source: { [Op.or]: [{ [Op.is]: null }, { [Op.ne]: 'call' }] }, // call events are not part of the conversation text
                 // Respect "Clear chat": don't draft from messages the team has cleared
                 ...(draftConversation.clearedAt ? { createdAt: { [Op.gt]: draftConversation.clearedAt } } : {})
             },

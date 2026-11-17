@@ -7,6 +7,7 @@ import { useUI } from '../context/UIContext';
 import { CreditCard, Database, PackageSearch, Tag, Download, CheckCircle, Package, Truck, Info, Plus, ShoppingBag, Trash2, Edit2, X, Image as ImageIcon, Eye, EyeOff } from 'lucide-react';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
+import { formatDate } from '../utils/dateFormat';
 
 export default function AdminNfcManager() {
     const { showToast } = useUI();
@@ -516,7 +517,7 @@ export default function AdminNfcManager() {
                                         </tr>
                                     ) : orders.map(order => (
                                         <tr key={order.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
-                                            <td className="px-4 md:px-6 py-4 text-slate-500">{new Date(order.createdAt).toLocaleDateString()}</td>
+                                            <td className="px-4 md:px-6 py-4 text-slate-500">{formatDate(order.createdAt)}</td>
                                             <td className="px-4 md:px-6 py-4 font-medium text-slate-900 dark:text-white">
                                                 {order.user?.name}
                                             </td>

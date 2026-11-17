@@ -16,9 +16,11 @@ async function workspaceUserIds(ownerId) {
  * best-effort and must not break webhook processing. Tokens Expo reports as
  * DeviceNotRegistered are removed.
  */
-async function pushToWorkspace(ownerId, { title, body, data }) {
+async function pushToWorkspace(ownerId, { title, body, data, userIds: only }) {
     try {
-        const userIds = await workspaceUserIds(ownerId);
+        // `only` limits the push to specific workspace members (e.g. missed-call recipients)
+        const all = await workspaceUserIds(ownerId);
+        const userIds = Array.isArray(only) ? all.filter((id) => only.includes(id)) : all;
         // Expo tokens only: call tokens (fcm / apns_voip) are not Expo tokens and are used just for calls.
         const devices = await DeviceToken.findAll({
             where: { userId: { [Op.in]: userIds }, kind: { [Op.or]: ['expo', null] } },

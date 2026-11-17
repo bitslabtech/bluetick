@@ -7,6 +7,7 @@ import BillingProfileComp from '../components/BillingProfile';
 import { usePayment } from '../hooks/usePayment';
 import { useAuth } from '../context/AuthContext';
 import { hasUsablePlan } from '../utils/planAccess';
+import { formatDate } from '../utils/dateFormat';
 
 const API = import.meta.env.VITE_API_URL || '';
 
@@ -30,9 +31,9 @@ const Checkout = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // A user whose current plan still works is only *looking* at an upgrade — let them leave.
+    // A user whose current plan still works is only *looking* at an upgrade/downgrade — let them leave.
     const { user: authUser } = useAuth();
-    const canKeepCurrentPlan = hasUsablePlan(authUser) && !!authUser?.plan;
+    const canKeepCurrentPlan = hasUsablePlan(authUser) && !!authUser?.plan && plan?.name !== authUser?.plan;
 
     // Track if user has a billing profile (to show GST warning)
     const [billingProfile, setBillingProfile] = useState(null);
@@ -922,7 +923,7 @@ const Checkout = () => {
                                                     </div>
                                                     <div className="flex justify-between items-center text-sm border-t border-slate-200 dark:border-white/10 pt-3">
                                                         <span className="text-slate-500 dark:text-slate-400">Submitted On</span>
-                                                        <span className="text-slate-900 dark:text-white font-medium">{new Date(pendingRequest.createdAt).toLocaleDateString()}</span>
+                                                        <span className="text-slate-900 dark:text-white font-medium">{formatDate(pendingRequest.createdAt)}</span>
                                                     </div>
                                                 </div>
 

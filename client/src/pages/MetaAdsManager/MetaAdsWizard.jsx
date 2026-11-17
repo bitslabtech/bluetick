@@ -12,6 +12,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { io } from 'socket.io-client';
+import { formatDateTime } from '../../utils/dateFormat';
 
 // ── LocationSearchInput: Smart Meta Targeting Geo Search ──────────────────────────
 // Calls /api/meta-ads/location-search (Meta Graph API or curated fallback)
@@ -1473,7 +1474,7 @@ const navigate = useNavigate();
                                         {tooShort ? '⚠️ Too short! Min 24h required:' : '📅 Campaign scheduled:'}
                                     </span>
                                     <span className={`text-xs ${tooShort ? 'text-red-700 dark:text-red-300' : 'text-amber-700 dark:text-amber-300'}`}>
-                                        {new Date(schedulingStart).toLocaleString()} → {new Date(schedulingEnd).toLocaleString()} ({durationH}h)
+                                        {formatDateTime(schedulingStart)} → {formatDateTime(schedulingEnd)} ({durationH}h)
                                     </span>
                                 </div>
                             );

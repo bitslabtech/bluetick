@@ -13,6 +13,8 @@ const Call = require('../models/Call');
 const Conversation = require('../models/Conversation');
 const Settings = require('../models/Settings');
 const User = require('../models/User');
+const Template = require('../models/Template');
+const ChatMessage = require('../models/ChatMessage');
 const Addon = require('../models/Addon');
 const UserAddon = require('../models/UserAddon');
 const DeviceToken = require('../models/DeviceToken');
@@ -50,7 +52,14 @@ async function getCallStatus(ownerId) {
     const owner = await User.findByPk(ownerId, { attributes: ['id', 'metaTier'] });
     const callSettings = elig.resolveCallSettings(settings?.callSettings);
     const tier = elig.checkTier(owner?.metaTier);
-    const base = { callSettings, messagingLimit: tier.limit, minimumLimit: elig.MIN_MESSAGING_LIMIT };
+    // Show the selected template's review state next to each automatic message.
+    const messageTemplates = {};
+    for (const key of ['missedCallMessage', 'closedMessage']) {
+        const id = callSettings[key].templateId;
+        const t = id ? await Template.findOne({ where: { id, userId: ownerId } }) : null;
+        if (t) messageTemplates[key] = { id: t.id, name: t.name, content: t.content, status: t.status, usable: elig.templateUsable(t).ok };
+    }
+    const base = { callSettings, messageTemplates, messagingLimit: tier.limit, minimumLimit: elig.MIN_MESSAGING_LIMIT };
 
     if (!settings?.metaAccessToken || !settings?.metaPhoneNumberId) return { state: 'whatsapp_not_connected', ...base };
     if (!(await hasVoiceAddon(ownerId))) return { state: 'addon_required', ...base };
@@ -150,28 +159,174 @@ function publicCall(c) {
         answeredAt: c.answeredAt,
         endedAt: c.endedAt,
         durationSec: c.durationSec,
+        autoMessage: c.autoMessage || null,
     };
+}
+
+/** Who the call rang, for the call detail screen: [{ id, name, declined }]. */
+async function rangMembers(call) {
+    const ids = call.ringTargets || [];
+    if (!ids.length) return [];
+    const users = await User.findAll({ where: { id: { [Op.in]: ids } }, attributes: ['id', 'name'] });
+    const names = new Map(users.map((u) => [u.id, u.name]));
+    return ids.map((id) => ({ id, name: names.get(id) || 'Team member', declined: (call.declinedBy || []).includes(id) }));
+}
+
+// ── call event in the chat thread ───────────────────────────────────────────────────────────
+
+const mmss = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+
+/** One line for the thread, or null when the call should not show up in the chat. */
+function callEventText(call) {
+    switch (call.status) {
+        case 'missed': return 'Missed voice call';
+        case 'declined': return 'Voice call declined';
+        case 'failed': return 'Voice call failed';
+        case 'ended': return call.durationSec ? `Voice call · ${mmss(call.durationSec)}` : 'Voice call';
+        case 'rejected':
+            if (call.endReason === 'outside_hours') return 'Voice call outside business hours';
+            if (call.endReason === 'no_devices') return 'Missed voice call';
+            return null; // add-on / eligibility / switched off: not something the team needs to see in the chat
+        default: return null;
+    }
+}
+
+/**
+ * Add the finished call to the conversation as a "call" event. It is stored as an INBOUND row with
+ * source 'call' and no effect on unread counts, the 24 h window or usage (a call is not a message).
+ * Idempotent: the Meta-style messageId is derived from the call id. Never throws.
+ */
+async function logCallEvent(call) {
+    try {
+        const body = callEventText(call);
+        if (!body || !call.conversationId) return;
+        const messageId = `call:${call.id}`;
+        if (await ChatMessage.findOne({ where: { messageId } })) return;
+        const timestamp = call.endedAt || new Date();
+        const message = await ChatMessage.create({
+            conversationId: call.conversationId,
+            messageId,
+            direction: 'INBOUND',
+            type: 'call',
+            body,
+            status: 'read',
+            source: 'call',
+            timestamp,
+            templateData: { call: { id: call.id, status: call.status, endReason: call.endReason || null, durationSec: call.durationSec || 0, answeredByName: call.answeredByName || null } },
+        });
+        const conversation = await Conversation.findByPk(call.conversationId);
+        if (conversation) {
+            conversation.lastMessage = body;
+            conversation.lastMessageAt = timestamp;
+            await conversation.save();
+            emit(call.userId, 'new_message', { conversation, message });
+        }
+    } catch (e) {
+        warn(`could not log call ${call.id} in the chat:`, e.message);
+    }
 }
 
 // ── automatic WhatsApp message ─────────────────────────────────────────────────────────────────
 
+/** First word of the caller's profile name, or "there" when we only have a number. */
+function callerFirstName(call) {
+    const n = String(call.contactName || '').trim();
+    if (!n || /^\+?[\d\s()-]+$/.test(n)) return 'there';
+    return n.split(/\s+/)[0];
+}
+
+/**
+ * Send the configured automatic message and record what happened on the call.
+ *  template mode: an approved template works any time (even outside the 24 h window); if it is
+ *                 not usable (pending/rejected/deleted) we fall back to the text when the window is open.
+ *  text mode:     only inside the customer's 24 h window, otherwise skipped (never sent).
+ * Never throws: it must not break call handling.
+ */
 async function sendAutoMessage(call, settings, which) {
+    const record = (o) => call.update({ autoMessage: { which, ...o } }).catch(() => {});
     try {
         const cfg = elig.resolveCallSettings(settings.callSettings)[which];
-        if (!cfg?.enabled || !cfg.text) return;
+        if (!cfg?.enabled) return record({ outcome: 'skipped', reason: 'disabled' });
+
+        const conv = call.conversationId ? await Conversation.findByPk(call.conversationId) : null;
+        const windowOpen = elig.isWindowOpen(conv?.lastInboundMessageAt);
+
+        let type = 'text';
+        let payload = null;
+        let summary = '';
+        let mode = 'text';
+        let fallbackReason = null;
+
+        if (cfg.mode === 'template') {
+            const t = cfg.templateId ? await Template.findOne({ where: { id: cfg.templateId, userId: call.userId } }) : null;
+            const u = elig.templateUsable(t);
+            if (u.ok) {
+                const name = callerFirstName(call);
+                type = 'template';
+                mode = 'template';
+                summary = String(t.content || '').replace(/\{\{\s*1\s*\}\}/g, name);
+                payload = {
+                    messaging_product: 'whatsapp', recipient_type: 'individual', to: call.phoneNumber, type: 'template',
+                    template: {
+                        name: t.name,
+                        language: { code: t.language || 'en_US' },
+                        ...(u.variables === 1 ? { components: [{ type: 'body', parameters: [{ type: 'text', text: name }] }] } : {}),
+                    },
+                };
+            } else {
+                fallbackReason = t ? `template_${String(t.status || 'unusable').toLowerCase()}` : 'template_missing';
+            }
+        }
+
+        if (!payload) {
+            if (!cfg.text) return record({ outcome: 'skipped', reason: fallbackReason || 'no_text' });
+            if (!windowOpen) return record({ outcome: 'skipped', reason: fallbackReason ? `${fallbackReason}_window_closed` : 'window_closed' });
+            summary = cfg.text;
+            payload = { messaging_product: 'whatsapp', recipient_type: 'individual', to: call.phoneNumber, type: 'text', text: { preview_url: false, body: cfg.text } };
+        }
+
         const { sendWhatsAppAndLog } = require('../utils/whatsappSender');
         await sendWhatsAppAndLog({
             userId: call.userId,
             metaPhoneNumberId: settings.metaPhoneNumberId,
             metaAccessToken: settings.metaAccessToken,
             toPhone: call.phoneNumber,
-            type: 'text',
-            payload: { messaging_product: 'whatsapp', recipient_type: 'individual', to: call.phoneNumber, type: 'text', text: { preview_url: false, body: cfg.text } },
-            summaryBody: cfg.text,
+            type,
+            payload,
+            summaryBody: summary,
+            source: 'call_followup',
+            refs: { refType: 'call', refId: call.id },
+        });
+        await record({ outcome: 'sent', mode, ...(fallbackReason ? { reason: fallbackReason } : {}) });
+    } catch (e) {
+        const reason = e.response?.data?.error?.message || e.message;
+        warn(`auto message (${which}) failed for ${call.id}:`, reason);
+        await record({ outcome: 'failed', reason: String(reason).slice(0, 200) });
+    }
+}
+
+// ── missed-call notification ───────────────────────────────────────────────────────────────────
+
+/**
+ * "Missed call" push for the owner, the admins and everyone who was rung. Best-effort.
+ * A decline by a member does not notify that member (they know), but owner/admins still hear of it.
+ */
+async function notifyMissed(call, { silentFor = [] } = {}) {
+    try {
+        const users = await workspaceUsers(call.userId);
+        const staff = users.filter((u) => u.id === call.userId || u.teamRole === 'admin').map((u) => u.id);
+        const ids = Array.from(new Set([...staff, ...(call.ringTargets || [])])).filter((id) => !silentFor.includes(id));
+        if (!ids.length) return;
+        const who = call.contactName || `+${call.phoneNumber}`;
+        const body = call.endReason === 'outside_hours' ? `${who} called outside business hours` : `${who} tried to call you`;
+        await require('../utils/pushNotifications').pushToWorkspace(call.userId, {
+            userIds: ids,
+            title: 'Missed call',
+            body,
+            data: { type: 'missed_call', callId: call.id, conversationId: call.conversationId || null },
         });
     } catch (e) {
-        // e.g. outside the free-reply window: never let this break call handling
-        warn(`auto message (${which}) not sent for ${call.id}:`, e.response?.data?.error?.message || e.message);
+        warn(`missed-call notification failed for ${call.id}:`, e.message);
     }
 }
 
@@ -188,6 +343,9 @@ async function finish(call, status, endReason, { settings, notifyCaller = false,
     if (rejectAtMeta && settings) await meta.rejectCall(settings, call.metaCallId).catch((e) => warn(`reject failed ${call.id}:`, e.response?.data?.error?.message || e.message));
     await stopRinging(call, status === 'missed' ? 'unanswered' : 'remoteEnded');
     if (autoMessage && settings) await sendAutoMessage(call, settings, autoMessage);
+    await logCallEvent(call);
+    if (status === 'missed' || status === 'declined') await notifyMissed(call, { silentFor: status === 'declined' ? (call.declinedBy || []) : [] });
+    if (autoMessage) emit(`team_${call.userId}`, 'call_update', publicCall(call));
     return true;
 }
 
@@ -226,6 +384,8 @@ async function handleIncoming({ ownerId, settings, call: c, contactName }) {
         const row = await record('rejected', endReason);
         await meta.rejectCall(settings, c.id).catch((e) => warn(`reject failed ${c.id}:`, e.response?.data?.error?.message || e.message));
         if (autoMessage) await sendAutoMessage(row, settings, autoMessage);
+        await logCallEvent(row);
+        if (endReason === 'outside_hours' || endReason === 'no_devices') await notifyMissed(row);
         emit(`team_${ownerId}`, 'call_update', publicCall(row));
         log(`refused ${c.id}: ${endReason}`);
     };
@@ -265,6 +425,7 @@ async function handleTerminate({ settings, call: c }) {
         const end = new Date();
         const dur = c.duration ? Number(c.duration) : Math.max(0, Math.round((end - new Date(row.answeredAt || row.startedAt)) / 1000));
         await row.update({ status: 'ended', endReason: 'completed', endedAt: end, durationSec: dur });
+        await logCallEvent(row);
         emit(`team_${row.userId}`, 'call_update', publicCall(row));
     }
 }
@@ -283,6 +444,7 @@ async function answer(call, user, sdpAnswer, settings) {
         const msg = e.response?.data?.error?.message || e.message;
         warn(`accept failed ${call.id}: ${msg}`);
         await call.update({ status: 'failed', endReason: 'accept_failed', endedAt: new Date() });
+        await logCallEvent(call);
         emit(`team_${call.userId}`, 'call_update', publicCall(call));
         return { ok: false, code: 'accept_failed', message: msg };
     }
@@ -306,6 +468,7 @@ async function hangup(call, settings) {
     await meta.terminateCall(settings, call.metaCallId).catch((e) => warn(`terminate failed ${call.id}:`, e.response?.data?.error?.message || e.message));
     const end = new Date();
     await call.update({ status: 'ended', endReason: 'completed', endedAt: end, durationSec: Math.max(0, Math.round((end - new Date(call.answeredAt || call.startedAt)) / 1000)) });
+    await logCallEvent(call);
     emit(`team_${call.userId}`, 'call_update', publicCall(call));
     return true;
 }
@@ -367,6 +530,9 @@ module.exports = {
     sweep,
     startSweep,
     publicCall,
+    logCallEvent,
+    callEventText,
+    rangMembers,
     stageOneTargets,
     stageTwoTargets,
 };

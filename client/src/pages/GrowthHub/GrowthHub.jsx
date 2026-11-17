@@ -16,10 +16,10 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useUI } from '../../context/UIContext';
-import { formatDistanceToNow } from 'date-fns';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import { io } from 'socket.io-client';
+import { formatRelative } from '../../utils/dateFormat';
 
 // ── Helpers ─────────────────────────────────────────────────────────
 const fmt = (n, decimals = 0) => {
@@ -254,7 +254,7 @@ const OverviewTab = ({ campaigns, ctwaData, loading, navigate, handleCreateCampa
                                             <div className="min-w-0">
                                                 <p className="font-bold text-slate-900 dark:text-white text-sm truncate">{campaign.campaignName}</p>
                                                 <p className="text-xs text-slate-500 mt-0.5">
-                                                    {campaign.createdAt ? formatDistanceToNow(new Date(campaign.createdAt), { addSuffix: true }) : '—'}
+                                                    {campaign.createdAt ? formatRelative(campaign.createdAt) : '—'}
                                                 </p>
                                             </div>
                                         </div>
@@ -633,7 +633,7 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, handleCr
                                                     )}
                                                 </div>
                                                 <span className="text-[11px] text-slate-400 hidden sm:block">
-                                                    {campaign.createdAt ? formatDistanceToNow(new Date(campaign.createdAt), { addSuffix: true }) : '—'}
+                                                    {campaign.createdAt ? formatRelative(campaign.createdAt) : '—'}
                                                 </span>
                                                 <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                                             </div>
@@ -653,7 +653,7 @@ const CampaignsTab = ({ campaigns: initialCampaigns, loading, navigate, handleCr
                                                 {hasInsights ? (
                                                     <>
                                                         <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 mt-0.5">₹{fmt(spent, 2)}</p>
-                                                        <p className="text-[10px] text-slate-400">{campaign.insightsUpdatedAt ? `as of ${formatDistanceToNow(new Date(campaign.insightsUpdatedAt), {addSuffix:true})}` : 'from Meta'}</p>
+                                                        <p className="text-[10px] text-slate-400">{campaign.insightsUpdatedAt ? `as of ${formatRelative(campaign.insightsUpdatedAt)}` : 'from Meta'}</p>
                                                     </>
                                                 ) : (
                                                     <>
@@ -1335,7 +1335,7 @@ const LeadsTab = ({ isDarkMode, navigate }) => {
                                         </td>
                                         <td className="flex sm:table-cell justify-between items-center sm:justify-end px-0 sm:px-4 py-2 sm:py-3.5 border-t border-slate-100/50 sm:border-0 dark:border-white/5 text-xs text-slate-500 sm:text-right">
                                             <span className="sm:hidden text-[11px] font-bold text-slate-500 uppercase tracking-wider">Captured</span>
-                                            <span>{lead.createdAt ? formatDistanceToNow(new Date(lead.createdAt), { addSuffix: true }) : '—'}</span>
+                                            <span>{lead.createdAt ? formatRelative(lead.createdAt) : '—'}</span>
                                         </td>
                                         <td className="block sm:table-cell px-0 sm:px-4 py-3 sm:py-3.5 mt-2 sm:mt-0 border-t border-slate-100/50 sm:border-0 dark:border-white/5 sm:text-right">
                                             <button

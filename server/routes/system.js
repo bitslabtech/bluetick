@@ -1,4 +1,5 @@
 const express = require('express');
+const { GRAPH_URL } = require('../config/metaGraph');
 const router = express.Router();
 const SystemConfig = require('../models/SystemConfig');
 const Message = require('../models/Message');
@@ -583,7 +584,7 @@ router.post('/actions/:action', superAdmin, async (req, res) => {
                 }
 
                 // Verify credentials by fetching phone number info
-                const response = await fetch(`https://graph.facebook.com/v21.0/${whatsappSettings.metaPhoneNumberId}`, {
+                const response = await fetch(`${GRAPH_URL}/${whatsappSettings.metaPhoneNumberId}`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${whatsappSettings.metaAccessToken}`
@@ -911,7 +912,7 @@ router.post('/actions/:action', superAdmin, async (req, res) => {
                     try {
                         const axios = require('axios');
                         const metaRes = await axios.post(
-                            `https://graph.facebook.com/v21.0/${wabaId}/message_templates`,
+                            `${GRAPH_URL}/${wabaId}/message_templates`,
                             {
                                 name: name,
                                 language: 'en',
@@ -987,7 +988,7 @@ router.post('/actions/:action', superAdmin, async (req, res) => {
                     try {
                         const axios = require('axios');
                         await axios.delete(
-                            `https://graph.facebook.com/v21.0/${wabaId}/message_templates?name=${name}`,
+                            `${GRAPH_URL}/${wabaId}/message_templates?name=${name}`,
                             { headers: { 'Authorization': `Bearer ${token}` } }
                         );
                     } catch (metaErr) {
@@ -1074,7 +1075,7 @@ router.post('/actions/:action', superAdmin, async (req, res) => {
                             };
                             console.log(`[BatchSubmit] Sending to Meta (${i+1}/${batchTemplates.length}): ${name} | vars=${bodyVarCount} | body="${sanitizedBody.substring(0,80)}..."`);
                             const metaRes = await axiosLib.post(
-                                `https://graph.facebook.com/v21.0/${wabaId}/message_templates`,
+                                `${GRAPH_URL}/${wabaId}/message_templates`,
                                 metaPayload,
                                 {
                                     headers: {

@@ -7,6 +7,7 @@ import {
     CheckCircle2, AlertCircle, RefreshCw, Save, Info, TrendingUp,
     Phone, User, Send, Tag, X, MessageCircle
 } from "lucide-react";
+import { formatDateTime } from '../../utils/dateFormat';
 
 
 const API = import.meta.env.VITE_API_URL;
@@ -148,7 +149,7 @@ export default function WaStoreAbandonedCart() {
                                         <p className="text-sm text-slate-600 dark:text-slate-300"><strong className="text-slate-800 dark:text-white">Cart ID:</strong> <span className="font-mono font-bold text-orange-600 dark:text-orange-400">#{getAbnSerial(selectedCart.orderNumber)}</span></p>
                                         <p className="text-sm text-slate-600 dark:text-slate-300"><strong className="text-slate-800 dark:text-white">Total:</strong> {selectedCart.currency} {selectedCart.total}</p>
                                         <p className="text-sm text-slate-600 dark:text-slate-300"><strong className="text-slate-800 dark:text-white">Status:</strong> {selectedCart.abandonedReminderSent ? <span className="text-green-600 font-semibold">Reminder Sent</span> : <span className="text-amber-500 font-semibold">Pending</span>}</p>
-                                        <p className="text-sm text-slate-600 dark:text-slate-300"><strong className="text-slate-800 dark:text-white">Created:</strong> {new Date(selectedCart.createdAt).toLocaleString()}</p>
+                                        <p className="text-sm text-slate-600 dark:text-slate-300"><strong className="text-slate-800 dark:text-white">Created:</strong> {formatDateTime(selectedCart.createdAt)}</p>
                                     </div>
                                 </div>
                             </div>

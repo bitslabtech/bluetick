@@ -1,8 +1,10 @@
+const { Op } = require('sequelize');
 const ChatMessage = require('../models/ChatMessage');
 const ContactFlowState = require('../models/ContactFlowState');
 const FlowExecutionLog = require('../models/FlowExecutionLog');
 const { getIo } = require('../socket');
 const { isWhatsAppApiNumber, API_TO_API_ERROR } = require('../utils/apiNumberGuard');
+const outbound = require('./outbound');
 
 class FlowRunner {
     constructor(settings, conversation, userId, triggerType = 'keyword') {
@@ -433,7 +435,7 @@ class FlowRunner {
 
                 if (conversation) {
                     const lastMsg = await ChatMessage.findOne({
-                        where: { conversationId: conversation.id, direction: 'INBOUND' },
+                        where: { conversationId: conversation.id, direction: 'INBOUND', source: { [Op.or]: [{ [Op.is]: null }, { [Op.ne]: 'call' }] } }, // call events are not customer messages
                         order: [['createdAt', 'DESC']]
                     });
                     if (lastMsg) latestUserMessage = lastMsg.body;
@@ -480,7 +482,7 @@ class FlowRunner {
                     let history = [];
                     if (conversation) {
                         const allMsgs = await ChatMessage.findAll({
-                            where: { conversationId: conversation.id },
+                            where: { conversationId: conversation.id, source: { [Op.or]: [{ [Op.is]: null }, { [Op.ne]: 'call' }] } },
                             order: [['createdAt', 'ASC']]
                         });
                         
@@ -1030,6 +1032,7 @@ class FlowRunner {
             if (this._toApiNumber === undefined) this._toApiNumber = await isWhatsAppApiNumber(payload.to);
             if (this._toApiNumber) {
                 console.log(`[FLOW RUNNER] Not sent to ${payload.to} — WhatsApp API number`);
+                outbound.recordLocalFailure({ ownerId: this.userId, source: 'flowbot', to: payload.to, refs: { conversationId: this.conversation.id }, code: 'API_TO_API' });
                 const failedMsg = await ChatMessage.create({
                     conversationId: this.conversation.id,
                     messageId: null,
@@ -1050,17 +1053,17 @@ class FlowRunner {
                 return;
             }
 
-            const res = await fetch(`https://graph.facebook.com/v21.0/${this.settings.metaPhoneNumberId}/messages`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${this.settings.metaAccessToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
+            const sent = await outbound.sendMessage({
+                ownerId: this.userId,
+                source: 'flowbot',
+                payload,
+                refs: { conversationId: this.conversation.id, refType: 'flow', refId: this.flow?.id },
+                credentials: { token: this.settings.metaAccessToken, phoneNumberId: this.settings.metaPhoneNumberId },
+                skipApiGuard: true // checked above
             });
-            const metaRes = await res.json();
-            
-            if (metaRes.messages && metaRes.messages.length > 0) {
+            const metaRes = sent.data || {};
+
+            if (sent.ok) {
                 const outMsg = await ChatMessage.create({
                     conversationId: this.conversation.id,
                     messageId: metaRes.messages[0].id,
@@ -1079,7 +1082,22 @@ class FlowRunner {
 
                 getIo().to(this.userId).emit('new_message', { conversation: this.conversation, message: outMsg });
             } else {
-                console.error('[FLOW RUNNER] Meta API Error:', metaRes);
+                console.error('[FLOW RUNNER] Not sent:', sent.errorCode, sent.error);
+                // Show the failed step in the inbox with the reason (was silently dropped)
+                const failedMsg = await ChatMessage.create({
+                    conversationId: this.conversation.id,
+                    messageId: null,
+                    direction: 'OUTBOUND',
+                    type: logType,
+                    body: logBody,
+                    status: 'failed',
+                    errorMessage: sent.friendly || sent.error,
+                    source: 'flowbot',
+                    mediaUrl: extraData.mediaUrl || null,
+                    templateData: extraData.templateData || null,
+                    timestamp: new Date()
+                });
+                getIo().to(this.userId).emit('new_message', { conversation: this.conversation, message: failedMsg });
             }
         } catch (err) {
             console.error('[FLOW RUNNER] Network dispatch failed:', err);

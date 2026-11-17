@@ -5,7 +5,7 @@ import { Activity, Filter, Monitor, User, Shield, AlertCircle, CheckCircle, Cloc
 import { useAuth } from '../context/AuthContext';
 import AdminHeader from '../components/AdminHeader';
 import ThemeToggle from '../components/ThemeToggle';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDateTime, formatRelative } from '../utils/dateFormat';
 
 const AdminActivityLogs = () => {
     const { user } = useAuth();
@@ -164,11 +164,11 @@ const AdminActivityLogs = () => {
                                                 <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
                                                     <Clock className="w-3.5 h-3.5" />
                                                     <span className="font-mono text-xs">
-                                                        {new Date(log.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                        {formatDateTime(log.createdAt)}
                                                     </span>
                                                 </div>
                                                 <div className="text-[10px] text-slate-400 pl-6">
-                                                    {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
+                                                    {formatRelative(log.createdAt)}
                                                 </div>
                                             </td>
                                             <td className="px-4 md:px-6 py-4">
