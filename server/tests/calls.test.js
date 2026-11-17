@@ -135,7 +135,7 @@ beforeEach(() => {
     mockStore.owner = { id: 'owner', metaTier: 'TIER_2K' };
     mockStore.settings = {
         userId: 'owner', metaAccessToken: 't', metaPhoneNumberId: 'p', whatsappAutomations: {},
-        callSettings: { enabled: true, allowOutsideHours: true, fallbackAfterSec: 20 },
+        callSettings: { enabled: true, allowOutsideHours: true, fallbackAfterSec: 20, missedCallMessage: { enabled: true }, closedMessage: { enabled: true } },
     };
 });
 
@@ -404,6 +404,9 @@ describe('template rules', () => {
         expect(elig.templateUsable({ ...base, content: 'Hi {{1}} {{2}}' }).ok).toBe(false);
         expect(elig.templateUsable({ ...base, headerType: 'IMAGE' }).ok).toBe(false);
         expect(elig.templateUsable({ ...base, archetype: 'carousel' }).ok).toBe(false);
+        expect(elig.templateUsable({ ...base, archetype: 'simple_text' }).ok).toBe(true);
+        expect(elig.templateUsable({ ...base, archetype: 'quick_replies', buttons: [{ type: 'QUICK_REPLY', text: 'Yes' }] }).ok).toBe(true);
+        expect(elig.templateUsable({ ...base, archetype: 'call_to_action', buttons: [{ type: 'URL', text: 'Open', url: 'https://x.com/{{1}}' }] }).ok).toBe(false);
         expect(elig.templateUsable({ ...base, category: 'AUTHENTICATION' }).ok).toBe(false);
     });
 
