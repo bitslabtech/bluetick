@@ -28,6 +28,7 @@ import {
     ComposedChart, Area, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
     BarChart, ReferenceLine
 } from 'recharts';
+import { formatDateTime, formatShortDate, formatTime, getDateConfig } from '../utils/dateFormat';
 
 const FAST_POLL_MS = 3000;   // 3s when campaign is actively sending
 const SLOW_POLL_MS = 30000;  // 30s when campaign is finished
@@ -55,10 +56,13 @@ export default function CampaignDetails() {
     
     // Calculate Chart Data
     const generateChartData = () => {
-        if (!campaign || !campaign.processedLogs || campaign.processedLogs.length === 0) return { timeSeries: [], readDistribution: [], peakSummary: null };
+        if (!campaign) return { timeSeries: [], readDistribution: [], peakSummary: null };
 
         // ── Resolve all timestamps to ms ──────────────────────────────────────
-        const logsWithTs = campaign.processedLogs
+        // Prefer the server's events for every recipient; the loaded log list is only one page.
+        const logsWithTs = Array.isArray(campaign.chartEvents)
+            ? campaign.chartEvents.map(([status, sec]) => ({ status, tsMs: sec * 1000 })).filter(e => !isNaN(e.tsMs))
+            : (campaign.processedLogs || [])
             .map(log => {
                 if (!log.timestamp) return null;
                 const ts = typeof log.timestamp === 'string' && log.timestamp.includes('-')
@@ -98,13 +102,13 @@ export default function CampaignDetails() {
             const d = new Date(tsMs);
             if (bucketMs >= 24 * 3600 * 1000) {
                 // daily: "Sep 23"
-                return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                return formatShortDate(d);
             } else if (bucketMs >= 3600 * 1000) {
-                // hourly+: "9/23 10:00"
-                return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:00`;
+                // hourly+: "23 Sep 10:00 AM"
+                return `${formatShortDate(d)} ${formatTime(d)}`;
             } else {
-                // sub-hour: "10:15"
-                return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+                // sub-hour: "10:15 AM"
+                return formatTime(d);
             }
         };
 
@@ -195,12 +199,15 @@ export default function CampaignDetails() {
                     timestamp: l.metaTimestamp || l.updatedAt || msg.createdAt
                 }));
 
-                const sentCount = normalizedLogs.filter(l => ['SENT', 'DELIVERED', 'READ', 'CLICKED'].includes(l.status)).length;
-                const deliveredCount = normalizedLogs.filter(l => l.status === 'DELIVERED').length;
-                const readCount = normalizedLogs.filter(l => ['READ', 'CLICKED'].includes(l.status)).length;
-                const clickedCount = normalizedLogs.filter(l => l.status === 'CLICKED').length;
-                const failedCount = normalizedLogs.filter(l => l.status === 'FAILED').length;
-                const retryPendingCount = normalizedLogs.filter(l => l.status === 'RETRY_PENDING').length;
+                // Counts come from the server (all recipients, same definitions as Dashboard/Reports).
+                // The log list itself is paginated, so counting it here was wrong above 1,000 recipients.
+                const sentCount = msg.sentCount ?? 0;
+                const readCount = msg.readCount ?? 0;
+                // The "Delivered" tab lists delivered-but-not-yet-read logs, so its count is delivered minus read
+                const deliveredCount = Math.max(0, (msg.deliveredCount ?? 0) - readCount);
+                const clickedCount = msg.clickedCount ?? 0;
+                const failedCount = msg.failedCount ?? 0;
+                const retryPendingCount = msg.retryPendingCount ?? normalizedLogs.filter(l => l.status === 'RETRY_PENDING').length;
 
                 setCampaign({
                     ...msg,
@@ -212,7 +219,8 @@ export default function CampaignDetails() {
                         clicked: clickedCount,
                         failed: failedCount,
                         retryPending: retryPendingCount,
-                        total: msg.recipientCount
+                        deliveredTotal: msg.deliveredCount ?? 0,
+                        total: msg.attemptedCount || msg.recipientCount
                     }
                 });
 
@@ -311,7 +319,7 @@ export default function CampaignDetails() {
     const getTabsConfigs = () => {
         const baseTabs = [
             { id: 'all', label: 'All Recipients', icon: Users, count: campaign.stats.total || 0, color: 'text-slate-600' },
-            { id: 'DELIVERED', label: 'Delivered', icon: CheckCheck, count: campaign.stats.delivered || 0, color: 'text-green-500' },
+            { id: 'DELIVERED', label: 'Delivered, not read', icon: CheckCheck, count: campaign.stats.delivered || 0, color: 'text-green-500' },
             { id: 'READ', label: 'Read', icon: CheckCheck, count: campaign.stats.read || 0, color: 'text-blue-500' },
             { id: 'FAILED', label: 'Failed', icon: X, count: campaign.stats.failed || 0, color: 'text-red-500' },
             ...(campaign.stats.retryPending > 0 ? [{ id: 'RETRY_PENDING', label: 'Retry Pending', icon: RefreshCcw, count: campaign.stats.retryPending, color: 'text-amber-500' }] : [])
@@ -392,12 +400,12 @@ export default function CampaignDetails() {
                             {campaign.scheduledFor && campaign.status === 'SCHEDULED' ? (
                                 <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-500 font-bold bg-amber-50 dark:bg-amber-900/10 px-2.5 py-0.5 rounded-lg border border-amber-200 dark:border-amber-800/30">
                                     <Calendar className="w-4 h-4" />
-                                    Scheduled for {new Date(campaign.scheduledFor).toLocaleString()}
+                                    Scheduled for {formatDateTime(campaign.scheduledFor)}
                                 </span>
                             ) : (
                                 <span className="flex items-center gap-1.5 hover:text-slate-900 dark:hover:text-white transition-colors">
                                     <Calendar className="w-4 h-4" />
-                                    {new Date(campaign.createdAt).toLocaleString()}
+                                    {formatDateTime(campaign.createdAt)}
                                 </span>
                             )}
                             <span className="flex items-center gap-1.5 hover:text-slate-900 dark:hover:text-white transition-colors">
@@ -715,7 +723,7 @@ export default function CampaignDetails() {
                                             </td>
                                             <td className="px-4 md:px-6 py-4 text-sm text-slate-500 dark:text-text-secondary">
                                                 {log.status !== 'FAILED' && log.timestamp ? (
-                                                    new Date(parseInt(log.timestamp) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                                    formatTime(parseInt(log.timestamp) * 1000)
                                                 ) : (
                                                     <span className="opacity-30 text-xs">--:--</span>
                                                 )}
@@ -731,9 +739,9 @@ export default function CampaignDetails() {
                                                         <RefreshCcw className="w-3 h-3" />
                                                         {log.retryAfter ? (() => {
                                                             const d = new Date(log.retryAfter);
-                                                            const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                                                            const dateStr = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
-                                                            const tzStr = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                                                            const timeStr = formatTime(d);
+                                                            const dateStr = formatShortDate(d);
+                                                            const tzStr = getDateConfig().timeZone;
                                                             return `Retry at ${timeStr} · ${dateStr} (${tzStr})`;
                                                         })() : 'Retry scheduled'}
                                                     </span>

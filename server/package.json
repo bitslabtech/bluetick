@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon --ignore uploads/ --ignore plugins/ --ignore logs/ --ignore public/uploads/ --ignore '*.log' index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "check:outbound": "jest tests/outboundGateway.test.js"
   },
   "keywords": [],
   "author": "",

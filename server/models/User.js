@@ -169,6 +169,12 @@ const User = sequelize.define('User', {
         type: DataTypes.STRING,
         allowNull: true
     },
+    // Time zone used to count days and months in reports and the plan message limit
+    timezone: {
+        type: DataTypes.STRING(64),
+        allowNull: false,
+        defaultValue: 'Asia/Kolkata'
+    },
     metaQualityRating: {
         type: DataTypes.STRING,
         allowNull: true

@@ -168,7 +168,8 @@ async function sendAutoMessage(call, settings, which) {
             type: 'text',
             payload: { messaging_product: 'whatsapp', recipient_type: 'individual', to: call.phoneNumber, type: 'text', text: { preview_url: false, body: cfg.text } },
             summaryBody: cfg.text,
-            source: 'inbox',
+            source: 'call_followup',
+            refs: { refType: 'call', refId: call.id },
         });
     } catch (e) {
         // e.g. outside the free-reply window: never let this break call handling

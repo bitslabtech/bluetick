@@ -1,4 +1,5 @@
 const express = require('express');
+const { GRAPH_URL } = require('../config/metaGraph');
 const router = express.Router();
 const crypto = require('crypto');
 const axios = require('axios');
@@ -25,7 +26,8 @@ const { applyAutoTags } = require('../services/AutoTagger'); // Auto-Tagging Eng
 const { processAndStoreBuffer } = require('../utils/storageProvider');
 const path = require('path');
 const { isWhatsAppApiNumber, API_TO_API_ERROR } = require('../utils/apiNumberGuard');
-const { tagOutbound, recordPricing } = require('../utils/messageBilling');
+const outboundStatus = require('../services/outbound/status');
+const outbound = require('../services/outbound');
 
 // Map a Meta 'failed' status to a clear, user-facing reason.
 // Shared by campaign logs and the live inbox so both show the same wording.
@@ -396,13 +398,16 @@ router.post('/:userId', (req, res, next) => {
 
                         console.log(`[WEBHOOK] Status Update: ${upperStatus} for messageId: ${metaMessageId}`);
 
-                        // Usage page: record Meta's pricing category (paid/free) + sending feature for this message
-                        await recordPricing(userId, statusUpdate, rawStatus);
+                        // Ledger: forward-only status, pricing, failure reason (all reports read this)
+                        try { await outboundStatus.applyStatus(userId, statusUpdate); }
+                        catch (ledgerErr) { console.error('[WEBHOOK] Ledger status update failed:', ledgerErr.message); }
 
                         // --- Update Campaign MessageLog ---
                         try {
                             const log = await MessageLog.findOne({ where: { messageId: metaMessageId } });
-                            if (log) {
+                            if (log && !outboundStatus.canMove(log.status, rawStatus)) {
+                                console.log(`[WEBHOOK] MessageLog ${log.id}: ignoring out-of-order ${upperStatus} (already ${log.status})`);
+                            } else if (log) {
                                 console.log(`[WEBHOOK] Found MessageLog (campaign): ${log.id} | Updating status: ${log.status} → ${upperStatus}`);
                                 log.status = upperStatus;
                                 if (statusUpdate.timestamp) log.metaTimestamp = statusUpdate.timestamp;
@@ -421,7 +426,9 @@ router.post('/:userId', (req, res, next) => {
                         // --- Update/Create Inbox ChatMessage ---
                         try {
                             const chatMsg = await ChatMessage.findOne({ where: { messageId: metaMessageId } });
-                            if (chatMsg) {
+                            if (chatMsg && !outboundStatus.canMove(chatMsg.status, rawStatus)) {
+                                console.log(`[WEBHOOK] ChatMessage ${chatMsg.id}: ignoring out-of-order ${rawStatus} (already ${chatMsg.status})`);
+                            } else if (chatMsg) {
                                 // Message already in inbox (e.g. inbound reply, or manual send)
                                 console.log(`[WEBHOOK] Found ChatMessage (inbox): ${chatMsg.id} | Updating status: ${chatMsg.status} → ${rawStatus}`);
                                 chatMsg.status = rawStatus;
@@ -440,7 +447,7 @@ router.post('/:userId', (req, res, next) => {
                                 } catch (socketErr) {
                                     console.error('[WEBHOOK ERROR] Socket emit failed:', socketErr.message);
                                 }
-                            } else if (rawStatus === 'delivered') {
+                            } else if (rawStatus === 'delivered' || rawStatus === 'read') {
                                 // ── OPTION A: First delivery confirmation for a campaign message ──
                                 // No ChatMessage exists yet — create it now from the cached inboxPayload.
                                 console.log(`[WEBHOOK] No ChatMessage found for ${metaMessageId} and status=delivered. Creating inbox entry (Option A).`);
@@ -494,7 +501,7 @@ router.post('/:userId', (req, res, next) => {
                                                 language: templateLanguage,
                                                 components: richComponents
                                             },
-                                            status: 'delivered',
+                                            status: rawStatus, // 'read' when Meta's delivered webhook was missed
                                             source: 'campaign',
                                             timestamp: new Date()
                                         });
@@ -541,6 +548,7 @@ router.post('/:userId', (req, res, next) => {
                                                 error: `Frequency cap hit (131049). Retry ${nextRetryCount}/${MAX_RETRIES} scheduled in ${delayHours}h.`
                                             });
                                             console.log(`[WEBHOOK 131049] Scheduled retry ${nextRetryCount}/${MAX_RETRIES} for msgId ${metaMessageId} at ${retryAfter.toISOString()} (+${delayHours}h)`);
+                                            await outboundStatus.markRetryPending(metaMessageId);
 
                                             // OPTION A: No ChatMessage is created at send time.
                                             // The inbox shows the message only when Meta confirms
@@ -634,7 +642,7 @@ router.post('/:userId', (req, res, next) => {
                                     console.log(`[WEBHOOK] Downloading ${messageType} media ID: ${mediaObj.id}`);
                                     
                                     // 1. Get Media URL from Meta
-                                    const mediaUrlRes = await axios.get(`https://graph.facebook.com/v22.0/${mediaObj.id}`, {
+                                    const mediaUrlRes = await axios.get(`${GRAPH_URL}/${mediaObj.id}`, {
                                         headers: { 'Authorization': `Bearer ${foundSettings.metaAccessToken}` }
                                     });
                                     
@@ -748,6 +756,12 @@ router.post('/:userId', (req, res, next) => {
 
                         // --- TRACK CAMPAIGN BUTTON CLICKS ---
                         const outboundContextId = message.context?.id || null;
+                        // A reply or click proves the customer saw our messages, even with read receipts off
+                        await outboundStatus.inferReadFromReply(userId, contactWaId, {
+                            contextWamid: outboundContextId,
+                            isClick: !!outboundContextId && (messageType === 'button' || messageType === 'interactive'),
+                            at: new Date(timestamp || Date.now())
+                        });
                         if (outboundContextId && (messageType === 'button' || messageType === 'interactive')) {
                             try {
                                 const outboundLog = await MessageLog.findOne({ where: { messageId: outboundContextId } });
@@ -936,27 +950,21 @@ router.post('/:userId', (req, res, next) => {
                                             ? (automations.optOutAck || defaultOptOutAck)
                                             : (automations.optInAck  || defaultOptInAck);
 
-                                        const ackBlocked = await senderIsApiNumber();
-                                        if (ackBlocked) {
-                                            console.log(`[WEBHOOK][OPT] Ack not sent to ${contactWaId} — WhatsApp API number`);
-                                        } else {
-                                            const ackRes = await axios.post(
-                                                `https://graph.facebook.com/v22.0/${optSettings.metaPhoneNumberId}/messages`,
-                                                {
-                                                    messaging_product: 'whatsapp',
-                                                    to: contactWaId,
-                                                    type: 'text',
-                                                    text: { body: ackText }
-                                                },
-                                                { headers: { Authorization: `Bearer ${optSettings.metaAccessToken}`, 'Content-Type': 'application/json' } }
-                                            );
-                                            tagOutbound(userId, ackRes.data?.messages?.[0]?.id, 'auto_reply');
-                                            console.log(`[WEBHOOK][OPT] Ack sent to ${contactWaId}: "${ackText.substring(0, 60)}..."`);
-                                        }
+                                        // Gateway blocks API-to-API numbers itself and records every outcome
+                                        const ackSend = await outbound.sendMessage({
+                                            ownerId: userId,
+                                            source: 'opt_out_ack',
+                                            to: contactWaId,
+                                            payload: { type: 'text', text: { body: ackText } },
+                                            refs: { conversationId: conversation?.id }
+                                        });
+                                        const ackBlocked = !ackSend.ok;
+                                        if (ackSend.ok) console.log(`[WEBHOOK][OPT] Ack sent to ${contactWaId}: "${ackText.substring(0, 60)}..."`);
+                                        else console.log(`[WEBHOOK][OPT] Ack not sent to ${contactWaId}: ${ackSend.error}`);
 
                                         // Save ack text to Live Inbox
                                         if (conversation) {
-                                            const ackMessageId = 'sys_ack_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+                                            const ackMessageId = ackSend.wamid || ('sys_ack_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5));
                                             const ackChatMsg = await ChatMessage.create({
                                                 conversationId: conversation.id,
                                                 messageId: ackMessageId,
@@ -964,7 +972,7 @@ router.post('/:userId', (req, res, next) => {
                                                 type: 'text',
                                                 body: ackText,
                                                 status: ackBlocked ? 'failed' : 'sent',
-                                                errorMessage: ackBlocked ? API_TO_API_ERROR : null,
+                                                errorMessage: ackBlocked ? (ackSend.errorCode === 'API_TO_API' ? API_TO_API_ERROR : ackSend.error) : null,
                                                 source: 'auto_reply',
                                                 timestamp: new Date()
                                             });
@@ -1097,7 +1105,7 @@ router.post('/:userId', (req, res, next) => {
                                                             toPhone: contactWaId,
                                                             type: 'template',
                                                             payload: ctwaAutoReplyPayload,
-                                                            source: 'auto_reply',
+                                                            source: 'ctwa_welcome',
                                                             summaryBody: `Sent auto-reply template: ${ctwaTemplate.templateName}`
                                                         });
 
@@ -1358,6 +1366,7 @@ router.post('/:userId', (req, res, next) => {
                                         if (replyText && await senderIsApiNumber()) {
                                             // Not sent: show it in the inbox as failed with the reason
                                             console.log(`[WEBHOOK] Auto-reply not sent to ${contactWaId} — WhatsApp API number`);
+                                            outbound.recordLocalFailure({ ownerId: userId, source: 'auto_reply', to: contactWaId, refs: { conversationId: conversation.id }, code: 'API_TO_API' });
                                             const outMsg = await ChatMessage.create({
                                                 conversationId: conversation.id,
                                                 messageId: null,
@@ -1384,16 +1393,8 @@ router.post('/:userId', (req, res, next) => {
                                             };
 
                                             // Make asynchronous call
-                                            fetch(`https://graph.facebook.com/v21.0/${settings.metaPhoneNumberId}/messages`, {
-                                                method: 'POST',
-                                                headers: {
-                                                    'Authorization': `Bearer ${settings.metaAccessToken}`,
-                                                    'Content-Type': 'application/json'
-                                                },
-                                                body: JSON.stringify(metaPayload)
-                                            }).then(res => res.json()).then(async metaRes => {
+                                            outbound.sendMessage({ ownerId: userId, source: 'auto_reply', to: contactWaId, payload: metaPayload, refs: { conversationId: conversation.id } }).then(r => r.data || { error: { message: r.error, code: r.errorCode } }).then(async metaRes => {
                                                 if (metaRes.messages && metaRes.messages.length > 0) {
-                                                    tagOutbound(userId, metaRes.messages[0].id, 'auto_reply');
                                                     const outMsg = await ChatMessage.create({
                                                         conversationId: conversation.id,
                                                         messageId: metaRes.messages[0].id,
@@ -1460,16 +1461,8 @@ router.post('/:userId', (req, res, next) => {
                                             text: { preview_url: false, body: aiReplyText }
                                         };
 
-                                        fetch(`https://graph.facebook.com/v21.0/${settings.metaPhoneNumberId}/messages`, {
-                                            method: 'POST',
-                                            headers: {
-                                                'Authorization': `Bearer ${settings.metaAccessToken}`,
-                                                'Content-Type': 'application/json'
-                                            },
-                                            body: JSON.stringify(metaPayload)
-                                        }).then(res => res.json()).then(async metaRes => {
-                                            if (metaRes.messages && metaRes.messages.length > 0) {
-                                                tagOutbound(userId, metaRes.messages[0].id, 'ai_bot');
+                                        outbound.sendMessage({ ownerId: userId, source: 'ai_bot', to: contactWaId, payload: metaPayload, refs: { conversationId: conversation.id } }).then(r => r.data || { error: { message: r.error, code: r.errorCode } }).then(async metaRes => {
+                                                if (metaRes.messages && metaRes.messages.length > 0) {
                                                 const outMsg = await ChatMessage.create({
                                                     conversationId: conversation.id,
                                                     messageId: metaRes.messages[0].id,

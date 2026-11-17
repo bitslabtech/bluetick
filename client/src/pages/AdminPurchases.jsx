@@ -6,6 +6,7 @@ import AdminHeader from '../components/AdminHeader';
 import ThemeToggle from '../components/ThemeToggle';
 import { InvoiceDetailModal } from './AdminInvoices';
 import { useUI } from '../context/UIContext';
+import { formatDateTime } from '../utils/dateFormat';
 
 const AdminPurchases = ({ isComponent = false, parentSearchTerm }) => {
     const [transactions, setTransactions] = useState([]);
@@ -299,7 +300,7 @@ const AdminPurchases = ({ isComponent = false, parentSearchTerm }) => {
                                                     )}
                                                 </td>
                                                 <td className="px-4 md:px-6 py-4 text-slate-500 dark:text-slate-400">
-                                                    {new Date(t.createdAt).toLocaleString()}
+                                                    {formatDateTime(t.createdAt)}
                                                 </td>
                                             </tr>
                                             {expandedId === t.id && (
@@ -413,7 +414,7 @@ const AdminPurchases = ({ isComponent = false, parentSearchTerm }) => {
                                                                                         )}
                                                                                         <div className="flex justify-between">
                                                                                             <span className="text-amber-600 dark:text-amber-400">Submitted At</span>
-                                                                                            <span className="text-amber-800 dark:text-amber-200">{new Date(t.createdAt).toLocaleString()}</span>
+                                                                                            <span className="text-amber-800 dark:text-amber-200">{formatDateTime(t.createdAt)}</span>
                                                                                         </div>
                                                                                     </div>
                                                                                     {/* Payment Screenshots — plural array, up to 3 */}
@@ -479,7 +480,7 @@ const AdminPurchases = ({ isComponent = false, parentSearchTerm }) => {
                                                                                     </div>
                                                                                     <div className="pb-3 text-sm">
                                                                                         <p className="font-medium text-slate-900 dark:text-white">Checkout Created</p>
-                                                                                        <p className="text-xs text-slate-500">{new Date(t.createdAt).toLocaleString()}</p>
+                                                                                        <p className="text-xs text-slate-500">{formatDateTime(t.createdAt)}</p>
                                                                                     </div>
                                                                                 </div>
                                                                                 <div className="flex gap-3">
@@ -493,7 +494,7 @@ const AdminPurchases = ({ isComponent = false, parentSearchTerm }) => {
                                                                                         <p className="text-xs text-slate-500">
                                                                                             {t.paymentGateway === 'manual' ? 'Verified & approved by admin' : 'Webhook received & validated'}
                                                                                         </p>
-                                                                                        <p className="text-[10px] text-slate-400 mt-0.5">{new Date(t.updatedAt).toLocaleString()}</p>
+                                                                                        <p className="text-[10px] text-slate-400 mt-0.5">{formatDateTime(t.updatedAt)}</p>
                                                                                     </div>
                                                                                 </div>
                                                                             </div>

@@ -7,6 +7,7 @@ import WaStoreFooter from '../../components/WaStoreFooter';
 import { getThemeConfig } from '../../utils/wastoreThemes';
 import toast from 'react-hot-toast';
 import { getStoreRoute } from '../../utils/storeRouting';
+import { formatDateTime, formatMonth } from '../../utils/dateFormat';
 
 const STATUS_COLORS = {
     pending: 'bg-amber-50 text-amber-700 border-amber-200/60',
@@ -236,7 +237,7 @@ export default function StoreAccountPage({ store, products = [] }) {
                                 <p className="text-sm text-slate-300 mt-1 font-medium">{customer?.email || customer?.phone || 'Logged in'}</p>
                                 {customer?.createdAt && (
                                     <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
-                                        <Calendar size={12} /> Joined {new Date(customer.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                                        <Calendar size={12} /> Joined {formatMonth(customer.createdAt)}
                                     </p>
                                 )}
                             </div>
@@ -356,7 +357,7 @@ export default function StoreAccountPage({ store, products = [] }) {
                                                         </div>
                                                         <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
                                                             <Clock size={12} />
-                                                            {new Date(order.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                            {formatDateTime(order.createdAt)}
                                                         </p>
                                                     </div>
 

@@ -18,6 +18,7 @@ import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
 import ThemeToggle from '../components/ThemeToggle';
 import AdminHeader from '../components/AdminHeader';
+import { formatDate } from '../utils/dateFormat';
 
 const AdminSystemControls = () => {
     const { user } = useAuth();
@@ -771,7 +772,7 @@ const AdminSystemControls = () => {
                                                     {v.releasedAt && (
                                                         <span className="flex items-center gap-1 text-[10px] text-slate-400">
                                                             <Calendar className="w-3 h-3" />
-                                                            {new Date(v.releasedAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                            {formatDate(v.releasedAt)}
                                                         </span>
                                                     )}
                                                 </div>

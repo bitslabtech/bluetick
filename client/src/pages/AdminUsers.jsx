@@ -8,6 +8,7 @@ import AdminHeader from '../components/AdminHeader';
 import ThemeToggle from '../components/ThemeToggle';
 import { useNavigate } from 'react-router-dom';
 import { useUI } from '../context/UIContext';
+import { formatDate as fmtDate, formatDateTime, formatDateTime as fmtDateTime, formatTime } from '../utils/dateFormat';
 
 const AdminUsers = () => {
     const { user, impersonate } = useAuth();
@@ -599,7 +600,7 @@ const HistorySessionCard = ({ session }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const { startLog, actions } = session;
     const adminName = startLog?.User?.name || 'Unknown Admin';
-    const date = new Date(startLog.createdAt).toLocaleString();
+    const date = formatDateTime(startLog.createdAt);
 
     return (
         <div className="border border-slate-200 dark:border-white/10 rounded-lg overflow-hidden transition-all bg-slate-50 dark:bg-white/5">
@@ -630,7 +631,7 @@ const HistorySessionCard = ({ session }) => {
                                         <p className="text-xs text-slate-500 dark:text-text-secondary mt-0.5 whitespace-pre-wrap">
                                             {log.details.replace(/\(Impersonated by .*?\)/, '').trim()}
                                         </p>
-                                        <p className="text-[10px] text-slate-400 mt-1">{new Date(log.createdAt).toLocaleTimeString()}</p>
+                                        <p className="text-[10px] text-slate-400 mt-1">{formatTime(log.createdAt, { seconds: true })}</p>
                                     </div>
                                 </div>
                             ))}
@@ -749,12 +750,7 @@ const ViewUserModal = ({ user, details, loading, onClose }) => {
         return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
     };
 
-    const formatDate = (dateString) => {
-        if (!dateString) return 'N/A';
-        return new Date(dateString).toLocaleDateString('en-US', {
-            year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-        });
-    };
+    const formatDate = (dateString) => fmtDateTime(dateString, { fallback: 'N/A' });
 
     const handleTopUpTokens = async (e) => {
         e.preventDefault();
@@ -1060,7 +1056,7 @@ const ViewUserModal = ({ user, details, loading, onClose }) => {
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div className="bg-slate-50 dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/5">
                                                     <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Registered At</p>
-                                                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{cl.registeredAt ? new Date(cl.registeredAt).toLocaleString() : 'N/A'}</p>
+                                                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{cl.registeredAt ? formatDateTime(cl.registeredAt) : 'N/A'}</p>
                                                 </div>
                                                 <div className="bg-slate-50 dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/5">
                                                     <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">IP at Registration</p>
@@ -1102,7 +1098,7 @@ const ViewUserModal = ({ user, details, loading, onClose }) => {
                                                                     )}
                                                                 </div>
                                                                 {vInfo?.publishedAt && (
-                                                                    <p className="text-xs text-slate-400 mt-1 ml-6">Published {new Date(vInfo.publishedAt).toLocaleDateString()}{vInfo.note ? ` — ${vInfo.note}` : ''}</p>
+                                                                    <p className="text-xs text-slate-400 mt-1 ml-6">Published {fmtDate(vInfo.publishedAt)}{vInfo.note ? ` — ${vInfo.note}` : ''}</p>
                                                                 )}
                                                                 {previewVersion?.key === key && previewVersion.content && (
                                                                     <div

@@ -12,6 +12,7 @@ import ThemeToggle from '../components/ThemeToggle';
 import NotificationBell from '../components/NotificationBell';
 import UserDropdown from '../components/UserDropdown';
 import BillingProfileComp from '../components/BillingProfile';
+import { formatDate as fmtDate } from '../utils/dateFormat';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -868,10 +869,7 @@ export function BillingHistory() {
             .catch(() => setLoading(false));
     }, []);
 
-    const formatDate = (d) => {
-        if (!d) return '—';
-        return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-    };
+    const formatDate = (d) => fmtDate(d, { fallback: '—' });
     const formatCurrency = (v, c = 'INR') => {
         if (c === 'INR') return '₹' + parseFloat(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
         return `${c} ${parseFloat(v || 0).toFixed(2)}`;

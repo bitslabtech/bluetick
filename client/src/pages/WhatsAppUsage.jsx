@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Wallet, Send, Gift, RefreshCw, ExternalLink, AlertCircle, Info, ChevronDown, Layers } from 'lucide-react';
-import { format } from 'date-fns';
+import { formatShortDate, formatDateTime, dateKey } from '../utils/dateFormat';
 
 const API_BASE = import.meta.env.VITE_API_URL;
 const BILLING_HUB_URL = 'https://business.facebook.com/billing_hub/payment_activity';
@@ -45,7 +45,7 @@ export default function WhatsAppUsage() {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const today = format(new Date(), 'yyyy-MM-dd');
+    const today = dateKey(new Date());
 
     const load = useCallback(async (refresh = false) => {
         if (range === 'custom' && !(from && to && from <= to)) return;
@@ -78,7 +78,7 @@ export default function WhatsAppUsage() {
     const allowance = data?.freeAllowance;
     const allowancePct = allowance ? Math.min(100, (allowance.used / allowance.limit) * 100) : 0;
     const chartData = (data?.daily || []).map(d => ({
-        label: format(new Date(`${d.date}T00:00:00`), 'MMM d'),
+        label: formatShortDate(d.date),
         cost: Number(d.cost.toFixed(2)),
         messages: d.volume
     }));
@@ -291,7 +291,7 @@ export default function WhatsAppUsage() {
                             <p>
                                 Amounts are Meta's estimates and may differ slightly from your invoice. Only delivered messages are charged. For official invoices and payment history, open{' '}
                                 <a href={BILLING_HUB_URL} target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:underline">Meta Billing Hub</a>.
-                                {data?.syncedAt && <> Last updated {format(new Date(data.syncedAt), 'MMM d, h:mm a')}.</>}
+                                {data?.syncedAt && <> Last updated {formatDateTime(data.syncedAt)}.</>}
                             </p>
                         </div>
                     </>

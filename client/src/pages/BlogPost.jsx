@@ -7,6 +7,7 @@ import { useUI } from '../context/UIContext';
 import PublicLayout from '../components/landing/PublicLayout';
 import 'react-quill-new/dist/quill.snow.css'; // Import quill styles for correct rendering of editor content
 import DOMPurify from 'dompurify';
+import { formatDate } from '../utils/dateFormat';
 
 const BlogPost = () => {
     const { slug } = useParams();
@@ -133,7 +134,7 @@ const BlogPost = () => {
                         <ChevronLeft className="w-4 h-4" /> Back to Blog
                     </Link>
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex justify-center items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-widest text-xs mb-6">
-                        <Calendar className="w-4 h-4" /> {new Date(blog.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                        <Calendar className="w-4 h-4" /> {formatDate(blog.createdAt)}
                         <span className="mx-2 text-slate-300 dark:text-slate-700">•</span>
                         <User className="w-4 h-4" /> {blog.author?.name || 'Admin'}
                         <span className="mx-2 text-slate-300 dark:text-slate-700">•</span>

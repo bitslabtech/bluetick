@@ -4,6 +4,7 @@ import {
     X, MessageCircle, Zap, Bot, Reply, Megaphone,
     Calendar, ChevronRight, BarChart2, Clock, TrendingUp, Layers
 } from 'lucide-react';
+import { formatDate, formatMonth } from '../utils/dateFormat';
 
 const SOURCE_META = {
     broadcast:  { label: 'Broadcast',    icon: Megaphone,       color: 'indigo' },
@@ -22,7 +23,7 @@ const COLOR_CLASSES = {
 };
 
 const fmtDate = (d) =>
-    new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    formatDate(d);
 
 // Group dailyInbox rows by date, merging sources into one day object
 function groupByDate(dailyInbox) {
@@ -72,7 +73,7 @@ export default function UsageBreakdownModal({ onClose }) {
                             <BarChart2 className="w-5 h-5 text-indigo-500" /> This Month's Usage Breakdown
                         </h2>
                         <p className="text-xs text-slate-500 mt-0.5">
-                            {new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
+                            {formatMonth(new Date())}
                         </p>
                     </div>
                     <button

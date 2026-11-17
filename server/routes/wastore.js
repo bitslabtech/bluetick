@@ -1,4 +1,5 @@
 const express = require('express');
+const { GRAPH_URL } = require('../config/metaGraph');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const WaStore = require('../models/WaStore');
@@ -768,8 +769,12 @@ router.post('/orders', publicOrderLimiter, async (req, res) => {  // #5 — rate
     }
 });
 
+// The store owner's WhatsApp credentials (manual keys in Settings first, then Facebook sign-in)
+const storeWaCreds = async (user) => (user?.id ? require('../services/outbound/credentials').resolveCredentials(user.id) : null);
+
 async function sendWhatsAppInvoiceHelper(store, user, order, customerName, customerPhone) {
-    if (!user.fbAccessToken || !user.metaPhoneNumberId) return;
+    const creds = await storeWaCreds(user);
+    if (!creds) return;
     try {
         const { generateInvoicePdf } = require('../utils/invoiceGenerator');
         const fs = require('fs');
@@ -832,10 +837,10 @@ async function sendWhatsAppInvoiceHelper(store, user, order, customerName, custo
         form.append('type', 'document');
         form.append('messaging_product', 'whatsapp');
 
-        const uploadRes = await axios.post(`https://graph.facebook.com/v21.0/${user.metaPhoneNumberId}/media`, form, {
+        const uploadRes = await axios.post(`${GRAPH_URL}/${creds.phoneNumberId}/media`, form, {
             headers: {
                 ...form.getHeaders(),
-                'Authorization': `Bearer ${user.fbAccessToken}`
+                'Authorization': `Bearer ${creds.token}`
             }
         });
 
@@ -844,8 +849,6 @@ async function sendWhatsAppInvoiceHelper(store, user, order, customerName, custo
         const { sendWhatsAppAndLog } = require('../utils/whatsappSender');
         await sendWhatsAppAndLog({
             userId: user.id,
-            metaPhoneNumberId: user.metaPhoneNumberId,
-            metaAccessToken: user.fbAccessToken,
             toPhone: phone,
             type: 'document',
             payload: {
@@ -859,7 +862,9 @@ async function sendWhatsAppInvoiceHelper(store, user, order, customerName, custo
                     caption: `Hi ${customerName},\n\nThank you for your purchase at ${store.name}! Attached is your invoice for Order ${order.orderNumber}.`
                 }
             },
-            summaryBody: `Sent document: Invoice_${order.orderNumber}.pdf`
+            summaryBody: `Sent document: Invoice_${order.orderNumber}.pdf`,
+            source: 'store_invoice',
+            refs: { refType: 'order', refId: order.id }
         });
     } catch (err) {
         console.error("Failed to generate/send invoice:", err.response?.data || err.message);
@@ -937,7 +942,7 @@ async function sendOrderNotification(triggerKey, store, user, order, extras = {}
         if (!notifConfig?.enabled) return;
         if (!notifConfig?.templateId) return; // must have a template selected
         if (!order.customerPhone) return;
-        if (!user?.fbAccessToken || !user?.metaPhoneNumberId) return;
+        if (!(await storeWaCreds(user))) return;
 
         // Validate and normalize phone — must have at least 7 digits
         const phone = order.customerPhone.replace(/\D/g, '');
@@ -991,8 +996,6 @@ async function sendOrderNotification(triggerKey, store, user, order, extras = {}
         const { sendWhatsAppAndLog } = require('../utils/whatsappSender');
         await sendWhatsAppAndLog({
             userId: user.id,
-            metaPhoneNumberId: user.metaPhoneNumberId,
-            metaAccessToken: user.fbAccessToken,
             toPhone: phone,
             type: 'template',
             payload: {
@@ -1006,7 +1009,9 @@ async function sendOrderNotification(triggerKey, store, user, order, extras = {}
                     components
                 }
             },
-            summaryBody: `Sent template: ${tmpl.name}`
+            summaryBody: `Sent template: ${tmpl.name}`,
+            source: 'store_order',
+            refs: { refType: 'order', refId: order.id }
         });
 
         console.log(`[OrderNotif] Sent ${triggerKey} notification to ${phone} (template: ${tmpl.name})`);
@@ -1033,7 +1038,7 @@ async function sendOwnerOrderAlert(store, user, order) {
         const notifConfig = store.notificationTemplates?.['owner_order_alert'];
 
         // Scenario A: Owner HAS WhatsApp API configured + notification enabled
-        if (notifConfig?.enabled && notifConfig?.templateId && user.fbAccessToken && user.metaPhoneNumberId) {
+        if (notifConfig?.enabled && notifConfig?.templateId && (await storeWaCreds(user))) {
             const Template = require('../models/Template');
             const tmpl = await Template.findByPk(notifConfig.templateId);
             
@@ -1054,8 +1059,6 @@ async function sendOwnerOrderAlert(store, user, order) {
                 const { sendWhatsAppAndLog } = require('../utils/whatsappSender');
                 await sendWhatsAppAndLog({
                     userId: user.id,
-                    metaPhoneNumberId: user.metaPhoneNumberId,
-                    metaAccessToken: user.fbAccessToken,
                     toPhone: phone,
                     type: 'template',
                     payload: {
@@ -1069,7 +1072,9 @@ async function sendOwnerOrderAlert(store, user, order) {
                             components
                         }
                     },
-                    summaryBody: `Sent owner alert template: ${tmpl.name}`
+                    summaryBody: `Sent owner alert template: ${tmpl.name}`,
+                    source: 'store_owner_alert',
+                    refs: { refType: 'order', refId: order.id }
                 });
                 console.log(`[OwnerOrderAlert] Sent to owner via own API: ${phone}`);
                 return;
@@ -1092,7 +1097,7 @@ async function sendOwnerOrderAlert(store, user, order) {
             templateName: 'store_owner_new_order_alert',
             languageCode: 'en',
             components
-        });
+        }, { source: 'platform_store_fallback', refs: { refType: 'order', refId: order.id } });
         console.log(`[OwnerOrderAlert] Sent to owner via System CRM: ${phone}`);
 
     } catch (err) {
@@ -1172,7 +1177,7 @@ router.post('/:storeId/orders/pos', auth, async (req, res) => {
             }
         }
 
-        if (sendInvoice && user.fbAccessToken && user.metaPhoneNumberId) {
+        if (sendInvoice && (await storeWaCreds(user))) {
             await sendWhatsAppInvoiceHelper(store, user, order, customerName, customerPhone);
         }
 
@@ -3107,7 +3112,7 @@ router.post('/:storeId/orders/:orderId/fulfill', auth, async (req, res) => {
         // If we can send a rich tracking WhatsApp (with carrier + URL), send that and skip
         // the generic template notification to prevent double-messaging the customer.
         let trackingWaSent = false;
-        if (user && user.fbAccessToken && user.metaPhoneNumberId && order.customerPhone) {
+        if (user && order.customerPhone && (await storeWaCreds(user))) {
             const axios = require('axios');
             let phone = order.customerPhone.replace(/\D/g, '');
             const messageText = `Hi ${order.customerName},\n\nGreat news! Your order *${order.orderNumber}* from ${store.name} has been shipped.\n\n`
@@ -3119,8 +3124,6 @@ router.post('/:storeId/orders/:orderId/fulfill', auth, async (req, res) => {
                 const { sendWhatsAppAndLog } = require('../utils/whatsappSender');
                 await sendWhatsAppAndLog({
                     userId: user.id,
-                    metaPhoneNumberId: user.metaPhoneNumberId,
-                    metaAccessToken: user.fbAccessToken,
                     toPhone: phone,
                     type: 'text',
                     payload: {
@@ -3130,7 +3133,9 @@ router.post('/:storeId/orders/:orderId/fulfill', auth, async (req, res) => {
                         type: 'text',
                         text: { preview_url: true, body: messageText }
                     },
-                    summaryBody: `Sent shipping tracking details`
+                    summaryBody: `Sent shipping tracking details`,
+                    source: 'store_shipping',
+                    refs: { refType: 'order', refId: order.id }
                 });
                 trackingWaSent = true;
             } catch (err) {

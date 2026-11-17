@@ -4,11 +4,11 @@ import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { Ticket, Book, Map, Plus, Send, Search, ChevronRight, ThumbsUp, Paperclip, X, CreditCard, Laptop, HelpCircle, User, Menu, Coffee, Sparkles, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { formatDistanceToNow } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from '../components/ThemeToggle';
 import NotificationBell from '../components/NotificationBell';
 import UserDropdown from '../components/UserDropdown';
+import { formatDate, formatRelative } from '../utils/dateFormat';
 
 const parseInline = (text) => {
     const result = [];
@@ -967,7 +967,7 @@ const UserTicketManager = ({ tickets, refresh, initialView, initialTicketId, onV
                                     </div>
                                     <p className="text-slate-500 dark:text-slate-400 text-sm mb-5 line-clamp-2 leading-relaxed">{t.messages[0]?.text}</p>
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between border-t border-slate-100 dark:border-white/5 pt-4 gap-3">
-                                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs font-medium text-slate-400"><span>#{t.id.split('-')[0]}</span><span>Updated {formatDistanceToNow(new Date(t.lastReplyAt), { addSuffix: true })}</span></div>
+                                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs font-medium text-slate-400"><span>#{t.id.split('-')[0]}</span><span>Updated {formatRelative(t.lastReplyAt)}</span></div>
                                         <button className="text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 transition-colors">View Ticket</button>
                                     </div>
                                 </div>
@@ -1006,7 +1006,7 @@ const UserTicketManager = ({ tickets, refresh, initialView, initialTicketId, onV
                                                             onClick={() => window.open(msg.imageUrl, '_blank', 'noopener,noreferrer')}
                                                         />
                                                     )}
-                                                    <p className={`text-[10px] mt-2 opacity-70 text-slate-400`}>{formatDistanceToNow(new Date(msg.timestamp), { addSuffix: true })}</p>
+                                                    <p className={`text-[10px] mt-2 opacity-70 text-slate-400`}>{formatRelative(msg.timestamp)}</p>
                                                 </div>
                                             </div>
                                         ))}
@@ -1057,7 +1057,7 @@ const UserTicketManager = ({ tickets, refresh, initialView, initialTicketId, onV
                                     <div className="flex flex-row md:flex-col gap-4">
                                         <div className="flex-1 bg-white dark:bg-surface-dark p-4 rounded-xl border border-slate-200 shadow-sm text-sm">
                                             <h4 className="text-[10px] font-bold uppercase text-slate-400 mb-2 md:mb-3 tracking-wider">Details</h4>
-                                            <div className="flex justify-between mb-2"><span className="text-slate-500 text-xs">Created</span><span className="text-slate-900 dark:text-white text-xs">{new Date(selectedTicket.createdAt).toLocaleDateString()}</span></div>
+                                            <div className="flex justify-between mb-2"><span className="text-slate-500 text-xs">Created</span><span className="text-slate-900 dark:text-white text-xs">{formatDate(selectedTicket.createdAt)}</span></div>
                                             <div className="flex justify-between"><span className="text-slate-500 text-xs">Priority</span><span className="font-bold text-blue-500 text-xs">{selectedTicket.priority}</span></div>
                                         </div>
                                         <div className="flex-1 bg-white dark:bg-surface-dark p-4 rounded-xl border border-slate-200 shadow-sm">

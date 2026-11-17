@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useUI } from '../context/UIContext';
 import { useNotifications } from '../context/NotificationContext';
+import { formatDateTime } from '../utils/dateFormat';
 
 // ── Shared, unlocked AudioContext ─────────────────────────────────────────
 // We keep ONE context alive so browsers don't block it after the first
@@ -274,7 +275,7 @@ const NotificationBell = () => {
                                                             </div>
                                                         )}
                                                         <p className="text-[10px] text-slate-400 mt-1.5 flex items-center gap-1">
-                                                            {new Date(notif.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            {formatDateTime(notif.createdAt)}
                                                         </p>
                                                     </div>
                                                 </div>

@@ -6,6 +6,7 @@ import { Plus, Pencil, Trash2, Workflow, Clock, Zap, Search, Sparkles, AlertTria
 import TopHeader from "../../components/TopHeader";
 import { useAuth } from "../../context/AuthContext";
 import AIGenerateModal from "./AIGenerateModal";
+import { formatDate as fmtDate } from '../../utils/dateFormat';
 
 const API = import.meta.env.VITE_API_URL || "";
 
@@ -92,10 +93,7 @@ const FlowList = () => {
         (f.triggerKeyword || "").toLowerCase().includes(search.toLowerCase())
     );
 
-    const formatDate = (dateStr) => {
-        const d = new Date(dateStr);
-        return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-    };
+    const formatDate = (dateStr) => fmtDate(dateStr);
 
     const barColor = isAtLimit ? "bg-red-500" : usagePercent >= 80 ? "bg-amber-500" : "bg-indigo-500";
 

@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
 import { Ticket, Plus, Trash2, CheckCircle, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { formatDate } from '../../utils/dateFormat';
 
 export default function WaStoreCoupons() {
     const { storeId } = useOutletContext();
@@ -240,7 +241,7 @@ export default function WaStoreCoupons() {
                                     <td className="px-0 md:px-6 py-1.5 md:py-4 text-slate-500 block md:table-cell">
                                         <div className="flex items-center justify-between md:block">
                                             <span className="md:hidden text-xs font-semibold text-slate-500 uppercase tracking-wider">Expiry</span>
-                                            <span>{coupon.expiresAt ? new Date(coupon.expiresAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Never'}</span>
+                                            <span>{coupon.expiresAt ? formatDate(coupon.expiresAt) : 'Never'}</span>
                                         </div>
                                     </td>
                                     <td className="px-0 md:px-6 py-2 md:py-4 text-right block md:table-cell mt-3 md:mt-0 pt-3 md:pt-4 border-t border-slate-100 md:border-none">

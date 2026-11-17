@@ -22,10 +22,14 @@ import CRMLinkingPanel from '../components/CRMLinkingPanel';
 import UserDropdown from '../components/UserDropdown';
 import GlobalSearch from '../components/GlobalSearch';
 import EmbeddedSignupChecklist from '../components/EmbeddedSignupChecklist';
+import { formatDate, formatMonth } from '../utils/dateFormat';
+
+// Common account time zones (any IANA zone works on the server)
+const ACCOUNT_TIMEZONES = ['Asia/Kolkata', 'Asia/Dubai', 'Asia/Singapore', 'Asia/Riyadh', 'Asia/Dhaka', 'Asia/Kathmandu', 'Asia/Karachi', 'Asia/Jakarta', 'Europe/London', 'Europe/Berlin', 'America/New_York', 'America/Chicago', 'America/Los_Angeles', 'Australia/Sydney', 'UTC'];
 
 const Settings = () => {
     const { user, logout, fetchUser } = useAuth();
-    const { showModal, showToast } = useUI();
+    const { showModal, showToast, refreshSettings, setAccountTimezone, timeZone: accountTimeZone } = useUI();
     const location = useLocation();
     const searchParams = new URLSearchParams(location.search);
     const queryTab = searchParams.get('tab');
@@ -433,6 +437,19 @@ const Settings = () => {
         }));
     };
 
+    // Account time zone (User.timezone) — saved on change through its own endpoint
+    const handleAccountTimezone = async (e) => {
+        const timezone = e.target.value;
+        try {
+            await axios.put(`${import.meta.env.VITE_API_URL}/api/settings/account-timezone`, { timezone });
+            setAccountTimezone(timezone);
+            fetchUser?.();
+            showToast({ type: 'success', title: 'Time Zone Updated', message: `Dates now show in ${timezone}.` });
+        } catch (err) {
+            showToast({ type: 'error', title: 'Could not change time zone', message: err.response?.data?.error || err.message });
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -478,6 +495,7 @@ const Settings = () => {
 
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/settings`, formData);
             originalSettings.current = res.data;
+            refreshSettings?.(); // apply the new date format across the app
             showToast({
                 type: 'success',
                 title: 'Settings Saved',
@@ -1387,13 +1405,13 @@ const Settings = () => {
                                                     <div className="flex justify-between py-2 border-b border-slate-100 dark:border-white/5">
                                                         <span className="text-slate-500 dark:text-slate-400">Member Since</span>
                                                         <span className="font-mono text-slate-900 dark:text-white">
-                                                            {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Loading...'}
+                                                            {user?.createdAt ? formatMonth(user.createdAt) : 'Loading...'}
                                                         </span>
                                                     </div>
                                                     <div className="flex justify-between py-2">
                                                         <span className="text-slate-500 dark:text-slate-400">Last Login</span>
                                                         <span className="font-mono text-slate-900 dark:text-white">
-                                                            {user?.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Just now'}
+                                                            {user?.lastLogin ? formatDate(user.lastLogin) : 'Just now'}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -1539,6 +1557,20 @@ const Settings = () => {
                                                     <option value="MM/DD/YYYY">MM/DD/YYYY (12/31/2023)</option>
                                                     <option value="YYYY-MM-DD">YYYY-MM-DD (2023-12-31)</option>
                                                 </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Time Zone</label>
+                                                <select
+                                                    value={accountTimeZone || 'Asia/Kolkata'}
+                                                    onChange={handleAccountTimezone}
+                                                    disabled={!!user?.isAdmin || !!user?.parentUserId}
+                                                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:opacity-60"
+                                                >
+                                                    {[...new Set([accountTimeZone || 'Asia/Kolkata', ...ACCOUNT_TIMEZONES])].map(tz => (
+                                                        <option key={tz} value={tz}>{tz === 'Asia/Kolkata' ? 'India (Asia/Kolkata)' : tz.replace(/_/g, ' ')}</option>
+                                                    ))}
+                                                </select>
+                                                <p className="text-xs text-slate-500 mt-1.5">Dates and times are shown in this zone, and daily/monthly reports and limits are counted in it. Saved straight away.</p>
                                             </div>
                                         </div>
                                     </section>

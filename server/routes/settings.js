@@ -1,8 +1,9 @@
 const express = require('express');
+const { GRAPH_URL } = require('../config/metaGraph');
 const axios = require('axios');
 const router = express.Router();
 const Settings = require('../models/Settings');
-const { tagOutbound } = require('../utils/messageBilling');
+const outbound = require('../services/outbound');
 const auth = require('../middleware/auth');
 const logActivity = require('../utils/logger');
 const User = require('../models/User');
@@ -238,7 +239,7 @@ router.post('/', async (req, res) => {
         if (isWaUpdate && effectivePhoneId && effectiveToken && effectiveWabaId) {
             try {
                 // Validate WABA ID
-                const wabaRes = await fetch(`https://graph.facebook.com/v21.0/${effectiveWabaId}`, {
+                const wabaRes = await fetch(`${GRAPH_URL}/${effectiveWabaId}`, {
                     headers: { 'Authorization': `Bearer ${effectiveToken}` }
                 });
                 const wabaData = await wabaRes.json();
@@ -247,7 +248,7 @@ router.post('/', async (req, res) => {
                 }
 
                 // Validate Phone Number ID
-                const phoneRes = await fetch(`https://graph.facebook.com/v21.0/${effectivePhoneId}`, {
+                const phoneRes = await fetch(`${GRAPH_URL}/${effectivePhoneId}`, {
                     headers: { 'Authorization': `Bearer ${effectiveToken}` }
                 });
                 const phoneData = await phoneRes.json();
@@ -352,7 +353,7 @@ router.post('/', async (req, res) => {
                         };
 
                         const profileRes = await fetch(
-                            `https://graph.facebook.com/v21.0/${settings.metaPhoneNumberId}/whatsapp_business_profile`,
+                            `${GRAPH_URL}/${settings.metaPhoneNumberId}/whatsapp_business_profile`,
                             {
                                 method: 'POST',
                                 headers: {
@@ -387,7 +388,7 @@ router.post('/', async (req, res) => {
         if (settings.metaBusinessAccountId && settings.metaAccessToken) {
             try {
                 const subRes = await fetch(
-                    `https://graph.facebook.com/v21.0/${settings.metaBusinessAccountId}/subscribed_apps`,
+                    `${GRAPH_URL}/${settings.metaBusinessAccountId}/subscribed_apps`,
                     {
                         method: 'POST',
                         headers: { 'Authorization': `Bearer ${settings.metaAccessToken}` }
@@ -546,7 +547,7 @@ router.post('/upload-whatsapp-profile-img', upload.single('image'), async (req, 
 
         // Step 1: Initialize Resumable Upload Session
         console.log(`[WABA PROFILE DP] Init Upload Session for ${phoneId}`);
-        const initRes = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/uploads?file_length=${fileSize}&file_type=${fileType}`, {
+        const initRes = await fetch(`${GRAPH_URL}/${phoneId}/uploads?file_length=${fileSize}&file_type=${fileType}`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -561,7 +562,7 @@ router.post('/upload-whatsapp-profile-img', upload.single('image'), async (req, 
 
         // Step 2: Upload File Bytes
         console.log(`[WABA PROFILE DP] Uploading bytes to session ${uploadSessionId}`);
-        const uploadRes = await fetch(`https://graph.facebook.com/v21.0/${uploadSessionId}`, {
+        const uploadRes = await fetch(`${GRAPH_URL}/${uploadSessionId}`, {
             method: 'POST',
             headers: {
                 'Authorization': `OAuth ${token}`,
@@ -580,7 +581,7 @@ router.post('/upload-whatsapp-profile-img', upload.single('image'), async (req, 
 
         // Step 3: Set Web Profile Picture
         console.log(`[WABA PROFILE DP] Setting profile picture with handle ${fileHandle}`);
-        const setRes = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/whatsapp_business_profile`, {
+        const setRes = await fetch(`${GRAPH_URL}/${phoneId}/whatsapp_business_profile`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -621,7 +622,7 @@ router.get('/sync-whatsapp-profile', auth, async (req, res) => {
         const token = settings.metaAccessToken;
         const phoneId = settings.metaPhoneNumberId;
 
-        const response = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/whatsapp_business_profile?fields=about,address,description,email,profile_picture_url,websites,vertical`, {
+        const response = await fetch(`${GRAPH_URL}/${phoneId}/whatsapp_business_profile?fields=about,address,description,email,profile_picture_url,websites,vertical`, {
             method: 'GET',
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -678,7 +679,7 @@ router.post('/subscribe-waba', async (req, res) => {
         console.log(`[SUBSCRIBE-WABA] Subscribing app to WABA: ${wabaId}`);
 
         const response = await fetch(
-            `https://graph.facebook.com/v21.0/${wabaId}/subscribed_apps`,
+            `${GRAPH_URL}/${wabaId}/subscribed_apps`,
             {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -700,6 +701,22 @@ router.post('/subscribe-waba', async (req, res) => {
     } catch (err) {
         console.error('[SUBSCRIBE-WABA] Error:', err);
         res.status(500).json({ error: err.message });
+    }
+});
+
+// PUT /api/settings/account-timezone — time zone used to count days and months in reports and the plan limit
+router.put('/account-timezone', auth, async (req, res) => {
+    try {
+        if (req.user.parentUserId) return res.status(403).json({ error: 'Only the account owner can change this.' });
+        const tz = String(req.body?.timezone || '').trim();
+        try { Intl.DateTimeFormat('en-US', { timeZone: tz }); } catch { return res.status(400).json({ error: 'Unknown time zone' }); }
+        if (!tz) return res.status(400).json({ error: 'Time zone is required' });
+        await User.update({ timezone: tz }, { where: { id: req.user.id } });
+        require('../services/outbound/time').clearTimezoneCache(req.user.id);
+        res.json({ timezone: tz });
+    } catch (err) {
+        console.error('[SETTINGS] account-timezone:', err.message);
+        res.status(500).json({ error: 'Server error' });
     }
 });
 
@@ -749,7 +766,7 @@ router.post('/test', auth, async (req, res) => {
                 if (!wabaId) return null;
                 try {
                     const r = await axios.get(
-                        `https://graph.facebook.com/v21.0/${wabaId}/message_templates?name=${templateName}&fields=name,status`,
+                        `${GRAPH_URL}/${wabaId}/message_templates?name=${templateName}&fields=name,status`,
                         { headers: { Authorization: `Bearer ${metaAccessToken}` } }
                     );
                     return r.data?.data?.[0] || null;
@@ -767,7 +784,7 @@ router.post('/test', auth, async (req, res) => {
                 if (!wabaId) return { error: 'No WABA ID — cannot create template.' };
                 try {
                     await axios.post(
-                        `https://graph.facebook.com/v21.0/${wabaId}/message_templates`,
+                        `${GRAPH_URL}/${wabaId}/message_templates`,
                         {
                             name: 'bluetick_test_msg',
                             language: 'en_US',
@@ -796,18 +813,18 @@ router.post('/test', auth, async (req, res) => {
             // Returns the axios response on success, throws on failure
             // -----------------------------------------------------------------
             const sendTemplate = async (templateName, langCode) => {
-                const testRes = await axios.post(
-                    `https://graph.facebook.com/v21.0/${metaPhoneNumberId}/messages`,
-                    {
-                        messaging_product: 'whatsapp',
+                const sent = await outbound.sendOrThrow({
+                    ownerId: req.user.id,
+                    source: 'gateway_test',
+                    actorId: req.user.realId || req.user.id,
+                    credentials: { token: metaAccessToken, phoneNumberId: metaPhoneNumberId },
+                    payload: {
                         to: sanitizedPhone,
                         type: 'template',
                         template: { name: templateName, language: { code: langCode } }
-                    },
-                    { headers: { Authorization: `Bearer ${metaAccessToken}`, 'Content-Type': 'application/json' } }
-                );
-                tagOutbound(req.user.id, testRes.data?.messages?.[0]?.id, 'system');
-                return testRes;
+                    }
+                });
+                return { data: sent.data };
             };
 
             // -----------------------------------------------------------------
@@ -912,7 +929,7 @@ router.post('/test', auth, async (req, res) => {
 
         // Fallback: Just check GET request if no phone number (Verification only)
         try {
-            const response = await axios.get(`https://graph.facebook.com/v21.0/${metaPhoneNumberId}`, {
+            const response = await axios.get(`${GRAPH_URL}/${metaPhoneNumberId}`, {
                 headers: {
                     'Authorization': `Bearer ${metaAccessToken}`
                 }

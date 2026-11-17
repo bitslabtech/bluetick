@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { CheckCircle, Zap, ShieldCheck, ArrowLeft, Settings, ShoppingCart, Tag, X, Sparkles, Loader2, Clock } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { usePayment } from '../hooks/usePayment';
+import { formatDate } from '../utils/dateFormat';
 
 const getCurrencySymbol = (c) => ({ USD: '$', INR: '₹', EUR: '€', GBP: '£', AUD: 'A$', SGD: 'S$' }[c] || c || '$');
 
@@ -284,7 +285,7 @@ const AddonDetail = () => {
                                         <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-center">
                                             <p className="text-xs font-semibold text-red-700 dark:text-red-400">⚠️ Your access has expired</p>
                                             {userAddon?.currentPeriodEnd && (
-                                                <p className="text-xs text-red-500 dark:text-red-400 mt-0.5">Expired on {new Date(userAddon.currentPeriodEnd).toLocaleDateString()}</p>
+                                                <p className="text-xs text-red-500 dark:text-red-400 mt-0.5">Expired on {formatDate(userAddon.currentPeriodEnd)}</p>
                                             )}
                                         </div>
                                         <button

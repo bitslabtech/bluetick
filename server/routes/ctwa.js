@@ -1,11 +1,12 @@
 const express = require('express');
+const { GRAPH_URL } = require('../config/metaGraph');
 const router = express.Router();
 const axios = require('axios');
 const auth = require('../middleware/auth');
 const User = require('../models/User');
 const Contact = require('../models/Contact');
 const ChatMessage = require('../models/ChatMessage');
-const { tagOutbound } = require('../utils/messageBilling');
+const outbound = require('../services/outbound');
 const { Sequelize } = require('sequelize');
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -26,7 +27,7 @@ router.post('/auth', auth, async (req, res) => {
         }
 
         // Exchange short-lived token for a long-lived token (60 days)
-        const tokenRes = await axios.get('https://graph.facebook.com/v22.0/oauth/access_token', {
+        const tokenRes = await axios.get(`${GRAPH_URL}/oauth/access_token`, {
             params: {
                 grant_type: 'fb_exchange_token',
                 client_id: clientId,
@@ -89,7 +90,7 @@ router.get('/ad-accounts', auth, async (req, res) => {
             return res.status(403).json({ error: 'No Meta Ads account connected. Please connect via Facebook Login first.' });
         }
 
-        const meRes = await axios.get('https://graph.facebook.com/v22.0/me/adaccounts', {
+        const meRes = await axios.get(`${GRAPH_URL}/me/adaccounts`, {
             params: {
                 fields: 'id,name,account_status,currency,business',
                 access_token: user.metaAdsToken,
@@ -178,7 +179,7 @@ router.get('/status', auth, async (req, res) => {
         } else if (hasMetaToken && pageId) {
             try {
                 // Query the page's connected WhatsApp Business Account(s)
-                const wabaRes = await axios.get(`https://graph.facebook.com/v22.0/${pageId}`, {
+                const wabaRes = await axios.get(`${GRAPH_URL}/${pageId}`, {
                     params: {
                         fields: 'whatsapp_business_accounts{id,name}',
                         access_token: user.metaAdsToken
@@ -213,7 +214,7 @@ router.get('/status', auth, async (req, res) => {
         let hasValidPaymentMethod = false;
         if (hasMetaToken && user.metaAdAccountId) {
             try {
-                const accRes = await axios.get(`https://graph.facebook.com/v22.0/${user.metaAdAccountId}`, {
+                const accRes = await axios.get(`${GRAPH_URL}/${user.metaAdAccountId}`, {
                     params: {
                         fields: 'funding_source_details',
                         access_token: user.metaAdsToken
@@ -325,7 +326,7 @@ router.get('/dashboard', auth, async (req, res) => {
             const datePreset = presetMap[dateRange] || 'last_30_days';
 
             const insightsRes = await axios.get(
-                `https://graph.facebook.com/v22.0/${user.metaAdAccountId}/insights`,
+                `${GRAPH_URL}/${user.metaAdAccountId}/insights`,
                 {
                     params: {
                         fields: 'ad_id,ad_name,spend,impressions,clicks,actions,cost_per_action_type',
@@ -391,7 +392,7 @@ router.get('/dashboard', auth, async (req, res) => {
         // ── Step 4: Fetch actual currency from Meta Ad Account ──
         let accountCurrency = 'INR';
         try {
-            const accRes = await axios.get(`https://graph.facebook.com/v22.0/${user.metaAdAccountId}`, {
+            const accRes = await axios.get(`${GRAPH_URL}/${user.metaAdAccountId}`, {
                 params: { fields: 'currency', access_token: user.metaAdsToken }
             });
             if (accRes.data && accRes.data.currency) {
@@ -522,8 +523,10 @@ router.post('/retarget', auth, async (req, res) => {
             return res.status(400).json({ error: 'adId and templateName are required' });
         }
 
-        const user = await User.findByPk(req.user.id);
-        if (!user.whatsappPhoneNumberId || !user.whatsappToken) {
+        // These fields never existed on User, so retargeting always said "not configured";
+        // use the same credentials as every other feature.
+        const waCreds = await require('../services/outbound/credentials').resolveCredentials(req.user.id);
+        if (!waCreds) {
             return res.status(403).json({ error: 'WhatsApp not configured' });
         }
 
@@ -544,25 +547,21 @@ router.post('/retarget', auth, async (req, res) => {
 
         for (const lead of leads) {
             try {
-                const retargetRes = await axios.post(
-                    `https://graph.facebook.com/v22.0/${user.whatsappPhoneNumberId}/messages`,
-                    {
-                        messaging_product: 'whatsapp',
+                await outbound.sendOrThrow({
+                    ownerId: req.user.id,
+                    source: 'ctwa_retarget',
+                    actorId: req.user.realId || req.user.id,
+                    refs: { refType: 'ad', refId: adId },
+                    credentials: waCreds,
+                    payload: {
                         to: lead.phone,
                         type: 'template',
                         template: {
                             name: templateName,
                             language: { code: 'en' }
                         }
-                    },
-                    {
-                        headers: {
-                            Authorization: `Bearer ${user.whatsappToken}`,
-                            'Content-Type': 'application/json'
-                        }
                     }
-                );
-                tagOutbound(req.user.id, retargetRes.data?.messages?.[0]?.id, 'ads');
+                });
                 sentCount++;
             } catch (err) {
                 failCount++;
@@ -659,7 +658,7 @@ router.post('/capi-test', auth, async (req, res) => {
         }
 
         const capiRes = await axios.post(
-            `https://graph.facebook.com/v22.0/${capiConfig.pixelId}/events`,
+            `${GRAPH_URL}/${capiConfig.pixelId}/events`,
             eventData,
             {
                 params: { access_token: capiConfig.accessToken },
@@ -704,7 +703,7 @@ const fireCapiEvent = async (userId, eventName, userData = {}) => {
         }
 
         await axios.post(
-            `https://graph.facebook.com/v22.0/${capiConfig.pixelId}/events`,
+            `${GRAPH_URL}/${capiConfig.pixelId}/events`,
             eventData,
             {
                 params: { access_token: capiConfig.accessToken },

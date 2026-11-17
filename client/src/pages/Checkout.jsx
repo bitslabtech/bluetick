@@ -7,6 +7,7 @@ import BillingProfileComp from '../components/BillingProfile';
 import { usePayment } from '../hooks/usePayment';
 import { useAuth } from '../context/AuthContext';
 import { hasUsablePlan } from '../utils/planAccess';
+import { formatDate } from '../utils/dateFormat';
 
 const API = import.meta.env.VITE_API_URL || '';
 
@@ -922,7 +923,7 @@ const Checkout = () => {
                                                     </div>
                                                     <div className="flex justify-between items-center text-sm border-t border-slate-200 dark:border-white/10 pt-3">
                                                         <span className="text-slate-500 dark:text-slate-400">Submitted On</span>
-                                                        <span className="text-slate-900 dark:text-white font-medium">{new Date(pendingRequest.createdAt).toLocaleDateString()}</span>
+                                                        <span className="text-slate-900 dark:text-white font-medium">{formatDate(pendingRequest.createdAt)}</span>
                                                     </div>
                                                 </div>
 

@@ -8,9 +8,9 @@ import { Bell, LifeBuoy, Ticket, Book, Map, Plus, Trash2, Send, CheckCircle2, Mo
 import { useUI } from '../context/UIContext';
 import AdminHeader from '../components/AdminHeader';
 import ThemeToggle from '../components/ThemeToggle';
-import { formatDistanceToNow } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { formatDate, formatRelative } from '../utils/dateFormat';
 
 const MotionDiv = motion.div;
 
@@ -309,7 +309,7 @@ const TicketManager = ({ tickets, refresh, showToast, showModal, initialTicketId
                                         </span>
                                     </td>
                                     <td className="px-4 md:px-6 py-4 text-slate-400 text-xs">
-                                        {formatDistanceToNow(new Date(t.lastReplyAt), { addSuffix: true })}
+                                        {formatRelative(t.lastReplyAt)}
                                     </td>
                                     <td className="px-4 md:px-6 py-4 text-right">
                                         <button className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium text-xs border border-indigo-200 dark:border-indigo-500/30 px-3 py-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-white/5 transition-all">
@@ -439,7 +439,7 @@ const TicketDetailModal = ({ ticket, onClose, refresh, showToast, showModal }) =
                         <div>
                             <h2 className="text-xl font-bold text-slate-900 dark:text-white line-clamp-1">{ticket.subject}</h2>
                             <div className="flex items-center gap-3 mt-1 text-sm text-slate-500">
-                                <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {new Date(ticket.createdAt).toLocaleDateString()}</span>
+                                <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {formatDate(ticket.createdAt)}</span>
                                 <span className="w-1 h-1 rounded-full bg-slate-300"></span>
                                 <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-medium"><LifeBuoy className="w-3.5 h-3.5" /> {ticket.user?.email}</span>
                             </div>
@@ -484,7 +484,7 @@ const TicketDetailModal = ({ ticket, onClose, refresh, showToast, showModal }) =
                                             )}
                                         </div>
                                         <div className={`text-[10px] text-slate-400 mt-1.5 flex items-center gap-1 ${msg.sender === 'Admin' ? 'justify-end' : 'justify-start'}`}>
-                                            <Clock className="w-3 h-3" /> {formatDistanceToNow(new Date(msg.timestamp))} ago
+                                            <Clock className="w-3 h-3" /> {formatRelative(msg.timestamp)}
                                         </div>
                                     </div>
                                 </div>
@@ -591,7 +591,7 @@ const TicketDetailModal = ({ ticket, onClose, refresh, showToast, showModal }) =
                                 </div>
                                 <div className="space-y-2">
                                     <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-white/5 p-2 rounded-lg">
-                                        <Clock className="w-3 h-3" /> Updated {ticket.lastReplyAt ? new Date(ticket.lastReplyAt).toLocaleDateString() : '—'}
+                                        <Clock className="w-3 h-3" /> Updated {ticket.lastReplyAt ? formatDate(ticket.lastReplyAt) : '—'}
                                     </div>
                                 </div>
                             </div>
@@ -844,7 +844,7 @@ const KBManager = ({ articles, refresh, showToast, showModal }) => {
                                                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${a.isPublished ? 'bg-green-100 text-green-600 dark:bg-green-900/20' : 'bg-amber-100 text-amber-600 dark:bg-amber-900/20'}`}>
                                                             {a.isPublished ? 'Live' : 'Draft'}
                                                         </span>
-                                                        <span className="text-[10px] text-slate-400 ml-auto">{new Date(a.createdAt).toLocaleDateString()}</span>
+                                                        <span className="text-[10px] text-slate-400 ml-auto">{formatDate(a.createdAt)}</span>
                                                     </div>
                                                 </div>
                                             ))}
@@ -1100,7 +1100,7 @@ const RoadmapManager = ({ items, refresh }) => {
                                                     </div>
 
                                                     <div className="flex justify-between items-center pt-2 border-t border-slate-50 dark:border-white/5 mb-3">
-                                                        <span className="text-[10px] text-slate-400 font-medium">{new Date(item.createdAt).toLocaleDateString()}</span>
+                                                        <span className="text-[10px] text-slate-400 font-medium">{formatDate(item.createdAt)}</span>
                                                         <motion.button
                                                             whileTap={{ scale: 0.9 }}
                                                             onClick={async () => {

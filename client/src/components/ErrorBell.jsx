@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useNotifications } from "../context/NotificationContext";
-import { formatDistanceToNow } from "date-fns";
+import { formatRelative } from '../utils/dateFormat';
 
 const ErrorBell = () => {
     const navigate = useNavigate();
@@ -130,7 +130,7 @@ const ErrorBell = () => {
                                                             </span>
                                                         )}
                                                         <span className="text-[10px] text-slate-400">
-                                                            {formatDistanceToNow(new Date(err.lastOccurredAt || err.createdAt), { addSuffix: true })}
+                                                            {formatRelative(err.lastOccurredAt || err.createdAt)}
                                                         </span>
                                                         {!err.isRead && (
                                                             <button

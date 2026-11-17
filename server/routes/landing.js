@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const LandingPage = require('../models/LandingPage');
 const PolicyVersion = require('../models/PolicyVersion');
-const { tagOutbound } = require('../utils/messageBilling');
+const outbound = require('../services/outbound');
 const Blog = require('../models/Blog');
 const auth = require('../middleware/auth');
 const admin = require('../middleware/admin');
@@ -583,16 +583,14 @@ Extract the phone number starting with the country code (e.g. +1234567890) and s
                             }
                             
                             // Fire and forget fetch to Meta API
-                            fetch(`https://graph.facebook.com/v21.0/${ownerSettings.metaPhoneNumberId}/messages`, {
-                                method: 'POST',
-                                headers: {
-                                    'Authorization': `Bearer ${ownerSettings.metaAccessToken}`,
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify(payload)
-                            }).then(res => res.json()).then(async (data) => {
+                            outbound.sendMessage({
+                                ownerId: ownerSettings.userId,
+                                source: 'landing',
+                                payload,
+                                refs: { conversationId: conversation.id, refType: 'landing' },
+                                credentials: { token: ownerSettings.metaAccessToken, phoneNumberId: ownerSettings.metaPhoneNumberId }
+                            }).then(r => r.data || {}).then(async (data) => {
                                 if (data.messages && data.messages[0]) {
-                                    tagOutbound(ownerSettings.userId, data.messages[0].id, 'landing');
                                     await ChatMessage.create({
                                         userId: primaryOwnerId,
                                         conversationId: conversation.id,

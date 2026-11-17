@@ -9,6 +9,7 @@ import WaStoreHeader from '../components/WaStoreHeader';
 import { getThemeConfig } from '../utils/wastoreThemes';
 import { getStoreRoute } from '../utils/storeRouting';
 import { StoreCustomerProvider, useStoreCustomer } from '../context/StoreCustomerContext';
+import { formatDate } from '../utils/dateFormat';
 
 function OrderSuccessInner({ store, theme, slug, products, categories }) {
     const location = useLocation();
@@ -101,7 +102,7 @@ function OrderSuccessInner({ store, theme, slug, products, categories }) {
                                     </div>
                                     <div className="text-left sm:text-right">
                                         <p className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-1">Date</p>
-                                        <p className="text-sm font-medium text-gray-900">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                                        <p className="text-sm font-medium text-gray-900">{formatDate(new Date())}</p>
                                     </div>
                                 </div>
 

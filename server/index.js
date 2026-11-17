@@ -1,4 +1,6 @@
 require('dotenv').config();
+// Alarm on any WhatsApp message sent without the outbound gateway (it would not be counted)
+require('./services/outbound/guard').install();
 
 // Capture uncaught exceptions/rejections BEFORE anything else
 process.on('uncaughtException', (err) => {
@@ -57,6 +59,8 @@ require('./models/Invoice');           // GST Invoices (generated on every purch
 require('./models/PolicyVersion');    // Append-only archive of published policy versions
 require('./models/MessageBilling');   // Per-message source + Meta pricing category (usage page)
 require('./models/WaUsageDaily');     // Daily snapshot of Meta pricing_analytics (usage page)
+require('./models/OutboundMessage');  // Ledger of every outbound WhatsApp message (services/outbound)
+require('./models/OutboundUsage');    // Plan allowance counter per owner per month
 
 // Import Routes
 const contactsRoute = require('./routes/contacts');

@@ -16,6 +16,8 @@ import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     BarChart, Bar, Cell, PieChart, Pie, RadialBarChart, RadialBar, Legend
 } from 'recharts';
+import { formatDate as fmtDate, formatDateTime, formatWeekday } from '../utils/dateFormat';
+import { useUI } from '../context/UIContext';
 
 const API = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL}`;
 
@@ -94,6 +96,9 @@ const HOURS = Array.from({ length: 24 }, (_, i) => {
     const ampm = i < 12 ? 'AM' : 'PM';
     return i === 0 ? '12 AM' : i === 12 ? '12 PM' : `${h} ${ampm}`;
 });
+
+// Common account time zones for the report selector (any IANA zone works on the server)
+const TIMEZONES = ['Asia/Kolkata', 'Asia/Dubai', 'Asia/Singapore', 'Asia/Riyadh', 'Asia/Dhaka', 'Asia/Kathmandu', 'Asia/Karachi', 'Asia/Jakarta', 'Europe/London', 'Europe/Berlin', 'America/New_York', 'America/Chicago', 'America/Los_Angeles', 'Australia/Sydney', 'Africa/Nairobi', 'Africa/Lagos', 'UTC'];
 
 const HourHeatmap = ({ data: rawData }) => {
     const data = (rawData && rawData.length > 0) ? rawData : [];
@@ -650,7 +655,7 @@ const FlowBotsTab = ({ flows, onCreate }) => {
                                         ) : <span className="text-slate-400 text-xs">—</span>}
                                     </td>
                                     <td className="px-4 py-4 text-right text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                                        {f.lastTriggered ? new Date(f.lastTriggered).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}
+                                        {f.lastTriggered ? formatDateTime(f.lastTriggered) : '—'}
                                     </td>
                                 </tr>
                             ))}
@@ -667,10 +672,14 @@ const Reports = () => {
     const navigate = useNavigate();
     const [timeRange, setTimeRange] = useState('30d');
     const [displayRange, setDisplayRange] = useState('Last 30 Days');
+    const [tzVersion, setTzVersion] = useState(0);
     const [customStart, setCustomStart] = useState('');
     const [customEnd, setCustomEnd] = useState('');
     const [showCustomPicker, setShowCustomPicker] = useState(false);
     const [stats, setStats] = useState(null);
+    const { setAccountTimezone } = useUI();
+    // Share the account time zone with every date shown in the app (team members get the owner's zone here)
+    useEffect(() => { if (stats?.timezone) setAccountTimezone(stats.timezone); }, [stats?.timezone, setAccountTimezone]);
     const [chartData, setChartData] = useState([]);
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -718,7 +727,17 @@ const Reports = () => {
             finally { setLoading(false); }
         };
         fetch();
-    }, [timeRange, customStart, customEnd, selectedCampaignId]);
+    }, [timeRange, customStart, customEnd, selectedCampaignId, tzVersion]);
+
+    const changeTimezone = async e => {
+        const timezone = e.target.value;
+        try {
+            await axios.put(`${API}/api/settings/account-timezone`, { timezone }, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+            setTzVersion(v => v + 1); // reload the numbers in the new time zone
+        } catch (err) {
+            alert(err.response?.data?.error || 'Could not change the time zone');
+        }
+    };
 
     const handleRangeChange = e => {
         const val = e.target.value;
@@ -727,7 +746,7 @@ const Reports = () => {
         else { setDisplayRange(e.target.options[e.target.selectedIndex].text); setShowCustomPicker(false); }
     };
 
-    const formatDate = d => new Date(d).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' });
+    const formatDate = d => fmtDate(d);
 
     // Hour heatmap from backend stats
     const hourData = stats?.hourlyDistribution || [];
@@ -735,7 +754,11 @@ const Reports = () => {
     // Day-of-week breakdown from chart
     const dowMap = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
     chartData.forEach(d => {
-        const day = new Date(d.name).toLocaleDateString('en-US', { weekday: 'short' });
+        // d.date is YYYY-MM-DD (or "YYYY-MM-DD HH") in the account's time zone; d.name ("Nov 16") has no year
+        const ymd = String(d.date || d.fullDate || '').slice(0, 10);
+        const day = /^\d{4}-\d{2}-\d{2}$/.test(ymd)
+            ? formatWeekday(ymd)
+            : null;
         if (day in dowMap) dowMap[day] = (dowMap[day] || 0) + (d.messages || 0);
     });
     const dowData = Object.entries(dowMap).map(([day, count]) => ({ day, count }));
@@ -782,7 +805,7 @@ const Reports = () => {
                 ['Campaign', 'Date', 'Audience', 'Delivered', 'Read', 'Failed', 'Delivery %', 'Read %', 'Status'],
                 ...reports.map(c => [
                     c.name,
-                    new Date(c.sentDate).toLocaleDateString(),
+                    c.sentDate ? new Date(c.sentDate).toISOString() : '',
                     c.audience,
                     c.delivered,
                     c.read,
@@ -826,7 +849,7 @@ const Reports = () => {
                     f.triggered || 0,
                     f.uniqueContacts || 0,
                     f.completionRate || 0,
-                    f.lastTriggered ? new Date(f.lastTriggered).toLocaleDateString() : ''
+                    f.lastTriggered ? new Date(f.lastTriggered).toISOString() : ''
                 ])
             ];
         } else if (activeTab === 'meta-ads' && metaAds?.campaigns) {
@@ -906,7 +929,7 @@ const Reports = () => {
                         <div className="relative">
                             <select onChange={handleRangeChange} value={timeRange}
                                 className="appearance-none bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white text-sm rounded-xl pl-4 pr-8 py-2.5 focus:outline-none focus:border-indigo-500 cursor-pointer shadow-sm">
-                                <option value="1d">Last 24H</option>
+                                <option value="1d">Today</option>
                                 <option value="7d">Last 7 Days</option>
                                 <option value="30d">Last 30 Days</option>
                                 <option value="3m">Last 3 Months</option>
@@ -914,6 +937,15 @@ const Reports = () => {
                             </select>
                             <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                         </div>
+                        )}
+                        {stats?.timezone && (
+                            <div className="relative" title="Days and months in reports and your plan limit are counted in this time zone">
+                                <select value={stats.timezone} onChange={changeTimezone}
+                                    className="appearance-none bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white text-sm rounded-xl pl-4 pr-8 py-2.5 focus:outline-none focus:border-indigo-500 cursor-pointer shadow-sm max-w-[180px]">
+                                    {[...new Set([stats.timezone, ...TIMEZONES])].map(tz => <option key={tz} value={tz}>{tz.replace('_', ' ')}</option>)}
+                                </select>
+                                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                            </div>
                         )}
                         <button onClick={exportCSV} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl px-5 py-2.5 transition-all shadow-lg shadow-indigo-500/20 active:scale-95">
                             <Download className="w-4 h-4" />Export CSV

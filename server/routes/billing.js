@@ -1479,7 +1479,7 @@ router.post('/verify-payment', async (req, res) => {
                                 type: 'body',
                                 parameters: parameters
                             }]
-                        });
+                        }, { source: 'platform_billing' });
                     }
                 }
             } catch (notifyErr) {
@@ -1989,7 +1989,7 @@ router.post('/approve-manual-payment/:transactionId', adminMiddleware, async (re
                         templateName: planPurchaseTpl.templateName,
                         languageCode: planPurchaseTpl.languageCode || 'en_US',
                         components: [{ type: 'body', parameters }]
-                    });
+                    }, { source: 'platform_billing' });
                 }
             }
         } catch (waErr) {

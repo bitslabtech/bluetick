@@ -28,7 +28,8 @@ const Settings = require('../models/Settings');
 const Conversation = require('../models/Conversation');
 const ChatMessage = require('../models/ChatMessage');
 const { getIo } = require('../socket');
-const { tagOutbound } = require('./messageBilling');
+const outbound = require('../services/outbound');
+const OutboundMessage = require('../models/OutboundMessage');
 const { MAX_RETRIES, RETRY_DELAYS_HOURS } = require('./retryConfig'); // Bug #13 — single source of truth
 
 /**
@@ -271,21 +272,21 @@ async function processRetries() {
                 console.log(`[RETRY] [${log.id}] Firing retry #${log.retryCount} →`, JSON.stringify(payload, null, 2));
 
                 // --- Fire the retry to Meta API ---
-                const metaRes = await fetch(`https://graph.facebook.com/v21.0/${settings.metaPhoneNumberId}/messages`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${settings.metaAccessToken}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
+                // The earlier attempt(s) for this recipient are superseded: only the newest counts
+                await outbound.markRetried({ campaignId: log.campaignId, toPhone: String(phone).replace(/\D/g, '') });
+                const sent = await outbound.sendMessage({
+                    ownerId: userId,
+                    source: 'campaign_retry',
+                    payload,
+                    refs: { campaignId: log.campaignId, contactId: log.contactId || null },
+                    credentials: { token: settings.metaAccessToken, phoneNumberId: settings.metaPhoneNumberId }
                 });
-
-                const data = await metaRes.json();
+                const metaRes = { ok: sent.ok };
+                const data = sent.ok ? sent.data : (sent.data?.error ? sent.data : { error: { message: sent.error, code: sent.errorCode } });
 
                 if (metaRes.ok) {
                     // ✅ SUCCESS — message accepted by Meta
-                    const sentMessageId = data.messages?.[0]?.id;
-                    tagOutbound(userId, sentMessageId, 'campaign');
+                    const sentMessageId = sent.wamid;
                     console.log(`[RETRY] ✅ Success for log ${log.id} (phone: ${phone}). New Meta msgId: ${sentMessageId}`);
 
                     await log.update({
@@ -406,6 +407,7 @@ async function processRetries() {
                             // webhook/previous retryProcessor run, so it correctly maps to next slot)
                             const delayHours = RETRY_DELAYS_HOURS[currentRetryCount] || RETRY_DELAYS_HOURS[RETRY_DELAYS_HOURS.length - 1];
                             const retryAfter = new Date(Date.now() + delayHours * 60 * 60 * 1000);
+                            if (sent.outboundId) await OutboundMessage.update({ status: 'retry_pending' }, { where: { id: sent.outboundId, status: 'failed' } });
                             await log.update({
                                 status: 'RETRY_PENDING',
                                 retryCount: currentRetryCount + 1,

@@ -3,8 +3,6 @@ const { Op } = require('sequelize');
 const User = require('../models/User');
 const Settings = require('../models/Settings');
 const WaUsageDaily = require('../models/WaUsageDaily');
-const MessageBilling = require('../models/MessageBilling');
-const { groupFor } = require('./messageBilling');
 
 const GRAPH = `https://graph.facebook.com/${process.env.META_GRAPH_VERSION || 'v25.0'}`;
 const CHUNK_DAYS = 30;
@@ -203,17 +201,10 @@ async function getUsageSummary(userId, rawFrom, rawTo, opts = {}) {
     // By feature (message counts only, from our own per-message records).
     const fromDate = startOfDayUtc(from);
     const toDate = new Date(startOfDayUtc(to).getTime() + 86399999);
-    const msgs = await MessageBilling.findAll({
-        where: { userId, status: { [Op.in]: ['delivered', 'read'] }, createdAt: { [Op.between]: [fromDate, toDate] } },
-        attributes: ['source', 'billable'], raw: true
-    });
-    const byFeature = new Map();
-    for (const m of msgs) {
-        const g = groupFor(m.source);
-        const f = byFeature.get(g.key) || { key: g.key, label: g.label, delivered: 0, paid: 0 };
-        f.delivered += 1; if (m.billable === true) f.paid += 1;
-        byFeature.set(g.key, f);
-    }
+    // By feature: delivered counts from the outbound ledger (every feature goes through the gateway;
+    // messages Meta reports that we never sent show as "Sent outside Bluetick")
+    const { byFeature, loggedDelivered } = await require('../services/outbound/metrics')
+        .byFeature({ ownerId: userId, start: fromDate, end: new Date(toDate.getTime() + 1), includePlatform: true });
 
     return {
         connected: true,
@@ -228,8 +219,8 @@ async function getUsageSummary(userId, rawFrom, rawTo, opts = {}) {
             .sort((a, b) => b.cost - a.cost || b.volume - a.volume),
         daily: [...daily.values()].sort((a, b) => a.date.localeCompare(b.date)),
         freeAllowance: { limit: FREE_SERVICE_LIMIT, used: Math.min(serviceThisMonth, FREE_SERVICE_LIMIT), serviceThisMonth },
-        byFeature: [...byFeature.values()].sort((a, b) => b.delivered - a.delivered),
-        loggedDelivered: msgs.length
+        byFeature,
+        loggedDelivered
     };
 }
 

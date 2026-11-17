@@ -6,10 +6,10 @@ import {
     Trash2, CheckCheck, Search, Filter
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import ThemeToggle from '../components/ThemeToggle';
+import { formatDateTime, formatRelative } from '../utils/dateFormat';
 
 const UserNotifications = () => {
     const { user } = useAuth();
@@ -148,10 +148,10 @@ const UserNotifications = () => {
                                                     </h3>
                                                     <div className="flex flex-col items-end gap-1">
                                                         <span className="text-xs font-medium text-slate-400 bg-white/50 dark:bg-black/20 px-2 py-1 rounded-md">
-                                                            {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                                                            {formatRelative(n.createdAt)}
                                                         </span>
                                                         <span className="text-[10px] text-slate-500">
-                                                            {new Date(n.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })} at {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            {formatDateTime(n.createdAt)}
                                                         </span>
                                                     </div>
                                                 </div>

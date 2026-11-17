@@ -1,4 +1,5 @@
 const express = require('express');
+const { GRAPH_URL } = require('../config/metaGraph');
 const router = express.Router();
 const multer = require('multer');
 const Template = require('../models/Template');
@@ -109,7 +110,7 @@ router.post('/system-sync', async (req, res) => {
 
         // Fetch all templates from Meta (limit 200 to capture all system templates)
         const metaRes = await fetch(
-            `https://graph.facebook.com/v21.0/${metaBusinessAccountId}/message_templates?fields=id,name,status,language&limit=200`,
+            `${GRAPH_URL}/${metaBusinessAccountId}/message_templates?fields=id,name,status,language&limit=200`,
             { headers: { 'Authorization': `Bearer ${metaAccessToken}` } }
         );
         const metaData = await metaRes.json();
@@ -240,7 +241,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         }
 
         // Step 1: Create Resumable Upload Session
-        const sessionUrl = `https://graph.facebook.com/v21.0/${appId}/uploads?file_length=${fileSize}&file_type=${encodeURIComponent(req.file.mimetype)}`;
+        const sessionUrl = `${GRAPH_URL}/${appId}/uploads?file_length=${fileSize}&file_type=${encodeURIComponent(req.file.mimetype)}`;
         const sessionRes = await fetch(sessionUrl, {
             method: 'POST',
             headers: {
@@ -254,7 +255,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         const sessionId = sessionData.id;
 
         // Step 2: Upload File Data
-        const uploadUrl = `https://graph.facebook.com/v21.0/${sessionId}`;
+        const uploadUrl = `${GRAPH_URL}/${sessionId}`;
         const uploadRes = await fetch(uploadUrl, {
             method: 'POST',
             headers: {
@@ -334,7 +335,7 @@ router.post('/upload-url', async (req, res) => {
         }
 
         // 3. Create Resumable Upload Session
-        const sessionUrl = `https://graph.facebook.com/v21.0/${appId}/uploads?file_length=${fileSize}&file_type=${encodeURIComponent(mimeType)}`;
+        const sessionUrl = `${GRAPH_URL}/${appId}/uploads?file_length=${fileSize}&file_type=${encodeURIComponent(mimeType)}`;
         const sessionRes = await fetch(sessionUrl, {
             method: 'POST',
             headers: { 'Authorization': `OAuth ${fbToken}` }
@@ -346,7 +347,7 @@ router.post('/upload-url', async (req, res) => {
         const sessionId = sessionData.id;
 
         // 4. Upload File Data
-        const uploadUrl = `https://graph.facebook.com/v21.0/${sessionId}`;
+        const uploadUrl = `${GRAPH_URL}/${sessionId}`;
         const uploadRes = await fetch(uploadUrl, {
             method: 'POST',
             headers: {
@@ -400,7 +401,7 @@ router.post('/upload-message-media', storageProvider('campaign-media', { fileFil
         form.append('messaging_product', 'whatsapp');
 
         const uploadRes = await axios.post(
-            `https://graph.facebook.com/v21.0/${settings.metaPhoneNumberId}/media`,
+            `${GRAPH_URL}/${settings.metaPhoneNumberId}/media`,
             form,
             {
                 headers: {
@@ -444,7 +445,7 @@ router.post('/upload-message-media-url', async (req, res) => {
         form.append('messaging_product', 'whatsapp');
 
         const uploadRes = await axios.post(
-            `https://graph.facebook.com/v21.0/${settings.metaPhoneNumberId}/media`,
+            `${GRAPH_URL}/${settings.metaPhoneNumberId}/media`,
             form,
             {
                 headers: {
@@ -617,7 +618,7 @@ router.post('/', async (req, res) => {
         };
 
         // Send to Meta Graph API
-        const response = await fetch(`https://graph.facebook.com/v21.0/${settings.metaBusinessAccountId}/message_templates`, {
+        const response = await fetch(`${GRAPH_URL}/${settings.metaBusinessAccountId}/message_templates`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${settings.metaAccessToken}`,
@@ -822,7 +823,7 @@ router.put('/:id', async (req, res) => {
         };
 
         // Send to Meta Graph API
-        const response = await fetch(`https://graph.facebook.com/v21.0/${template.metaTemplateId}`, {
+        const response = await fetch(`${GRAPH_URL}/${template.metaTemplateId}`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${settings.metaAccessToken}`,
@@ -892,7 +893,7 @@ router.delete('/:id', async (req, res) => {
         if (settings && settings.metaBusinessAccountId && settings.metaAccessToken) {
             try {
                 // Meta API for deleting template requires the name parameter
-                const response = await fetch(`https://graph.facebook.com/v21.0/${settings.metaBusinessAccountId}/message_templates?name=${template.name}`, {
+                const response = await fetch(`${GRAPH_URL}/${settings.metaBusinessAccountId}/message_templates?name=${template.name}`, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': `Bearer ${settings.metaAccessToken}`
@@ -933,7 +934,7 @@ router.post('/sync', async (req, res) => {
         const { metaBusinessAccountId, metaAccessToken } = settings;
 
         // Fetch templates from Meta
-        const response = await fetch(`https://graph.facebook.com/v21.0/${metaBusinessAccountId}/message_templates?limit=100`, {
+        const response = await fetch(`${GRAPH_URL}/${metaBusinessAccountId}/message_templates?limit=100`, {
             headers: { 'Authorization': `Bearer ${metaAccessToken}` }
         });
 

@@ -4,6 +4,7 @@ import axios from 'axios';
 import { Megaphone, Calendar, ArrowRight, ArrowUpRight, Loader2, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import PublicLayout from '../components/landing/PublicLayout';
+import { formatDate } from '../utils/dateFormat';
 
 const BlogList = () => {
     const [blogs, setBlogs] = useState([]);
@@ -91,7 +92,7 @@ const BlogList = () => {
                                     <div className="p-4 md:p-8 flex-1 flex flex-col">
                                         <div className="flex items-center gap-2 text-sm text-indigo-500 dark:text-indigo-400 font-bold tracking-wide uppercase mb-4">
                                             <Calendar className="w-4 h-4" /> 
-                                            {new Date(blog.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            {formatDate(blog.createdAt)}
                                         </div>
                                         <h3 className="text-2xl font-extrabold tracking-tight mb-3 leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{blog.title}</h3>
                                         <p className="text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-3 mb-6 flex-1 text-lg">{blog.excerpt}</p>

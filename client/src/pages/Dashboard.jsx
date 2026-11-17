@@ -16,10 +16,10 @@ import "react-datepicker/dist/react-datepicker.css";
 import { useNavigate } from 'react-router-dom';
 // eslint-disable-next-line no-unused-vars
 import { AnimatePresence, motion } from 'framer-motion';
-import { formatDistanceToNow } from 'date-fns'; // We need date-fns, if not available I will use native logic or check package.json
 import EmbeddedSignupChecklist from '../components/EmbeddedSignupChecklist';
 import StoreAnalytics from './StoreAnalytics';
 import UsageBreakdownModal from '../components/UsageBreakdownModal';
+import { formatDate, formatDateTime } from '../utils/dateFormat';
 
 const WhatsAppEmptyState = ({ onConnect, loading }) => (
     <div className="bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl p-8 sm:p-12 shadow-sm text-center max-w-3xl mx-auto my-6 animate-in fade-in zoom-in-95 duration-500">
@@ -1120,7 +1120,7 @@ const Dashboard = () => {
                                                 </td>
                                                 <td className="px-4 md:px-6 py-4 text-slate-500 dark:text-text-secondary">{campaign.Template?.name}</td>
                                                 <td className="px-4 md:px-6 py-4 text-slate-500 dark:text-text-secondary">{campaign.recipientCount}</td>
-                                                <td className="px-4 md:px-6 py-4 text-slate-500 dark:text-text-secondary">{new Date(campaign.createdAt).toLocaleDateString()}</td>
+                                                <td className="px-4 md:px-6 py-4 text-slate-500 dark:text-text-secondary">{formatDate(campaign.createdAt)}</td>
                                                 <td className="px-4 md:px-6 py-4 text-right">
                                                     <button
                                                         onClick={() => navigate(`/campaign-details/${campaign.id}`)}
@@ -1236,7 +1236,7 @@ const Dashboard = () => {
                                             </div>
                                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-3 text-center">
                                                 Last checked:<br />
-                                                {qualityInsights.fetchedAt ? new Date(qualityInsights.fetchedAt).toLocaleString() : '—'}
+                                                {qualityInsights.fetchedAt ? formatDateTime(qualityInsights.fetchedAt) : '—'}
                                             </p>
                                         </div>
 

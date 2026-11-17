@@ -8,7 +8,7 @@ const PaymentSession = require('../models/PaymentSession');
 const crypto = require('crypto');
 
 const { Sequelize } = require('sequelize');
-const { tagOutbound } = require('../utils/messageBilling');
+const outbound = require('../services/outbound');
 
 // 1. Get all forms for the authenticated user
 router.get('/', auth, async (req, res) => {
@@ -454,9 +454,12 @@ router.post('/submit/:id', async (req, res) => {
                     }
 
 
-                    const automationRes = await axios.post(
-                        `https://graph.facebook.com/v21.0/${settings.metaPhoneNumberId}/messages`,
-                        {
+                    await outbound.sendOrThrow({
+                        ownerId: settings.userId,
+                        source: 'forms',
+                        refs: { refType: 'form', refId: form.id },
+                        credentials: { token: settings.metaAccessToken, phoneNumberId: settings.metaPhoneNumberId },
+                        payload: {
                             messaging_product: 'whatsapp',
                             to: contactNumber.replace(/\D/g, ''),
                             type: 'template',
@@ -465,10 +468,8 @@ router.post('/submit/:id', async (req, res) => {
                                 language: { code: automation.whatsappTemplate.language || 'en_US' },
                                 components
                             }
-                        },
-                        { headers: { Authorization: `Bearer ${settings.metaAccessToken}` } }
-                    );
-                    tagOutbound(settings.userId, automationRes.data?.messages?.[0]?.id, 'forms');
+                        }
+                    });
                 } catch (err) {
                     console.error('WhatsApp Automation Template Dispatch Failed:', err.response?.data || err.message);
                 }

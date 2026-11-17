@@ -172,7 +172,7 @@ function CornerRing({ top, right, left, bottom, size = 60, dark = false }) {
 function LiveStatusBadge({ hours }) {
     if (!hours) return null;
     const now = new Date();
-    const dayName = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    const dayName = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][now.getDay()];
     const day = hours[dayName];
     const toMins = t => { if (!t) return null; const [h, m] = t.split(':').map(Number); return h * 60 + m; };
     const nowMins = now.getHours() * 60 + now.getMinutes();

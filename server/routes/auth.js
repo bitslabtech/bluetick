@@ -149,7 +149,7 @@ router.post('/send-otp', authLimiter, async (req, res) => {
 
             // By default, try WITHOUT the button component first. 
             // Meta API: "If you are using the copy code button, do not include a button component"
-            result = await sendSystemMessage(phone, 'template', templatePayload);
+            result = await sendSystemMessage(phone, 'template', templatePayload, { source: 'platform_otp' });
 
             // If it fails with 131008 (Required parameter is missing), the template likely 
             // has an Autofill button or is a Utility template that REQUIRES the button component.
@@ -163,7 +163,7 @@ router.post('/send-otp', authLimiter, async (req, res) => {
                         { type: 'text', text: otp }
                     ]
                 });
-                result = await sendSystemMessage(phone, 'template', templatePayload);
+                result = await sendSystemMessage(phone, 'template', templatePayload, { source: 'platform_otp' });
             }
         } else {
             // ── TEXT MODE (fallback — only works within 24h conversation window) ──
@@ -172,7 +172,7 @@ router.post('/send-otp', authLimiter, async (req, res) => {
                 .replace('{{appName}}', appName)
                 .replace('{{minutes}}', minutes);
 
-            result = await sendSystemMessage(phone, 'text', { body: messageBody });
+            result = await sendSystemMessage(phone, 'text', { body: messageBody }, { source: 'platform_otp' });
         }
 
         if (!result.success) {
@@ -299,21 +299,21 @@ router.post('/forgot-password-otp', authLimiter, async (req, res) => {
                 components: [ { type: 'body', parameters: bodyParams } ]
             };
 
-            result = await sendSystemMessage(phone, 'template', templatePayload);
+            result = await sendSystemMessage(phone, 'template', templatePayload, { source: 'platform_otp' });
 
             if (!result.success && result.error?.error?.code === 131008) {
                 templatePayload.components.push({
                     type: 'button', sub_type: 'url', index: '0',
                     parameters: [ { type: 'text', text: otp } ]
                 });
-                result = await sendSystemMessage(phone, 'template', templatePayload);
+                result = await sendSystemMessage(phone, 'template', templatePayload, { source: 'platform_otp' });
             }
         } else {
             const messageBody = otpConfig.messageTemplate
                 .replace('{{otp}}', otp)
                 .replace('{{appName}}', appName)
                 .replace('{{minutes}}', minutes);
-            result = await sendSystemMessage(phone, 'text', { body: messageBody });
+            result = await sendSystemMessage(phone, 'text', { body: messageBody }, { source: 'platform_otp' });
         }
 
         if (!result.success) {
@@ -695,7 +695,7 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
                         templateName: welcomeConfig.templateName,
                         languageCode: welcomeConfig.languageCode || 'en',
                         components
-                    });
+                    }, { source: 'platform_message' });
                     if (result.success) {
                         console.log(`[REGISTER] Welcome WhatsApp sent to ${cleanPhone} for user ${user.email}`);
                     } else {
@@ -904,6 +904,11 @@ router.get('/me', require('../middleware/auth'), async (req, res) => {
 
         const userData = user.toJSON();
         userData.planDetails = planDetails || null;
+
+        // Team members see dates in the workspace owner's time zone (the one reports and plan limits use)
+        if (user.parentUserId) {
+            userData.timezone = await require('../services/outbound/time').getAccountTimezone(user.parentUserId);
+        }
 
         // Preserve impersonation flag if present
         if (req.user.origRole === 'Admin') {

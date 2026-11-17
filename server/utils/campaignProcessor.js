@@ -7,7 +7,7 @@ const Settings = require('../models/Settings');
 const Conversation = require('../models/Conversation');
 const ChatMessage = require('../models/ChatMessage');
 const { getIo } = require('../socket');
-const { tagOutbound } = require('./messageBilling');
+const outbound = require('../services/outbound');
 const { getUserPlanLimits, checkLimit, getMonthlyMessageCount } = require('../utils/planLimits');
 
 const processCampaign = async (campaignId, isRecovery = false) => {
@@ -346,16 +346,18 @@ const processCampaign = async (campaignId, isRecovery = false) => {
                         console.log(`[CAMPAIGN:${campaignId}] [${phone}] Sending payload →`, JSON.stringify(payload, null, 2));
                     }
 
-                    const metaRes = await fetch(`https://graph.facebook.com/v21.0/${settings.metaPhoneNumberId}/messages`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${settings.metaAccessToken}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(payload)
+                    // Outbound gateway: ledger row, plan allowance (stops mid-campaign when the limit is hit),
+                    // API-to-API guard, one Graph version
+                    const sent = await outbound.sendMessage({
+                        ownerId: userId,
+                        source: 'campaign',
+                        payload,
+                        refs: { campaignId: message.id, contactId: contact.isTemp ? null : contact.id },
+                        actorId: message.createdById || null,
+                        credentials: { token: settings.metaAccessToken, phoneNumberId: settings.metaPhoneNumberId }
                     });
-
-                    const data = await metaRes.json();
+                    const metaRes = { ok: sent.ok };
+                    const data = sent.ok ? sent.data : (sent.data?.error ? sent.data : { error: { message: sent.error, code: sent.errorCode } });
 
                     if (!metaRes.ok) {
                         const metaErrorMsg = data.error?.message || 'Meta API Error';
@@ -427,8 +429,7 @@ const processCampaign = async (campaignId, isRecovery = false) => {
                             }
                         }
                     } else {
-                        const sentMessageId = data.messages?.[0]?.id;
-                        tagOutbound(userId, sentMessageId, 'campaign');
+                        const sentMessageId = sent.wamid;
 
                         // 1. Create Log (Analytics)
                         await MessageLog.create({
@@ -593,6 +594,10 @@ const processCampaign = async (campaignId, isRecovery = false) => {
                         phone: contact.phone,
                         status: 'FAILED',
                         error: e.message
+                    });
+                    await outbound.recordLocalFailure({
+                        ownerId: userId, source: 'campaign', to: contact.phone, reason: e.message,
+                        refs: { campaignId: message.id, contactId: contact.isTemp ? null : contact.id }
                     });
                 }
             }));

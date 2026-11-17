@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
 import AdminHeader from '../components/AdminHeader';
 import ThemeToggle from '../components/ThemeToggle';
+import { formatDateTime } from '../utils/dateFormat';
 
 const AdminMessages = () => {
     const { user } = useAuth();
@@ -161,7 +162,7 @@ const AdminMessages = () => {
                                                         {msg.name}
                                                     </h4>
                                                     <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                                                        <Clock className="w-3 h-3" /> {new Date(msg.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                        <Clock className="w-3 h-3" /> {formatDateTime(msg.createdAt)}
                                                     </p>
                                                 </div>
                                             </div>
@@ -257,7 +258,7 @@ const AdminMessages = () => {
                                                     <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Submitted On</span>
                                                     <div className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
                                                         <Calendar className="w-4 h-4 text-indigo-500" />
-                                                        {new Date(selectedMessage.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                                                        {formatDateTime(selectedMessage.createdAt)}
                                                     </div>
                                                 </div>
                                             </div>

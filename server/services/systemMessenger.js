@@ -2,7 +2,7 @@ const axios = require('axios');
 const SystemConfig = require('../models/SystemConfig');
 const User = require('../models/User');
 const Settings = require('../models/Settings');
-const { tagOutbound } = require('../utils/messageBilling');
+const outbound = require('./outbound');
 
 /**
  * Variable map: each event's ordered variable keys that get injected into
@@ -27,7 +27,8 @@ const EVENT_VARIABLE_MAP = {
 };
 
 
-const sendSystemMessage = async (to, type, payload) => {
+// opts.source: key from services/outbound/sources.js (platform_*); opts.refs: ledger links
+const sendSystemMessage = async (to, type, payload, opts = {}) => {
     try {
         const config = await SystemConfig.getCachedConfig();
         const linkedAdminId = config?.settings?.linkedAdminUserId;
@@ -56,7 +57,6 @@ const sendSystemMessage = async (to, type, payload) => {
 
         const token = adminSettings.metaAccessToken.replace(/[^\x20-\x7E]/g, '').trim();
         const phoneId = adminSettings.metaPhoneNumberId.replace(/[^\x20-\x7E]/g, '').trim();
-        const url = `https://graph.facebook.com/v21.0/${phoneId}/messages`;
         
         let data = {
             messaging_product: "whatsapp",
@@ -75,14 +75,20 @@ const sendSystemMessage = async (to, type, payload) => {
             };
         }
 
-        const res = await axios.post(url, data, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
+        // Outbound gateway: platform messages are ledgered but never count in a customer's stats
+        const sent = await outbound.sendMessage({
+            ownerId: linkedAdminId,
+            source: opts.source || 'platform_message',
+            payload: data,
+            refs: opts.refs || {},
+            credentials: { token, phoneNumberId: phoneId }
         });
-
-        tagOutbound(linkedAdminId, res.data?.messages?.[0]?.id, 'system');
+        if (!sent.ok) {
+            const e = new Error(sent.error || 'System message not sent');
+            e.response = { data: sent.data || { error: { message: sent.error, code: sent.errorCode } } };
+            throw e;
+        }
+        const res = { data: sent.data };
 
         // Track stats for the admin user
         if (adminUser.totalMessagesSent !== undefined) {
@@ -258,13 +264,13 @@ const sendAdminAlert = async (eventName, messageText, variables = {}) => {
                     templateName,
                     languageCode: eventConfig.languageCode || 'en',
                     components
-                });
+                }, { source: 'platform_alert' });
                 if (result?.success) successCount++;
             } else {
                 // ── Text Mode ─────────────────────────────────────────────────────────
                 const result = await sendSystemMessage(toPhone, 'text', {
                     body: `🚨 *Admin Alert*\n\n${messageText}`
-                });
+                }, { source: 'platform_alert' });
                 if (result?.success) successCount++;
             }
         }

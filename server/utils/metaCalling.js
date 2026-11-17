@@ -1,6 +1,7 @@
 const axios = require('axios');
+const { GRAPH_URL } = require('../config/metaGraph');
 
-const GRAPH = 'https://graph.facebook.com/v22.0';
+const GRAPH = `${GRAPH_URL}`;
 
 const headers = (settings) => ({
     Authorization: `Bearer ${settings.metaAccessToken}`,

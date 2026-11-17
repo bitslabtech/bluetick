@@ -11,6 +11,7 @@ import BlogManager from '../components/landing/BlogManager';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { advancedFeatures, FEATURE_CATEGORIES, industries } from './LandingPage';
+import { formatDate, formatDateTime } from '../utils/dateFormat';
 
 const InputGroup = ({ label, value, onChange, placeholder, type = "text" }) => (
     <div className="space-y-2">
@@ -1819,7 +1820,7 @@ const AdminLandingPage = () => {
                                                         </div>
                                                         <p className="text-sm text-slate-500 font-mono mt-1">{page.path}</p>
                                                         {verMeta?.updatedAt && (
-                                                            <p className="text-xs text-slate-400 mt-0.5">Updated {new Date(verMeta.updatedAt).toLocaleDateString()}{verMeta.note ? ` — ${verMeta.note}` : ''}</p>
+                                                            <p className="text-xs text-slate-400 mt-0.5">Updated {formatDate(verMeta.updatedAt)}{verMeta.note ? ` — ${verMeta.note}` : ''}</p>
                                                         )}
                                                     </div>
                                                     <div className="flex gap-2">
@@ -2460,7 +2461,7 @@ const AdminLandingPage = () => {
                                                         {(c.startDate || c.expiryDate) && (
                                                             <span className="text-[10px] text-slate-400 flex items-center gap-1">
                                                                 <Calendar className="w-3 h-3" />
-                                                                {c.expiryDate ? new Date(c.expiryDate).toLocaleDateString() : 'No expiry'}
+                                                                {c.expiryDate ? formatDate(c.expiryDate) : 'No expiry'}
                                                             </span>
                                                         )}
                                                     </div>
@@ -2770,7 +2771,7 @@ const AdminLandingPage = () => {
                                             } catch (e) { console.error(e); }
                                         }} className={`w-full text-left p-3 rounded-xl transition-colors ${versionContentPreview?.version === v.version ? 'bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-500/30' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`}>
                                             <div className="font-bold text-sm text-slate-900 dark:text-white">v{v.version}</div>
-                                            <div className="text-[10px] text-slate-400 mt-0.5">{new Date(v.publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                                            <div className="text-[10px] text-slate-400 mt-0.5">{formatDate(v.publishedAt)}</div>
                                             {v.note && <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">{v.note}</div>}
                                         </button>
                                     ))}
@@ -2784,7 +2785,7 @@ const AdminLandingPage = () => {
                                         <>
                                             <div className="flex items-center gap-2 mb-4">
                                                 <span className="font-bold text-slate-900 dark:text-white text-base">v{versionContentPreview.version}</span>
-                                                <span className="text-xs text-slate-400">{new Date(versionContentPreview.publishedAt).toLocaleString()}</span>
+                                                <span className="text-xs text-slate-400">{formatDateTime(versionContentPreview.publishedAt)}</span>
                                                 {versionContentPreview.note && <span className="text-xs text-slate-500 italic">— {versionContentPreview.note}</span>}
                                             </div>
                                             {versionContentPreview.content ? (

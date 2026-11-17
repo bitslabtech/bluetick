@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
 import TopHeader from '../components/TopHeader';
 import { usePayment } from '../hooks/usePayment';
+import { formatShortDate } from '../utils/dateFormat';
 
 // Modern Skeleton Loader matching the Team page layout exactly
 function TeamSkeleton() {
@@ -836,7 +837,7 @@ export default function Team() {
                                                 )}
                                                 {topupSeats > 0 && (
                                                     <span className="text-violet-300 bg-violet-500/20 border border-violet-400/30 px-2 py-0.5 rounded font-medium">
-                                                        +{topupSeats} topup{topupExpiry && ` (exp ${new Date(topupExpiry).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`}
+                                                        +{topupSeats} topup{topupExpiry && ` (exp ${formatShortDate(topupExpiry)})`}
                                                     </span>
                                                 )}
                                             </div>

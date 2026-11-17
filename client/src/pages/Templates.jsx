@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import CreateTemplateModal from '../components/CreateTemplateModal';
 import { io } from 'socket.io-client';
+import { formatDate } from '../utils/dateFormat';
 
 
 const Templates = () => {
@@ -542,7 +543,7 @@ const Templates = () => {
 
                                         {/* Footer */}
                                         <div className="p-4 bg-slate-50 dark:bg-background-dark/50 border-t border-slate-100 dark:border-white/5 flex justify-between items-center text-slate-500 dark:text-text-secondary">
-                                            <span className="text-[10px]">Created: {new Date(template.createdAt).toLocaleDateString()}</span>
+                                            <span className="text-[10px]">Created: {formatDate(template.createdAt)}</span>
                                             <div className="flex gap-1">
                                                 <button
                                                     onClick={() => checkSettingsAndOpenModal(null, true, template)}
