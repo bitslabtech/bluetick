@@ -1031,6 +1031,7 @@ router.post('/ai-draft', async (req, res) => {
         const messages = await ChatMessage.findAll({
             where: {
                 conversationId,
+                source: { [Op.or]: [{ [Op.is]: null }, { [Op.ne]: 'call' }] }, // call events are not part of the conversation text
                 // Respect "Clear chat": don't draft from messages the team has cleared
                 ...(draftConversation.clearedAt ? { createdAt: { [Op.gt]: draftConversation.clearedAt } } : {})
             },
