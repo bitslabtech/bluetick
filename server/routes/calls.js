@@ -8,11 +8,23 @@ const Settings = require('../models/Settings');
 const CallService = require('../services/CallService');
 const meta = require('../utils/metaCalling');
 const elig = require('../utils/callEligibility');
+const Template = require('../models/Template');
+const callTemplates = require('../utils/callTemplates');
 
 router.use(auth);
 
 const ownerOf = (req) => req.user.parentUserId || req.user.id;
 const canManage = (req) => !req.user.parentUserId || req.user.teamRole === 'admin';
+/** Normalise one auto-message block from the request over the current value. */
+function messageBlock(input, cur, text) {
+    if (!input) return cur;
+    return {
+        enabled: typeof input.enabled === 'boolean' ? input.enabled : cur.enabled,
+        mode: input.mode === 'template' || input.mode === 'text' ? input.mode : cur.mode,
+        text: text(input.text, cur.text),
+        templateId: input.templateId === null ? null : (typeof input.templateId === 'string' ? input.templateId : cur.templateId),
+    };
+}
 const fail = (res, code, error, extra = {}) => res.status(code).json({ error, ...extra });
 
 /** Everything except /status needs the voice add-on. */
@@ -62,10 +74,22 @@ router.put('/settings', requireVoice, async (req, res) => {
             enabled: typeof b.enabled === 'boolean' ? b.enabled : cur.enabled,
             allowOutsideHours: typeof b.allowOutsideHours === 'boolean' ? b.allowOutsideHours : cur.allowOutsideHours,
             hours: b.hours === null ? null : (b.hours && Array.isArray(b.hours.schedule) ? { timezone: String(b.hours.timezone || 'UTC'), schedule: b.hours.schedule } : cur.hours),
-            missedCallMessage: b.missedCallMessage ? { enabled: !!b.missedCallMessage.enabled, text: text(b.missedCallMessage.text, cur.missedCallMessage.text) } : cur.missedCallMessage,
-            closedMessage: b.closedMessage ? { enabled: !!b.closedMessage.enabled, text: text(b.closedMessage.text, cur.closedMessage.text) } : cur.closedMessage,
+            missedCallMessage: messageBlock(b.missedCallMessage, cur.missedCallMessage, text),
+            closedMessage: messageBlock(b.closedMessage, cur.closedMessage, text),
             fallbackAfterSec: Number.isFinite(Number(b.fallbackAfterSec)) ? Math.min(35, Math.max(5, Math.round(Number(b.fallbackAfterSec)))) : cur.fallbackAfterSec,
         };
+
+        for (const key of ['missedCallMessage', 'closedMessage']) {
+            const m = next[key];
+            if (m.mode === 'template') {
+                const t = m.templateId ? await Template.findOne({ where: { id: m.templateId, userId: ownerId } }) : null;
+                if (!t) return fail(res, 400, 'Choose a template for the automatic message');
+                if (t.status === 'APPROVED') {
+                    const u = elig.templateUsable(t);
+                    if (!u.ok) return fail(res, 400, u.reason);
+                }
+            }
+        }
 
         const settings = await Settings.findOne({ where: { userId: ownerId } });
         // Apply on/off at Meta first so we never claim "enabled" when Meta refused.
@@ -80,9 +104,49 @@ router.put('/settings', requireVoice, async (req, res) => {
         settings.callSettings = next;
         settings.changed('callSettings', true);
         await settings.save();
-        res.json(await CallService.getCallStatus(ownerId));
+        res.json({ ...(await CallService.getCallStatus(ownerId)), canManage: canManage(req) });
     } catch (e) {
         console.error('[CALLS] settings:', e.message);
+        fail(res, 500, 'Server Error');
+    }
+});
+
+// GET /api/calls/message-templates: the workspace's templates the auto messages can use, + the suggestions
+router.get('/message-templates', requireVoice, async (req, res) => {
+    try {
+        const rows = await Template.findAll({ where: { userId: ownerOf(req) }, order: [['createdAt', 'DESC']], limit: 200 });
+        const templates = rows.map((t) => {
+            const u = elig.templateUsable(t);
+            return { id: t.id, name: t.name, content: t.content, status: t.status, category: t.category, usable: u.ok, reason: u.ok ? null : u.reason };
+        });
+        res.json({ templates, suggestions: [callTemplates.suggestion('missedCallMessage'), callTemplates.suggestion('closedMessage')] });
+    } catch (e) {
+        console.error('[CALLS] message-templates:', e.message);
+        fail(res, 500, 'Server Error');
+    }
+});
+
+// POST /api/calls/message-templates (owner / admin): submit the suggested template to Meta and select it
+router.post('/message-templates', requireVoice, async (req, res) => {
+    try {
+        if (!canManage(req)) return fail(res, 403, 'Only the owner or an admin can create templates');
+        const ownerId = ownerOf(req);
+        const which = req.body?.which;
+        if (which !== 'missedCallMessage' && which !== 'closedMessage') return fail(res, 400, 'Unknown message');
+        const settings = await Settings.findOne({ where: { userId: ownerId } });
+        let template;
+        try {
+            template = await callTemplates.createSuggested(ownerId, settings, which, req.body?.body);
+        } catch (e) {
+            return fail(res, 400, e.message);
+        }
+        const cur = elig.resolveCallSettings(settings.callSettings);
+        settings.callSettings = { ...cur, [which]: { ...cur[which], mode: 'template', templateId: template.id } };
+        settings.changed('callSettings', true);
+        await settings.save();
+        res.json({ ...(await CallService.getCallStatus(ownerId)), canManage: canManage(req) });
+    } catch (e) {
+        console.error('[CALLS] create message template:', e.message);
         fail(res, 500, 'Server Error');
     }
 });
@@ -138,6 +202,8 @@ router.get('/:id', requireVoice, async (req, res) => {
         if (!call) return;
         const out = CallService.publicCall(call);
         if (call.status === 'ringing') out.sdpOffer = call.sdpOffer;
+        out.ringStage = call.ringStage;
+        out.rang = await CallService.rangMembers(call);
         res.json(out);
     } catch (e) {
         console.error('[CALLS] get:', e.message);
