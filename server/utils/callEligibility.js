@@ -11,8 +11,8 @@ const DEFAULT_CALL_SETTINGS = {
     allowOutsideHours: false,
     hours: null,
     // mode 'text' = free text (only inside the 24 h window); 'template' = an approved template (templateId)
-    missedCallMessage: { enabled: true, mode: 'text', text: "Sorry we missed your call. Please send us a message here and we'll get back to you shortly.", templateId: null },
-    closedMessage: { enabled: true, mode: 'text', text: "Thanks for calling. We're currently closed. Please leave us a message here and we'll get back to you during business hours.", templateId: null },
+    missedCallMessage: { enabled: false, mode: 'text', text: "Sorry we missed your call. Please send us a message here and we'll get back to you shortly.", templateId: null },
+    closedMessage: { enabled: false, mode: 'text', text: "Thanks for calling. We're currently closed. Please leave us a message here and we'll get back to you during business hours.", templateId: null },
     fallbackAfterSec: 20,
 };
 
@@ -66,14 +66,24 @@ function templateVariableCount(text) {
  */
 function templateUsable(t) {
     if (!t || t.status !== 'APPROVED') return { ok: false, reason: 'Not approved yet' };
-    if (t.archetype && t.archetype !== 'standard') return { ok: false, reason: 'Carousel templates are not supported' };
+    if (t.archetype === 'carousel') return { ok: false, reason: 'Carousel templates are not supported' };
     if (t.headerType && t.headerType !== 'NONE' && !(t.headerType === 'TEXT' && !/\{\{/.test(t.headerContent || ''))) {
         return { ok: false, reason: 'Templates with a media or variable header are not supported' };
     }
     if (t.category === 'AUTHENTICATION') return { ok: false, reason: 'Authentication templates are not supported' };
+    if (Array.isArray(t.buttons) && t.buttons.some((b) => /\{\{/.test(b?.url || '') || ['COPY_CODE', 'FLOW', 'MPM', 'CATALOG', 'ORDER_DETAILS'].includes(String(b?.type || '').toUpperCase()))) {
+        return { ok: false, reason: 'Templates with a dynamic or special button are not supported' };
+    }
     const n = templateVariableCount(t.content);
     if (n < 0 || n > 1) return { ok: false, reason: 'Only one variable (the caller name) is supported' };
     return { ok: true, variables: n };
+}
+
+/** What the app needs to draw a WhatsApp-style preview of a template. */
+function templatePreview(t) {
+    const textHeader = t.headerType === 'TEXT' && t.headerContent ? String(t.headerContent) : null;
+    const buttons = Array.isArray(t.buttons) ? t.buttons.map((b) => ({ type: b?.type || '', text: b?.text || '' })).filter((b) => b.text) : [];
+    return { headerText: textHeader, footer: t.footer || null, buttons };
 }
 
 /**
@@ -121,4 +131,5 @@ module.exports = {
     isWindowOpen,
     templateVariableCount,
     templateUsable,
+    templatePreview,
 };
