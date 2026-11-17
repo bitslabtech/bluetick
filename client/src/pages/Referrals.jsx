@@ -5,7 +5,7 @@ import { Gift, Copy, CheckCircle, Users, ArrowRight, Activity, Calendar, Award, 
 import TopHeader from '../components/TopHeader';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDate } from '../utils/dateFormat';
 
 const Referrals = () => {
     const { user } = useAuth();
@@ -318,7 +318,7 @@ const Referrals = () => {
                                                 <td className="px-4 md:px-6 py-4">
                                                     <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
                                                         <Calendar className="w-4 h-4" />
-                                                        {new Date(hLine.joinedAt).toLocaleDateString()}
+                                                        {formatDate(hLine.joinedAt)}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 md:px-6 py-4">
@@ -359,7 +359,7 @@ const Referrals = () => {
                                         </div>
                                         <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-white/5 p-2.5 rounded-lg border border-slate-100 dark:border-white/5">
                                             <Calendar className="w-3.5 h-3.5" />
-                                            Joined on: {new Date(hLine.joinedAt).toLocaleDateString()}
+                                            Joined on: {formatDate(hLine.joinedAt)}
                                         </div>
                                     </div>
                                 ))}

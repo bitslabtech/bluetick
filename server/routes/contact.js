@@ -107,7 +107,7 @@ router.post('/demo', async (req, res) => {
                             templateName: template.name,
                             languageCode: template.language || 'en',
                             components: []
-                        });
+                        }, { source: 'platform_contact' });
                         
                         // If the message fails to send (e.g. invalid number), block the submission
                         if (!result || !result.success) {

@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
 import axios from 'axios';
 import UserDropdown from './UserDropdown';
+import { formatDate } from '../utils/dateFormat';
 
 const userNavItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', perm: 'menu_dashboard' },
@@ -626,7 +627,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                                                         {v.releasedAt && (
                                                             <span className="flex items-center gap-1 text-[10px] text-slate-400">
                                                                 <Calendar className="w-3 h-3" />
-                                                                {new Date(v.releasedAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                                {formatDate(v.releasedAt)}
                                                             </span>
                                                         )}
                                                     </div>

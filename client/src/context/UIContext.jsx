@@ -1,9 +1,15 @@
 
-import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { X, CheckCircle2, AlertTriangle, Info, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from './AuthContext'; // Import useAuth to get user status
 import { getPublicSettings } from '../utils/publicSettings';
+import {
+    setDateConfig, DEFAULT_DATE_FORMAT, DEFAULT_TIMEZONE, ADMIN_TIMEZONE,
+    formatDate as fmtDate, formatDateTime as fmtDateTime, formatTime as fmtTime,
+    formatRelative as fmtRelative, formatShortDate as fmtShortDate, formatMonth as fmtMonth,
+    formatSmart as fmtSmart,
+} from '../utils/dateFormat';
 
 // ── CSS-only animation styles injected once (replaces framer-motion dependency) ──
 const UI_ANIMATION_STYLES = `
@@ -136,25 +142,29 @@ export const UIProvider = ({ children }) => {
         }
     };
 
-    // Global Date Formatter
-    const formatDate = useCallback((dateString) => {
-        if (!dateString) return '-';
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) return '-';
-
-        const format = settings?.dateFormat || 'MM/DD/YYYY';
-
-        const day = date.getDate().toString().padStart(2, '0');
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const year = date.getFullYear();
-
-        // Simple format mapping
-        if (format === 'DD/MM/YYYY') return `${day}/${month}/${year}`;
-        if (format === 'YYYY/MM/DD') return `${year}/${month}/${day}`;
-        // Default MM/DD/YYYY
-        return `${month}/${day}/${year}`;
-
-    }, [settings]);
+    // Global date/time formatters — one format app-wide: the user's dateFormat
+    // setting + the account time zone (superadmins: Asia/Kolkata). Pages may also
+    // import the same functions from utils/dateFormat; the config set here is shared.
+    const [accountTimezone, setAccountTimezone] = useState(null);
+    const dateFormatSetting = settings?.dateFormat || DEFAULT_DATE_FORMAT;
+    const timeZone = user?.isAdmin ? ADMIN_TIMEZONE : (accountTimezone || user?.timezone || DEFAULT_TIMEZONE);
+    // Set synchronously so children rendered in this pass already see it.
+    setDateConfig({ dateFormat: dateFormatSetting, timeZone });
+    const dateHelpers = useMemo(() => {
+        const o = { dateFormat: dateFormatSetting, timeZone };
+        const bind = (fn) => (value, opts) => fn(value, { ...o, ...opts });
+        return {
+            formatDate: bind(fmtDate),
+            formatDateTime: bind(fmtDateTime),
+            formatTime: bind(fmtTime),
+            formatRelative: bind(fmtRelative),
+            formatShortDate: bind(fmtShortDate),
+            formatMonth: bind(fmtMonth),
+            formatSmart: bind(fmtSmart),
+            timeZone,
+            dateFormat: dateFormatSetting,
+        };
+    }, [dateFormatSetting, timeZone]);
 
 
     const [modal, setModal] = useState({
@@ -250,7 +260,7 @@ export const UIProvider = ({ children }) => {
     useEffect(() => { ensureStyles(); }, []);
 
     return (
-        <UIContext.Provider value={{ showModal, closeModal, showToast, formatDate, settings, publicSettings, publicSettingsLoading }}>
+        <UIContext.Provider value={{ showModal, closeModal, showToast, ...dateHelpers, setAccountTimezone, refreshSettings: fetchSettings, settings, publicSettings, publicSettingsLoading }}>
             {children}
             {/* Modal Layer — CSS-animated, no framer-motion */}
             {modal.isOpen && (

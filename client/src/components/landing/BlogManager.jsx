@@ -5,6 +5,7 @@ import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { useUI } from '../../context/UIContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatDate } from '../../utils/dateFormat';
 
 // Custom Quill Modules for better editing
 const quillModules = {
@@ -214,7 +215,7 @@ const BlogManager = () => {
                                         </div>
                                         <div className="p-5 flex-1 flex flex-col">
                                             <div className="flex items-center gap-2 mb-2 text-xs text-slate-400 font-medium">
-                                                <Calendar className="w-3.5 h-3.5" /> {new Date(blog.createdAt).toLocaleDateString()}
+                                                <Calendar className="w-3.5 h-3.5" /> {formatDate(blog.createdAt)}
                                                 <span className="w-1 h-1 rounded-full bg-slate-300 mx-1"></span>
                                                 <Eye className="w-3.5 h-3.5" /> {blog.views}
                                             </div>

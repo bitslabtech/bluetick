@@ -3,6 +3,7 @@ import { useOutletContext, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Settings, Trash2, AlertTriangle, AlertCircle, BarChart2, Eye, Globe, Info, ChevronDown, ChevronUp, LayoutGrid, Smartphone, Monitor, ShoppingBag, FileText, ClipboardList, Sparkles, CheckCircle, XCircle, Copy, ExternalLink, RefreshCw, Shield, Zap, ArrowRight, Clock, HelpCircle, Link2, Unlink, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { formatDateTime } from '../../utils/dateFormat';
 
 // CNAME target shown to merchants — reads VITE_ROUTER_HOSTNAME env var.
 // Change only the env var when moving to a new domain; no code change needed.
@@ -496,7 +497,7 @@ export default function WaStoreSettings() {
                                                             </a>
                                                         </p>
                                                         {domainVerifiedAt && (
-                                                            <p className="text-[10px] text-emerald-500/70 mt-1">Verified on {new Date(domainVerifiedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                                                            <p className="text-[10px] text-emerald-500/70 mt-1">Verified on {formatDateTime(domainVerifiedAt)}</p>
                                                         )}
                                                     </div>
                                                     <button

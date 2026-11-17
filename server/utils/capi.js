@@ -8,6 +8,7 @@
  */
 
 const axios = require('axios');
+const { GRAPH_URL } = require('../config/metaGraph');
 const crypto = require('crypto');
 
 /** SHA-256 hash a value for PII hashing (Meta requirement) */
@@ -66,7 +67,7 @@ const fireCAPIEvent = async ({ pixelId, accessToken, eventName, eventData, userD
 
     try {
         const response = await axios.post(
-            `https://graph.facebook.com/v22.0/${pixelId}/events`,
+            `${GRAPH_URL}/${pixelId}/events`,
             payload,
             {
                 params: { access_token: accessToken },

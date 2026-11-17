@@ -64,8 +64,8 @@ const MAX_FILE_SIZE_MB = 50;
 export const MIME_PRESETS = {
     // WhatsApp Cloud API only allows JPG and PNG for template headers
     whatsapp_image: ["image/jpeg", "image/png"],
-    // WhatsApp media including documents and video
-    whatsapp_media: ["image/jpeg", "image/png", "video/mp4", "video/3gpp", "application/pdf"],
+    // WhatsApp media including documents and video (static WebP supported for regular messages)
+    whatsapp_media: ["image/jpeg", "image/png", "image/webp", "video/mp4", "video/3gpp", "application/pdf"],
     // General images including webp
     general_image: ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"],
     // Videos only

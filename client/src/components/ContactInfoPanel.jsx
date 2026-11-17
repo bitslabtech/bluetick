@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { X, User, Phone, Tag, FileText, Trash2, MessageSquare, Clock, Tags, Users, ChevronDown, Check } from 'lucide-react';
-import { format } from 'date-fns';
+import { formatShortDate } from '../utils/dateFormat';
 import ManageLabelsModal from './ManageLabelsModal';
 
 const API_BASE = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL}`;
@@ -218,7 +218,7 @@ export default function ContactInfoPanel({ conversation, onClose, onUpdate, team
                         <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-3 text-center">
                             <div className="text-xs font-bold text-slate-900 dark:text-white">
                                 {conversation.lastInboundMessageAt
-                                    ? format(new Date(conversation.lastInboundMessageAt), 'dd MMM')
+                                    ? formatShortDate(conversation.lastInboundMessageAt)
                                     : 'N/A'}
                             </div>
                             <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Last Reply</div>

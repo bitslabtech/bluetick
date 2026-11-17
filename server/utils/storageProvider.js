@@ -235,6 +235,27 @@ const whatsappMediaFilter = (req, file, cb) => {
     }
 };
 
+const whatsappRegularImageFilter = (req, file, cb) => {
+    // For regular WhatsApp messages (not template headers): JPEG, PNG, and static WebP are supported
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (allowed.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error('WhatsApp image messages support JPG, PNG, and WebP images.'));
+    }
+};
+
+const whatsappRegularMediaFilter = (req, file, cb) => {
+    // For regular WhatsApp message media (chat, flows, campaigns — not template headers)
+    if (file.mimetype.startsWith('image/')) {
+        return whatsappRegularImageFilter(req, file, cb);
+    } else if (file.mimetype.startsWith('video/')) {
+        return videoFilter(req, file, cb);
+    } else {
+        return documentFilter(req, file, cb);
+    }
+};
+
 
 
 /**
@@ -835,6 +856,8 @@ module.exports.whatsappImageFilter = whatsappImageFilter;
 module.exports.documentFilter = documentFilter;
 module.exports.videoFilter = videoFilter;
 module.exports.whatsappMediaFilter = whatsappMediaFilter;
+module.exports.whatsappRegularImageFilter = whatsappRegularImageFilter;
+module.exports.whatsappRegularMediaFilter = whatsappRegularMediaFilter;
 module.exports.deleteStorageFile = deleteStorageFile;
 module.exports.classifyMediaType = classifyMediaType;
 module.exports.processAndStoreBuffer = processAndStoreBuffer;

@@ -24,10 +24,38 @@ router.get('/', (req, res) => {
 });
 
 // 2. Handle Event (POST) - DEPRECATED
-router.post('/', async (req, res) => {
-    // Respond immediately to Meta to prevent retry loops
-    res.sendStatus(200);
-    console.warn("[WARNING] Received payload on legacy /api/webhooks route. Campaigns and Inbox messages are now processed on /api/webhook/:userId. Please update your Meta Developer Portal Webhook Callback URL.");
+// 2. Receive (POST) - LEGACY ROUTE
+// Older Meta apps may still point here. Instead of dropping the payload (which lost every status
+// update and incoming message for those accounts), find the account by its phone number id and
+// hand the request to the current handler (/api/webhook/:userId), which verifies the signature.
+router.post('/', async (req, res, next) => {
+    try {
+        const body = req.body || {};
+        const phoneNumberId = body.object === 'whatsapp_business_account'
+            ? body.entry?.[0]?.changes?.[0]?.value?.metadata?.phone_number_id
+            : null;
+        let ownerId = null;
+        if (phoneNumberId) {
+            const Settings = require('../models/Settings');
+            const User = require('../models/User');
+            const s1 = await Settings.findOne({ where: { metaPhoneNumberId: String(phoneNumberId) }, attributes: ['userId'] });
+            ownerId = s1?.userId || null;
+            if (!ownerId) {
+                const u = await User.findOne({ where: { metaPhoneNumberId: String(phoneNumberId) }, attributes: ['id'] });
+                ownerId = u?.id || null;
+            }
+        }
+        if (ownerId) {
+            console.warn(`[LEGACY WEBHOOK] Payload for phone ${phoneNumberId} forwarded to /api/webhook/${ownerId}. Please update the callback URL in the Meta app to /api/webhook/${ownerId}.`);
+            req.url = `/${ownerId}`;
+            return require('./webhook')(req, res, next);
+        }
+        res.sendStatus(200);
+        console.warn("[WARNING] Received payload on legacy /api/webhooks route with no matching account — ignored. Campaigns and Inbox messages are processed on /api/webhook/:userId.");
+    } catch (err) {
+        console.error('[LEGACY WEBHOOK] Forwarding failed:', err.message);
+        if (!res.headersSent) res.sendStatus(200);
+    }
 });
 
 module.exports = router;

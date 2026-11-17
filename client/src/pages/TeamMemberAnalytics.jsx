@@ -11,6 +11,7 @@ import {
     ResponsiveContainer, BarChart, Bar, Cell
 } from 'recharts';
 import { useAuth } from '../context/AuthContext';
+import { formatDate as fmtDate, formatShortDate, formatShortDate as fmtShortDate } from '../utils/dateFormat';
 
 const API = import.meta.env.VITE_API_URL || `${import.meta.env.VITE_API_URL}`;
 
@@ -42,8 +43,8 @@ function KpiCard({ icon: Icon, label, value, color, sub }) {
     );
 }
 
-const formatDate = (d) => new Date(d).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' });
-const formatShort = (d) => new Date(d).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+const formatDate = (d) => fmtDate(d);
+const formatShort = (d) => fmtShortDate(d);
 const timeSince = (d) => {
     if (!d) return 'Never';
     const sec = Math.floor((Date.now() - new Date(d)) / 1000);
@@ -209,7 +210,7 @@ export default function TeamMemberAnalytics() {
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" className="dark:stroke-white/10" />
                                     <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }}
-                                        tickFormatter={v => new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                        tickFormatter={v => formatShortDate(v)}
                                         interval={4} dy={8} />
                                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} allowDecimals={false} />
                                     <Tooltip

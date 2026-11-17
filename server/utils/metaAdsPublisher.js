@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { GRAPH_URL } = require('../config/metaGraph');
 const { getIo } = require('../socket');
 
 /**
@@ -37,7 +38,7 @@ async function publishCampaignToMeta(user, payload) {
 
         // 1. Create Campaign
         const campaignObjective = objective || 'OUTCOME_ENGAGEMENT';
-        campRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/campaigns`, null, {
+        campRes = await axios.post(`${GRAPH_URL}/${fbAdAccountId}/campaigns`, null, {
             params: {
                 name: campaignName,
                 objective: campaignObjective,
@@ -81,7 +82,7 @@ async function publishCampaignToMeta(user, payload) {
         if (userInterests.length > 0) {
             const interestPromises = userInterests.map(interestName => {
                 const qName = typeof interestName === 'string' ? interestName : interestName.name;
-                return axios.get('https://graph.facebook.com/v22.0/search', {
+                return axios.get(`${GRAPH_URL}/search`, {
                     params: { type: 'adinterest', q: qName, access_token: token, limit: 1 },
                     timeout: 5000
                 }).then(res => {
@@ -166,7 +167,7 @@ async function publishCampaignToMeta(user, payload) {
 
             if (!resolvedPageId) {
                 try {
-                    const pagesRes = await axios.get('https://graph.facebook.com/v22.0/me/accounts', {
+                    const pagesRes = await axios.get(`${GRAPH_URL}/me/accounts`, {
                         params: { access_token: token, fields: 'id,name', limit: 10 }
                     });
                     if (pagesRes.data?.data?.length > 0) resolvedPageId = pagesRes.data.data[0].id;
@@ -175,13 +176,13 @@ async function publishCampaignToMeta(user, payload) {
 
             if (!resolvedPageId) {
                 try {
-                    const bizRes = await axios.get('https://graph.facebook.com/v22.0/me/businesses', {
+                    const bizRes = await axios.get(`${GRAPH_URL}/me/businesses`, {
                         params: { access_token: token, fields: 'id,name', limit: 5 }
                     });
                     for (const biz of (bizRes.data?.data || [])) {
                         if (resolvedPageId) break;
                         try {
-                            const pagesRes = await axios.get(`https://graph.facebook.com/v22.0/${biz.id}/owned_pages`, {
+                            const pagesRes = await axios.get(`${GRAPH_URL}/${biz.id}/owned_pages`, {
                                 params: { access_token: token, fields: 'id,name', limit: 5 }
                             });
                             if (pagesRes.data?.data?.length > 0) resolvedPageId = pagesRes.data.data[0].id;
@@ -192,12 +193,12 @@ async function publishCampaignToMeta(user, payload) {
 
             if (!resolvedPageId && user.metaAdAccountId) {
                 try {
-                    const actRes = await axios.get(`https://graph.facebook.com/v22.0/${user.metaAdAccountId}`, {
+                    const actRes = await axios.get(`${GRAPH_URL}/${user.metaAdAccountId}`, {
                         params: { access_token: token, fields: 'id,name,business' }
                     });
                     const businessId = actRes.data?.business?.id;
                     if (businessId) {
-                        const pagesRes = await axios.get(`https://graph.facebook.com/v22.0/${businessId}/owned_pages`, {
+                        const pagesRes = await axios.get(`${GRAPH_URL}/${businessId}/owned_pages`, {
                             params: { access_token: token, fields: 'id,name', limit: 5 }
                         });
                         if (pagesRes.data?.data?.length > 0) resolvedPageId = pagesRes.data.data[0].id;
@@ -276,7 +277,7 @@ async function publishCampaignToMeta(user, payload) {
 
         // 2. Create AdSet
         emitProgress(3, 'Creating Ad Set...');
-        adSetRes = await axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/adsets`, null, {
+        adSetRes = await axios.post(`${GRAPH_URL}/${fbAdAccountId}/adsets`, null, {
             params: adSetParams
         }).catch(async (e) => {
             const errData = e.response?.data?.error || {};
@@ -289,7 +290,7 @@ async function publishCampaignToMeta(user, payload) {
                 adSetParams.optimization_goal = 'LINK_CLICKS';
                 adSetParams.bid_strategy = 'LOWEST_COST_WITHOUT_CAP';
 
-                return axios.post(`https://graph.facebook.com/v22.0/${fbAdAccountId}/adsets`, null, {
+                return axios.post(`${GRAPH_URL}/${fbAdAccountId}/adsets`, null, {
                     params: adSetParams
                 }).catch(e2 => {
                     console.error('[META-ADS] Standard fallback also failed:', JSON.stringify(e2.response?.data?.error || e2.message, null, 2));
@@ -314,7 +315,7 @@ async function publishCampaignToMeta(user, payload) {
                     if (base64Data) {
                         const qs = require('querystring');
                         const imgUploadRes = await axios.post(
-                            `https://graph.facebook.com/v22.0/${fbAdAccountId}/adimages`,
+                            `${GRAPH_URL}/${fbAdAccountId}/adimages`,
                             qs.stringify({ bytes: base64Data, access_token: token }),
                             { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, maxBodyLength: Infinity, maxContentLength: Infinity }
                         ).catch(e => { console.warn('[META-ADS] Image upload warning:', e.message); return null; });
@@ -327,7 +328,7 @@ async function publishCampaignToMeta(user, payload) {
                 } else if (imageUrl && imageUrl.startsWith('http')) {
                     const qs = require('querystring');
                     const imgUploadRes = await axios.post(
-                        `https://graph.facebook.com/v22.0/${fbAdAccountId}/adimages`,
+                        `${GRAPH_URL}/${fbAdAccountId}/adimages`,
                         qs.stringify({ url: imageUrl, access_token: token }),
                         { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
                     ).catch(e => { console.warn('[META-ADS] External image upload warning:', e.message); return null; });
@@ -347,7 +348,7 @@ async function publishCampaignToMeta(user, payload) {
                         const Settings = require('../models/Settings');
                         const settings = await Settings.findOne({ where: { userId: user.id } });
                         if (settings?.metaPhoneNumberId) {
-                            const phoneRes = await axios.get(`https://graph.facebook.com/v22.0/${settings.metaPhoneNumberId}`, {
+                            const phoneRes = await axios.get(`${GRAPH_URL}/${settings.metaPhoneNumberId}`, {
                                 params: { fields: 'display_phone_number', access_token: settings.metaAccessToken },
                                 timeout: 5000
                             }).catch(() => null);
@@ -386,7 +387,7 @@ async function publishCampaignToMeta(user, payload) {
                     const PLACEHOLDER_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg==';
                     const qs = require('querystring');
                     const phRes = await axios.post(
-                        `https://graph.facebook.com/v22.0/${fbAdAccountId}/adimages`,
+                        `${GRAPH_URL}/${fbAdAccountId}/adimages`,
                         qs.stringify({ bytes: PLACEHOLDER_B64, access_token: token }),
                         { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
                     ).catch(e => null);
@@ -411,7 +412,7 @@ async function publishCampaignToMeta(user, payload) {
 
                 let creativeErrMsg = null;
                 const creativeRes = await axios.post(
-                    `https://graph.facebook.com/v22.0/${fbAdAccountId}/adcreatives`,
+                    `${GRAPH_URL}/${fbAdAccountId}/adcreatives`,
                     creativeBody,
                     { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
                 ).catch(e => {
@@ -425,7 +426,7 @@ async function publishCampaignToMeta(user, payload) {
                 let adErrMsg = null;
                 if (creativeId) {
                     const adRes = await axios.post(
-                        `https://graph.facebook.com/v22.0/${fbAdAccountId}/ads`,
+                        `${GRAPH_URL}/${fbAdAccountId}/ads`,
                         null,
                         {
                             params: {

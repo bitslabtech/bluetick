@@ -322,9 +322,12 @@ export default function PublicWaStorePage({ customSlug, customPageType }) {
                             <h1 className={`text-2xl md:text-4xl font-bold mb-8 ${theme.text} pb-6 border-b border-gray-100 dark:border-white/10`}>
                                 {title}
                             </h1>
-                            <div 
+                            <div
                                 className={`prose prose-sm sm:prose-base dark:prose-invert max-w-none ${theme.text} leading-relaxed break-words overflow-x-auto`}
-                                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }} 
+                                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content, {
+                                    ADD_ATTR: ['class', 'style', 'target', 'allow', 'allowfullscreen', 'frameborder', 'scrolling'],
+                                    ADD_TAGS: ['iframe', 'style']
+                                }) }}
                             />
                         </div>
                     </div>

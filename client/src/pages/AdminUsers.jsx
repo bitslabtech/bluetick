@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
-import { Trash2, MoreVertical, History, Edit, Eye, ShieldCheck, User, ChevronDown, ChevronUp, Plus, CreditCard, Activity, Server, DollarSign, Share2, Zap, ExternalLink, Users, Store } from 'lucide-react';
+import { Trash2, MoreVertical, History, Edit, Eye, ShieldCheck, User, ChevronDown, ChevronUp, Plus, CreditCard, Activity, Server, DollarSign, Share2, Zap, ExternalLink, Users, Store, FileText, AlertCircle, CheckCircle2, ExternalLink as LinkIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Navigate } from 'react-router-dom';
 import AdminHeader from '../components/AdminHeader';
 import ThemeToggle from '../components/ThemeToggle';
 import { useNavigate } from 'react-router-dom';
 import { useUI } from '../context/UIContext';
+import { formatDate as fmtDate, formatDateTime, formatDateTime as fmtDateTime, formatTime } from '../utils/dateFormat';
 
 const AdminUsers = () => {
     const { user, impersonate } = useAuth();
@@ -253,14 +254,15 @@ const AdminUsers = () => {
                                     <th className="px-4 md:px-6 py-4">Current Plan</th>
                                     <th className="px-4 md:px-6 py-4">Plan Expiry</th>
                                     <th className="px-4 md:px-6 py-4">Last Login</th>
+                                    <th className="px-4 md:px-6 py-4">Consent</th>
                                     <th className="px-4 md:px-6 py-4 w-10"></th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-sm">
                                 {loading ? (
-                                    <tr><td colSpan="7" className="p-4 md:p-8 text-center text-slate-500">Loading users...</td></tr>
+                                    <tr><td colSpan="8" className="p-4 md:p-8 text-center text-slate-500">Loading users...</td></tr>
                                 ) : filteredUsers.length === 0 ? (
-                                    <tr><td colSpan="7" className="p-4 md:p-8 text-center text-slate-500">No users found matching "{searchTerm}"</td></tr>
+                                    <tr><td colSpan="8" className="p-4 md:p-8 text-center text-slate-500">No users found matching "{searchTerm}"</td></tr>
                                 ) : (
                                     filteredUsers.map((u) => (
                                         <tr key={u.id} className={`hover:bg-slate-50 dark:hover:bg-white/5 transition-colors ${u.status === 'deleted' ? 'opacity-50' : ''}`}>
@@ -322,6 +324,20 @@ const AdminUsers = () => {
                                             {/* Last Login */}
                                             <td className="px-4 md:px-6 py-4 text-slate-600 dark:text-slate-300">
                                                 {u.lastLogin ? formatDate(u.lastLogin) : 'Never'}
+                                            </td>
+
+                                            {/* Consent */}
+                                            <td className="px-4 md:px-6 py-4">
+                                                {u.consentLog ? (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/30">
+                                                        <CheckCircle2 className="w-3 h-3" />
+                                                        Recorded
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-slate-500">
+                                                        Pre-versioning
+                                                    </span>
+                                                )}
                                             </td>
 
                                             {/* Actions */}
@@ -584,7 +600,7 @@ const HistorySessionCard = ({ session }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const { startLog, actions } = session;
     const adminName = startLog?.User?.name || 'Unknown Admin';
-    const date = new Date(startLog.createdAt).toLocaleString();
+    const date = formatDateTime(startLog.createdAt);
 
     return (
         <div className="border border-slate-200 dark:border-white/10 rounded-lg overflow-hidden transition-all bg-slate-50 dark:bg-white/5">
@@ -615,7 +631,7 @@ const HistorySessionCard = ({ session }) => {
                                         <p className="text-xs text-slate-500 dark:text-text-secondary mt-0.5 whitespace-pre-wrap">
                                             {log.details.replace(/\(Impersonated by .*?\)/, '').trim()}
                                         </p>
-                                        <p className="text-[10px] text-slate-400 mt-1">{new Date(log.createdAt).toLocaleTimeString()}</p>
+                                        <p className="text-[10px] text-slate-400 mt-1">{formatTime(log.createdAt, { seconds: true })}</p>
                                     </div>
                                 </div>
                             ))}
@@ -681,6 +697,24 @@ const ViewUserModal = ({ user, details, loading, onClose }) => {
     const [topupAmount, setTopupAmount] = useState('');
     const [isToppingUp, setIsToppingUp] = useState(false);
     const [localTokenBalance, setLocalTokenBalance] = useState(details?.user?.aiTokenBalance || 0);
+    const [consentData, setConsentData] = useState(null);
+    const [consentLoading, setConsentLoading] = useState(false);
+    const [previewVersion, setPreviewVersion] = useState(null);
+    const [waCheck, setWaCheck] = useState(null);
+    const [waCheckLoading, setWaCheckLoading] = useState(false);
+
+    const loadWaCheck = (refresh = false) => {
+        if (!user?.id) return;
+        setWaCheckLoading(true);
+        axios.get(`${import.meta.env.VITE_API_URL}/api/admin/users/${user.id}/usage-check${refresh ? '?refresh=1' : ''}`)
+            .then(r => setWaCheck(r.data))
+            .catch(e => console.error(e))
+            .finally(() => setWaCheckLoading(false));
+    };
+
+    useEffect(() => {
+        if (activeTab === 'wa_usage' && !waCheck) loadWaCheck();
+    }, [activeTab, user?.id]);
 
     useEffect(() => {
         if (details?.user?.aiTokenBalance !== undefined) {
@@ -688,11 +722,23 @@ const ViewUserModal = ({ user, details, loading, onClose }) => {
         }
     }, [details]);
 
+    useEffect(() => {
+        if (activeTab === 'legal' && user?.id && !consentData) {
+            setConsentLoading(true);
+            axios.get(`${import.meta.env.VITE_API_URL}/api/admin/users/${user.id}/consent`)
+                .then(r => setConsentData(r.data))
+                .catch(e => console.error(e))
+                .finally(() => setConsentLoading(false));
+        }
+    }, [activeTab, user?.id]);
+
     const tabs = [
         { id: 'profile', label: 'Profile', icon: User },
         { id: 'usage', label: 'Usage & Quotas', icon: Activity },
         { id: 'purchases', label: 'Purchases', icon: CreditCard },
-        { id: 'referrals', label: 'Referrals', icon: Share2 }
+        { id: 'referrals', label: 'Referrals', icon: Share2 },
+        { id: 'wa_usage', label: 'WhatsApp Usage Check', icon: Zap },
+        { id: 'legal', label: 'Legal & Consent', icon: FileText }
     ];
 
     const formatBytes = (bytes, decimals = 2) => {
@@ -704,12 +750,7 @@ const ViewUserModal = ({ user, details, loading, onClose }) => {
         return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
     };
 
-    const formatDate = (dateString) => {
-        if (!dateString) return 'N/A';
-        return new Date(dateString).toLocaleDateString('en-US', {
-            year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-        });
-    };
+    const formatDate = (dateString) => fmtDateTime(dateString, { fallback: 'N/A' });
 
     const handleTopUpTokens = async (e) => {
         e.preventDefault();
@@ -932,6 +973,147 @@ const ViewUserModal = ({ user, details, loading, onClose }) => {
                                 <div className="p-4 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-xl border border-amber-200 dark:border-amber-800/30 text-sm">
                                     Detailed referral breakdown and commission history is available via the Tech Partner / Affiliate manager section.
                                 </div>
+                            </div>
+                        )}
+
+                        {/* WHATSAPP USAGE CHECK TAB */}
+                        {activeTab === 'wa_usage' && (
+                            <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="text-lg font-bold text-slate-900 dark:text-white">WhatsApp Usage Check{waCheck?.month ? ` (${waCheck.month})` : ''}</h4>
+                                    <button onClick={() => loadWaCheck(true)} disabled={waCheckLoading} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400 hover:bg-indigo-100 disabled:opacity-50">
+                                        {waCheckLoading ? 'Checking…' : 'Re-check with Meta'}
+                                    </button>
+                                </div>
+                                {waCheckLoading && !waCheck && <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div></div>}
+                                {waCheck && !waCheck.connected && (
+                                    <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-xl text-sm text-slate-500">This user has not connected a WhatsApp Business Account.</div>
+                                )}
+                                {waCheck?.connected && (
+                                    <>
+                                        {waCheck.syncError && (
+                                            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30 rounded-xl text-sm text-amber-700 dark:text-amber-400">
+                                                Could not refresh from Meta ({waCheck.syncError}). Figures below may be stale.
+                                            </div>
+                                        )}
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                            {[
+                                                ['Meta delivered', waCheck.metaDelivered],
+                                                ['Bluetick logged', waCheck.loggedDelivered],
+                                                ['Unattributed', waCheck.unattributed],
+                                                ['Gap', waCheck.gap]
+                                            ].map(([label, val]) => (
+                                                <div key={label} className={`p-4 rounded-xl border ${label === 'Gap' && val > 0 ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/30' : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5'}`}>
+                                                    <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">{label}</p>
+                                                    <p className="text-xl font-bold text-slate-900 dark:text-white mt-1">{Number(val || 0).toLocaleString()}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <p className="text-xs text-slate-500">
+                                            A gap above zero means Meta delivered messages Bluetick has no record of: sent from another tool, or a feature that is not recording its sends. Unattributed messages are logged but have no sending feature.
+                                        </p>
+                                        <div className="rounded-xl border border-slate-100 dark:border-white/5 overflow-hidden">
+                                            <table className="w-full text-sm">
+                                                <thead className="bg-slate-50 dark:bg-white/[0.03] text-[10px] uppercase tracking-wider text-slate-500">
+                                                    <tr><th className="text-left px-4 py-2">Feature</th><th className="text-right px-4 py-2">Delivered</th><th className="text-right px-4 py-2">Paid</th></tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                                                    {waCheck.byFeature.length === 0 && <tr><td colSpan="3" className="px-4 py-4 text-center text-slate-500">No logged messages this month.</td></tr>}
+                                                    {waCheck.byFeature.map(f => (
+                                                        <tr key={f.key}><td className="px-4 py-2 text-slate-800 dark:text-slate-200">{f.label}</td><td className="px-4 py-2 text-right">{f.delivered.toLocaleString()}</td><td className="px-4 py-2 text-right">{f.paid.toLocaleString()}</td></tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )}
+
+                        {/* LEGAL & CONSENT TAB */}
+                        {activeTab === 'legal' && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                <h4 className="text-lg font-bold text-slate-900 dark:text-white">Legal & Consent Record</h4>
+
+                                {consentLoading && <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div></div>}
+
+                                {!consentLoading && !consentData?.consentLog && (
+                                    <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30 rounded-xl text-sm text-amber-700 dark:text-amber-400">
+                                        <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                                        <div>
+                                            <p className="font-semibold">No consent record</p>
+                                            <p className="mt-0.5 opacity-80">This user registered before policy versioning was enabled, or via API. No consent log is available.</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {!consentLoading && consentData?.consentLog && (() => {
+                                    const cl = consentData.consentLog;
+                                    const vd = consentData.versionDetails || {};
+                                    const policyLabels = { privacy: 'Privacy Policy', terms: 'Terms of Service', return: 'Return Policy', shipping: 'Shipping Policy', about: 'About Us' };
+                                    return (
+                                        <>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="bg-slate-50 dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/5">
+                                                    <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Registered At</p>
+                                                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{cl.registeredAt ? formatDateTime(cl.registeredAt) : 'N/A'}</p>
+                                                </div>
+                                                <div className="bg-slate-50 dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/5">
+                                                    <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">IP at Registration</p>
+                                                    <p className="text-sm font-semibold text-slate-900 dark:text-white font-mono">{cl.ip || 'N/A'}</p>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <h5 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">Agreed Policies</h5>
+                                                <div className="space-y-3">
+                                                    {(cl.policies || []).map(key => {
+                                                        const vInfo = vd[key];
+                                                        const label = policyLabels[key] || key;
+                                                        return (
+                                                            <div key={key} className="p-4 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-black/10">
+                                                                <div className="flex items-center justify-between flex-wrap gap-2">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                                                                        <span className="font-semibold text-slate-900 dark:text-white text-sm">{label}</span>
+                                                                        <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                                                                            v{vInfo?.version || 'unknown'}
+                                                                        </span>
+                                                                        {vInfo?.isOutdated && (
+                                                                            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400">
+                                                                                outdated (current: v{vInfo.currentVersion})
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    {vInfo?.content && (
+                                                                        <button
+                                                                            onClick={() => setPreviewVersion(previewVersion?.key === key ? null : { key, ...vInfo })}
+                                                                            className="text-xs font-semibold text-indigo-500 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors"
+                                                                        >
+                                                                            {previewVersion?.key === key ? 'Hide' : 'View agreed version'}
+                                                                        </button>
+                                                                    )}
+                                                                    {!vInfo?.content && vInfo?.version && (
+                                                                        <span className="text-xs text-slate-400 italic">Content not archived</span>
+                                                                    )}
+                                                                </div>
+                                                                {vInfo?.publishedAt && (
+                                                                    <p className="text-xs text-slate-400 mt-1 ml-6">Published {fmtDate(vInfo.publishedAt)}{vInfo.note ? ` — ${vInfo.note}` : ''}</p>
+                                                                )}
+                                                                {previewVersion?.key === key && previewVersion.content && (
+                                                                    <div
+                                                                        className="mt-3 ml-6 p-3 bg-slate-50 dark:bg-black/20 rounded-lg border border-slate-100 dark:border-white/5 prose prose-xs dark:prose-invert max-w-none text-xs overflow-y-auto max-h-64"
+                                                                        dangerouslySetInnerHTML={{ __html: previewVersion.content }}
+                                                                    />
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </>
+                                    );
+                                })()}
                             </div>
                         )}
 

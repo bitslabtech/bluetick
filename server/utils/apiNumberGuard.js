@@ -12,7 +12,7 @@
 const { Op, fn, col, where: sqlWhere } = require('sequelize');
 const User = require('../models/User');
 
-const API_TO_API_ERROR = "Not sent: Meta doesn't allow messages between two WhatsApp API numbers.";
+const API_TO_API_ERROR = "This message cannot be sent because WhatsApp does not support messaging between API accounts.";
 
 /**
  * @param {string} phone  Recipient number in any format (+91 98765 43210, 919876543210, ...)

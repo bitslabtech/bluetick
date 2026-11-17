@@ -11,6 +11,7 @@ import {
     Clock, CheckCircle, Truck, XCircle, Loader2, ShoppingCart
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { formatShortDate } from '../../utils/dateFormat';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -20,7 +21,7 @@ function fmtCurrency(val, currency = 'USD') {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(val || 0);
 }
 function fmtDate(iso) {
-    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return formatShortDate(iso);
 }
 function fmtNum(n) {
     if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';

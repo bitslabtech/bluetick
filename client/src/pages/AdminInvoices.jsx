@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { formatDate as fmtDate } from '../utils/dateFormat';
 
 const API = '/api/invoices';
 
@@ -33,10 +34,7 @@ function formatCurrency(amount, currency = 'INR') {
     return `${currency} ${parseFloat(amount || 0).toFixed(2)}`;
 }
 
-function formatDate(d) {
-    if (!d) return '—';
-    return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-}
+const formatDate = (d) => fmtDate(d, { fallback: '—' });
 
 export function Badge({ type, value }) {
     const map = type === 'wa' ? WA_STATUS_COLORS : INV_TYPE_COLORS;

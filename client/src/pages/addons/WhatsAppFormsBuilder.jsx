@@ -14,6 +14,7 @@ import {
     X, ArrowLeft, ArrowRight, MessageSquareShare, Users, CalendarDays, ShoppingCart, SquareDashed, Sparkles, Building2
 } from 'lucide-react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { formatDate, formatDateTime, formatTime } from '../../utils/dateFormat';
 
 // Utility elements
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -804,7 +805,7 @@ const WhatsAppFormsBuilder = () => {
 
                                 <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-100 dark:border-white/5">
                                     <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
-                                        <Calendar className="w-4 h-4" /> {form.createdAt ? new Date(form.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently'}
+                                        <Calendar className="w-4 h-4" /> {form.createdAt ? formatDate(form.createdAt) : 'Recently'}
                                     </div>
                                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
                                         <button
@@ -2008,7 +2009,7 @@ const AutomationsView = (props) => {
                                                         )}
 
                                                         <div className="flex justify-end px-2 pb-1.5 opacity-50">
-                                                            <span className="text-[9px] text-slate-500 dark:text-slate-400">{new Date().toLocaleTimeString([], { hour: '2-digit', minute:'2-digit' })}</span>
+                                                            <span className="text-[9px] text-slate-500 dark:text-slate-400">{formatTime(new Date())}</span>
                                                         </div>
                                                         {!isCarousel && selTmpl.components?.find(c => c.type === 'BUTTONS')?.buttons?.map((btn, i) => (
                                                             <div key={i} className="border-t border-slate-100 dark:border-white/5 py-1.5 flex items-center justify-center gap-1 text-[#00a884] font-bold text-[10px]">
@@ -2115,7 +2116,7 @@ const ResponsesView = (props) => {
                                                 const v = r.answers?.[f.id];
                                                 return Array.isArray(v) ? v.join(', ') : (typeof v === 'object' && v !== null ? Object.values(v).join(', ') : (v || '—'));
                                             }),
-                                            new Date(r.createdAt).toLocaleString(),
+                                            r.createdAt ? new Date(r.createdAt).toISOString() : '',
                                             r.status || 'new'
                                         ]);
                                         const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).split('"').join('""')}"`).join(',')).join('\n');
@@ -2170,7 +2171,7 @@ const ResponsesView = (props) => {
                                                                 </td>
                                                             );
                                                         })}
-                                                        <td className="px-4 py-3 text-slate-400 text-xs whitespace-nowrap">{new Date(r.createdAt).toLocaleString()}</td>
+                                                        <td className="px-4 py-3 text-slate-400 text-xs whitespace-nowrap">{formatDateTime(r.createdAt)}</td>
                                                         <td className="px-4 py-3">
                                                             <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${r.status === 'new' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                                                                 : r.status === 'contacted' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'

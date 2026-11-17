@@ -1,17 +1,18 @@
 import { jsPDF } from 'jspdf';
 import JsBarcode from 'jsbarcode';
 import QRCode from 'qrcode';
+import { formatDate } from '../../utils/dateFormat';
 
 // ─── Helpers: Currency & Formatting ──────────────────────────────────────────
 const CURRENCY_SYMBOLS = { USD: '$', EUR: '€', GBP: '£', INR: '₹', AED: 'AED', SGD: 'S$', AUD: 'A$', CAD: 'C$' };
 export const getCurrencySymbol = (code) => CURRENCY_SYMBOLS[code || 'INR'] || code || '₹';
 
 export function formatLabelDate(dateStr) {
-    if (!dateStr) return new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    if (!dateStr) return formatDate(new Date());
     const d = new Date(dateStr);
     return isNaN(d.getTime()) 
         ? String(dateStr) 
-        : d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        : formatDate(d);
 }
 
 // ─── Helper: Extract PIN / Postal Code from Address ───────────────────────────

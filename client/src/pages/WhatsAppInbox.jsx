@@ -9,7 +9,7 @@ import {
     MessageSquare, X, ChevronDown, Image as ImageIcon, FileText, Info, Bell, BellOff,
     Tag, Users, UserCheck, Lock, Layout, ChevronRight, Eye, AlertCircle, Zap, Sparkles, Wand2, Hand, Bot, ChevronLeft, Trash2, Eraser
 } from 'lucide-react';
-import { format, isToday, isYesterday, differenceInHours } from 'date-fns';
+import { formatDate, formatDateTime, formatSmart, formatTime as fmtTime, dateKey } from '../utils/dateFormat';
 import { useSocket } from '../context/SocketContext';
 import EmojiPicker from '../components/EmojiPicker';
 import QuickReplySuggestions from '../components/QuickReplySuggestions';
@@ -988,10 +988,7 @@ const WhatsAppInbox = () => {
 
     const formatTime = (dateStr) => {
         if (!dateStr) return '';
-        const d = new Date(dateStr);
-        if (isToday(d)) return format(d, 'HH:mm');
-        if (isYesterday(d)) return 'Yesterday';
-        return format(d, 'dd/MM/yy');
+        return formatSmart(dateStr);
     };
 
     // ── Filtered conversation list ──────────────────────────────────────────────────────────
@@ -999,10 +996,10 @@ const WhatsAppInbox = () => {
 
     // ── Message date grouping ──────────────────────────────────────────────────────────
     const getDateLabel = (dateStr) => {
-        const d = new Date(dateStr);
-        if (isToday(d)) return 'Today';
-        if (isYesterday(d)) return 'Yesterday';
-        return format(d, 'dd MMM yyyy');
+        const key = dateKey(dateStr);
+        if (key === dateKey(new Date())) return 'Today';
+        if (key === dateKey(Date.now() - 86400000)) return 'Yesterday';
+        return formatDate(dateStr);
     };
 
     const messagesWithDateSeparators = messages.reduce((acc, msg, i) => {
@@ -1549,7 +1546,7 @@ const WhatsAppInbox = () => {
                                                             type: m.type,
                                                             caption: m.body || undefined,
                                                             senderName: m.direction === 'OUTBOUND' ? (user?.displayName || 'You') : (selectedChat?.contactName || selectedChat?.phoneNumber),
-                                                            timestamp: format(new Date(m.timestamp), 'dd MMM yyyy, HH:mm'),
+                                                            timestamp: formatDateTime(m.timestamp),
                                                         }));
                                                         const idx = mediaMessages.findIndex(m => m.id === item.id);
                                                         setLightboxItems(lightboxList);
@@ -1577,7 +1574,7 @@ const WhatsAppInbox = () => {
                                                             type: m.type,
                                                             caption: m.body || undefined,
                                                             senderName: m.direction === 'OUTBOUND' ? (user?.displayName || 'You') : (selectedChat?.contactName || selectedChat?.phoneNumber),
-                                                            timestamp: format(new Date(m.timestamp), 'dd MMM yyyy, HH:mm'),
+                                                            timestamp: formatDateTime(m.timestamp),
                                                         }));
                                                         const idx = mediaMessages.findIndex(m => m.id === item.id);
                                                         setLightboxItems(lightboxList);
@@ -1783,7 +1780,7 @@ const WhatsAppInbox = () => {
                                                 {/* Time + tick */}
                                                 <div className="absolute right-2.5 bottom-1.5 flex items-center gap-1">
                                                     <span className="text-[10px] text-slate-400 dark:text-slate-400/70">
-                                                        {format(new Date(item.timestamp), 'HH:mm')}
+                                                        {fmtTime(item.timestamp)}
                                                     </span>
                                                     {isMe && <StatusTick status={item.status} />}
                                                 </div>
@@ -3202,4 +3199,4 @@ const TemplateModal = ({
         </>
     );
 };
-
+

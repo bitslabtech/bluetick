@@ -5,6 +5,7 @@ import { Sparkles, CheckCircle2, XCircle, Clock, BarChart, MessageCircle, UserPl
 import BillingProfile from './BillingProfile';
 import { InvoiceDetailModal } from '../pages/AdminInvoices';
 import UsageBreakdownModal from './UsageBreakdownModal';
+import { formatDate } from '../utils/dateFormat';
 
 const BillingTab = () => {
     const navigate = useNavigate();
@@ -128,7 +129,7 @@ const BillingTab = () => {
                                         <p className="text-xs text-white/60 uppercase font-bold">Valid Until</p>
                                         <p className="font-bold">
                                             {expiryDate
-                                                ? expiryDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                                                ? formatDate(expiryDate)
                                                 : 'Lifetime / No Expiry'
                                             }
                                         </p>
@@ -233,7 +234,7 @@ const BillingTab = () => {
                                 invoices.map((inv) => (
                                     <tr key={inv.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                                         <td className="px-4 md:px-6 py-4 font-mono text-xs text-slate-500">#{inv.id.slice(0, 8)}</td>
-                                        <td className="px-4 md:px-6 py-4">{new Date(inv.createdAt).toLocaleDateString()}</td>
+                                        <td className="px-4 md:px-6 py-4">{formatDate(inv.createdAt)}</td>
                                         <td className="px-4 md:px-6 py-4 font-bold">{inv.planName}</td>
                                         <td className="px-4 md:px-6 py-4">{currencySymbol(inv.currency || plan?.currency)}{inv.amount}</td>
                                         <td className="px-4 md:px-6 py-4">
@@ -279,7 +280,7 @@ const BillingTab = () => {
                                     </div>
                                     <div className="text-right">
                                         <div className="font-bold text-slate-900 dark:text-white">{currencySymbol(inv.currency || plan?.currency)}{inv.amount}</div>
-                                        <div className="text-xs text-slate-500 mt-1">{new Date(inv.createdAt).toLocaleDateString()}</div>
+                                        <div className="text-xs text-slate-500 mt-1">{formatDate(inv.createdAt)}</div>
                                     </div>
                                 </div>
                                 <div className="flex justify-between items-center pt-2">

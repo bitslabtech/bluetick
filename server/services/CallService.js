@@ -294,6 +294,8 @@ async function sendAutoMessage(call, settings, which) {
             type,
             payload,
             summaryBody: summary,
+            source: 'call_followup',
+            refs: { refType: 'call', refId: call.id },
         });
         await record({ outcome: 'sent', mode, ...(fallbackReason ? { reason: fallbackReason } : {}) });
     } catch (e) {

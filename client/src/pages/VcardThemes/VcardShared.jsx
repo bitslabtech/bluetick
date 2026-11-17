@@ -640,7 +640,7 @@ export function BusinessHoursTable({ hours, accentColor, rowBg, borderColor, tex
     const DAY_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     const DAY_SHORT = { monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat', sunday: 'Sun' };
 
-    const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    const today = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][new Date().getDay()];
 
     if (!hours || !Object.values(hours).some(d => d?.enabled)) return null;
 

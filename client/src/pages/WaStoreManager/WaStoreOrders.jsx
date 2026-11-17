@@ -12,6 +12,7 @@ import {
 import toast from 'react-hot-toast';
 import ShippingLabelModal from './ShippingLabelModal';
 import { downloadShippingLabelPdf } from './ShippingLabelGenerator';
+import { formatDate as fmtDate, formatDateTime as fmtDateTime } from '../../utils/dateFormat';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
@@ -37,7 +38,7 @@ function StatusBadge({ status }) {
 }
 
 function formatDate(dateStr) {
-    return new Date(dateStr).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return fmtDateTime(dateStr);
 }
 
 // ─── Order PDF Generator ──────────────────────────────────────────────────────
@@ -92,7 +93,7 @@ export function downloadOrderReceiptPdf(order, store) {
         doc.setFont("helvetica", "normal");
         let rightY = currentY + 6;
         doc.text(`Order No: ${order.orderNumber}`, pageWidth - 90, rightY); rightY += 5;
-        doc.text(`Date: ${new Date(order.createdAt).toLocaleDateString()}`, pageWidth - 90, rightY); rightY += 5;
+        doc.text(`Date: ${fmtDate(order.createdAt)}`, pageWidth - 90, rightY); rightY += 5;
         doc.text(`Status: ${order.status.charAt(0).toUpperCase() + order.status.slice(1)}`, pageWidth - 90, rightY); rightY += 5;
         if (order.paymentStatus) {
             doc.text(`Payment: ${order.paymentStatus.toUpperCase()}`, pageWidth - 90, rightY); rightY += 5;

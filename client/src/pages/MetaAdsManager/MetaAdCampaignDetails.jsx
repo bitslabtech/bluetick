@@ -11,6 +11,7 @@ import {
 import { useUI } from '../../context/UIContext';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
+import { formatDate, formatShortDate } from '../../utils/dateFormat';
 
 export default function MetaAdCampaignDetails() {
     const { id } = useParams();
@@ -114,7 +115,7 @@ export default function MetaAdCampaignDetails() {
     // Use real timeseries from Meta API (last 30 days daily breakdown)
     // Format dates for display
     const chartData = timeseries.map(d => ({
-        name: new Date(d.date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
+        name: formatShortDate(d.date),
         Impressions: d.impressions,
         Clicks: d.clicks,
         Spend: d.spend,
@@ -139,7 +140,7 @@ export default function MetaAdCampaignDetails() {
                             </div>
                             <p className="text-sm text-slate-500 mt-1 flex items-center gap-2">
                                 <span className="font-mono text-xs">{campaign.metaCampaignId || 'Draft'}</span>
-                                • Created {new Date(campaign.createdAt).toLocaleDateString()}
+                                • Created {formatDate(campaign.createdAt)}
                             </p>
                         </div>
                     </div>

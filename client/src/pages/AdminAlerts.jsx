@@ -4,10 +4,10 @@ import TrialBanner from '../components/TrialBanner';
 import {
     Activity, Shield, Bell, CheckCircle2, UserPlus, CreditCard, Ticket, Trash2, Check, X, AlertTriangle, ChevronDown
 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
 import AdminHeader from '../components/AdminHeader';
 import ThemeToggle from '../components/ThemeToggle';
 import { useUI } from '../context/UIContext';
+import { formatDateTime, formatRelative } from '../utils/dateFormat';
 
 const AdminAlerts = () => {
     const { showToast } = useUI();
@@ -198,14 +198,14 @@ const AdminAlerts = () => {
                                                 <div className="flex flex-col items-end whitespace-nowrap ml-2">
                                                     <span className="text-xs font-medium text-slate-400">
                                                         {isError && n.lastOccurredAt
-                                                            ? `Last seen: ${formatDistanceToNow(new Date(n.lastOccurredAt), { addSuffix: true })}`
-                                                            : formatDistanceToNow(new Date(n.lastOccurredAt || n.createdAt), { addSuffix: true })}
+                                                            ? `Last seen: ${formatRelative(n.lastOccurredAt)}`
+                                                            : formatRelative(n.lastOccurredAt || n.createdAt)}
                                                     </span>
                                                     <span className="text-[10px] text-slate-500 mt-0.5">
                                                         {isError && n.lastOccurredAt ? (
-                                                            <>First seen: {new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</>
+                                                            <>First seen: {formatDateTime(n.createdAt)}</>
                                                         ) : (
-                                                            <>{new Date(n.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</>
+                                                            <>{formatDateTime(n.createdAt)}</>
                                                         )}
                                                     </span>
                                                 </div>

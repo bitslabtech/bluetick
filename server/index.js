@@ -1,4 +1,6 @@
 require('dotenv').config();
+// Alarm on any WhatsApp message sent without the outbound gateway (it would not be counted)
+require('./services/outbound/guard').install();
 
 // Capture uncaught exceptions/rejections BEFORE anything else
 process.on('uncaughtException', (err) => {
@@ -54,6 +56,11 @@ require('./models/AutoTagRule');      // Auto-tagging rules engine
 require('./models/QuickReply');       // QuickReplies model
 require('./models/DeviceToken');      // Mobile Expo push tokens
 require('./models/Invoice');           // GST Invoices (generated on every purchase)
+require('./models/PolicyVersion');    // Append-only archive of published policy versions
+require('./models/MessageBilling');   // Per-message source + Meta pricing category (usage page)
+require('./models/WaUsageDaily');     // Daily snapshot of Meta pricing_analytics (usage page)
+require('./models/OutboundMessage');  // Ledger of every outbound WhatsApp message (services/outbound)
+require('./models/OutboundUsage');    // Plan allowance counter per owner per month
 
 // Import Routes
 const contactsRoute = require('./routes/contacts');
@@ -255,6 +262,23 @@ app.get('/store/:slug/llms.txt', (req, res, next) => {
 const distPath = path.join(__dirname, 'public/dist');
 const distIndex = path.join(distPath, 'index.html');
 const fs = require('fs');
+
+// client/index.html ships generic OneDash SEO tags (title, description, canonical, OG,
+// Organization/WebSite/SoftwareApplication JSON-LD, llms.txt links). When a page injects its
+// own tags *after* them, crawlers see two of each and usually pick the first, which means a
+// store shows up in Google as "OneDash". Strip the generic ones, then add the page-specific tags.
+function withPageHeadTags(html, injections) {
+    const stripped = html
+        .replace(/<title>[\s\S]*?<\/title>/i, '')
+        .replace(/<meta\s+name=["']description["'][^>]*>/gi, '')
+        .replace(/<link\s+rel=["']canonical["'][^>]*>/gi, '')
+        .replace(/<meta\s+property=["']og:[^"']*["'][^>]*>/gi, '')
+        .replace(/<meta\s+name=["']twitter:[^"']*["'][^>]*>/gi, '')
+        .replace(/<link\s+rel=["'](?:alternate|help)["']\s+type=["']text\/markdown["'][^>]*>/gi, '')
+        .replace(/<script\s+type=["']application\/ld\+json["']\s*>[\s\S]*?<\/script>/gi, '');
+    return stripped.replace('</head>', () => `${injections.filter(Boolean).join('\n  ')}\n</head>`);
+}
+
 if (fs.existsSync(distIndex)) {
     app.use(express.static(distPath, {
         maxAge: '1y',
@@ -538,8 +562,8 @@ if (fs.existsSync(distIndex)) {
                 if (ogImg) injections.push(`<meta property="og:image" content="${ogImg}">`);
                 injections.push(`<meta property="og:type" content="website">`);
 
-                // Inject head tags
-                html = html.replace('</head>', `${injections.join('\n  ')}\n</head>`);
+                // Inject head tags (replacing the generic OneDash ones from index.html)
+                html = withPageHeadTags(html, injections);
 
                 // ── Convert render-blocking CSS to non-blocking ────────────────────────────
                 // Vite emits <link rel="stylesheet"> which blocks all painting until the full
@@ -946,8 +970,8 @@ img{display:block;vertical-align:middle}
                 }).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')}</script>`);
             }
 
-            // Inject head tags
-            html = html.replace('</head>', `${injections.join('\n  ')}\n</head>`);
+            // Inject head tags (replacing the generic OneDash ones from index.html)
+            html = withPageHeadTags(html, injections);
 
             // Embed initial store + products data to eliminate API call on first render
             const storeJson = store.toJSON();
@@ -1041,7 +1065,7 @@ img{display:block;vertical-align:middle}
                 }).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')}</script>`);
             }
 
-            html = html.replace('</head>', `${injections.filter(Boolean).join('\n  ')}\n</head>`);
+            html = withPageHeadTags(html, injections);
 
             const storeJson = store.toJSON();
             const productsJson = products.map(p => p.toJSON());

@@ -80,43 +80,13 @@ const checkLimit = (used, limit) => ({
 });
 
 /**
- * Count outbound messages sent by userId in the current calendar month.
+ * Messages counted toward the plan this month (owner's time zone).
+ * Read from the outbound gateway's allowance counter, which covers every feature that sends
+ * (campaigns, inbox, API, flowbot, auto-replies, AI, store, OTP, forms, ...). Failed and blocked
+ * messages are not counted; deleting a campaign or chat does not give quota back.
  */
 const getMonthlyMessageCount = async (userId) => {
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
-
-    const MessageLog = require('../models/MessageLog');
-    const Message = require('../models/Message');
-
-    const chatMessageCount = await ChatMessage.count({
-        where: {
-            direction: 'OUTBOUND',
-            source: { [Op.is]: null },
-            createdAt: { [Op.gte]: startOfMonth },
-            '$Conversation.userId$': userId,
-            // Failed messages were never delivered (incl. blocked API-to-API sends) —
-            // same rule as campaigns below, which exclude FAILED.
-            [Op.or]: [{ status: { [Op.is]: null } }, { status: { [Op.ne]: 'failed' } }]
-        },
-        // paranoid: false — messages from deleted chats still count toward this month's usage
-        include: [{ model: Conversation, attributes: [], paranoid: false }]
-    });
-
-    const campaignMessageCount = await MessageLog.count({
-        where: {
-            status: { [Op.notIn]: ['FAILED', 'RETRY_PENDING'] },
-            createdAt: { [Op.gte]: startOfMonth }
-        },
-        include: [{
-            model: Message,
-            where: { userId },
-            attributes: []
-        }]
-    });
-
-    return chatMessageCount + campaignMessageCount;
+    return require('../services/outbound/allowance').getUsed(userId);
 };
 
 /**

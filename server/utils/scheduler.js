@@ -258,7 +258,7 @@ function initScheduler() {
                                     type: 'body',
                                     parameters: parameters
                                 }]
-                            });
+                            }, { source: 'platform_billing' });
                             user.lastExpiryAlertDay = daysLeft;
                             alertsUpdated = true;
                             console.log(`[ALERTS] Sent expiry alert to ${userPhone} for ${daysLeft} days left.`);
@@ -317,7 +317,7 @@ function initScheduler() {
                                     type: 'body',
                                     parameters: parameters
                                 }]
-                            });
+                            }, { source: 'platform_billing' });
                             userLastQuotaAlerts[typeName] = triggerPercent;
                             alertsUpdated = true;
                             console.log(`[ALERTS] Sent quota alert to ${userPhone} for ${typeName} at ${triggerPercent}%.`);
@@ -413,7 +413,7 @@ function initScheduler() {
                                             { type: 'text', text: 'Depleted' }
                                         ]
                                     }]
-                                });
+                                }, { source: 'platform_billing' });
                                 userLastQuotaAlerts['AITokens'] = aiTrigger;
                                 alertsUpdated = true;
                                 console.log(`[ALERTS] Sent AI token alert to ${userPhone} (balance: ${aiBalance}).`);
@@ -473,7 +473,8 @@ function initScheduler() {
                     if (orderAge < requiredMs) continue; // Not old enough yet per this store's setting
 
                     const user = await User.findByPk(store.userId);
-                    if (user && user.fbAccessToken && user.metaPhoneNumberId) {
+                    const waCreds = user ? await require('../services/outbound/credentials').resolveCredentials(user.id) : null;
+                    if (user && waCreds) {
                         let phone = order.customerPhone.replace(/\D/g, '');
                         const storeUrl = process.env.FRONTEND_URL
                             ? `${process.env.FRONTEND_URL}/store/${store.slug}`
@@ -489,8 +490,8 @@ function initScheduler() {
                             const { sendWhatsAppAndLog } = require('./whatsappSender');
                             await sendWhatsAppAndLog({
                                 userId: store.userId,
-                                metaPhoneNumberId: user.metaPhoneNumberId,
-                                metaAccessToken: user.fbAccessToken,
+                                source: 'store_cart',
+                                refs: { refType: 'order', refId: order.id },
                                 toPhone: phone,
                                 type: 'template',
                                 payload: {
@@ -597,7 +598,7 @@ function initScheduler() {
                             templateName: inactiveLoginTpl.templateName,
                             languageCode: inactiveLoginTpl.languageCode || 'en_US',
                             components: [{ type: 'body', parameters }]
-                        });
+                        }, { source: 'platform_billing' });
 
                         inactiveUser.lastInactiveReminderSent = now;
                         await inactiveUser.save();
@@ -673,6 +674,44 @@ function initScheduler() {
             console.error('[SCHEDULER] Retry processor error:', err.message);
         }
     }, 30 * 60 * 1000); // Every 30 minutes
+
+    // ==========================================
+    // 📊 WHATSAPP USAGE SNAPSHOT (Runs every 6 hours)
+    // Copies the last 3 days of Meta pricing_analytics for every workspace that
+    // sent messages this week, so billing history is stored before Meta's 1-year window expires.
+    // ==========================================
+    setInterval(async () => {
+        try {
+            const OutboundMessage = require('../models/OutboundMessage');
+            const { syncRange, ymd } = require('./waUsage');
+            const rows = await OutboundMessage.findAll({
+                where: { createdAt: { [Op.gte]: new Date(Date.now() - 7 * 86400000) } },
+                attributes: [['ownerId', 'userId']], group: ['ownerId'], raw: true
+            });
+            const to = ymd(new Date());
+            const from = ymd(new Date(Date.now() - 2 * 86400000));
+            for (const { userId } of rows) {
+                await syncRange(userId, from, to).catch(err => console.error('[USAGE-SYNC]', userId, err.message));
+                await new Promise(r => setTimeout(r, 500));
+            }
+        } catch (err) {
+            console.error('[SCHEDULER] Usage snapshot error:', err.message);
+        }
+    }, 6 * 60 * 60 * 1000);
+
+    // ==========================================
+    // OUTBOUND LEDGER: one-time backfill + daily reconciliation
+    // Backfill copies past messages into the ledger the first time the server starts with it.
+    // Every day: rebuild plan counters from the ledger (self-healing), then compare Meta's
+    // delivered count with ours per account and log any gap for the superadmin.
+    // ==========================================
+    (async () => {
+        try { await require('../services/outbound/backfill').runIfEmpty(); }
+        catch (err) { console.error('[OUTBOUND] Backfill failed:', err.message); }
+    })();
+    const reconcile = require('../services/outbound/reconcile');
+    setTimeout(() => reconcile.run().catch(err => console.error('[OUTBOUND] Reconcile error:', err.message)), 10 * 60 * 1000);
+    setInterval(() => reconcile.run().catch(err => console.error('[OUTBOUND] Reconcile error:', err.message)), 24 * 60 * 60 * 1000);
 }
 
 module.exports = { initScheduler };

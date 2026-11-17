@@ -7,6 +7,7 @@ import {
     AlertCircle, HardDrive, Loader2, Copy, ExternalLink, ZoomIn, Grid3X3, List,
     Film, FileText, FolderOpen
 } from "lucide-react";
+import { formatDate } from '../utils/dateFormat';
 
 const MEDIA_TABS = [
     { id: "all",      label: "All Media",  icon: FolderOpen, apiParam: null },
@@ -795,7 +796,7 @@ export default function MediaGallery({ accessMode = 'dashboard', pickerMode = fa
                                         {formatBytes(file.sizeBytes)}
                                     </td>
                                     <td className="px-4 py-3 hidden lg:table-cell text-slate-500 dark:text-slate-400 text-xs">
-                                        {new Date(file.createdAt).toLocaleDateString()}
+                                        {formatDate(file.createdAt)}
                                     </td>
                                     <td className="px-4 py-3">
                                         <div className="flex items-center justify-end gap-1">

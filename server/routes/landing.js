@@ -1,12 +1,26 @@
 const express = require('express');
 const router = express.Router();
 const LandingPage = require('../models/LandingPage');
+const PolicyVersion = require('../models/PolicyVersion');
+const outbound = require('../services/outbound');
 const Blog = require('../models/Blog');
 const auth = require('../middleware/auth');
 const admin = require('../middleware/admin');
 const { Op } = require('sequelize');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const cacheManager = require('../utils/cacheManager');
+
+// Auto-increment version string: '1.0' → '1.1', '2.9' → '2.10', '1' → '1.1'
+function bumpVersion(current) {
+    const str = String(current || '1.0');
+    const parts = str.split('.');
+    if (parts.length < 2) return `${str}.1`;
+    const minor = parseInt(parts[parts.length - 1], 10) || 0;
+    return [...parts.slice(0, -1), minor + 1].join('.');
+}
+
+// Policy keys we track versions for (matches publicPages keys + custom pages)
+const TRACKED_POLICY_KEYS = ['privacy', 'terms', 'return', 'shipping', 'about'];
 const _landingCache = cacheManager.createSimpleCache('landing_page', 60_000);
  // Multer Setup for Blog Images replaced by storageProvider 
 
@@ -98,14 +112,80 @@ router.put('/', [auth, admin], async (req, res) => {
         settings.seo = req.body.seo || settings.seo;
         settings.theme = req.body.theme || settings.theme;
         settings.footer = req.body.footer || settings.footer;
-        if (req.body.publicPages !== undefined) settings.publicPages = req.body.publicPages;
+        // ── Policy versioning ──────────────────────────────────────────────────
+        // policyVersionBumps: { privacy: { version: '1.2', note: '...' }, terms: { ... } }
+        // If the admin sends this alongside publicPages, we archive each changed page.
+        const versionBumps = req.body.policyVersionBumps || {};
+
+        if (req.body.publicPages !== undefined) {
+            const incomingPages = req.body.publicPages;
+            const currentVersions = { ...(settings.publicPagesVersions || {}) };
+            const archiveJobs = [];
+
+            for (const key of TRACKED_POLICY_KEYS) {
+                const newContent = incomingPages[key];
+                if (typeof newContent !== 'string') continue;
+                const oldContent = (settings.publicPages || {})[key] || '';
+
+                const bump = versionBumps[key];
+                const isBump = bump && (bump.version || bump.note !== undefined);
+
+                if (isBump || newContent !== oldContent) {
+                    const prevMeta = currentVersions[key] || {};
+                    const newVersion = bump?.version || bumpVersion(prevMeta.version || '1.0');
+                    const note = bump?.note ?? null;
+
+                    currentVersions[key] = {
+                        version: newVersion,
+                        updatedAt: new Date().toISOString(),
+                        note
+                    };
+
+                    if (newContent) {
+                        archiveJobs.push({
+                            policyKey: key,
+                            version: newVersion,
+                            content: newContent,
+                            note,
+                            publishedAt: new Date(),
+                            publishedBy: req.user?.realId || req.user?.id || null
+                        });
+                    }
+                }
+            }
+
+            // Archive custom pages that changed
+            if (Array.isArray(incomingPages.customPages)) {
+                for (const cp of incomingPages.customPages) {
+                    const policyKey = `custom:${cp.slug}`;
+                    const bump = versionBumps[policyKey];
+                    if (bump || cp.content) {
+                        const prevMeta = currentVersions[policyKey] || {};
+                        const newVersion = bump?.version || bumpVersion(prevMeta.version || '1.0');
+                        currentVersions[policyKey] = { version: newVersion, updatedAt: new Date().toISOString(), note: bump?.note ?? null };
+                        if (cp.content) {
+                            archiveJobs.push({ policyKey, version: newVersion, content: cp.content, note: bump?.note ?? null, publishedAt: new Date(), publishedBy: req.user?.realId || req.user?.id || null });
+                        }
+                    }
+                }
+            }
+
+            settings.publicPages = incomingPages;
+            settings.publicPagesVersions = currentVersions;
+            settings.changed('publicPagesVersions', true);
+
+            if (archiveJobs.length) {
+                await PolicyVersion.bulkCreate(archiveJobs, { ignoreDuplicates: true });
+            }
+        }
+
         if (req.body.contactInfo !== undefined) settings.contactInfo = req.body.contactInfo;
         if (req.body.capabilities !== undefined) settings.capabilities = req.body.capabilities;
         if (req.body.advancedFeatures !== undefined) settings.advancedFeatures = req.body.advancedFeatures;
         if (req.body.industries !== undefined) settings.industries = req.body.industries;
         if (req.body.aiChatbot !== undefined) settings.aiChatbot = req.body.aiChatbot;
         if (req.body.bookDemo !== undefined) settings.bookDemo = req.body.bookDemo;
-        
+
         settings.changed('publicPages', true);
         settings.changed('footer', true);
         settings.changed('contactInfo', true);
@@ -121,6 +201,38 @@ router.put('/', [auth, admin], async (req, res) => {
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET /api/landing/policy-versions/:key
+// @desc    List all archived versions for a policy key (Superadmin)
+router.get('/policy-versions/:key', [auth, admin], async (req, res) => {
+    try {
+        const versions = await PolicyVersion.findAll({
+            where: { policyKey: req.params.key },
+            attributes: ['id', 'policyKey', 'version', 'note', 'publishedAt', 'publishedBy'],
+            order: [['publishedAt', 'DESC']]
+        });
+        res.json({ versions });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
+// @route   GET /api/landing/policy-versions/:key/:version
+// @desc    Get full content of a specific policy version (Superadmin)
+router.get('/policy-versions/:key/:version', [auth, admin], async (req, res) => {
+    try {
+        const record = await PolicyVersion.findOne({
+            where: { policyKey: req.params.key, version: req.params.version },
+            order: [['publishedAt', 'DESC']]
+        });
+        if (!record) return res.status(404).json({ error: 'Version not found' });
+        res.json({ record });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Server Error' });
     }
 });
 
@@ -471,14 +583,13 @@ Extract the phone number starting with the country code (e.g. +1234567890) and s
                             }
                             
                             // Fire and forget fetch to Meta API
-                            fetch(`https://graph.facebook.com/v21.0/${ownerSettings.metaPhoneNumberId}/messages`, {
-                                method: 'POST',
-                                headers: {
-                                    'Authorization': `Bearer ${ownerSettings.metaAccessToken}`,
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify(payload)
-                            }).then(res => res.json()).then(async (data) => {
+                            outbound.sendMessage({
+                                ownerId: ownerSettings.userId,
+                                source: 'landing',
+                                payload,
+                                refs: { conversationId: conversation.id, refType: 'landing' },
+                                credentials: { token: ownerSettings.metaAccessToken, phoneNumberId: ownerSettings.metaPhoneNumberId }
+                            }).then(r => r.data || {}).then(async (data) => {
                                 if (data.messages && data.messages[0]) {
                                     await ChatMessage.create({
                                         userId: primaryOwnerId,

@@ -5,7 +5,7 @@ import { Tag, Plus, Edit2, Trash2, Check, X, RefreshCw, Calendar, FileText, Star
 import AdminHeader from '../components/AdminHeader';
 import ThemeToggle from '../components/ThemeToggle';
 import { useUI } from '../context/UIContext';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDate, formatRelative } from '../utils/dateFormat';
 
 const AdminVersioning = () => {
     const { showToast, showModal } = useUI();
@@ -186,10 +186,10 @@ const AdminVersioning = () => {
                                             <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                                                 <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-xs">
                                                     <Calendar className="w-3.5 h-3.5" />
-                                                    {v.releasedAt ? new Date(v.releasedAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                                                    {v.releasedAt ? formatDate(v.releasedAt) : '—'}
                                                 </div>
                                                 {v.releasedAt && (
-                                                    <div className="text-[10px] text-slate-400 mt-0.5 pl-5">{formatDistanceToNow(new Date(v.releasedAt), { addSuffix: true })}</div>
+                                                    <div className="text-[10px] text-slate-400 mt-0.5 pl-5">{formatRelative(v.releasedAt)}</div>
                                                 )}
                                             </td>
                                             <td className="px-4 md:px-6 py-4 text-center">

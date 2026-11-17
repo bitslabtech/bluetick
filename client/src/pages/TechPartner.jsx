@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
+import { formatDate } from '../utils/dateFormat';
 
 const TechPartner = () => {
     const { user } = useAuth();
@@ -249,7 +250,7 @@ const TechPartner = () => {
                                                     </span>
                                                 </td>
                                                 <td className="px-4 md:px-6 py-4 text-sm text-slate-500">
-                                                    {new Date(e.createdAt).toLocaleDateString()}
+                                                    {formatDate(e.createdAt)}
                                                 </td>
                                                 <td className="px-4 md:px-6 py-4">
                                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${e.status === 'paid'
@@ -440,7 +441,7 @@ const PartnerLeads = ({ leads }) => {
                                             {lead.planStatus}
                                         </span>
                                     </td>
-                                    <td className="px-4 md:px-6 py-4 text-sm text-slate-500">{new Date(lead.createdAt).toLocaleDateString()}</td>
+                                    <td className="px-4 md:px-6 py-4 text-sm text-slate-500">{formatDate(lead.createdAt)}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -567,7 +568,7 @@ const PartnerCoupons = ({ commissionRate }) => {
                                         <td className="px-4 md:px-6 py-4 font-mono font-bold text-indigo-600 dark:text-indigo-400">{c.code}</td>
                                         <td className="px-4 md:px-6 py-4 text-sm font-medium">{c.discountValue}% Off</td>
                                         <td className="px-4 md:px-6 py-4 text-sm text-slate-500">{c.usesCount || 0} / {c.maxUses > 0 ? c.maxUses : '∞'}</td>
-                                        <td className="px-4 md:px-6 py-4 text-sm text-slate-500">{c.expiryDate ? new Date(c.expiryDate).toLocaleDateString() : 'Never'}</td>
+                                        <td className="px-4 md:px-6 py-4 text-sm text-slate-500">{c.expiryDate ? formatDate(c.expiryDate) : 'Never'}</td>
                                         <td className="px-4 md:px-6 py-4 text-right">
                                             <button onClick={() => handleDelete(c.id)} className="text-red-500 hover:text-red-700 font-bold text-sm">Delete</button>
                                         </td>

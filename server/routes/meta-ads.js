@@ -1,4 +1,5 @@
 const express = require('express');
+const { GRAPH_URL } = require('../config/metaGraph');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const MetaAdCampaign = require('../models/MetaAdCampaign');
@@ -436,7 +437,7 @@ router.get('/insights', async (req, res) => {
                 
                 try {
                     const fbRes = await axios.get(
-                        `https://graph.facebook.com/v22.0/${campaign.metaCampaignId}/insights`,
+                        `${GRAPH_URL}/${campaign.metaCampaignId}/insights`,
                         {
                             params: {
                                 fields: 'impressions,clicks,spend,ctr,cpc,reach,frequency',
@@ -644,7 +645,7 @@ router.get('/location-search', async (req, res) => {
         if (token) {
             // ── Try Meta Targeting Search API first ──────────────────
             try {
-                const metaRes = await axios.get('https://graph.facebook.com/v22.0/search', {
+                const metaRes = await axios.get(`${GRAPH_URL}/search`, {
                     params: {
                         type: 'adgeolocation',
                         q: req.query.q.trim(),
@@ -708,7 +709,7 @@ router.get('/interest-search', async (req, res) => {
 
         // Call Meta adinterest Targeting Search API
         try {
-            const metaRes = await axios.get('https://graph.facebook.com/v22.0/search', {
+            const metaRes = await axios.get(`${GRAPH_URL}/search`, {
                 params: {
                     type: 'adinterest',
                     q: q,
@@ -769,7 +770,7 @@ router.patch('/:id/status', async (req, res) => {
         if (campaign.metaCampaignId && user.metaAdsToken) {
             try {
                 await axios.post(
-                    `https://graph.facebook.com/v22.0/${campaign.metaCampaignId}`,
+                    `${GRAPH_URL}/${campaign.metaCampaignId}`,
                     null,
                     { params: { status: metaStatus, access_token: user.metaAdsToken } }
                 );
@@ -887,7 +888,7 @@ router.patch('/:id', async (req, res) => {
             if (campaign.metaCampaignId && user.metaAdsToken) {
                 try {
                     await axios.post(
-                        `https://graph.facebook.com/v22.0/${campaign.metaCampaignId}`,
+                        `${GRAPH_URL}/${campaign.metaCampaignId}`,
                         null,
                         { params: { name: campaignName, access_token: user.metaAdsToken } }
                     );
@@ -908,7 +909,7 @@ router.patch('/:id', async (req, res) => {
                         ? { lifetime_budget: Math.round(Number(dailyBudget) * 100) }
                         : { daily_budget: Math.round(Number(dailyBudget) * 100) };
                     await axios.post(
-                        `https://graph.facebook.com/v22.0/${campaign.metaAdsetId}`,
+                        `${GRAPH_URL}/${campaign.metaAdsetId}`,
                         null,
                         { params: { ...budgetParam, access_token: user.metaAdsToken } }
                     );
@@ -934,7 +935,7 @@ router.patch('/:id', async (req, res) => {
                 try {
                     // 1. Fetch existing ad creative's object_story_spec
                     const adRes = await axios.get(
-                        `https://graph.facebook.com/v22.0/${campaign.metaAdId}`,
+                        `${GRAPH_URL}/${campaign.metaAdId}`,
                         { params: { fields: 'creative{object_story_spec}', access_token: user.metaAdsToken } }
                     );
                     
@@ -947,7 +948,7 @@ router.patch('/:id', async (req, res) => {
                         // 3. Create new AdCreative
                         const qsCreative = require('querystring');
                         const creativeRes = await axios.post(
-                            `https://graph.facebook.com/v22.0/${user.metaAdAccountId}/adcreatives`,
+                            `${GRAPH_URL}/${user.metaAdAccountId}/adcreatives`,
                             qsCreative.stringify({
                                 name: `${campaignName || campaign.campaignName} - Creative (Edited)`,
                                 object_story_spec: JSON.stringify(spec),
@@ -960,7 +961,7 @@ router.patch('/:id', async (req, res) => {
                         
                         // 4. Update Ad to use new Creative
                         await axios.post(
-                            `https://graph.facebook.com/v22.0/${campaign.metaAdId}`,
+                            `${GRAPH_URL}/${campaign.metaAdId}`,
                             null,
                             { params: { creative: JSON.stringify({ creative_id: newCreativeId }), access_token: user.metaAdsToken } }
                         );
@@ -1002,7 +1003,7 @@ router.delete('/:id', async (req, res) => {
         if (campaign.metaCampaignId && user.metaAdsToken) {
             try {
                 await axios.post(
-                    `https://graph.facebook.com/v22.0/${campaign.metaCampaignId}`,
+                    `${GRAPH_URL}/${campaign.metaCampaignId}`,
                     null,
                     { params: { status: 'DELETED', access_token: user.metaAdsToken } }
                 );
@@ -1063,7 +1064,7 @@ router.get('/:id/timeseries', async (req, res) => {
 
         try {
             const fbRes = await axios.get(
-                `https://graph.facebook.com/v22.0/${campaign.metaCampaignId}/insights`,
+                `${GRAPH_URL}/${campaign.metaCampaignId}/insights`,
                 {
                     params: {
                         fields: 'impressions,clicks,spend,reach',
@@ -1107,7 +1108,7 @@ router.get('/:id', async (req, res) => {
         if (req.query.sync === 'true' && user.metaAdsToken && campaign.metaCampaignId) {
             try {
                 const fbRes = await axios.get(
-                    `https://graph.facebook.com/v22.0/${campaign.metaCampaignId}/insights`,
+                    `${GRAPH_URL}/${campaign.metaCampaignId}/insights`,
                     {
                         params: {
                             fields: 'impressions,clicks,spend,ctr,cpc,reach,frequency',
