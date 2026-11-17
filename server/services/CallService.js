@@ -57,7 +57,7 @@ async function getCallStatus(ownerId) {
     for (const key of ['missedCallMessage', 'closedMessage']) {
         const id = callSettings[key].templateId;
         const t = id ? await Template.findOne({ where: { id, userId: ownerId } }) : null;
-        if (t) messageTemplates[key] = { id: t.id, name: t.name, content: t.content, status: t.status, usable: elig.templateUsable(t).ok };
+        if (t) messageTemplates[key] = { id: t.id, name: t.name, content: t.content, status: t.status, usable: elig.templateUsable(t).ok, ...elig.templatePreview(t) };
     }
     const base = { callSettings, messageTemplates, messagingLimit: tier.limit, minimumLimit: elig.MIN_MESSAGING_LIMIT };
 
@@ -165,7 +165,8 @@ function publicCall(c) {
 
 /** Who the call rang, for the call detail screen: [{ id, name, declined }]. */
 async function rangMembers(call) {
-    const ids = call.ringTargets || [];
+    // Whoever answered was rung, even if the call predates ring tracking and has no targets stored.
+    const ids = Array.from(new Set([...(call.ringTargets || []), ...(call.answeredBy ? [call.answeredBy] : [])]));
     if (!ids.length) return [];
     const users = await User.findAll({ where: { id: { [Op.in]: ids } }, attributes: ['id', 'name'] });
     const names = new Map(users.map((u) => [u.id, u.name]));

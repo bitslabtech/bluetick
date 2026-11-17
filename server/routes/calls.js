@@ -117,7 +117,7 @@ router.get('/message-templates', requireVoice, async (req, res) => {
         const rows = await Template.findAll({ where: { userId: ownerOf(req) }, order: [['createdAt', 'DESC']], limit: 200 });
         const templates = rows.map((t) => {
             const u = elig.templateUsable(t);
-            return { id: t.id, name: t.name, content: t.content, status: t.status, category: t.category, usable: u.ok, reason: u.ok ? null : u.reason };
+            return { id: t.id, name: t.name, content: t.content, status: t.status, category: t.category, usable: u.ok, reason: u.ok ? null : u.reason, ...elig.templatePreview(t) };
         });
         res.json({ templates, suggestions: [callTemplates.suggestion('missedCallMessage'), callTemplates.suggestion('closedMessage')] });
     } catch (e) {
@@ -141,7 +141,7 @@ router.post('/message-templates', requireVoice, async (req, res) => {
             return fail(res, 400, e.message);
         }
         const cur = elig.resolveCallSettings(settings.callSettings);
-        settings.callSettings = { ...cur, [which]: { ...cur[which], mode: 'template', templateId: template.id } };
+        settings.callSettings = { ...cur, [which]: { ...cur[which], enabled: true, mode: 'template', templateId: template.id } };
         settings.changed('callSettings', true);
         await settings.save();
         res.json({ ...(await CallService.getCallStatus(ownerId)), canManage: canManage(req) });
