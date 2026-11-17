@@ -16,7 +16,10 @@ const WaUsageDaily = sequelize.define('WaUsageDaily', {
 }, {
     timestamps: true,
     indexes: [
-        { unique: true, fields: ['userId', 'date', 'pricingCategory', 'pricingType', 'country'] },
+        // Explicit name, exactly the 63 characters Postgres already stored. The auto-generated name is
+        // 67 characters: Postgres truncates it, Sequelize then can't find it on the next start and tries
+        // to create it again ("relation already exists", 42P07), so the server would not boot.
+        { name: 'wa_usage_dailies_user_id_date_pricing_category_pricing_type_cou', unique: true, fields: ['userId', 'date', 'pricingCategory', 'pricingType', 'country'] },
         { fields: ['userId', 'date'] }
     ]
 });
