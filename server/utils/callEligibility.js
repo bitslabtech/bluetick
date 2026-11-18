@@ -10,8 +10,9 @@ const DEFAULT_CALL_SETTINGS = {
     enabled: false,
     allowOutsideHours: false,
     hours: null,
-    missedCallMessage: { enabled: true, text: "Sorry we missed your call. Please send us a message here and we'll get back to you shortly." },
-    closedMessage: { enabled: true, text: "Thanks for calling. We're currently closed. Please leave us a message here and we'll get back to you during business hours." },
+    // mode 'text' = free text (only inside the 24 h window); 'template' = an approved template (templateId)
+    missedCallMessage: { enabled: false, mode: 'text', text: "Sorry we missed your call. Please send us a message here and we'll get back to you shortly.", templateId: null },
+    closedMessage: { enabled: false, mode: 'text', text: "Thanks for calling. We're currently closed. Please leave us a message here and we'll get back to you during business hours.", templateId: null },
     fallbackAfterSec: 20,
 };
 
@@ -40,6 +41,49 @@ function resolveCallSettings(stored) {
         missedCallMessage: { ...DEFAULT_CALL_SETTINGS.missedCallMessage, ...(s.missedCallMessage || {}) },
         closedMessage: { ...DEFAULT_CALL_SETTINGS.closedMessage, ...(s.closedMessage || {}) },
     };
+}
+
+const WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/** Is the customer's 24 h free-reply window open? (last inbound message < 24 h ago) */
+function isWindowOpen(lastInboundAt, now = new Date()) {
+    if (!lastInboundAt) return false;
+    return now.getTime() - new Date(lastInboundAt).getTime() < WINDOW_MS;
+}
+
+/** Number of {{n}} variables in a template body, or -1 when they are not simple {{1}}..{{n}}. */
+function templateVariableCount(text) {
+    const found = [...String(text || '').matchAll(/\{\{\s*([^}]*?)\s*\}\}/g)].map((m) => m[1]);
+    if (!found.length) return 0;
+    const nums = [...new Set(found)].map(Number);
+    if (nums.some((n) => !Number.isInteger(n) || n < 1)) return -1;
+    return Math.max(...nums) === nums.length ? nums.length : -1;
+}
+
+/**
+ * Can this template be used as an automatic call message? Only {{1}} (the caller's name) is
+ * filled in, so: standard layout, no media/variable header, at most one body variable.
+ */
+function templateUsable(t) {
+    if (!t || t.status !== 'APPROVED') return { ok: false, reason: 'Not approved yet' };
+    if (t.archetype === 'carousel') return { ok: false, reason: 'Carousel templates are not supported' };
+    if (t.headerType && t.headerType !== 'NONE' && !(t.headerType === 'TEXT' && !/\{\{/.test(t.headerContent || ''))) {
+        return { ok: false, reason: 'Templates with a media or variable header are not supported' };
+    }
+    if (t.category === 'AUTHENTICATION') return { ok: false, reason: 'Authentication templates are not supported' };
+    if (Array.isArray(t.buttons) && t.buttons.some((b) => /\{\{/.test(b?.url || '') || ['COPY_CODE', 'FLOW', 'MPM', 'CATALOG', 'ORDER_DETAILS'].includes(String(b?.type || '').toUpperCase()))) {
+        return { ok: false, reason: 'Templates with a dynamic or special button are not supported' };
+    }
+    const n = templateVariableCount(t.content);
+    if (n < 0 || n > 1) return { ok: false, reason: 'Only one variable (the caller name) is supported' };
+    return { ok: true, variables: n };
+}
+
+/** What the app needs to draw a WhatsApp-style preview of a template. */
+function templatePreview(t) {
+    const textHeader = t.headerType === 'TEXT' && t.headerContent ? String(t.headerContent) : null;
+    const buttons = Array.isArray(t.buttons) ? t.buttons.map((b) => ({ type: b?.type || '', text: b?.text || '' })).filter((b) => b.text) : [];
+    return { headerText: textHeader, footer: t.footer || null, buttons };
 }
 
 /**
@@ -84,4 +128,8 @@ module.exports = {
     resolveCallSettings,
     isWithinHours,
     effectiveHours,
+    isWindowOpen,
+    templateVariableCount,
+    templateUsable,
+    templatePreview,
 };

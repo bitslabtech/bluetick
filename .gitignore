@@ -110,3 +110,11 @@ scripts/
 client/public/sitemap.xml
 server/public/sitemap.xml
 server/public/dist/sitemap.xml
+
+# Firebase / Google Cloud service-account keys and Apple push keys (never commit)
+*service-account*.json
+*serviceaccount*.json
+*service_account*.json
+*firebase-adminsdk*.json
+*adminsdk*.json
+*.p8

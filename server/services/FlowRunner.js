@@ -1,3 +1,4 @@
+const { Op } = require('sequelize');
 const ChatMessage = require('../models/ChatMessage');
 const ContactFlowState = require('../models/ContactFlowState');
 const FlowExecutionLog = require('../models/FlowExecutionLog');
@@ -434,7 +435,7 @@ class FlowRunner {
 
                 if (conversation) {
                     const lastMsg = await ChatMessage.findOne({
-                        where: { conversationId: conversation.id, direction: 'INBOUND' },
+                        where: { conversationId: conversation.id, direction: 'INBOUND', source: { [Op.or]: [{ [Op.is]: null }, { [Op.ne]: 'call' }] } }, // call events are not customer messages
                         order: [['createdAt', 'DESC']]
                     });
                     if (lastMsg) latestUserMessage = lastMsg.body;
@@ -481,7 +482,7 @@ class FlowRunner {
                     let history = [];
                     if (conversation) {
                         const allMsgs = await ChatMessage.findAll({
-                            where: { conversationId: conversation.id },
+                            where: { conversationId: conversation.id, source: { [Op.or]: [{ [Op.is]: null }, { [Op.ne]: 'call' }] } },
                             order: [['createdAt', 'ASC']]
                         });
                         

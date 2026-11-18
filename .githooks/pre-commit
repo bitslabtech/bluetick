@@ -1,0 +1,18 @@
+#!/bin/sh
+# Blocks commits that contain secrets: Google/Firebase service-account keys, Apple .p8 keys,
+# private-key files. Enable once per clone:  git config core.hooksPath .githooks
+bad=0
+for f in $(git diff --cached --name-only --diff-filter=ACM); do
+  case "$f" in
+    *service-account*.json|*serviceaccount*.json|*service_account*.json|*firebase-adminsdk*.json|*adminsdk*.json|*.p8|*.p12|*.pem|*.key|*/google-services.json)
+      echo "BLOCKED: $f looks like a secret and must not be committed."; bad=1; continue ;;
+  esac
+  # Any JSON/text file carrying a Google service-account private key
+  if [ -f "$f" ] && grep -Iq . "$f" 2>/dev/null && grep -q '"type": *"service_account"' "$f" 2>/dev/null; then
+    echo "BLOCKED: $f contains a Google service-account key."; bad=1
+  fi
+  if [ -f "$f" ] && grep -Iq . "$f" 2>/dev/null && grep -q 'BEGIN \(RSA \|EC \)\?PRIVATE KEY' "$f" 2>/dev/null; then
+    echo "BLOCKED: $f contains a private key."; bad=1
+  fi
+done
+[ "$bad" = 0 ] || { echo "Commit aborted. Unstage the file(s) above."; exit 1; }
