@@ -1624,18 +1624,42 @@ router.post('/start-trial', async (req, res) => {
         if (user.planStatus === 'Active' && user.plan !== 'Free') {
             return res.status(403).json({ error: 'Cannot start a trial while on an active paid subscription.' });
         }
-        
-        let planExpiry = new Date();
-        planExpiry.setDate(planExpiry.getDate() + targetPlan.trialDays);
 
-        await user.update({
+        // Anyone who has ever paid (or whose plan was granted/renewed by payment) is a customer, not a
+        // new user: no free trial after an expired paid plan.
+        const paidBefore = await Transaction.findOne({
+            where: { userId: user.id, status: 'COMPLETED', amount: { [Op.gt]: 0 } },
+            attributes: ['id']
+        });
+        if (paidBefore) {
+            return res.status(403).json({ error: 'Free trials are only for new accounts. Please choose a paid plan.' });
+        }
+
+        // Tech-partner referrals get the extended 30-day trial (same rule as direct sign-up).
+        let trialDays = targetPlan.trialDays;
+        let partnerReferred = !!user.techPartnerId;
+        if (!partnerReferred && user.referredBy) {
+            const referrer = await User.findByPk(user.referredBy, { attributes: ['techPartnerStatus'] });
+            partnerReferred = referrer?.techPartnerStatus === 'approved';
+        }
+        if (partnerReferred) trialDays = 30;
+
+        const planExpiry = new Date();
+        planExpiry.setDate(planExpiry.getDate() + trialDays);
+
+        // Atomic: only the request that flips hasUsedTrial false -> true wins, so parallel calls
+        // can't start (or restart) a trial twice.
+        const [claimed] = await User.update({
             plan: targetPlan.name,
             planStatus: 'Trial',
-            planExpiry: planExpiry,
+            planExpiry,
             hasUsedTrial: true
-        });
+        }, { where: { id: user.id, hasUsedTrial: false } });
+        if (!claimed) {
+            return res.status(403).json({ error: 'You have already used a free trial on this account.' });
+        }
 
-        res.json({ success: true, message: `Started ${targetPlan.trialDays}-day free trial for ${planName} plan` });
+        res.json({ success: true, message: `Started ${trialDays}-day free trial for ${planName} plan` });
     } catch (err) {
         console.error('Start Trial Error:', err);
         res.status(500).json({ error: err.message });

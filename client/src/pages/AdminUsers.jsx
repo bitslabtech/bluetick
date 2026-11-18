@@ -306,10 +306,13 @@ const AdminUsers = () => {
                                                         pink: 'bg-pink-50 text-pink-700 border-pink-200 dark:bg-pink-900/30 dark:text-pink-400 dark:border-pink-900/50',
                                                         slate: 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
                                                     };
-                                                    const styleClass = colorMap[color] || colorMap['blue'];
+                                                    // Pending = signed up but has not paid or started a trial. The stored plan name is
+                                                    // only a placeholder ("Free"), so never show it as if it were their plan.
+                                                    const isPending = u.planStatus === 'Pending';
+                                                    const styleClass = isPending ? colorMap['amber'] : (colorMap[color] || colorMap['blue']);
                                                     return (
                                                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold border ${styleClass}`}>
-                                                            {u.plan || 'Free'}
+                                                            {isPending ? 'Pending payment' : (u.plan || 'Free')}
                                                             {u.planStatus === 'Trial' && <span className="text-[9px] opacity-70 ml-0.5">(Trial)</span>}
                                                         </span>
                                                     );
@@ -774,7 +777,7 @@ const ViewUserModal = ({ user, details, loading, onClose }) => {
                 <div className="w-full md:w-64 bg-slate-50 dark:bg-black/20 border-b md:border-b-0 md:border-r border-slate-200 dark:border-white/10 flex flex-col shrink-0">
                     <div className="p-4 md:p-6">
                         <h3 className="text-xl font-extrabold text-slate-900 dark:text-white leading-tight truncate">{user?.name || 'Loading...'}</h3>
-                        <p className="text-xs text-slate-500 mt-1 flex items-center gap-1"><ShieldCheck className="w-3 h-3 text-emerald-500" /> {user?.plan || 'Free Plan'}</p>
+                        <p className="text-xs text-slate-500 mt-1 flex items-center gap-1"><ShieldCheck className="w-3 h-3 text-emerald-500" /> {user?.planStatus === 'Pending' ? 'Pending payment (no plan yet)' : (user?.plan || 'Free Plan')}</p>
                     </div>
                     <div className="flex-1 overflow-x-auto md:overflow-y-auto px-4 pb-4 flex md:flex-col gap-2 no-scrollbar">
                         {tabs.map(tab => {
