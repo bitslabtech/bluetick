@@ -987,7 +987,7 @@ const ViewUserModal = ({ user, details, loading, onClose }) => {
                                 <div className="flex items-center justify-between">
                                     <h4 className="text-lg font-bold text-slate-900 dark:text-white">WhatsApp Usage Check{waCheck?.month ? ` (${waCheck.month})` : ''}</h4>
                                     <button onClick={() => loadWaCheck(true)} disabled={waCheckLoading} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400 hover:bg-indigo-100 disabled:opacity-50">
-                                        {waCheckLoading ? 'Checking…' : 'Re-check with Meta'}
+                                        {waCheckLoading ? 'Checking…' : 'Check again'}
                                     </button>
                                 </div>
                                 {waCheckLoading && !waCheck && <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div></div>}
@@ -998,32 +998,33 @@ const ViewUserModal = ({ user, details, loading, onClose }) => {
                                     <>
                                         {waCheck.syncError && (
                                             <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30 rounded-xl text-sm text-amber-700 dark:text-amber-400">
-                                                Could not refresh from Meta ({waCheck.syncError}). Figures below may be stale.
+                                                Could not get the latest numbers from Meta ({waCheck.syncError}). Figures below may be out of date.
                                             </div>
                                         )}
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                             {[
-                                                ['Meta delivered', waCheck.metaDelivered],
-                                                ['Bluetick logged', waCheck.loggedDelivered],
-                                                ['Unattributed', waCheck.unattributed],
-                                                ['Gap', waCheck.gap]
+                                                ['Meta says delivered', waCheck.metaDelivered],
+                                                ['Onedash recorded', waCheck.loggedDelivered],
+                                                ['Sent outside Onedash', waCheck.unattributed],
+                                                ['Missing', waCheck.gap]
                                             ].map(([label, val]) => (
-                                                <div key={label} className={`p-4 rounded-xl border ${label === 'Gap' && val > 0 ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/30' : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5'}`}>
+                                                <div key={label} className={`p-4 rounded-xl border ${label === 'Missing' && val > 0 ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/30' : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5'}`}>
                                                     <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">{label}</p>
                                                     <p className="text-xl font-bold text-slate-900 dark:text-white mt-1">{Number(val || 0).toLocaleString()}</p>
                                                 </div>
                                             ))}
                                         </div>
-                                        <p className="text-xs text-slate-500">
-                                            A gap above zero means Meta delivered messages Bluetick has no record of: sent from another tool, or a feature that is not recording its sends. Unattributed messages are logged but have no sending feature.
-                                        </p>
+                                        <div className="text-xs text-slate-500 space-y-1">
+                                            <p>Compares what Meta says this user's number delivered this month with what Onedash recorded sending.</p>
+                                            <p><b>Missing</b> = Meta says delivered minus Onedash recorded. Above 0 means some messages were sent from somewhere Onedash can't see (another tool or app, or another Onedash environment using the same number), or their delivery updates never reached us.</p>
+                                        </div>
                                         <div className="rounded-xl border border-slate-100 dark:border-white/5 overflow-hidden">
                                             <table className="w-full text-sm">
                                                 <thead className="bg-slate-50 dark:bg-white/[0.03] text-[10px] uppercase tracking-wider text-slate-500">
-                                                    <tr><th className="text-left px-4 py-2">Feature</th><th className="text-right px-4 py-2">Delivered</th><th className="text-right px-4 py-2">Paid</th></tr>
+                                                    <tr><th className="text-left px-4 py-2">Sent from</th><th className="text-right px-4 py-2">Delivered</th><th className="text-right px-4 py-2">Charged</th></tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                                                    {waCheck.byFeature.length === 0 && <tr><td colSpan="3" className="px-4 py-4 text-center text-slate-500">No logged messages this month.</td></tr>}
+                                                    {waCheck.byFeature.length === 0 && <tr><td colSpan="3" className="px-4 py-4 text-center text-slate-500">No messages recorded by Onedash this month.</td></tr>}
                                                     {waCheck.byFeature.map(f => (
                                                         <tr key={f.key}><td className="px-4 py-2 text-slate-800 dark:text-slate-200">{f.label}</td><td className="px-4 py-2 text-right">{f.delivered.toLocaleString()}</td><td className="px-4 py-2 text-right">{f.paid.toLocaleString()}</td></tr>
                                                     ))}

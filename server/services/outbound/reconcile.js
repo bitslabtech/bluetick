@@ -56,7 +56,7 @@ async function run() {
         await ActivityLog.create({
             userId: r.owner,
             action: 'Message count gap',
-            details: `${fromDay} to ${toDay}: Meta delivered ${r.meta}, Bluetick recorded ${r.ours} (+${r.outside} sent outside Bluetick). Gap ${gap}. ` +
+            details: `${fromDay} to ${toDay}: Meta delivered ${r.meta}, Onedash recorded ${r.ours} (+${r.outside} sent outside Onedash). Gap ${gap}. ` +
                 `Check the webhook URL for this account and the "WhatsApp Usage Check" tab.`
         }).catch(() => {});
     }

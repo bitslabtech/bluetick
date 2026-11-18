@@ -96,12 +96,12 @@ export default function WhatsAppUsage() {
                             What your WhatsApp number used and what Meta charged for it. Meta bills your payment method directly.
                         </p>
                     </div>
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap lg:justify-end lg:shrink-0">
                         <div className="relative">
                             <select
                                 value={range}
                                 onChange={e => setRange(e.target.value)}
-                                className="appearance-none pl-3 pr-8 py-2 rounded-xl text-sm bg-white dark:bg-[#1a2332] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                                className="appearance-none h-10 pl-3 pr-8 rounded-xl text-sm bg-white dark:bg-[#1a2332] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                             >
                                 {RANGES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
                             </select>
@@ -110,16 +110,16 @@ export default function WhatsAppUsage() {
                         {range === 'custom' && (
                             <>
                                 <input type="date" value={from} max={today} onChange={e => setFrom(e.target.value)}
-                                    className="px-3 py-2 rounded-xl text-sm bg-white dark:bg-[#1a2332] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white" />
+                                    className="h-10 px-3 rounded-xl text-sm bg-white dark:bg-[#1a2332] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white" />
                                 <span className="text-slate-400 text-sm">to</span>
                                 <input type="date" value={to} max={today} onChange={e => setTo(e.target.value)}
-                                    className="px-3 py-2 rounded-xl text-sm bg-white dark:bg-[#1a2332] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white" />
+                                    className="h-10 px-3 rounded-xl text-sm bg-white dark:bg-[#1a2332] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white" />
                             </>
                         )}
                         <button
                             onClick={() => load(true)}
                             disabled={loading}
-                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-60"
+                            className="flex items-center justify-center gap-1.5 h-10 px-4 rounded-xl text-sm font-medium whitespace-nowrap bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-60"
                         >
                             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                             Refresh
@@ -127,7 +127,7 @@ export default function WhatsAppUsage() {
                         <a
                             href={BILLING_HUB_URL}
                             target="_blank" rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium border border-slate-200 dark:border-white/10 bg-white dark:bg-[#1a2332] text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                            className="flex items-center justify-center gap-1.5 h-10 px-4 rounded-xl text-sm font-medium whitespace-nowrap border border-slate-200 dark:border-white/10 bg-white dark:bg-[#1a2332] text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
                         >
                             <ExternalLink className="w-4 h-4" />
                             Invoices & payments

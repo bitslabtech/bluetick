@@ -368,49 +368,6 @@ const SuperAdminDashboard = () => {
                             <KpiCard icon={AlertCircle} label="Failed Rate" value={`${data.kpi.failedRate}%`} color="red" onBreakdown={openFailedBreakdown} />
                         </div>
 
-                        {/* 1b. Messages sent from Bluetick's own number (what Bluetick pays Meta for) */}
-                        {data.platformMessages?.bySource?.length > 0 && (
-                            <div className="bg-white/80 dark:bg-[#111827]/90 backdrop-blur-xl p-5 md:p-7 rounded-3xl border border-slate-200/80 dark:border-white/[0.05] shadow-lg shadow-slate-200/40 dark:shadow-none">
-                                <div className="flex flex-wrap items-start justify-between gap-2 mb-4">
-                                    <div>
-                                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Messages from Bluetick's number</h3>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                            OTPs, billing, invoices, alerts and store-owner alerts sent for stores without WhatsApp. Not included in the totals above.
-                                        </p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-2xl font-bold text-slate-900 dark:text-white">{data.platformMessages.total.sent.toLocaleString()}</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">{data.platformMessages.total.billable.toLocaleString()} paid by Bluetick · {data.platformMessages.total.failed.toLocaleString()} failed</p>
-                                    </div>
-                                </div>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm">
-                                        <thead>
-                                            <tr className="text-left text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-white/10">
-                                                <th className="py-2 pr-4 font-semibold">Kind</th>
-                                                <th className="py-2 px-2 font-semibold text-right">Sent</th>
-                                                <th className="py-2 px-2 font-semibold text-right">Delivered</th>
-                                                <th className="py-2 px-2 font-semibold text-right">Paid</th>
-                                                <th className="py-2 pl-2 font-semibold text-right">Failed</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {data.platformMessages.bySource.map(r => (
-                                                <tr key={r.source} className="border-b border-slate-100 dark:border-white/5 last:border-0">
-                                                    <td className="py-2 pr-4 text-slate-700 dark:text-slate-200">{r.label}</td>
-                                                    <td className="py-2 px-2 text-right tabular-nums text-slate-900 dark:text-white">{r.sent.toLocaleString()}</td>
-                                                    <td className="py-2 px-2 text-right tabular-nums text-slate-600 dark:text-slate-300">{r.delivered.toLocaleString()}</td>
-                                                    <td className="py-2 px-2 text-right tabular-nums text-slate-600 dark:text-slate-300">{r.billable.toLocaleString()}</td>
-                                                    <td className="py-2 pl-2 text-right tabular-nums text-red-600 dark:text-red-400">{r.failed.toLocaleString()}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <p className="text-[11px] text-slate-400 mt-3">"Paid" = messages Meta marked billable. Rupee amounts are on the Usage &amp; Spend page of the linked platform account.</p>
-                            </div>
-                        )}
-
                         {/* 2. GRAPHS ROW */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* Message Volume */}
@@ -677,6 +634,49 @@ const SuperAdminDashboard = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Messages sent from Onedash's own number (what Onedash itself pays Meta for) */}
+                        {data.platformMessages?.bySource?.length > 0 && (
+                            <div className="bg-white/80 dark:bg-[#111827]/90 backdrop-blur-xl p-5 md:p-7 rounded-3xl border border-slate-200/80 dark:border-white/[0.05] shadow-lg shadow-slate-200/40 dark:shadow-none">
+                                <div className="flex flex-wrap items-start justify-between gap-2 mb-4">
+                                    <div>
+                                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Messages sent by Onedash itself</h3>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                            Messages Onedash sends from its own WhatsApp number: login OTPs, billing and invoice messages, alerts, and store-owner alerts for stores without their own WhatsApp. Shown separately because Onedash pays for these, not customers, so they are not counted in customer message totals, delivery rate or failed rate above.
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-2xl font-bold text-slate-900 dark:text-white">{data.platformMessages.total.sent.toLocaleString()}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">{data.platformMessages.total.billable.toLocaleString()} paid by Onedash · {data.platformMessages.total.failed.toLocaleString()} failed</p>
+                                    </div>
+                                </div>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="text-left text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-white/10">
+                                                <th className="py-2 pr-4 font-semibold">Kind</th>
+                                                <th className="py-2 px-2 font-semibold text-right">Sent</th>
+                                                <th className="py-2 px-2 font-semibold text-right">Delivered</th>
+                                                <th className="py-2 px-2 font-semibold text-right">Paid</th>
+                                                <th className="py-2 pl-2 font-semibold text-right">Failed</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {data.platformMessages.bySource.map(r => (
+                                                <tr key={r.source} className="border-b border-slate-100 dark:border-white/5 last:border-0">
+                                                    <td className="py-2 pr-4 text-slate-700 dark:text-slate-200">{r.label}</td>
+                                                    <td className="py-2 px-2 text-right tabular-nums text-slate-900 dark:text-white">{r.sent.toLocaleString()}</td>
+                                                    <td className="py-2 px-2 text-right tabular-nums text-slate-600 dark:text-slate-300">{r.delivered.toLocaleString()}</td>
+                                                    <td className="py-2 px-2 text-right tabular-nums text-slate-600 dark:text-slate-300">{r.billable.toLocaleString()}</td>
+                                                    <td className="py-2 pl-2 text-right tabular-nums text-red-600 dark:text-red-400">{r.failed.toLocaleString()}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <p className="text-[11px] text-slate-400 mt-3">"Paid" = messages Meta marked billable. Rupee amounts are on the Usage &amp; Spend page of the linked platform account.</p>
+                            </div>
+                        )}
 
                         {/* 4. ACTIVITY LOGS */}
                         <div className="bg-white/80 dark:bg-[#111827]/90 backdrop-blur-xl rounded-3xl border border-slate-200/80 dark:border-white/[0.05] shadow-lg shadow-slate-200/40 dark:shadow-none hover:shadow-xl transition-all duration-300 p-5 md:p-7">
