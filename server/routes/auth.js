@@ -578,8 +578,11 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
         let consentLog = null;
         try {
             const consentPolicies = Array.isArray(req.body.consentPolicies) ? req.body.consentPolicies : ['privacy', 'terms'];
-            const landingSettings = await LandingPage.findOne({ attributes: ['publicPagesVersions'] });
-            const versions = landingSettings?.publicPagesVersions || {};
+            const landingSettings = await LandingPage.findOne();
+            // Pages nobody has edited since versioning was added have no version yet: give them v1.0 and
+            // archive their text now, so the record says "v1.0" (not "unknown") and the text stays viewable.
+            const { ensureBaselineVersions, TRACKED_POLICY_KEYS } = require('../utils/policyVersions');
+            const versions = await ensureBaselineVersions(landingSettings, consentPolicies.filter(k => TRACKED_POLICY_KEYS.includes(k)));
             consentLog = {
                 registeredAt: new Date().toISOString(),
                 ip: req.ip || req.headers['x-forwarded-for'] || null,

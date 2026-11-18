@@ -956,27 +956,49 @@ router.get('/users/:id/consent', async (req, res) => {
 
         const PolicyVersion = require('../models/PolicyVersion');
         const LandingPage = require('../models/LandingPage');
+        const { Op } = require('sequelize');
 
         const consentLog = targetUser.consentLog || null;
-        const currentVersions = (await LandingPage.findOne({ attributes: ['publicPagesVersions'] }))?.publicPagesVersions || {};
+        const landing = await LandingPage.findOne();
+        // Make sure every tracked policy has a version and an archived copy (adds v1.0 for never-edited pages)
+        const { ensureBaselineVersions } = require('../utils/policyVersions');
+        const currentVersions = await ensureBaselineVersions(landing);
 
         // For each policy the user consented to, fetch the archived version content
         const versionDetails = {};
-        if (consentLog?.allVersions) {
-            for (const [key, ver] of Object.entries(consentLog.allVersions)) {
-                if (!ver) continue;
-                const record = await PolicyVersion.findOne({
+        const keys = new Set([...(consentLog?.policies || []), ...Object.keys(consentLog?.allVersions || {})]);
+        const registeredAt = consentLog?.registeredAt ? new Date(consentLog.registeredAt) : targetUser.createdAt;
+        for (const key of keys) {
+            let ver = consentLog?.allVersions?.[key] || null;
+            let inferred = false;
+            let record = null;
+            if (ver) {
+                record = await PolicyVersion.findOne({
                     where: { policyKey: key, version: ver },
                     attributes: ['id', 'policyKey', 'version', 'note', 'publishedAt', 'content'],
                     order: [['publishedAt', 'DESC']]
                 });
-                versionDetails[key] = record ? record.toJSON() : { version: ver, content: null, note: 'Content not archived (pre-versioning)' };
-                // Add gap indicator: is current version newer than what user agreed to?
-                versionDetails[key].currentVersion = currentVersions[key]?.version || null;
-                versionDetails[key].isOutdated = currentVersions[key]?.version
-                    ? currentVersions[key].version !== ver
-                    : false;
+            } else {
+                // Registered before versions were recorded: the version in force at that time is the newest
+                // one published on or before registration, or the original (oldest) one if none was.
+                record = await PolicyVersion.findOne({
+                    where: { policyKey: key, publishedAt: { [Op.lte]: registeredAt } },
+                    attributes: ['id', 'policyKey', 'version', 'note', 'publishedAt', 'content'],
+                    order: [['publishedAt', 'DESC']]
+                }) || await PolicyVersion.findOne({
+                    where: { policyKey: key },
+                    attributes: ['id', 'policyKey', 'version', 'note', 'publishedAt', 'content'],
+                    order: [['publishedAt', 'ASC']]
+                });
+                if (record) { ver = record.version; inferred = true; }
             }
+            versionDetails[key] = record
+                ? record.toJSON()
+                : { version: ver, content: null, note: 'Content not archived (pre-versioning)' };
+            versionDetails[key].inferred = inferred;
+            // Gap indicator: is the current version different from what the user agreed to?
+            versionDetails[key].currentVersion = currentVersions[key]?.version || null;
+            versionDetails[key].isOutdated = !!(ver && currentVersions[key]?.version && currentVersions[key].version !== ver);
         }
 
         res.json({ consentLog, versionDetails, user: { id: targetUser.id, name: targetUser.name, email: targetUser.email, createdAt: targetUser.createdAt } });

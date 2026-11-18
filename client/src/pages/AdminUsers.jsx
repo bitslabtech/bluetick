@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import DOMPurify from 'dompurify';
 import TrialBanner from '../components/TrialBanner';
 import axios from 'axios';
-import { Trash2, MoreVertical, History, Edit, Eye, ShieldCheck, User, ChevronDown, ChevronUp, Plus, CreditCard, Activity, Server, DollarSign, Share2, Zap, ExternalLink, Users, Store, FileText, AlertCircle, CheckCircle2, ExternalLink as LinkIcon } from 'lucide-react';
+import { X, Trash2, MoreVertical, History, Edit, Eye, ShieldCheck, User, ChevronDown, ChevronUp, Plus, CreditCard, Activity, Server, DollarSign, Share2, Zap, ExternalLink, Users, Store, FileText, AlertCircle, CheckCircle2, ExternalLink as LinkIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Navigate } from 'react-router-dom';
 import AdminHeader from '../components/AdminHeader';
@@ -1080,8 +1082,13 @@ const ViewUserModal = ({ user, details, loading, onClose }) => {
                                                                         <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                                                                         <span className="font-semibold text-slate-900 dark:text-white text-sm">{label}</span>
                                                                         <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
-                                                                            v{vInfo?.version || 'unknown'}
+                                                                            {vInfo?.version ? `v${vInfo.version}` : 'version unknown'}
                                                                         </span>
+                                                                        {vInfo?.inferred && (
+                                                                            <span title="This user registered before versions were recorded. Shown: the version in force on their registration date." className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-400">
+                                                                                inferred from sign-up date
+                                                                            </span>
+                                                                        )}
                                                                         {vInfo?.isOutdated && (
                                                                             <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400">
                                                                                 outdated (current: v{vInfo.currentVersion})
@@ -1090,10 +1097,10 @@ const ViewUserModal = ({ user, details, loading, onClose }) => {
                                                                     </div>
                                                                     {vInfo?.content && (
                                                                         <button
-                                                                            onClick={() => setPreviewVersion(previewVersion?.key === key ? null : { key, ...vInfo })}
-                                                                            className="text-xs font-semibold text-indigo-500 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors"
+                                                                            onClick={() => setPreviewVersion({ key, label, ...vInfo })}
+                                                                            className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 flex items-center gap-1 transition-colors"
                                                                         >
-                                                                            {previewVersion?.key === key ? 'Hide' : 'View agreed version'}
+                                                                            <Eye className="w-3.5 h-3.5" /> View
                                                                         </button>
                                                                     )}
                                                                     {!vInfo?.content && vInfo?.version && (
@@ -1102,12 +1109,6 @@ const ViewUserModal = ({ user, details, loading, onClose }) => {
                                                                 </div>
                                                                 {vInfo?.publishedAt && (
                                                                     <p className="text-xs text-slate-400 mt-1 ml-6">Published {fmtDate(vInfo.publishedAt)}{vInfo.note ? ` — ${vInfo.note}` : ''}</p>
-                                                                )}
-                                                                {previewVersion?.key === key && previewVersion.content && (
-                                                                    <div
-                                                                        className="mt-3 ml-6 p-3 bg-slate-50 dark:bg-black/20 rounded-lg border border-slate-100 dark:border-white/5 prose prose-xs dark:prose-invert max-w-none text-xs overflow-y-auto max-h-64"
-                                                                        dangerouslySetInnerHTML={{ __html: previewVersion.content }}
-                                                                    />
                                                                 )}
                                                             </div>
                                                         );
@@ -1121,6 +1122,27 @@ const ViewUserModal = ({ user, details, loading, onClose }) => {
                         )}
 
                     </div>
+
+                    {previewVersion && createPortal(
+                        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+                            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm cursor-pointer" onClick={() => setPreviewVersion(null)}></div>
+                            <div className="relative bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl w-full sm:w-[70vw] max-w-none h-[85vh] sm:h-[80vh] flex flex-col">
+                                <div className="flex items-start justify-between p-5 border-b border-slate-100 dark:border-white/10">
+                                    <div>
+                                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">{previewVersion.label} <span className="text-indigo-500">v{previewVersion.version}</span></h3>
+                                        <p className="text-xs text-slate-500 mt-0.5">
+                                            {previewVersion.publishedAt ? `Published ${fmtDate(previewVersion.publishedAt)}` : ''}{previewVersion.note ? ` — ${previewVersion.note}` : ''}
+                                            {previewVersion.inferred ? ' · inferred from the sign-up date' : ''}
+                                        </p>
+                                    </div>
+                                    <button onClick={() => setPreviewVersion(null)} className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-white/10"><X className="w-5 h-5" /></button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-6 prose prose-sm dark:prose-invert max-w-none text-slate-700 dark:text-slate-300"
+                                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewVersion.content || '') }} />
+                            </div>
+                        </div>,
+                        document.body
+                    )}
 
                     {/* FOOTER */}
                     <div className="p-4 md:p-6 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex justify-end shrink-0">
