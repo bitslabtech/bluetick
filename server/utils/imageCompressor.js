@@ -153,4 +153,29 @@ function isCompressibleImage(mimetype) {
     return COMPRESSIBLE_MIMES.has(mimetype);
 }
 
-module.exports = { compressImage, isCompressibleImage, COMPRESSIBLE_MIMES, DEFAULT_CONFIG };
+/**
+ * Turns a static WebP into a format WhatsApp accepts everywhere (template headers and broadcasts
+ * only take JPEG/PNG): PNG when the image has transparency, otherwise a high-quality JPEG.
+ * Animated WebP cannot be converted without losing the animation, so it is reported, not changed.
+ * @returns {Promise<{ok:boolean, animated?:boolean, buffer?:Buffer, mimetype?:string, ext?:string, reason?:string}>}
+ */
+async function convertWebpForMeta(buffer, { maxWidth = 2000, maxHeight = 2000 } = {}) {
+    if (!sharp) return { ok: false, reason: 'Image converter is not available on this server.' };
+    try {
+        const meta = await sharp(buffer, { animated: true }).metadata();
+        if ((meta.pages || 1) > 1) return { ok: false, animated: true };
+        const hasAlpha = !!meta.hasAlpha;
+        let img = sharp(buffer).rotate().resize({ width: maxWidth, height: maxHeight, fit: 'inside', withoutEnlargement: true });
+        if (hasAlpha) {
+            const out = await img.png({ compressionLevel: opts_png() }).toBuffer();
+            return { ok: true, buffer: out, mimetype: 'image/png', ext: 'png' };
+        }
+        const out = await img.jpeg({ quality: 90, mozjpeg: true }).toBuffer();
+        return { ok: true, buffer: out, mimetype: 'image/jpeg', ext: 'jpg' };
+    } catch (err) {
+        return { ok: false, reason: 'This WebP file could not be read.' };
+    }
+}
+const opts_png = () => DEFAULT_CONFIG.pngCompressionLevel;
+
+module.exports = { convertWebpForMeta, compressImage, isCompressibleImage, COMPRESSIBLE_MIMES, DEFAULT_CONFIG };
