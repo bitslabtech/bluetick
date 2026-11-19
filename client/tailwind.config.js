@@ -14,9 +14,6 @@ export default {
                 'surface-dark': '#233648',
                 'text-secondary': '#92adc9',
             },
-            screens: {
-                'xl': '1400px',
-            },
             fontFamily: {
                 display: ['Inter', 'sans-serif'],
             },

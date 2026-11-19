@@ -162,7 +162,11 @@ export default function ContactInfoPanel({ conversation, onClose, onUpdate, team
 
     if (!conversation) return null;
 
-    const renderName = (name, phone) => {
+    // A saved "Unknown" (older chats) counts as no name, so the phone number is shown instead
+    const realName = (n) => (n && n.trim() && n.trim() !== 'Unknown' ? n : null);
+
+    const renderName = (rawName, phone) => {
+        const name = realName(rawName);
         const isActuallyPhone = !name || name === phone || /^\d+$/.test(name.replace(/\D/g, ''));
         if (isActuallyPhone && isSubMember) {
             if (teamPolicy?.phonePrivacy === 'blurred') return <span className="blur-sm select-none">{phone || name}</span>;
@@ -171,8 +175,9 @@ export default function ContactInfoPanel({ conversation, onClose, onUpdate, team
         return name || phone;
     };
 
-    const initials = conversation.contactName && !/^\d+$/.test(conversation.contactName.replace(/\D/g, ''))
-        ? conversation.contactName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    const shownName = realName(conversation.contactName);
+    const initials = shownName && !/^\d+$/.test(shownName.replace(/\D/g, ''))
+        ? shownName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
         : conversation.phoneNumber?.slice(-2);
 
     return (

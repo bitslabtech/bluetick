@@ -103,6 +103,7 @@ const FEATURE_HIGHLIGHTS = [
 const Register = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
+    const [company, setCompany] = useState('');
     const [dialCode, setDialCode] = useState('+91');
     const [localNumber, setLocalNumber] = useState('');
     const [phone, setPhone] = useState('+91');
@@ -386,6 +387,11 @@ const Register = () => {
         e.preventDefault();
         setError('');
 
+        if (!company.trim()) {
+            setError('Please enter your company or business name.');
+            return;
+        }
+
         const { min: pMin, max: pMax } = getPhoneLength(dialCode);
         if (localNumber.length < pMin || localNumber.length > pMax) {
             const hint = pMin === pMax ? `${pMin} digits` : `${pMin}–${pMax} digits`;
@@ -407,7 +413,7 @@ const Register = () => {
         // Pass selected plan ID, trial intent, and phone to backend
         const isTrial = selectedPlan?.startTrial || false;
         setIsSubmitting(true);
-        const res = await register(name, email, password, selectedPlan?.id, referralCode, partnerCode, phone, isTrial, turnstileToken, phoneVerifiedToken, ['privacy', 'terms']);
+        const res = await register(name, email, password, selectedPlan?.id, referralCode, partnerCode, phone, isTrial, turnstileToken, phoneVerifiedToken, ['privacy', 'terms'], company.trim());
         setIsSubmitting(false);
 
         if (res.success) {
@@ -691,6 +697,20 @@ const Register = () => {
                                     placeholder="you@example.com"
                                 />
                             </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Company / Business Name</label>
+                            <input
+                                type="text"
+                                required
+                                maxLength={100}
+                                value={company}
+                                onChange={(e) => setCompany(e.target.value)}
+                                autoComplete="organization"
+                                className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white bg-transparent focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all dark:placeholder-slate-600 placeholder-slate-400"
+                                placeholder="Your business name"
+                            />
                         </div>
 
                         <div className="space-y-1.5">

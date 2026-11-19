@@ -460,7 +460,7 @@ router.post('/:userId', (req, res, next) => {
                                         if (!conv) {
                                             conv = await Conversation.create({
                                                 phoneNumber: logPhone,
-                                                contactName: 'Unknown',
+                                                contactName: null, // no name yet: the inbox shows the phone number
                                                 userId,
                                                 lastMessage: '',
                                                 lastMessageAt: new Date(),
@@ -480,7 +480,7 @@ router.post('/:userId', (req, res, next) => {
                                                 templateName     = cached.templateName     || templateName;
                                                 templateLanguage = cached.templateLanguage || templateLanguage;
                                                 richComponents   = cached.richComponents   || richComponents;
-                                                if (cached.contactName && conv.contactName === 'Unknown') {
+                                                if (cached.contactName && (!conv.contactName || conv.contactName === 'Unknown')) {
                                                     conv.contactName = cached.contactName;
                                                 }
                                             } catch (_) { /* use defaults */ }
@@ -596,7 +596,9 @@ router.post('/:userId', (req, res, next) => {
                 // ─── 2. HANDLE INCOMING MESSAGES ───
                 if (value.messages && value.messages.length > 0) {
                     for (const message of value.messages) {
-                        const contactName = value.contacts?.[0]?.profile?.name || 'Unknown';
+                        // Meta leaves the profile name out for some senders (other API/business numbers,
+                        // hidden names). No name -> null, and the inbox shows the phone number instead.
+                        const contactName = (value.contacts?.[0]?.profile?.name || '').trim() || null;
                         const contactWaId = message.from; // Customer's WhatsApp ID (phone number)
                         const messageId = message.id;
 
@@ -805,7 +807,10 @@ router.post('/:userId', (req, res, next) => {
                             conversation.lastInboundMessageAt = new Date(timestamp);
                             conversation.unreadCount += 1;
                             conversation.lastMessage = messageBody;
-                            conversation.contactName = contactName;
+                            // Only fill in a missing name; never overwrite a name we already have
+                            const cur = (conversation.contactName || '').trim();
+                            const curIsPlaceholder = !cur || cur === 'Unknown' || cur === conversation.phoneNumber || /^\+?\d+$/.test(cur.replace(/[\s-]/g, ''));
+                            if (contactName && curIsPlaceholder) conversation.contactName = contactName;
                             await conversation.save();
                         }
 
@@ -917,7 +922,7 @@ router.post('/:userId', (req, res, next) => {
                                     } else {
                                         contactToUpdate = await Contact.create({
                                             phone: contactWaId,
-                                            name: value.contacts?.[0]?.profile?.name || 'Unknown',
+                                            name: (value.contacts?.[0]?.profile?.name || '').trim() || contactWaId,
                                             userId,
                                             status: newStatus
                                         });
@@ -1048,7 +1053,7 @@ router.post('/:userId', (req, res, next) => {
                                             // New contact messaging us — they're definitively on WhatsApp → 'Active'
                                             contact = await Contact.create({
                                                 phone: contactWaId,
-                                                name: contactName,
+                                                name: contactName || contactWaId, // name is required; fall back to the number
                                                 userId,
                                                 status: 'Active', // Inbound message proves they're on WhatsApp
                                                 // CTWA: stamp the ad source on the contact's first touch

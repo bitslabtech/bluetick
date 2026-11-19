@@ -608,7 +608,8 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
             hasUsedTrial: planStatus === 'Trial',
             referralCode: ownReferralCode,
             referredBy,
-            company: req.body.company || null,
+            // Company from the sign-up form; the same field is shown and edited in Settings > My Profile
+            company: (typeof req.body.company === 'string' && req.body.company.trim()) ? req.body.company.trim().slice(0, 100) : null,
             phone: phone, // Save the phone number
             jobTitle: req.body.jobTitle || null,
             techPartnerId: techPartnerId,

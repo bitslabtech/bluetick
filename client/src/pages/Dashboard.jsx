@@ -611,18 +611,18 @@ const Dashboard = () => {
                     ) : (
                         <>
                             {/* Stats Grid */}
-                            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-6 gap-4">
+                            <div className="grid grid-cols-2 lg:grid-cols-3 min-[80rem]:grid-cols-6 gap-3 2xl:gap-4">
                                 {/* Stat 1: Messages Sent / Plan Limit */}
-                        <div className="bg-white dark:bg-surface-dark rounded-xl p-5 border border-slate-200 dark:border-[#2f455a] shadow-sm transition-colors duration-300">
-                            <div className="flex items-start justify-between mb-4">
-                                <div className="p-2 rounded-lg bg-slate-100 dark:bg-background-dark text-primary">
-                                    <MessageSquare className="w-6 h-6" />
+                        <div className="bg-white dark:bg-surface-dark rounded-xl p-4 2xl:p-5 min-w-0 border border-slate-200 dark:border-[#2f455a] shadow-sm transition-colors duration-300">
+                            <div className="flex items-start justify-between gap-2 mb-3 2xl:mb-4">
+                                <div className="shrink-0 p-2 rounded-lg bg-slate-100 dark:bg-background-dark text-primary">
+                                    <MessageSquare className="w-5 h-5 2xl:w-6 2xl:h-6" />
                                 </div>
-                                <span className="text-slate-500 dark:text-text-secondary text-xs font-bold bg-slate-100 dark:bg-background-dark px-2 py-1 rounded border border-slate-200 dark:border-[#2f455a]">Plan: {stats.planName || 'Free'}</span>
+                                <span className="text-slate-500 dark:text-text-secondary text-xs font-bold bg-slate-100 dark:bg-background-dark px-2 py-1 rounded border truncate min-w-0 border-slate-200 dark:border-[#2f455a]" title={`Plan: ${stats.planName || 'Free'}`}>Plan: {stats.planName || 'Free'}</span>
                             </div>
-                            <p className="text-slate-500 dark:text-text-secondary text-xs font-medium mb-1 uppercase tracking-wider">This Month's Usage</p>
-                            <div className="flex items-end gap-1">
-                                <p className="text-slate-900 dark:text-white text-2xl font-bold">{stats.monthlyUsageCount.toLocaleString()}</p>
+                            <p className="text-slate-500 dark:text-text-secondary text-xs font-medium mb-1 uppercase tracking-wide 2xl:tracking-wider">This Month's Usage</p>
+                            <div className="flex flex-wrap items-end gap-x-1">
+                                <p className="text-slate-900 dark:text-white text-xl 2xl:text-2xl font-bold">{stats.monthlyUsageCount.toLocaleString()}</p>
                                 <span className="text-slate-400 dark:text-text-secondary text-sm mb-1 pb-0.5">/ {stats.monthlyLimit === -1 ? 'Unlimited' : stats.monthlyLimit?.toLocaleString() || 30}</span>
                             </div>
                             <div className="w-full bg-slate-100 dark:bg-background-dark h-1.5 rounded-full mt-3 overflow-hidden">
@@ -647,47 +647,47 @@ const Dashboard = () => {
                         </div>
 
                         {/* Stat 2: Delivery Rate */}
-                        <div className="bg-white dark:bg-surface-dark rounded-xl p-5 border border-slate-200 dark:border-[#2f455a] shadow-sm transition-colors duration-300">
-                            <div className="flex items-start justify-between mb-4">
-                                <div className="p-2 rounded-lg bg-slate-50 dark:bg-background-dark text-green-500 dark:text-green-400">
-                                    <CheckCheck className="w-6 h-6" />
+                        <div className="bg-white dark:bg-surface-dark rounded-xl p-4 2xl:p-5 min-w-0 border border-slate-200 dark:border-[#2f455a] shadow-sm transition-colors duration-300">
+                            <div className="flex items-start justify-between gap-2 mb-3 2xl:mb-4">
+                                <div className="shrink-0 p-2 rounded-lg bg-slate-50 dark:bg-background-dark text-green-500 dark:text-green-400">
+                                    <CheckCheck className="w-5 h-5 2xl:w-6 2xl:h-6" />
                                 </div>
                                 <span className={`text-xs font-bold px-2 py-1 rounded flex items-center gap-1 ${getRateStatus(stats.deliveryRate).text} ${getRateStatus(stats.deliveryRate).bg}`}>
                                     <div className={`size-1.5 rounded-full ${getRateStatus(stats.deliveryRate).color}`}></div>
                                     {getRateStatus(stats.deliveryRate).label}
                                 </span>
                             </div>
-                            <p className="text-slate-500 dark:text-text-secondary text-xs font-medium mb-1 uppercase tracking-wider">Delivery Rate</p>
-                            <p className="text-slate-900 dark:text-white text-2xl font-bold">{stats.deliveryRate}%</p>
+                            <p className="text-slate-500 dark:text-text-secondary text-xs font-medium mb-1 uppercase tracking-wide 2xl:tracking-wider">Delivery Rate</p>
+                            <p className="text-slate-900 dark:text-white text-xl 2xl:text-2xl font-bold">{stats.deliveryRate}%</p>
                             <p className="text-slate-500 dark:text-text-secondary text-xs mt-1 font-medium">{stats.deliveredCount} delivered</p>
                         </div>
 
                         {/* Stat 3: Read Rate */}
-                        <div className="bg-white dark:bg-surface-dark rounded-xl p-5 border border-slate-200 dark:border-[#2f455a] shadow-sm transition-colors duration-300">
-                            <div className="flex items-start justify-between mb-4">
-                                <div className="p-2 rounded-lg bg-slate-50 dark:bg-background-dark text-blue-500 dark:text-blue-400">
-                                    <Eye className="w-6 h-6" />
+                        <div className="bg-white dark:bg-surface-dark rounded-xl p-4 2xl:p-5 min-w-0 border border-slate-200 dark:border-[#2f455a] shadow-sm transition-colors duration-300">
+                            <div className="flex items-start justify-between gap-2 mb-3 2xl:mb-4">
+                                <div className="shrink-0 p-2 rounded-lg bg-slate-50 dark:bg-background-dark text-blue-500 dark:text-blue-400">
+                                    <Eye className="w-5 h-5 2xl:w-6 2xl:h-6" />
                                 </div>
                                 <span className={`text-xs font-bold px-2 py-1 rounded flex items-center gap-1 ${getRateStatus(stats.readRate).text} ${getRateStatus(stats.readRate).bg}`}>
                                     <div className={`size-1.5 rounded-full ${getRateStatus(stats.readRate).color}`}></div>
                                     {getRateStatus(stats.readRate).label}
                                 </span>
                             </div>
-                            <p className="text-slate-500 dark:text-text-secondary text-xs font-medium mb-1 uppercase tracking-wider">Read Rate</p>
-                            <p className="text-slate-900 dark:text-white text-2xl font-bold">{stats.readRate}%</p>
+                            <p className="text-slate-500 dark:text-text-secondary text-xs font-medium mb-1 uppercase tracking-wide 2xl:tracking-wider">Read Rate</p>
+                            <p className="text-slate-900 dark:text-white text-xl 2xl:text-2xl font-bold">{stats.readRate}%</p>
                             <p className="text-slate-500 dark:text-text-secondary text-xs mt-1">{stats.readCount} read</p>
                         </div>
 
                         {/* Stat 4: Contacts */}
-                        <div className="bg-white dark:bg-surface-dark rounded-xl p-5 border border-slate-200 dark:border-[#2f455a] shadow-sm transition-colors duration-300">
-                            <div className="flex items-start justify-between mb-4">
-                                <div className="p-2 rounded-lg bg-slate-50 dark:bg-background-dark text-purple-500 dark:text-purple-400">
-                                    <Users className="w-6 h-6" />
+                        <div className="bg-white dark:bg-surface-dark rounded-xl p-4 2xl:p-5 min-w-0 border border-slate-200 dark:border-[#2f455a] shadow-sm transition-colors duration-300">
+                            <div className="flex items-start justify-between gap-2 mb-3 2xl:mb-4">
+                                <div className="shrink-0 p-2 rounded-lg bg-slate-50 dark:bg-background-dark text-purple-500 dark:text-purple-400">
+                                    <Users className="w-5 h-5 2xl:w-6 2xl:h-6" />
                                 </div>
                             </div>
-                            <p className="text-slate-500 dark:text-text-secondary text-xs font-medium mb-1 uppercase tracking-wider">Total Contacts</p>
-                            <div className="flex items-end gap-1">
-                                <p className="text-slate-900 dark:text-white text-2xl font-bold">{stats.contactsCount.toLocaleString()}</p>
+                            <p className="text-slate-500 dark:text-text-secondary text-xs font-medium mb-1 uppercase tracking-wide 2xl:tracking-wider">Total Contacts</p>
+                            <div className="flex flex-wrap items-end gap-x-1">
+                                <p className="text-slate-900 dark:text-white text-xl 2xl:text-2xl font-bold">{stats.contactsCount.toLocaleString()}</p>
                                 <span className="text-slate-400 dark:text-text-secondary text-sm mb-1 pb-0.5">/ {stats.contactLimit === -1 ? 'Unlimited' : stats.contactLimit?.toLocaleString() || 10}</span>
                             </div>
                             <div className="w-full bg-slate-100 dark:bg-background-dark h-1.5 rounded-full mt-3 overflow-hidden">
@@ -706,16 +706,16 @@ const Dashboard = () => {
                         </div>
 
                         {/* Stat 5: Total Templates */}
-                        <div className="bg-white dark:bg-surface-dark rounded-xl p-5 border border-slate-200 dark:border-[#2f455a] shadow-sm transition-colors duration-300">
-                            <div className="flex items-start justify-between mb-4">
-                                <div className="p-2 rounded-lg bg-slate-50 dark:bg-background-dark text-orange-500 dark:text-orange-400">
-                                    <FileText className="w-6 h-6" />
+                        <div className="bg-white dark:bg-surface-dark rounded-xl p-4 2xl:p-5 min-w-0 border border-slate-200 dark:border-[#2f455a] shadow-sm transition-colors duration-300">
+                            <div className="flex items-start justify-between gap-2 mb-3 2xl:mb-4">
+                                <div className="shrink-0 p-2 rounded-lg bg-slate-50 dark:bg-background-dark text-orange-500 dark:text-orange-400">
+                                    <FileText className="w-5 h-5 2xl:w-6 2xl:h-6" />
                                 </div>
                                 <span className="text-orange-600 dark:text-orange-400 text-xs font-bold bg-orange-100 dark:bg-orange-500/10 px-2 py-1 rounded border border-orange-200 dark:border-orange-500/20">All</span>
                             </div>
-                            <p className="text-slate-500 dark:text-text-secondary text-xs font-medium mb-1 uppercase tracking-wider">Templates</p>
-                            <div className="flex items-end gap-1">
-                                <p className="text-slate-900 dark:text-white text-2xl font-bold">{stats.templatesCount.toLocaleString()}</p>
+                            <p className="text-slate-500 dark:text-text-secondary text-xs font-medium mb-1 uppercase tracking-wide 2xl:tracking-wider">Templates</p>
+                            <div className="flex flex-wrap items-end gap-x-1">
+                                <p className="text-slate-900 dark:text-white text-xl 2xl:text-2xl font-bold">{stats.templatesCount.toLocaleString()}</p>
                                 <span className="text-slate-400 dark:text-text-secondary text-sm mb-1 pb-0.5">/ {stats.templateLimit === -1 ? 'Unlimited' : stats.templateLimit?.toLocaleString() || 2}</span>
                             </div>
                             <div className="w-full bg-slate-100 dark:bg-background-dark h-1.5 rounded-full mt-3 overflow-hidden">
@@ -733,10 +733,10 @@ const Dashboard = () => {
                             </div>
                         </div>
 
-                        <div className="bg-white dark:bg-surface-dark rounded-xl p-5 border border-slate-200 dark:border-[#2f455a] shadow-sm transition-colors duration-300">
-                            <div className="flex items-start justify-between mb-4">
-                                <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 dark:text-indigo-400">
-                                    <Zap className="w-6 h-6" />
+                        <div className="bg-white dark:bg-surface-dark rounded-xl p-4 2xl:p-5 min-w-0 border border-slate-200 dark:border-[#2f455a] shadow-sm transition-colors duration-300">
+                            <div className="flex items-start justify-between gap-2 mb-3 2xl:mb-4">
+                                <div className="shrink-0 p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 dark:text-indigo-400">
+                                    <Zap className="w-5 h-5 2xl:w-6 2xl:h-6" />
                                 </div>
                                 <span className={`text-xs font-bold px-2 py-1 rounded flex items-center gap-1 ${stats.aiTokenBalance >= 1000
                                     ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-500/10'
@@ -749,18 +749,18 @@ const Dashboard = () => {
                                     {stats.aiTokenBalance >= 1000 ? 'Good' : stats.aiTokenBalance > 0 ? 'Low' : 'Empty'}
                                 </span>
                             </div>
-                            <p className="text-slate-500 dark:text-text-secondary text-xs font-medium mb-1 uppercase tracking-wider">
+                            <p className="text-slate-500 dark:text-text-secondary text-xs font-medium mb-1 uppercase tracking-wide 2xl:tracking-wider">
                                 <span className="md:hidden">AI Token Available</span>
                                 <span className="hidden md:inline">AI Tokens</span>
                             </p>
-                            <div className="flex items-end gap-1 mb-4">
-                                <p className="text-slate-900 dark:text-white text-2xl font-bold">{(stats.aiTokenBalance || 0).toLocaleString()}</p>
+                            <div className="flex flex-wrap items-end gap-x-1 mb-4">
+                                <p className="text-slate-900 dark:text-white text-xl 2xl:text-2xl font-bold">{(stats.aiTokenBalance || 0).toLocaleString()}</p>
                             </div>
-                            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5 gap-2 md:gap-0">
-                                <p className="hidden md:block text-slate-500 dark:text-text-secondary text-xs font-medium">Available Balance</p>
+                            <div className="flex flex-col md:flex-row min-[80rem]:flex-col 2xl:flex-row items-stretch md:items-center min-[80rem]:items-stretch 2xl:items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5 gap-2 md:gap-0">
+                                <p className="hidden md:block min-[80rem]:hidden 2xl:block text-slate-500 dark:text-text-secondary text-xs font-medium">Available Balance</p>
                                 <button
                                     onClick={() => navigate('/store')}
-                                    className={`w-full md:w-auto justify-center flex items-center gap-1 text-[10px] md:text-[10px] font-bold px-3 py-1.5 md:px-2 md:py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors shadow-sm shadow-indigo-500/30 ${stats.aiTokenBalance < 1000 ? 'animate-pulse' : ''}`}
+                                    className={`w-full md:w-auto min-[80rem]:w-full 2xl:w-auto justify-center flex items-center gap-1 text-[10px] md:text-[10px] font-bold px-3 py-1.5 md:px-2 md:py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors shadow-sm shadow-indigo-500/30 ${stats.aiTokenBalance < 1000 ? 'animate-pulse' : ''}`}
                                 >
                                     <Zap className="w-3 h-3" />
                                     Buy More Tokens

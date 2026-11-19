@@ -20,6 +20,11 @@
   --color-text-secondary: #92adc9;
 
   --font-display: 'Inter', sans-serif;
+
+  /* xl = 1400px. Kept here in rem (not in tailwind.config.js in px) so it sorts
+     correctly with Tailwind's built-in rem breakpoints; a px value was emitted
+     first and every sm/md/lg rule overrode it. */
+  --breakpoint-xl: 87.5rem;
 }
 
 /* Fluid UI scale: Tailwind sizes are rem-based, so shrinking the root font size

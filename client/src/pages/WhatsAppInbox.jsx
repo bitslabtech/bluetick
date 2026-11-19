@@ -74,7 +74,11 @@ const WhatsAppInbox = () => {
     const teamPolicy = user?.teamPolicy || { inboxVisibility: 'see_all', phonePrivacy: 'visible' };
     const canDeleteChats = !isSubMember || !!teamPolicy.canDeleteChats;
 
-    const renderName = (name, phone) => {
+    // A saved "Unknown" (older chats) counts as no name, so the phone number is shown instead
+    const realName = (name) => (name && name.trim() && name.trim() !== 'Unknown' ? name : null);
+
+    const renderName = (rawName, phone) => {
+        const name = realName(rawName);
         const isActuallyPhone = !name || name === phone || /^\d+$/.test(name.replace(/\D/g, ''));
         if (isActuallyPhone && isSubMember) {
             if (teamPolicy.phonePrivacy === 'blurred') return <span className="blur-sm select-none">{phone || name}</span>;
@@ -249,10 +253,12 @@ const WhatsAppInbox = () => {
         const handleAssigned = ({ conversation, assignedBy }) => {
             const toastDiv = document.createElement('div');
             toastDiv.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:white;padding:12px 18px;border-radius:16px;font-size:13px;font-weight:600;box-shadow:0 8px 32px rgba(79,70,229,0.4);animation:slideInRight 0.3s ease;max-width:300px;';
-            const safeName = !conversation.contactName || conversation.contactName === conversation.phoneNumber || /^\d+$/.test(conversation.contactName.replace(/\D/g, ''))
+            const convName = realName(conversation.contactName);
+            const nameIsPhone = !convName || convName === conversation.phoneNumber || /^\d+$/.test(convName.replace(/\D/g, ''));
+            const safeName = nameIsPhone
                 ? (isSubMember && teamPolicy.phonePrivacy === 'masked' ? `****${conversation.phoneNumber?.slice(-4)}` : conversation.phoneNumber)
-                : conversation.contactName;
-            toastDiv.innerHTML = `<div style="display:flex;align-items:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>${assignedBy} assigned you a chat with <strong class="${isSubMember && teamPolicy.phonePrivacy === 'blurred' && (!conversation.contactName || conversation.contactName === conversation.phoneNumber || /^\d+$/.test(conversation.contactName.replace(/\D/g, ''))) ? 'blur-sm select-none' : ''}">${safeName}</strong></span></div>`;
+                : convName;
+            toastDiv.innerHTML = `<div style="display:flex;align-items:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>${assignedBy} assigned you a chat with <strong class="${isSubMember && teamPolicy.phonePrivacy === 'blurred' && nameIsPhone ? 'blur-sm select-none' : ''}">${safeName}</strong></span></div>`;
             document.body.appendChild(toastDiv);
             setTimeout(() => { toastDiv.remove(); }, 4000);
 
@@ -1259,7 +1265,7 @@ const WhatsAppInbox = () => {
                     ) : (
                         filteredConversations.map(chat => {
                             const isActive = selectedChat?.id === chat.id;
-                            const initials = chat.contactName?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || chat.phoneNumber?.slice(-2);
+                            const initials = realName(chat.contactName)?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || chat.phoneNumber?.slice(-2);
                             return (
                                 <div
                                     key={chat.id}
@@ -1358,7 +1364,7 @@ const WhatsAppInbox = () => {
                                 >
                                 <div className="size-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm"
                                     style={{ background: `hsl(${(selectedChat.phoneNumber?.charCodeAt(5) || 0) * 37 % 360}, 60%, 55%)` }}>
-                                    {selectedChat.contactName?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'}
+                                    {realName(selectedChat.contactName)?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || selectedChat.phoneNumber?.slice(-2) || '?'}
                                 </div>
                                 <div className="text-left">
                                     <div className="flex items-center gap-2">
@@ -1545,7 +1551,7 @@ const WhatsAppInbox = () => {
                                                             url: m.mediaUrl.startsWith('/uploads') ? `${API_BASE}${m.mediaUrl}` : m.mediaUrl,
                                                             type: m.type,
                                                             caption: m.body || undefined,
-                                                            senderName: m.direction === 'OUTBOUND' ? (user?.displayName || 'You') : (selectedChat?.contactName || selectedChat?.phoneNumber),
+                                                            senderName: m.direction === 'OUTBOUND' ? (user?.displayName || 'You') : (realName(selectedChat?.contactName) || selectedChat?.phoneNumber),
                                                             timestamp: formatDateTime(m.timestamp),
                                                         }));
                                                         const idx = mediaMessages.findIndex(m => m.id === item.id);
@@ -1573,7 +1579,7 @@ const WhatsAppInbox = () => {
                                                             url: m.mediaUrl.startsWith('/uploads') ? `${API_BASE}${m.mediaUrl}` : m.mediaUrl,
                                                             type: m.type,
                                                             caption: m.body || undefined,
-                                                            senderName: m.direction === 'OUTBOUND' ? (user?.displayName || 'You') : (selectedChat?.contactName || selectedChat?.phoneNumber),
+                                                            senderName: m.direction === 'OUTBOUND' ? (user?.displayName || 'You') : (realName(selectedChat?.contactName) || selectedChat?.phoneNumber),
                                                             timestamp: formatDateTime(m.timestamp),
                                                         }));
                                                         const idx = mediaMessages.findIndex(m => m.id === item.id);

@@ -271,9 +271,9 @@ const SuperAdminDashboard = () => {
             {/* Failed Rate Breakdown Modal */}
             {showFailedBreakdown && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowFailedBreakdown(false)}>
-                    <div className="bg-white dark:bg-[#111827] rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-white/10 overflow-hidden" onClick={e => e.stopPropagation()}>
+                    <div className="bg-white dark:bg-[#111827] rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col border border-slate-200 dark:border-white/10 overflow-hidden" onClick={e => e.stopPropagation()}>
                         {/* Header */}
-                        <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-white/5">
+                        <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-white/5 shrink-0">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20">
                                     <AlertCircle className="w-5 h-5 text-red-500" />
@@ -289,11 +289,11 @@ const SuperAdminDashboard = () => {
                         </div>
 
                         {/* Body */}
-                        <div className="p-5">
+                        <div className="p-5 overflow-y-auto min-h-0">
                             {failedBreakdownLoading ? (
-                                <div className="space-y-3 animate-pulse">
-                                    {[1,2,3,4].map(i => (
-                                        <div key={i} className="h-14 bg-slate-100 dark:bg-white/5 rounded-xl" />
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-pulse">
+                                    {[1,2,3,4,5,6].map(i => (
+                                        <div key={i} className="h-32 bg-slate-100 dark:bg-white/5 rounded-xl" />
                                     ))}
                                 </div>
                             ) : !failedBreakdown || failedBreakdown.total === 0 ? (
@@ -306,22 +306,20 @@ const SuperAdminDashboard = () => {
                                     <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
                                         <span className="font-bold text-slate-900 dark:text-white">{failedBreakdown.total.toLocaleString()}</span> failed messages total
                                     </p>
-                                    <div className="space-y-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                         {failedBreakdown.breakdown.map((item, i) => (
-                                            <div key={i} className="bg-slate-50 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 rounded-xl p-3.5">
-                                                <div className="flex items-start justify-between gap-2 mb-2">
-                                                    <span className="text-sm font-medium text-slate-800 dark:text-slate-200 leading-snug">{item.reason}</span>
-                                                    <span className="shrink-0 text-sm font-bold text-slate-900 dark:text-white">{item.pct}%</span>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <div className="flex-1 h-1.5 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
-                                                        <div
-                                                            className={`h-full rounded-full ${reasonColor(i)}`}
-                                                            style={{ width: `${item.pct}%` }}
-                                                        />
-                                                    </div>
+                                            <div key={i} className="flex flex-col bg-slate-50 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 rounded-xl p-4 min-w-0">
+                                                <div className="flex items-baseline justify-between gap-2 mb-2">
+                                                    <span className="text-2xl font-bold text-slate-900 dark:text-white">{item.pct}%</span>
                                                     <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0">{item.count.toLocaleString()} msg{item.count !== 1 ? 's' : ''}</span>
                                                 </div>
+                                                <div className="h-1.5 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden mb-3">
+                                                    <div
+                                                        className={`h-full rounded-full ${reasonColor(i)}`}
+                                                        style={{ width: `${item.pct}%` }}
+                                                    />
+                                                </div>
+                                                <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-snug break-words">{item.reason}</p>
                                             </div>
                                         ))}
                                     </div>
