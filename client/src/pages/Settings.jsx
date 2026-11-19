@@ -320,16 +320,29 @@ const Settings = () => {
 
     const fetchSettings = async () => {
         try {
+            // The calls below don't depend on each other: start them together instead of one after another.
+            // Landing and settings failures still go to the outer catch (as before); templates and
+            // manual-payment failures stay non-fatal.
+            const api = import.meta.env.VITE_API_URL;
+            const landingP = axios.get(`${api}/api/landing`);
+            const tmplP = axios.get(`${api}/api/templates/system`).catch(err => { console.error("Error fetching templates:", err); return null; });
+            const settingsP = axios.get(`${api}/api/settings`);
+            const mpP = user?.isAdmin
+                ? axios.get(`${api}/api/system/manual-payment-config`).catch(mpErr => { console.error("Error fetching manual payment config:", mpErr); return null; })
+                : Promise.resolve(null);
+            // Avoid unhandled-rejection warnings if one fails while we're awaiting another
+            landingP.catch(() => {}); settingsP.catch(() => {});
+
             // Also fetch Landing Page config for branding integration
-            const landingRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/landing`);
+            const landingRes = await landingP;
             if (landingRes.data) {
                 setLandingConfig(landingRes.data);
             }
 
             // Fetch CRM templates for OTP selection
             try {
-                const tmplRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/templates/system`);
-                if (tmplRes.data && Array.isArray(tmplRes.data)) {
+                const tmplRes = await tmplP;
+                if (tmplRes && tmplRes.data && Array.isArray(tmplRes.data)) {
                     console.log("System templates fetched:", tmplRes.data);
                     const validTemplates = tmplRes.data.filter(t => 
                         t.category?.toUpperCase() === 'AUTHENTICATION' && 
@@ -342,7 +355,7 @@ const Settings = () => {
                 console.error("Error fetching templates:", err);
             }
 
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/settings`);
+            const res = await settingsP;
             if (res.data) {
                 originalSettings.current = res.data;
                 // Merge data carefully to preserve deep defaults if API returns partial objects
@@ -395,15 +408,9 @@ const Settings = () => {
                 }));
             }
 
-            if (user?.isAdmin) {
-                try {
-                    const mpRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/system/manual-payment-config`);
-                    if (mpRes.data?.manualPayment) {
-                        setManualPaymentForm(prev => ({ ...prev, ...mpRes.data.manualPayment }));
-                    }
-                } catch (mpErr) {
-                    console.error("Error fetching manual payment config:", mpErr);
-                }
+            const mpRes = await mpP;
+            if (mpRes?.data?.manualPayment) {
+                setManualPaymentForm(prev => ({ ...prev, ...mpRes.data.manualPayment }));
             }
         } catch (err) {
             console.error("Error fetching settings:", err);
