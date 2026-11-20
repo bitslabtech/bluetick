@@ -606,6 +606,7 @@ const processCampaign = async (campaignId, isRecovery = false) => {
         }
 
         await message.update({ status: 'COMPLETED' });
+        require('../services/outbound/campaignLive').notifyCampaign(message.userId, message.id);
         console.log(`Campaign ${campaignId} completed.`);
 
     } catch (err) {

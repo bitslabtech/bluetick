@@ -49,6 +49,7 @@ const OutboundMessage = sequelize.define('OutboundMessage', {
         { fields: ['ownerId', 'createdAt'] },
         { fields: ['ownerId', 'periodKey'] },
         { fields: ['campaignId'] },
+        { fields: ['campaignId', 'updatedAt'] }, // live broadcast updates (GET /messages/:id/live)
         { fields: ['ownerId', 'toPhone'] },
         { fields: ['status'] }
     ]

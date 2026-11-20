@@ -116,9 +116,123 @@ router.post('/send', async (req, res) => {
     }
 });
 
+// ── Live updates for an open broadcast page ──────────────────────────────────
+// The page calls this when a campaign_update socket event arrives (or on its slow fallback poll).
+// It returns only what changed since the page's last call, so a refresh costs a few small indexed
+// queries however large the broadcast is:
+//   counts       same numbers as GET /:id (cached ~2s per campaign, shared by team members viewing it)
+//   chart        [status, unix seconds, key] for recipients whose status changed (key matches GET /:id)
+//   logs         recipient rows that changed or were added (same shape as GET /:id logs)
+//   reload=true  too much changed at once (mass sending): fetch GET /:id again instead
+const LIVE_COUNTS_TTL_MS = 2000;
+const LIVE_MAX_ROWS = 1000;
+const liveCounts = new Map(); // campaignId -> { at, st }
+const CHART_STATUSES = ['delivered', 'read', 'clicked', 'failed'];
+
+async function campaignCounts(campaignId) {
+    const hit = liveCounts.get(campaignId);
+    if (hit && Date.now() - hit.at < LIVE_COUNTS_TTL_MS) return hit.st;
+    const st = (await metrics.byCampaign([campaignId]))[campaignId];
+    liveCounts.set(campaignId, { at: Date.now(), st });
+    if (liveCounts.size > 5000) { // keep the cache small
+        const cutoff = Date.now() - LIVE_COUNTS_TTL_MS;
+        for (const [k, v] of liveCounts) if (v.at < cutoff) liveCounts.delete(k);
+    }
+    return st;
+}
+
+// Counts for a few broadcasts (Broadcast History list, after campaign_update events). ?ids=a,b,c (max 50)
+router.get('/stats', async (req, res) => {
+    try {
+        const ids = String(req.query.ids || '').split(',').map(x => x.trim())
+            .filter(x => /^[0-9a-f-]{36}$/i.test(x)).slice(0, 50);
+        if (!ids.length) return res.json({});
+        const owned = await Message.findAll({ where: { id: ids, userId: req.user.id }, attributes: ['id', 'status', 'recipientCount'], raw: true });
+        if (!owned.length) return res.json({});
+        const stats = await metrics.byCampaign(owned.map(m => m.id));
+        const out = {};
+        for (const m of owned) {
+            const st = stats[m.id];
+            liveCounts.set(m.id, { at: Date.now(), st });
+            out[m.id] = {
+                status: m.status, recipientCount: m.recipientCount,
+                sentCount: st.sent, deliveredCount: st.delivered, readCount: st.read, failedCount: st.failed
+            };
+        }
+        res.json(out);
+    } catch (err) {
+        console.error('[CAMPAIGN STATS]', err.message);
+        res.status(500).json({ error: 'Could not load broadcast stats' });
+    }
+});
+
+router.get('/:id/live', async (req, res) => {
+    try {
+        const serverTime = Date.now();
+        const message = await Message.findOne({
+            where: { id: req.params.id, userId: req.user.id },
+            attributes: ['id', 'status', 'recipientCount']
+        });
+        if (!message) return res.status(404).json({ error: 'Campaign not found' });
+
+        const st = await campaignCounts(message.id);
+        const out = {
+            serverTime,
+            status: message.status,
+            recipientCount: message.recipientCount,
+            sentCount: st.sent, deliveredCount: st.delivered, readCount: st.read, clickedCount: st.clicked,
+            failedCount: st.failed, retryPendingCount: st.retrying, pendingCount: st.pending,
+            attemptedCount: st.attempted, blockedCount: st.blocked
+        };
+
+        const sinceMs = Number(req.query.since);
+        if (!Number.isFinite(sinceMs) || sinceMs <= 0) return res.json({ ...out, reload: true });
+        // Overlap a little so a write that committed just after the last call is not missed
+        const since = new Date(sinceMs - 3000);
+
+        const [changed, logs] = await Promise.all([
+            OutboundMessage.findAll({
+                where: { campaignId: message.id, updatedAt: { [Op.gt]: since } },
+                attributes: ['id', 'status', 'deliveredAt', 'readAt', 'clickedAt', 'failedAt', 'updatedAt'],
+                limit: LIVE_MAX_ROWS + 1,
+                raw: true
+            }),
+            MessageLog.findAll({
+                where: { campaignId: message.id, updatedAt: { [Op.gt]: since } },
+                order: [['createdAt', 'DESC']],
+                limit: LIVE_MAX_ROWS + 1
+            })
+        ]);
+        if (changed.length > LIVE_MAX_ROWS || logs.length > LIVE_MAX_ROWS) return res.json({ ...out, reload: true });
+
+        // Status per changed recipient; statuses the charts do not show (retry pending, retried) clear the key
+        out.chart = changed.map(r => {
+            if (!CHART_STATUSES.includes(r.status)) return [null, 0, r.id.slice(0, 12)];
+            const at = r.status === 'clicked' ? (r.clickedAt || r.readAt)
+                : r.status === 'read' ? r.readAt
+                : r.status === 'failed' ? r.failedAt
+                : r.deliveredAt;
+            return [r.status.toUpperCase(), Math.floor(new Date(at || r.updatedAt).getTime() / 1000), r.id.slice(0, 12)];
+        });
+
+        const contactIds = [...new Set(logs.map(l => l.contactId).filter(Boolean))];
+        const contacts = contactIds.length
+            ? await Contact.findAll({ where: { id: contactIds }, attributes: ['id', 'name'], raw: true })
+            : [];
+        const names = Object.fromEntries(contacts.map(c => [c.id, c.name]));
+        out.logs = logs.map(l => ({ ...l.toJSON(), name: names[l.contactId] || 'Unknown / Manual' }));
+
+        res.json(out);
+    } catch (err) {
+        console.error('[CAMPAIGN LIVE]', err.message);
+        res.status(500).json({ error: 'Could not load live updates' });
+    }
+});
+
 // Get Single Message by ID
 router.get('/:id', async (req, res) => {
     try {
+        const requestStartedAt = Date.now(); // the page's first "since" for live updates
         const message = await Message.findOne({
             where: { id: req.params.id, userId: req.user.id },
             include: [{ model: Template }]
@@ -170,15 +284,16 @@ router.get('/:id', async (req, res) => {
         // and read-hour charts: [status, unix seconds of that status]
         const evRows = await OutboundMessage.findAll({
             where: { campaignId: message.id, status: { [Op.in]: ['delivered', 'read', 'clicked', 'failed'] } },
-            attributes: ['status', 'deliveredAt', 'readAt', 'clickedAt', 'failedAt', 'updatedAt'],
+            attributes: ['id', 'status', 'deliveredAt', 'readAt', 'clickedAt', 'failedAt', 'updatedAt'],
             raw: true
         });
+        responseHelper.serverTime = requestStartedAt;
         responseHelper.chartEvents = evRows.map(r => {
             const at = r.status === 'clicked' ? (r.clickedAt || r.readAt)
                 : r.status === 'read' ? r.readAt
                 : r.status === 'failed' ? r.failedAt
                 : r.deliveredAt;
-            return [r.status.toUpperCase(), Math.floor(new Date(at || r.updatedAt).getTime() / 1000)];
+            return [r.status.toUpperCase(), Math.floor(new Date(at || r.updatedAt).getTime() / 1000), r.id.slice(0, 12)];
         });
         responseHelper.pendingCount = st.pending;
         responseHelper.attemptedCount = st.attempted;

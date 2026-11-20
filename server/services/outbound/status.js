@@ -99,13 +99,16 @@ async function applyStatus(ownerId, statusUpdate, { noHold = false } = {}) {
     // Conditional update so two webhooks racing cannot both release the allowance
     const [n] = await OutboundMessage.update(patch, { where: { id: row.id, status: row.status }, paranoid: false });
     if (n && released) await require('./allowance').release(row.ownerId, row.periodKey);
+    if (n && row.campaignId) require('./campaignLive').notifyCampaign(row.ownerId, row.campaignId);
     return row;
 }
 
 // Campaign frequency cap (131049): the failed row becomes "retry_pending" until the retry is sent.
 async function markRetryPending(wamid) {
     const OutboundMessage = require('../../models/OutboundMessage');
-    await OutboundMessage.update({ status: 'retry_pending' }, { where: { wamid, status: 'failed' } });
+    const [, rows] = await OutboundMessage.update({ status: 'retry_pending' }, { where: { wamid, status: 'failed' }, returning: ['ownerId', 'campaignId'] });
+    const r = rows?.[0];
+    if (r?.campaignId) require('./campaignLive').notifyCampaign(r.ownerId, r.campaignId);
 }
 
 /**
@@ -121,7 +124,7 @@ async function inferReadFromReply(ownerId, phone, { contextWamid = null, isClick
             if (row) {
                 const next = isClick ? 'clicked' : 'read';
                 if (canMove(row.status, next)) {
-                    await OutboundMessage.update({
+                    const [n] = await OutboundMessage.update({
                         status: next,
                         sentAt: row.sentAt || at,
                         deliveredAt: row.deliveredAt || at,
@@ -129,16 +132,19 @@ async function inferReadFromReply(ownerId, phone, { contextWamid = null, isClick
                         readInferred: row.readAt ? row.readInferred : true,
                         ...(isClick ? { clickedAt: at } : {})
                     }, { where: { id: row.id, status: row.status } });
+                    if (n && row.campaignId) require('./campaignLive').notifyCampaign(row.ownerId, row.campaignId);
                 }
             }
         }
         if (!ownerId || !digits) return;
         // Everything delivered (or sent) to this person in the last 30 days, before the reply, was seen
         const since = new Date(at.getTime() - 30 * 24 * 3600 * 1000);
-        await OutboundMessage.update(
+        const [, changed] = await OutboundMessage.update(
             { status: 'read', readAt: at, readInferred: true },
-            { where: { ownerId, toPhone: digits, status: { [Op.in]: ['sent', 'delivered'] }, createdAt: { [Op.between]: [since, at] } } }
+            { where: { ownerId, toPhone: digits, status: { [Op.in]: ['sent', 'delivered'] }, createdAt: { [Op.between]: [since, at] } }, returning: ['campaignId'] }
         );
+        const live = require('./campaignLive');
+        for (const cid of new Set((changed || []).map(r => r.campaignId).filter(Boolean))) live.notifyCampaign(ownerId, cid);
         await OutboundMessage.update(
             { deliveredAt: at },
             { where: { ownerId, toPhone: digits, status: 'read', deliveredAt: null, readInferred: true } }

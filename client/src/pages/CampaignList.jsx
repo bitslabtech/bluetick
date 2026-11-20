@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import TrialBanner from '../components/TrialBanner';
 import { Link } from 'react-router-dom';
 import {
@@ -6,25 +6,45 @@ import {
     MessageSquare, CheckCircle, AlertCircle, XCircle, Clock, Loader2, CheckCircle2, Menu, User, Check, CheckCheck, X, ArrowRight
 } from 'lucide-react';
 import axios from 'axios';
+import { useSocket } from '../context/SocketContext';
 import ThemeToggle from '../components/ThemeToggle';
 import NotificationBell from '../components/NotificationBell';
 import UserDropdown from '../components/UserDropdown';
 import { formatDate as fmtDate, formatDateTime as fmtDateTime } from '../utils/dateFormat';
 
-const FAST_POLL_MS = 3000;   // 3s when campaigns are actively sending
-const SLOW_POLL_MS = 30000;  // 30s when all campaigns are idle
 
 export default function CampaignList() {
     const [campaigns, setCampaigns] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
-    const intervalRef = useRef(null);
+    const { socket } = useSocket();
 
+    // ── Live data ─────────────────────────────────────────────────────────────
+    // Full list once, then "campaign_update" socket events refresh only the broadcasts that changed
+    // (GET /api/messages/stats?ids=). Fallback full reload: 15s while something is sending, else
+    // every 2 min, and never while the tab is hidden (one reload when it becomes visible again).
     useEffect(() => {
+        let cancelled = false;
+        let pollTimer = null;
+        let flushTimer = null;
+        let hiddenSince = 0;
+        let hasActive = false;
+        let lastFullAt = 0;
+        const changedIds = new Set();
+
+        const schedulePoll = () => {
+            clearTimeout(pollTimer);
+            if (!cancelled) pollTimer = setTimeout(fetchCampaigns, hasActive ? 15000 : 120000);
+        };
+
         const fetchCampaigns = async () => {
+            if (cancelled) return;
+            if (document.hidden && lastFullAt) { hiddenSince = hiddenSince || Date.now(); return; } // first load always runs
+            lastFullAt = Date.now();
             try {
                 const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/messages`);
+                if (cancelled) return;
                 const formattedCampaigns = res.data.map(msg => {
                     return {
                         id: msg.id,
@@ -50,31 +70,73 @@ export default function CampaignList() {
                     return prev;
                 });
 
-                // Smart polling: fast when campaigns are active, slow when all idle
-                const hasActive = formattedCampaigns.some(c =>
+                hasActive = formattedCampaigns.some(c =>
                     ['sending', 'active', 'queued', 'scheduled'].includes(c.status)
                 );
-                const nextInterval = hasActive ? FAST_POLL_MS : SLOW_POLL_MS;
-
-                // Only reset interval if the speed changed
-                if (intervalRef.current?.speed !== nextInterval) {
-                    clearInterval(intervalRef.current?.id);
-                    const id = setInterval(fetchCampaigns, nextInterval);
-                    intervalRef.current = { id, speed: nextInterval };
-                }
             } catch (err) {
                 console.error("Error fetching campaigns:", err);
             } finally {
                 setLoading(false);
+                schedulePoll();
             }
         };
 
+        // Refresh only the broadcasts named in recent events (batched; spread over ~1s across viewers)
+        const flushChanged = async () => {
+            flushTimer = null;
+            if (cancelled || !changedIds.size) return;
+            if (document.hidden) { hiddenSince = hiddenSince || Date.now(); return; }
+            const ids = [...changedIds].slice(0, 50);
+            ids.forEach(x => changedIds.delete(x));
+            try {
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/messages/stats`, { params: { ids: ids.join(',') } });
+                if (cancelled) return;
+                const byId = res.data || {};
+                setCampaigns(prev => prev.map(c => {
+                    const s = byId[c.id];
+                    if (!s) return c;
+                    return {
+                        ...c,
+                        status: (s.status || c.status).toLowerCase(),
+                        audience: s.recipientCount ?? c.audience,
+                        sent: s.sentCount || 0, delivered: s.deliveredCount || 0,
+                        read: s.readCount || 0, failed: s.failedCount || 0
+                    };
+                }));
+            } catch (err) {
+                console.error('Error refreshing campaigns:', err);
+            }
+            if (changedIds.size) flushTimer = setTimeout(flushChanged, 1000);
+        };
+
+        const onUpdate = (p) => {
+            if (!p?.campaignId) return;
+            changedIds.add(p.campaignId);
+            if (!flushTimer) flushTimer = setTimeout(flushChanged, 400 + Math.random() * 800);
+        };
+        const onVisible = () => {
+            if (document.hidden || !hiddenSince) return;
+            hiddenSince = 0;
+            changedIds.clear();
+            fetchCampaigns(); // one full reload covers everything missed while hidden
+        };
+        // Socket came back after a drop: reload once (skip the connect that happens right at page load)
+        const onReconnect = () => { if (lastFullAt && Date.now() - lastFullAt > 5000) fetchCampaigns(); };
+
+        socket?.on('campaign_update', onUpdate);
+        socket?.on('connect', onReconnect);
+        document.addEventListener('visibilitychange', onVisible);
         fetchCampaigns();
-        // Start with fast poll; fetchCampaigns will adjust speed after first response
-        const id = setInterval(fetchCampaigns, FAST_POLL_MS);
-        intervalRef.current = { id, speed: FAST_POLL_MS };
-        return () => clearInterval(intervalRef.current?.id);
-    }, []);
+
+        return () => {
+            cancelled = true;
+            clearTimeout(pollTimer);
+            clearTimeout(flushTimer);
+            socket?.off('campaign_update', onUpdate);
+            socket?.off('connect', onReconnect);
+            document.removeEventListener('visibilitychange', onVisible);
+        };
+    }, [socket]);
 
     const getStatusColor = (status) => {
         switch (status) {

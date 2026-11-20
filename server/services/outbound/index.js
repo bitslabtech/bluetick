@@ -29,6 +29,8 @@ const { GRAPH_VERSION, GRAPH_URL: GRAPH } = require('../../config/metaGraph');
 const digitsOnly = (v) => String(v || '').replace(/\D/g, '');
 
 function result(row, ok, extra = {}) {
+    // A broadcast message was sent or failed: let open broadcast pages refresh (throttled)
+    if (row?.campaignId) require('./campaignLive').notifyCampaign(row.ownerId, row.campaignId);
     return { ok, outboundId: row?.id || null, wamid: row?.wamid || null, ...extra };
 }
 
@@ -153,7 +155,7 @@ async function recordLocalFailure({ ownerId, source, to, refs = {}, reason, code
     try {
         getSource(source);
         const tz = await getAccountTimezone(ownerId);
-        return await OutboundMessage.create({
+        const row = await OutboundMessage.create({
             ownerId, actorId, source, toPhone: digitsOnly(to), status: 'failed',
             campaignId: refs.campaignId || null, conversationId: refs.conversationId || null,
             contactId: refs.contactId || null, refType: refs.refType || null,
@@ -162,6 +164,8 @@ async function recordLocalFailure({ ownerId, source, to, refs = {}, reason, code
             countsTowardPlan: countsTowardPlan(source), counted: false,
             periodKey: periodKey(new Date(), tz), failedAt: new Date()
         });
+        if (row.campaignId) require('./campaignLive').notifyCampaign(row.ownerId, row.campaignId);
+        return row;
     } catch (err) {
         console.error('[OUTBOUND] recordLocalFailure failed:', err.message);
         return null;
@@ -171,6 +175,7 @@ async function recordLocalFailure({ ownerId, source, to, refs = {}, reason, code
 // A campaign retry superseded this row (it no longer counts anywhere)
 async function markRetried(where) {
     await OutboundMessage.update({ status: 'retried' }, { where: { ...where, status: { [require('sequelize').Op.in]: ['retry_pending', 'failed'] } } });
+    // No live notice here: the retry send that follows notifies (see result())
 }
 
 module.exports = { sendMessage, sendOrThrow, recordLocalFailure, markRetried, GRAPH, GRAPH_VERSION };

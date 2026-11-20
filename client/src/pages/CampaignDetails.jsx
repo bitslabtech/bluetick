@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
+import { useSocket } from '../context/SocketContext';
 import {
     CheckCircle2,
     ArrowLeft,
@@ -30,8 +31,6 @@ import {
 } from 'recharts';
 import { formatDateTime, formatShortDate, formatTime, getDateConfig } from '../utils/dateFormat';
 
-const FAST_POLL_MS = 3000;   // 3s when campaign is actively sending
-const SLOW_POLL_MS = 30000;  // 30s when campaign is finished
 
 export default function CampaignDetails() {
     const { id } = useParams();
@@ -52,7 +51,7 @@ export default function CampaignDetails() {
         clicked: true,
         failed: true
     });
-    const intervalRef = useRef(null);
+    const { socket } = useSocket();
     
     // Calculate Chart Data
     const generateChartData = () => {
@@ -184,82 +183,137 @@ export default function CampaignDetails() {
         return name || phone;
     };
 
+    // ── Live data ─────────────────────────────────────────────────────────────
+    // 1. Full load once (GET /api/messages/:id).
+    // 2. The server pushes "campaign_update" (at most one per broadcast every 3s) when any message of
+    //    this broadcast changes; we then fetch only what changed (GET /api/messages/:id/live?since=).
+    // 3. Fallback poll in case the socket is down: 10s while sending, 60s for 3 days after, then stop.
+    //    Nothing is fetched while the tab is hidden; one refresh runs when it becomes visible again.
     useEffect(() => {
-        const fetchCampaign = async () => {
-            try {
-                const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/messages/${id}`);
-                const msg = res.data;
+        let cancelled = false;
+        let since = 0;                 // server time of the last load; the next live call asks for changes after it
+        const chart = new Map();       // key -> [STATUS, unix seconds] for every recipient with a charted status
+        let logsById = new Map();      // recipient rows currently shown
+        let createdAtMs = 0;
+        let status = '';
+        let inFlight = false;
+        let again = false;             // another refresh was asked for while one was running
+        let dirty = false;             // a refresh was skipped because the tab was hidden
+        let debounceTimer = null;
+        let pollTimer = null;
 
-                // Process logs with SAME STRICT LOGIC as Campaign List
-                const logs = msg.logs || [];
-                const normalizedLogs = logs.map(l => ({
-                    ...l,
-                    status: (l.status || '').toUpperCase(),
-                    // Use metaTimestamp from Meta (reliable), fallback to updatedAt
-                    timestamp: l.metaTimestamp || l.updatedAt || msg.createdAt
-                }));
+        const normalizeLog = (l, fallbackTs) => ({
+            ...l,
+            status: (l.status || '').toUpperCase(),
+            // Use metaTimestamp from Meta (reliable), fallback to updatedAt
+            timestamp: l.metaTimestamp || l.updatedAt || fallbackTs
+        });
 
-                // Counts come from the server (all recipients, same definitions as Dashboard/Reports).
-                // The log list itself is paginated, so counting it here was wrong above 1,000 recipients.
-                const sentCount = msg.sentCount ?? 0;
-                const readCount = msg.readCount ?? 0;
+        const isSending = () => ['sending', 'active', 'queued', 'scheduled'].includes(status);
+
+        // Counts come from the server (all recipients, same definitions as Dashboard/Reports).
+        // The log list itself is paginated, so counting it here was wrong above 1,000 recipients.
+        const buildStats = (msg, logs) => {
+            const readCount = msg.readCount ?? 0;
+            return {
+                sent: msg.sentCount ?? 0,
                 // The "Delivered" tab lists delivered-but-not-yet-read logs, so its count is delivered minus read
-                const deliveredCount = Math.max(0, (msg.deliveredCount ?? 0) - readCount);
-                const clickedCount = msg.clickedCount ?? 0;
-                const failedCount = msg.failedCount ?? 0;
-                const retryPendingCount = msg.retryPendingCount ?? normalizedLogs.filter(l => l.status === 'RETRY_PENDING').length;
+                delivered: Math.max(0, (msg.deliveredCount ?? 0) - readCount),
+                read: readCount,
+                clicked: msg.clickedCount ?? 0,
+                failed: msg.failedCount ?? 0,
+                retryPending: msg.retryPendingCount ?? logs.filter(l => l.status === 'RETRY_PENDING').length,
+                deliveredTotal: msg.deliveredCount ?? 0,
+                total: msg.attemptedCount || msg.recipientCount
+            };
+        };
 
-                setCampaign({
-                    ...msg,
-                    processedLogs: normalizedLogs,
-                    stats: {
-                        sent: sentCount,
-                        delivered: deliveredCount,
-                        read: readCount,
-                        clicked: clickedCount,
-                        failed: failedCount,
-                        retryPending: retryPendingCount,
-                        deliveredTotal: msg.deliveredCount ?? 0,
-                        total: msg.attemptedCount || msg.recipientCount
-                    }
-                });
+        const sortedLogs = () => [...logsById.values()].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-                // Smart polling strategy:
-                //  - Fast (3s)  when campaign is actively SENDING
-                //  - Slow (30s) when COMPLETED but has RETRY_PENDING logs (next retry up to 24h away)
-                //  - Stop       when COMPLETED + zero RETRY_PENDING logs (Bug #6 fix)
-                const status = (msg.status || '').toLowerCase();
-                const hasRetryPending = normalizedLogs.some(l => l.status === 'RETRY_PENDING');
-                const isActive = ['sending', 'active', 'queued', 'scheduled'].includes(status);
-                const isFullyDone = !isActive && !hasRetryPending;
+        const loadFull = async () => {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/messages/${id}`);
+            if (cancelled) return;
+            const msg = res.data;
+            since = msg.serverTime || Date.now();
+            createdAtMs = new Date(msg.createdAt).getTime() || Date.now();
+            status = (msg.status || '').toLowerCase();
+            chart.clear();
+            (msg.chartEvents || []).forEach(([st, sec, key], i) => chart.set(key || `i${i}`, [st, sec]));
+            logsById = new Map((msg.logs || []).map(l => [l.id, normalizeLog(l, msg.createdAt)]));
+            const logs = sortedLogs();
+            setCampaign({ ...msg, chartEvents: [...chart.values()], processedLogs: logs, stats: buildStats(msg, logs) });
+        };
 
-                if (isFullyDone) {
-                    // Nothing left to poll for — clear interval and stop
-                    clearInterval(intervalRef.current?.id);
-                    intervalRef.current = null;
-                    return;
-                }
+        const loadChanges = async () => {
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/messages/${id}/live`, { params: { since } });
+            if (cancelled) return;
+            const d = res.data;
+            if (d.reload) return loadFull(); // too much changed at once (e.g. mass sending)
+            since = d.serverTime;
+            status = (d.status || '').toLowerCase();
+            (d.chart || []).forEach(([st, sec, key]) => { if (st) chart.set(key, [st, sec]); else chart.delete(key); });
+            (d.logs || []).forEach(l => logsById.set(l.id, normalizeLog(l, l.createdAt)));
+            const changedLogs = (d.logs || []).length > 0;
+            setCampaign(prev => {
+                if (!prev) return prev;
+                const logs = changedLogs ? sortedLogs() : prev.processedLogs;
+                const { chart: _c, logs: _l, serverTime: _s, ...counts } = d;
+                const merged = { ...prev, ...counts, chartEvents: [...chart.values()], processedLogs: logs };
+                return { ...merged, stats: buildStats(merged, logs) };
+            });
+        };
 
-                const nextInterval = isActive ? FAST_POLL_MS : SLOW_POLL_MS;
-
-                if (intervalRef.current?.speed !== nextInterval) {
-                    clearInterval(intervalRef.current?.id);
-                    const newId = setInterval(fetchCampaign, nextInterval);
-                    intervalRef.current = { id: newId, speed: nextInterval };
-                }
-
+        const refresh = async () => {
+            if (cancelled) return;
+            if (document.hidden && since) { dirty = true; return; } // the first load always runs
+            if (inFlight) { again = true; return; }
+            inFlight = true;
+            try {
+                await (since ? loadChanges() : loadFull());
             } catch (err) {
-                console.error("Error fetching campaign details:", err);
+                console.error('Error fetching campaign details:', err);
             } finally {
+                inFlight = false;
                 setLoading(false);
+                schedulePoll();
+                if (again) { again = false; requestRefresh(); }
             }
         };
 
-        fetchCampaign();
-        const initId = setInterval(fetchCampaign, FAST_POLL_MS);
-        intervalRef.current = { id: initId, speed: FAST_POLL_MS };
-        return () => clearInterval(intervalRef.current?.id);
-    }, [id]);
+        // Many viewers get the same event at the same moment: spread their requests over ~1s
+        const requestRefresh = () => {
+            if (debounceTimer) return;
+            debounceTimer = setTimeout(() => { debounceTimer = null; refresh(); }, 400 + Math.random() * 800);
+        };
+
+        const schedulePoll = () => {
+            clearTimeout(pollTimer);
+            if (cancelled) return;
+            const ageMs = Date.now() - createdAtMs;
+            let wait = null;
+            if (isSending()) wait = 10000;
+            else if (ageMs < 3 * 24 * 3600 * 1000) wait = 60000;
+            if (wait) pollTimer = setTimeout(refresh, wait);
+        };
+
+        const onUpdate = (p) => { if (p?.campaignId === id) requestRefresh(); };
+        const onVisible = () => { if (!document.hidden && dirty) { dirty = false; requestRefresh(); } };
+        const onReconnect = () => { if (since) requestRefresh(); }; // catch up on anything missed while disconnected
+
+        socket?.on('campaign_update', onUpdate);
+        socket?.on('connect', onReconnect);
+        document.addEventListener('visibilitychange', onVisible);
+        refresh();
+
+        return () => {
+            cancelled = true;
+            clearTimeout(debounceTimer);
+            clearTimeout(pollTimer);
+            socket?.off('campaign_update', onUpdate);
+            socket?.off('connect', onReconnect);
+            document.removeEventListener('visibilitychange', onVisible);
+        };
+    }, [id, socket]);
 
     const getStatusIcon = (status) => {
         switch (status) {

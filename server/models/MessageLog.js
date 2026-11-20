@@ -76,6 +76,9 @@ const MessageLog = sequelize.define('MessageLog', {
         },
         {
             fields: ['campaignId']
+        },
+        {
+            fields: ['campaignId', 'updatedAt'] // live broadcast updates (GET /messages/:id/live)
         }
     ]
 });
