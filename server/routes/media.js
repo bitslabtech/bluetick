@@ -381,6 +381,8 @@ router.post('/upload', async (req, res, next) => {
         // Enable post-buffer magic bytes validation
         validateMagicBytes: true,
         convertToWebp: isRestricted, // Convert to lossless WebP only for vCard/Store
+        // Global media manager only: WebP -> JPEG/PNG so the file works in broadcasts and template headers
+        webpToMetaFormat: !isRestricted,
         limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max for media gallery
         // If restricted, check quota and increment usage
         trackMedia: isRestricted,
@@ -408,7 +410,7 @@ router.post('/upload', async (req, res, next) => {
             }
         }
 
-        res.json({ url: req.file.publicUrl, size: req.file.size, mimeType: req.file.mimetype });
+        res.json({ url: req.file.publicUrl, size: req.file.size, mimeType: req.file.mimetype, converted: req.file.webpConverted || null, animatedWebp: !!req.file.webpAnimated });
     } catch (error) {
         console.error('Media upload error:', error);
         res.status(500).json({ error: 'Upload failed' });
@@ -418,6 +420,56 @@ router.post('/upload', async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/media/:id/usages — Check where a media file is used
 // ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/media/:id/convert — make a JPEG/PNG copy of an existing static WebP in the global gallery.
+// The original stays untouched (it may already be used elsewhere); the copy is a new gallery file.
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/:id/convert', async (req, res) => {
+    try {
+        const mediaFile = await MediaFile.findOne({ where: { id: req.params.id, userId: req.user.id } });
+        if (!mediaFile) return res.status(404).json({ error: 'Media file not found' });
+        if (mediaFile.mimeType !== 'image/webp') return res.status(400).json({ error: 'Only WebP images can be converted.' });
+        // Store / vCard media has its own rules (WebP is intended there)
+        if (mediaFile.source !== 'general_media') return res.status(400).json({ error: 'Only files in the global media gallery can be converted.' });
+
+        const axios = require('axios');
+        const { convertWebpForMeta } = require('../utils/imageCompressor');
+        let buf;
+        try {
+            const resp = await axios.get(mediaFile.url, { responseType: 'arraybuffer', maxContentLength: 50 * 1024 * 1024, timeout: 20000 });
+            buf = Buffer.from(resp.data);
+        } catch (e) {
+            return res.status(502).json({ error: 'Could not read the original file.' });
+        }
+
+        const conv = await convertWebpForMeta(buf);
+        if (!conv.ok) {
+            return res.status(422).json({ error: conv.animated
+                ? 'Animated WebP cannot be converted without losing the animation.'
+                : (conv.reason || 'Conversion failed.') });
+        }
+
+        // Respect the storage quota (same live-usage rule as the usage endpoint)
+        const plan = await Plan.findOne({ where: { name: req.user.plan }, attributes: ['storageLimitMb'] });
+        if (plan && plan.storageLimitMb > 0) {
+            const used = Number(await MediaFile.sum('sizeBytes', { where: { userId: req.user.id } })) || 0;
+            if (used + conv.buffer.length > plan.storageLimitMb * 1024 * 1024) {
+                return res.status(413).json({ error: 'Storage limit reached. Delete old media or upgrade your plan.' });
+            }
+        }
+
+        const baseName = (mediaFile.fileName || 'image').replace(/\.[^/.]+$/, '');
+        const url = await storageProvider.processAndStoreBuffer(
+            conv.buffer, `${baseName}.${conv.ext}`, conv.mimetype, mediaFile.folder || 'media-gallery', req.user.id,
+            { registerMedia: true, mediaSource: 'general_media' }
+        );
+        res.json({ success: true, url, mimeType: conv.mimetype, format: conv.ext === 'png' ? 'PNG' : 'JPEG' });
+    } catch (error) {
+        console.error('Media convert error:', error);
+        res.status(500).json({ error: 'Conversion failed' });
+    }
+});
+
 router.get('/:id/usages', async (req, res) => {
     try {
         const mediaFile = await MediaFile.findOne({

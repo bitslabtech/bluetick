@@ -5,7 +5,7 @@ import { useUI } from "../context/UIContext";
 import {
     Image, Trash2, Upload, X, Check, Search, Filter, RefreshCw,
     AlertCircle, HardDrive, Loader2, Copy, ExternalLink, ZoomIn, Grid3X3, List,
-    Film, FileText, FolderOpen
+    Film, FileText, FolderOpen, Repeat
 } from "lucide-react";
 import { formatDate } from '../utils/dateFormat';
 
@@ -206,6 +206,18 @@ export default function MediaGallery({ accessMode = 'dashboard', pickerMode = fa
             setUploadProgress({});
         }, failCount > 0 ? 5000 : 2000); // keep errors on screen longer so they can be read
     };
+
+    // Existing static WebP -> new JPEG/PNG copy (original stays) so it can be used in broadcasts and template headers
+    const handleConvertWebp = async (id) => {
+        try {
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/media/${id}/convert`, {}, { headers: getHeaders() });
+            showToast(`Created a ${res.data.format} copy that works in broadcasts and templates.`, "success");
+            fetchFiles(1);
+        } catch (e) {
+            showToast(e.response?.data?.error || "Conversion failed", "error");
+        }
+    };
+    const canConvert = (file) => accessMode !== 'restricted' && file.mimeType === 'image/webp';
 
     const handleDelete = async (id) => {
         setUsageInfo({ usages: [], loading: true });
@@ -698,6 +710,15 @@ export default function MediaGallery({ accessMode = 'dashboard', pickerMode = fa
                                         >
                                             <Copy className="w-3.5 h-3.5" />
                                         </button>
+                                        {canConvert(file) && (
+                                            <button
+                                                onClick={e => { e.stopPropagation(); handleConvertWebp(file.id); }}
+                                                className="p-1.5 bg-white/20 hover:bg-white/40 text-white rounded-lg transition-colors"
+                                                title="Make JPEG/PNG copy (for broadcasts)"
+                                            >
+                                                <Repeat className="w-3.5 h-3.5" />
+                                            </button>
+                                        )}
                                         <button
                                             onClick={e => { e.stopPropagation(); handleDelete(file.id); }}
                                             className="p-1.5 bg-red-500/70 hover:bg-red-600 text-white rounded-lg transition-colors"
@@ -832,6 +853,15 @@ export default function MediaGallery({ accessMode = 'dashboard', pickerMode = fa
                                                     >
                                                         <ExternalLink className="w-4 h-4" />
                                                     </a>
+                                                    {canConvert(file) && (
+                                                        <button
+                                                            onClick={() => handleConvertWebp(file.id)}
+                                                            className="p-1.5 text-slate-400 hover:text-primary rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                                                            title="Make JPEG/PNG copy (for broadcasts)"
+                                                        >
+                                                            <Repeat className="w-4 h-4" />
+                                                        </button>
+                                                    )}
                                                     <button
                                                         onClick={() => handleDelete(file.id)}
                                                         className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"

@@ -2748,7 +2748,7 @@ const AdminLandingPage = () => {
                 {showVersionHistory && (
                     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
                         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm cursor-pointer" onClick={() => { setShowVersionHistory(false); setVersionContentPreview(null); }}></div>
-                        <div className="relative bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col animate-in zoom-in-95 duration-200">
+                        <div className="relative bg-white dark:bg-surface-dark border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl w-full sm:w-[70vw] max-w-none h-[85vh] sm:h-[80vh] flex flex-col animate-in zoom-in-95 duration-200">
                             <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-white/10">
                                 <div>
                                     <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2"><History className="w-5 h-5 text-indigo-500" /> Version History</h2>
@@ -2758,7 +2758,7 @@ const AdminLandingPage = () => {
                             </div>
                             <div className="flex flex-1 min-h-0 overflow-hidden">
                                 {/* Version list */}
-                                <div className="w-56 shrink-0 border-r border-slate-100 dark:border-white/10 overflow-y-auto p-3 space-y-1">
+                                <div className="w-44 sm:w-64 shrink-0 border-r border-slate-100 dark:border-white/10 overflow-y-auto p-3 space-y-1">
                                     {versionHistoryLoading && <p className="text-xs text-slate-400 p-2">Loading...</p>}
                                     {!versionHistoryLoading && versionHistoryList.length === 0 && (
                                         <p className="text-xs text-slate-400 p-2">No archived versions yet. Save changes to create the first snapshot.</p>

@@ -20,7 +20,7 @@ const SystemConfig = require('../models/SystemConfig');
 const User = require('../models/User');
 const Plan = require('../models/Plan');
 const MediaFile = require('../models/MediaFile');
-const { compressImage, isCompressibleImage } = require('./imageCompressor');
+const { compressImage, isCompressibleImage, convertWebpForMeta } = require('./imageCompressor');
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Magic Bytes Validation â€” Prevents disguised executable / malicious uploads
@@ -425,7 +425,21 @@ const storageProvider = (folderName, options = {}) => {
                             let fileBuffer = req.file.buffer;
                             const originalSize = fileBuffer.length;
 
-                            if (isCompressibleImage(req.file.mimetype)) {
+                            // Global media manager only: WebP -> JPEG/PNG so the file works in broadcasts/template headers.
+                            // Animated WebP is kept as is (converting would drop the animation) and flagged to the client.
+                            if (options.webpToMetaFormat && req.file.mimetype === 'image/webp') {
+                                const conv = await convertWebpForMeta(fileBuffer);
+                                if (conv.ok) {
+                                    fileBuffer = conv.buffer;
+                                    req.file.webpConverted = conv.ext === 'png' ? 'PNG' : 'JPEG';
+                                    req.file.mimetype = conv.mimetype;
+                                    req.file.originalname = req.file.originalname.replace(/\.[^/.]+$/, '') + '.' + conv.ext;
+                                } else if (conv.animated) {
+                                    req.file.webpAnimated = true;
+                                }
+                            }
+
+                            if (isCompressibleImage(req.file.mimetype) && !req.file.webpConverted && !req.file.webpAnimated) {
                                 const dims = getMaxDimensions(folderName);
                                 const result = await compressImage(fileBuffer, req.file.mimetype, { convertToWebp: options.convertToWebp, ...dims });
                                 fileBuffer = result.buffer;

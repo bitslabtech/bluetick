@@ -72,14 +72,16 @@ export const MIME_PRESETS = {
     video_only: ["video/mp4", "video/webm", "video/3gpp"],
 };
 
-function validateFileClient(file, allowedTypes, mimeConstraints) {
+function validateFileClient(file, allowedTypes, mimeConstraints, willConvertWebp = false) {
     const ext = ("." + file.name.split(".").pop()).toLowerCase();
     const typeConf = ALLOWED_TYPES[allowedTypes] || ALLOWED_TYPES.all;
     if (!typeConf.mime.includes(file.type) && !typeConf.ext.includes(ext)) {
         return `Invalid file type. Allowed: ${typeConf.label}`;
     }
     // Apply additional mime constraints if provided
-    if (mimeConstraints && mimeConstraints.length > 0 && !mimeConstraints.includes(file.type)) {
+    // Global gallery: the server turns static WebP into JPEG/PNG, so WebP may be uploaded even when the context itself is JPEG/PNG only
+    const webpOk = willConvertWebp && file.type === "image/webp";
+    if (mimeConstraints && mimeConstraints.length > 0 && !mimeConstraints.includes(file.type) && !webpOk) {
         const labels = mimeConstraints.map(m => m.split("/")[1].toUpperCase()).join(", ");
         return `This context only accepts: ${labels}`;
     }
@@ -311,10 +313,13 @@ export default function MediaPickerModal({
         onClose();
     };
 
+    // Global (non-store/vCard) uploads convert static WebP server-side
+    const willConvertWebp = fetchSource !== "restricted" && !storeId && !vcardId;
+
     const handleUpload = async (fileObj) => {
         if (!fileObj) return;
         setUploadError(null);
-        const validationErr = validateFileClient(fileObj, allowedTypes, mimeConstraints);
+        const validationErr = validateFileClient(fileObj, allowedTypes, mimeConstraints, willConvertWebp);
         if (validationErr) { setUploadError(validationErr); return; }
         setUploading(true);
         try {
@@ -324,8 +329,10 @@ export default function MediaPickerModal({
             if (storeId) uploadUrl += `&storeId=${storeId}`;
             if (vcardId) uploadUrl += `&vcardId=${vcardId}`;
             if (mediaFolder) uploadUrl += `&mediaFolder=${mediaFolder}`;
-            await axios.post(uploadUrl, form, { headers: { ...getHeaders(), "Content-Type": "multipart/form-data" } });
-            showToast("File uploaded successfully!", "success");
+            const upRes = await axios.post(uploadUrl, form, { headers: { ...getHeaders(), "Content-Type": "multipart/form-data" } });
+            if (upRes.data?.converted) showToast(`WebP converted to ${upRes.data.converted} so it works in broadcasts and templates.`, "success");
+            else if (upRes.data?.animatedWebp) showToast("Uploaded. Animated WebP cannot be used in broadcasts or template headers.", "info");
+            else showToast("File uploaded successfully!", "success");
             setTabCache({}); // Invalidate cache after upload
             await Promise.all([fetchFiles(1, activeTab, true), fetchUsage()]);
         } catch (e) {
@@ -341,7 +348,7 @@ export default function MediaPickerModal({
     // Narrow the accept string to the mime intersection when constraints are active
     const baseAcceptMimes = (ALLOWED_TYPES[allowedTypes] || ALLOWED_TYPES.all).mime;
     const acceptMimes = mimeConstraints
-        ? baseAcceptMimes.filter(m => mimeConstraints.includes(m))
+        ? baseAcceptMimes.filter(m => mimeConstraints.includes(m) || (willConvertWebp && m === "image/webp"))
         : baseAcceptMimes;
     const acceptStr = acceptMimes.length > 0 ? acceptMimes.join(",") : baseAcceptMimes.join(",");
 

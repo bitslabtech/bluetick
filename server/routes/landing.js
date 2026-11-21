@@ -20,7 +20,7 @@ function bumpVersion(current) {
 }
 
 // Policy keys we track versions for (matches publicPages keys + custom pages)
-const TRACKED_POLICY_KEYS = ['privacy', 'terms', 'refund-policy', 'return', 'shipping', 'about'];
+const { TRACKED_POLICY_KEYS, ensureBaselineVersions } = require('../utils/policyVersions');
 const _landingCache = cacheManager.createSimpleCache('landing_page', 60_000);
  // Multer Setup for Blog Images replaced by storageProvider 
 
@@ -119,6 +119,9 @@ router.put('/', [auth, admin], async (req, res) => {
 
         if (req.body.publicPages !== undefined) {
             const incomingPages = req.body.publicPages;
+            // Archive the text being replaced as v1.0 first if this page was never versioned, otherwise
+            // the very first edit would overwrite the original text with no copy of what users agreed to.
+            await ensureBaselineVersions(settings, TRACKED_POLICY_KEYS, { save: false });
             const currentVersions = { ...(settings.publicPagesVersions || {}) };
             const archiveJobs = [];
 

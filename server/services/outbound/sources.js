@@ -16,8 +16,8 @@ const GROUPS = {
     ads: 'Click-to-WhatsApp ads',
     api: 'Developer API',
     other_features: 'Other features',
-    platform: 'Bluetick notifications',
-    external: 'Other / sent outside Bluetick'
+    platform: 'Onedash notifications',
+    external: 'Sent outside Onedash'
 };
 
 const SOURCES = {
@@ -53,10 +53,10 @@ const SOURCES = {
     platform_invoice:        { group: 'platform', label: 'Invoices', platform: true },
     platform_alert:          { group: 'platform', label: 'Admin alerts', platform: true },
     platform_contact:        { group: 'platform', label: 'Contact & demo replies', platform: true },
-    platform_store_fallback: { group: 'platform', label: 'Store owner alert (sent by Bluetick)', platform: true },
+    platform_store_fallback: { group: 'platform', label: 'Store owner alert (sent by Onedash)', platform: true },
     platform_message:        { group: 'platform', label: 'Other Bluetick messages', platform: true },
     // Seen in Meta webhooks but never sent through the gateway (Business Suite, another app, ...)
-    external:             { group: 'external', label: 'Sent outside Bluetick', external: true }
+    external:             { group: 'external', label: 'Sent outside Onedash', external: true }
 };
 
 // Sources used by rows copied from the old tables (MessageBilling / ChatMessage / MessageLog).

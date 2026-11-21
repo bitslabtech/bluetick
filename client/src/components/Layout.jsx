@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import React, { Suspense, useEffect, useState } from 'react';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
@@ -9,6 +9,32 @@ import axios from 'axios';
 import NotificationBell from './NotificationBell';
 import UserDropdown from './UserDropdown';
 
+// One loading boundary per page. React Router v7 runs every navigation as a transition, and React keeps
+// already-visible content on screen during a transition — so without a fresh boundary the old page stayed
+// frozen until the new page's code arrived. Keying the boundary by page makes it new on every page change,
+// which lets React show the skeleton straight away while the sidebar and header stay in place.
+// ID-like segments are collapsed so /campaign-details/1 -> /campaign-details/2 does not remount the page.
+const pageKey = (pathname) => pathname
+    .split('/')
+    .map(seg => (/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(seg) || /^\d+$/.test(seg)) ? ':id' : seg)
+    .join('/');
+
+function PageLoading() {
+    // Hidden for the first 150 ms so fast page switches don't flash a skeleton
+    return (
+        <div style={{ animation: 'page-loading-in 0.2s ease 0.15s both' }} aria-busy="true" aria-label="Loading page">
+            <style>{`@keyframes page-loading-in { from { opacity: 0 } to { opacity: 1 } }`}</style>
+            <div className="animate-pulse">
+            <div className="h-8 w-56 rounded-lg bg-slate-200 dark:bg-white/10 mb-6" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                {[0, 1, 2, 3].map(i => <div key={i} className="h-24 rounded-2xl bg-slate-200 dark:bg-white/10" />)}
+            </div>
+            <div className="h-64 rounded-2xl bg-slate-200 dark:bg-white/10" />
+            </div>
+        </div>
+    );
+}
+
 export default function Layout() {
     const { isImpersonating, exitImpersonation, user } = useAuth();
     const { publicSettings, publicSettingsLoading } = useUI();
@@ -16,6 +42,7 @@ export default function Layout() {
     const [isMaintenance, setIsMaintenance] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
 
     // A desktop pop-up for a new WhatsApp message was clicked (fired by SocketContext,
     // which sits outside the router) → open the inbox at that conversation.
@@ -147,7 +174,9 @@ export default function Layout() {
                 <main className={`flex-1 overflow-auto bg-background-light dark:bg-background-dark relative transition-colors duration-300 p-4 md:p-6 pb-7 sm:pb-20`}>
                     
 
-                    <Outlet />
+                    <Suspense key={pageKey(location.pathname)} fallback={<PageLoading />}>
+                        <Outlet />
+                    </Suspense>
                 </main>
 
                 {/* MAINTENANCE MODAL */}

@@ -7,6 +7,7 @@ import { useUI } from '../context/UIContext';
 import axios from 'axios';
 import UserDropdown from './UserDropdown';
 import { formatDate } from '../utils/dateFormat';
+import { prefetchPage, prefetchSidebarPages } from '../utils/pagePrefetch';
 
 const userNavItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', perm: 'menu_dashboard' },
@@ -179,6 +180,9 @@ function NavItem({ item, location, setIsOpen, unreadCount }) {
                 <Link
                     to={item.isLocked ? `/locked-feature?feature=${encodeURIComponent(item.label)}` : item.path}
                     onClick={() => setIsOpen && setIsOpen(false)}
+                    onMouseEnter={() => !item.isLocked && prefetchPage(item.path)}
+                    onFocus={() => !item.isLocked && prefetchPage(item.path)}
+                    onTouchStart={() => !item.isLocked && prefetchPage(item.path)}
                     className={cn(
                         "flex items-center justify-between px-3 py-3 rounded-lg transition-all duration-200",
                         item.path === location.pathname && !item.isLocked
@@ -210,6 +214,9 @@ function NavItem({ item, location, setIsOpen, unreadCount }) {
                             key={sub.path}
                             to={sub.isLocked ? `/locked-feature?feature=${encodeURIComponent(sub.label)}` : sub.path}
                             onClick={() => setIsOpen && setIsOpen(false)}
+                            onMouseEnter={() => !sub.isLocked && prefetchPage(sub.path)}
+                            onFocus={() => !sub.isLocked && prefetchPage(sub.path)}
+                            onTouchStart={() => !sub.isLocked && prefetchPage(sub.path)}
                             className={cn(
                                 "flex items-center justify-between px-3 py-2 rounded-lg transition-all text-sm font-medium gap-2",
                                 sub.path === location.pathname && !sub.isLocked
@@ -418,6 +425,22 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             return indexA - indexB;
         });
     }
+
+    // Menu pages this user can open (unlocked, allowed for their team role) — their code is
+    // prefetched in the background so clicking a menu item opens the page without waiting.
+    const prefetchPaths = items.flatMap(item => {
+        if (item.isLocked) return [];
+        const subs = (item.subItems || []).filter(sub =>
+            !(sub.requiresCtwa || sub.requiresMetaAds || sub.requiresWaLinks || sub.requiresFlowbot) &&
+            !(isSubUser && user?.teamRole === 'custom' && sub.perm && !user.teamPermissions?.includes(sub.perm)) &&
+            !(sub.ownerOnly && isSubUser && user?.teamRole !== 'admin')
+        ).map(sub => sub.path);
+        return item.path ? [item.path, ...subs] : subs;
+    });
+    const prefetchKey = publicSettingsLoading || !user ? '' : prefetchPaths.join('|');
+    useEffect(() => {
+        if (prefetchKey) prefetchSidebarPages(prefetchKey.split('|'));
+    }, [prefetchKey]);
 
     if (publicSettingsLoading) {
         return (

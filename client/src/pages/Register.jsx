@@ -372,7 +372,9 @@ const Register = () => {
                 const searchParams = new URLSearchParams(location.search);
                 const reqInterval = searchParams.get('interval');
                 if (reqInterval) plan.interval = reqInterval;
-                plan.startTrial = isTrial && plan.trialDays > 0; // flag trial intent
+                // The trial is never started at sign-up: the user picks "free trial" or "pay" on the checkout page.
+                plan.startTrial = false;
+                plan.trialAtCheckout = plan.trialDays > 0;
                 setSelectedPlan(plan);
             }
         } catch (err) {
@@ -517,16 +519,16 @@ const Register = () => {
                                             </p>
                                         </div>
 
-                                        {selectedPlan.startTrial && (
+                                        {selectedPlan.trialAtCheckout && (
                                             <div className="p-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl space-y-1">
                                                 <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 text-sm font-semibold">
                                                     <span className="flex h-2 w-2 relative">
                                                         <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                                                     </span>
-                                                    {selectedPlan.trialDays}-Day Free Trial Active
+                                                    {selectedPlan.trialDays}-Day Free Trial Available
                                                 </div>
                                                 <p className="text-xs text-emerald-600/80 dark:text-slate-300">
-                                                    Enjoy full access for free. No charges will be made today.
+                                                    After you sign up, choose on the checkout page to start the free trial or pay.
                                                 </p>
                                             </div>
                                         )}
@@ -643,15 +645,15 @@ const Register = () => {
                             <div className="md:hidden p-4 bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-xl space-y-2">
                                 <div className="flex items-center justify-between">
                                     <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">
-                                        {selectedPlan.startTrial ? `🎉 Free Trial: ${selectedPlan.name}` : `Selected: ${selectedPlan.name}`}
+                                        {`Selected: ${selectedPlan.name}`}
                                     </span>
                                     <span className="text-sm font-semibold text-primary">
                                         {sym}{displayPrice.toLocaleString()}{intervalLabel}
                                     </span>
                                 </div>
-                                {selectedPlan.startTrial && (
+                                {selectedPlan.trialAtCheckout && (
                                     <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                                        ✅ {selectedPlan.trialDays} days free trial. No credit card required.
+                                        ✅ {selectedPlan.trialDays}-day free trial available at checkout.
                                     </p>
                                 )}
                             </div>
@@ -931,11 +933,9 @@ const Register = () => {
                                 className="w-full py-2.5 bg-primary text-white rounded-xl hover:opacity-90 font-medium transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:opacity-50"
                             >
                                 {isSubmitting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                                {isSubmitting ? 'Processing...' : (selectedPlan?.startTrial
-                                    ? `🎉 Start ${selectedPlan.trialDays}-Day Free Trial`
-                                    : selectedPlan && selectedPlan.price > 0
-                                        ? 'Continue to Payment'
-                                        : 'Create Account')}
+                                {isSubmitting ? 'Processing...' : (selectedPlan
+                                    ? 'Create Account & Continue'
+                                    : 'Create Account')}
                             </button>
 
                             {/* Hover Tooltip for disabled state */}

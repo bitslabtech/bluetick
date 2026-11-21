@@ -505,8 +505,21 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
         let planStatus = 'Active';
 
         // Auto-Trial for direct signups:
+        const { isPaidPlan, isPlanPurchasable } = require('../utils/planRules');
+        // Only plans that can be bought (public or the default plan, never internal) may be picked at
+        // sign-up. An unknown/hidden plan id is treated as a plain direct sign-up (default plan).
+        let requestedPlanObj = null;
+        if (selectedPlan) {
+            const pickedPlan = await Plan.findByPk(selectedPlan);
+            if (!pickedPlan || !isPlanPurchasable(pickedPlan, null)) {
+                if (pickedPlan) console.warn(`[SECURITY] register: ignored non-purchasable selectedPlan '${pickedPlan.name}'`);
+                selectedPlan = null;
+            } else {
+                requestedPlanObj = pickedPlan;
+            }
+        }
         if (!selectedPlan && defaultPlan) {
-            if (defaultPlan.price > 0) {
+            if (isPaidPlan(defaultPlan)) {
                 let trialDaysToGive = defaultPlan.trialDays || 0;
                 if (isReferredByTechPartner) {
                     trialDaysToGive = 30; // 1-Month Extended License for Tech Partner referrals
@@ -540,7 +553,7 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
         // plan they picked (the response below returns that plan when status is Pending).
         // If the default plan is free (or there is none), they start on it as before.
         const keepUnpaidUntilCheckout = () => {
-            if (defaultPlan && parseFloat(defaultPlan.price) > 0) {
+            if (defaultPlan && isPaidPlan(defaultPlan)) {
                 assignedPlan = 'Free';
                 planStatus = 'Pending';
                 planExpiry = new Date();
@@ -550,36 +563,11 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
                 planExpiry = null;
             }
         };
-        let requestedPlanObj = null;
         if (selectedPlan) {
-            requestedPlanObj = await Plan.findByPk(selectedPlan);
-            // Only plans that can be bought (public or the default plan, never internal)
-            // may be picked at sign-up — otherwise hidden/internal plans could be trialled.
-            const { isPlanPurchasable } = require('../utils/planRules');
-            if (requestedPlanObj && !isPlanPurchasable(requestedPlanObj, null)) {
-                console.warn(`[SECURITY] register: ignored non-purchasable selectedPlan '${requestedPlanObj.name}'`);
-                requestedPlanObj = null;
-            }
-            if (requestedPlanObj && startTrial) {
-                let trialDaysToGive = requestedPlanObj.trialDays || 0;
-                if (isReferredByTechPartner) {
-                    trialDaysToGive = 30; // 1-Month Extended License for Tech Partner referrals
-                }
-
-                if (trialDaysToGive > 0) {
-                    // ✅ Auto-activate trial
-                    assignedPlan = requestedPlanObj.name;
-                    planStatus = 'Trial';
-                    planExpiry = new Date();
-                    planExpiry.setDate(planExpiry.getDate() + trialDaysToGive);
-                } else {
-                    // Plan has no trial — keep unpaid until checkout succeeds
-                    keepUnpaidUntilCheckout();
-                }
-            } else {
-                // No trial requested — keep unpaid until checkout succeeds
-                keepUnpaidUntilCheckout();
-            }
+            // A picked plan is never activated at sign-up, not even with ?trial=true. The user
+            // is sent to checkout and chooses there to pay or start the one-time trial
+            // (POST /api/billing/start-trial, which enforces hasUsedTrial). One code path, one rule.
+            keepUnpaidUntilCheckout();
         }
 
         // Check if this is the very first user in the system
@@ -590,8 +578,11 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
         let consentLog = null;
         try {
             const consentPolicies = Array.isArray(req.body.consentPolicies) ? req.body.consentPolicies : ['privacy', 'terms'];
-            const landingSettings = await LandingPage.findOne({ attributes: ['publicPagesVersions'] });
-            const versions = landingSettings?.publicPagesVersions || {};
+            const landingSettings = await LandingPage.findOne();
+            // Pages nobody has edited since versioning was added have no version yet: give them v1.0 and
+            // archive their text now, so the record says "v1.0" (not "unknown") and the text stays viewable.
+            const { ensureBaselineVersions, TRACKED_POLICY_KEYS } = require('../utils/policyVersions');
+            const versions = await ensureBaselineVersions(landingSettings, consentPolicies.filter(k => TRACKED_POLICY_KEYS.includes(k)));
             consentLog = {
                 registeredAt: new Date().toISOString(),
                 ip: req.ip || req.headers['x-forwarded-for'] || null,
@@ -742,7 +733,7 @@ router.post('/register', authLimiter, verifyTurnstile, async (req, res) => {
         }
 
         // Set HttpOnly cookie and return user data (no token in response body)
-        const token = generateToken(user, { mobile: includeTokenInBody });
+        const token = generateToken(user, { mobile: false });
         setAuthCookies(res, token);
         // Fetch the actual assigned plan details to return to frontend
         let returnedPlanDetails = await Plan.findOne({ where: { name: assignedPlan } });

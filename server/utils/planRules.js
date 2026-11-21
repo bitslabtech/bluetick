@@ -49,4 +49,15 @@ const resolvePlanPricing = (plan, requestedInterval) => {
     return { price: prices[interval], interval };
 };
 
-module.exports = { INTERNAL_PLAN_NAMES, isPlanPurchasable, PLAN_INTERVALS, resolvePlanPricing };
+/**
+ * True when the plan costs money on ANY billing interval.
+ * Plans are priced per interval (monthly / half-yearly / yearly); the old single `price`
+ * column is only a fallback and can be 0 on a paid plan, so never test it alone.
+ */
+const isPaidPlan = (plan) => {
+    if (!plan) return false;
+    return [plan.price, plan.monthlyPrice, plan.halfYearlyPrice, plan.yearlyPrice]
+        .some(v => (parseFloat(v) || 0) > 0);
+};
+
+module.exports = { INTERNAL_PLAN_NAMES, isPlanPurchasable, isPaidPlan, PLAN_INTERVALS, resolvePlanPricing };
