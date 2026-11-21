@@ -11,8 +11,32 @@ async function workspaceUserIds(ownerId) {
     return [ownerId, ...members.map((m) => m.id)];
 }
 
+/** The owner's phone privacy rule for a member ('visible' for the owner). Same rule as the web inbox and call ringing. */
+function phonePrivacyOf(user) {
+    if (!user?.parentUserId) return 'visible';
+    const p = user.teamPolicy?.phonePrivacy;
+    return p === 'masked' || p === 'blurred' ? p : 'visible';
+}
+
 /**
- * Send a push to every device in the workspace. Never throws — push is
+ * Who sent a message, as this person may see it: the WhatsApp profile name, or the number when there is
+ * no real name ("Unknown" is the placeholder stored when WhatsApp gives none). Members whose owner hides
+ * numbers get the last 4 digits (masked) or a plain label (blurred), matching the app's showPhone().
+ */
+function senderLabel(name, phone, privacy = 'visible') {
+    const raw = String(name || '').trim();
+    const real = raw && raw.toLowerCase() !== 'unknown' && !/^\+?[\d\s\-()]+$/.test(raw) ? raw : null;
+    if (real) return real;
+    const digits = String(phone || '').replace(/^\+/, '').trim();
+    if (!digits) return 'New message';
+    if (privacy === 'masked') return `****${digits.replace(/\D/g, '').slice(-4)}`;
+    if (privacy === 'blurred') return 'New message';
+    return `+${digits}`;
+}
+
+/**
+ * Send a push to every device in the workspace. `title` is a string, or a function of the
+ * recipient's phone privacy ('visible' | 'masked' | 'blurred') when it may contain a customer number. Never throws — push is
  * best-effort and must not break webhook processing. Tokens Expo reports as
  * DeviceNotRegistered are removed.
  */
@@ -30,10 +54,20 @@ async function pushToWorkspace(ownerId, { title, body, data, userIds: only }) {
             return;
         }
 
+        let titleFor = () => title;
+        if (typeof title === 'function') {
+            const users = await User.findAll({
+                where: { id: { [Op.in]: userIds } },
+                attributes: ['id', 'parentUserId', 'teamPolicy'],
+            });
+            const privacy = new Map(users.map((u) => [u.id, phonePrivacyOf(u)]));
+            titleFor = (userId) => title(privacy.get(userId) || 'masked'); // unknown user: hide, never leak
+        }
+
         const messages = devices.map((d) => ({
             to: d.token,
             sound: 'default',
-            title,
+            title: titleFor(d.userId),
             body,
             data,
             channelId: 'messages',
@@ -62,4 +96,4 @@ async function pushToWorkspace(ownerId, { title, body, data, userIds: only }) {
     }
 }
 
-module.exports = { pushToWorkspace };
+module.exports = { pushToWorkspace, senderLabel, phonePrivacyOf };

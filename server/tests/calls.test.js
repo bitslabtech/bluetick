@@ -85,19 +85,20 @@ jest.mock('../models/Conversation', () => ({
     findOne: async () => mockStore.conv,
     create: async (row) => { mockStore.conv = { id: 'conv-new', ...row }; return mockStore.conv; },
 }));
-jest.mock('../models/Settings', () => ({ findOne: async () => mockStore.settings }));
+jest.mock('../models/Settings', () => ({ findOne: async () => mockStore.settings, findAll: async () => [mockStore.settings] }));
 jest.mock('../models/User', () => ({
     findAll: async () => mockStore.users,
     findByPk: async () => mockStore.owner,
 }));
 jest.mock('../models/Addon', () => ({ findOne: async () => (mockStore.addon ? { id: 'addon' } : null) }));
-jest.mock('../models/UserAddon', () => ({ findOne: async () => (mockStore.addon ? { id: 'ua' } : null) }));
+jest.mock('../models/UserAddon', () => ({ findOne: async () => (mockStore.addon ? { id: 'ua', currentPeriodEnd: mockStore.addonEnd ?? null } : null) }));
 jest.mock('../models/DeviceToken', () => ({
     findAll: async ({ where }) => mockStore.devices.filter((d) => where.userId[require('sequelize').Op.in].includes(d.userId)),
     destroy: async () => 0,
 }));
 jest.mock('../utils/metaCalling', () => ({
     rejectCall: jest.fn().mockResolvedValue({}),
+    setCallingStatus: jest.fn().mockResolvedValue({}),
     acceptCall: jest.fn().mockResolvedValue({}),
     terminateCall: jest.fn().mockResolvedValue({}),
 }));
@@ -132,6 +133,7 @@ beforeEach(() => {
     ];
     mockStore.devices = [dev('owner'), dev('admin1'), dev('agent1'), dev('agent2', 'apns_voip')];
     mockStore.addon = true;
+    mockStore.addonEnd = null;
     mockStore.owner = { id: 'owner', metaTier: 'TIER_2K' };
     mockStore.settings = {
         userId: 'owner', metaAccessToken: 't', metaPhoneNumberId: 'p', whatsappAutomations: {},
@@ -196,6 +198,13 @@ describe('CallService ringing rules', () => {
 });
 
 describe('CallService refusals', () => {
+    test('add-on period ended: rejected even while the row still says active', async () => {
+        mockStore.addonEnd = new Date(Date.now() - 60_000);
+        await run();
+        expect(mockStore.calls[0]).toMatchObject({ status: 'rejected', endReason: 'addon_required' });
+        expect(push.pushIncomingCall).not.toHaveBeenCalled();
+    });
+
     test('no add-on: rejected, nobody rung', async () => {
         mockStore.addon = false;
         await run();
@@ -461,5 +470,97 @@ describe('call events in the chat thread', () => {
         mockStore.settings.whatsappAutomations = { offHoursMessage: { timezone: 'UTC', schedule: [0, 1, 2, 3, 4, 5, 6].map((day) => ({ day, enabled: false })) } };
         await run();
         expect(mockStore.messages[0].body).toBe('Voice call outside business hours');
+    });
+});
+
+describe('callers with no phone number (S9)', () => {
+    test('refused at Meta, recorded, no conversation created or merged, nobody rung', async () => {
+        const before = mockStore.conv;
+        await run({ calls: [{ id: 'hidden1', from: '', event: 'connect', direction: 'USER_INITIATED', session: { sdp: 'v=0' } }], contacts: [] });
+        expect(mockStore.calls[0]).toMatchObject({ status: 'rejected', endReason: 'no_caller_id', phoneNumber: '', conversationId: null });
+        expect(meta.rejectCall).toHaveBeenCalledWith(mockStore.settings, 'hidden1');
+        expect(mockStore.conv).toBe(before);
+        expect(push.pushIncomingCall).not.toHaveBeenCalled();
+        expect(sendWhatsAppAndLog).not.toHaveBeenCalled();
+    });
+});
+
+describe('keeping Meta calling in line with the add-on (S3)', () => {
+    const withSave = () => Object.assign(mockStore.settings, { changed: jest.fn(), save: jest.fn(async () => {}) });
+
+    test('add-on lapsed: calling switched off at Meta, owner choice kept, suspension recorded', async () => {
+        withSave();
+        mockStore.addonEnd = new Date(Date.now() - 60_000);
+        const r = await CallService.reconcileAllCalling();
+        expect(r).toEqual({ suspended: 1, restored: 0 });
+        expect(meta.setCallingStatus).toHaveBeenCalledWith(mockStore.settings, false);
+        expect(mockStore.settings.callSettings.enabled).toBe(true);
+        expect(mockStore.settings.callSettings.suspended.reason).toBe('addon_required');
+    });
+
+    test('already suspended: not switched off again', async () => {
+        withSave();
+        mockStore.addon = false;
+        mockStore.settings.callSettings.suspended = { reason: 'addon_required', at: 'x' };
+        await CallService.reconcileAllCalling();
+        expect(meta.setCallingStatus).not.toHaveBeenCalled();
+    });
+
+    test('add-on renewed: switched back on and the suspension cleared', async () => {
+        withSave();
+        mockStore.settings.callSettings.suspended = { reason: 'addon_required', at: 'x' };
+        const r = await CallService.reconcileAllCalling();
+        expect(r).toEqual({ suspended: 0, restored: 1 });
+        expect(meta.setCallingStatus).toHaveBeenCalledWith(mockStore.settings, true);
+        expect(mockStore.settings.callSettings.suspended).toBeUndefined();
+    });
+
+    test('messaging limit dropped below 2,000: switched off; unknown limit: left alone', async () => {
+        withSave();
+        mockStore.owner.metaTier = null;
+        await CallService.reconcileAllCalling();
+        expect(meta.setCallingStatus).not.toHaveBeenCalled();
+        mockStore.owner.metaTier = 'TIER_1K';
+        await CallService.reconcileAllCalling();
+        expect(meta.setCallingStatus).toHaveBeenCalledWith(mockStore.settings, false);
+        expect(mockStore.settings.callSettings.suspended.reason).toBe('not_eligible');
+    });
+
+    test('calling turned off by the owner: never touched', async () => {
+        withSave();
+        mockStore.addon = false;
+        mockStore.settings.callSettings.enabled = false;
+        await CallService.reconcileAllCalling();
+        expect(meta.setCallingStatus).not.toHaveBeenCalled();
+    });
+
+    test('Meta refuses the change: nothing recorded, retried next run, never throws', async () => {
+        withSave();
+        mockStore.addon = false;
+        meta.setCallingStatus.mockRejectedValueOnce(new Error('Meta down'));
+        const spy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        await expect(CallService.reconcileAllCalling()).resolves.toEqual({ suspended: 0, restored: 0 });
+        expect(mockStore.settings.callSettings.suspended).toBeUndefined();
+        spy.mockRestore();
+    });
+});
+
+describe('ringing screen follows phone privacy', () => {
+    const { callerFor } = require('../services/CallService');
+    const call = { phoneNumber: '919876543210', contactName: 'Asha' };
+
+    test('owner and visible members get the full number', () => {
+        expect(callerFor(call, 'visible')).toEqual({ id: '919876543210', displayName: 'Asha', phoneNumber: '+919876543210' });
+    });
+
+    test('masked members get the last 4 digits and no phone handle', () => {
+        const c = callerFor({ ...call, contactName: 'Unknown' }, 'masked');
+        expect(c).toEqual({ id: '****3210', displayName: '****3210' });
+        expect(c.phoneNumber).toBeUndefined();
+    });
+
+    test('blurred members see the name only, never the number', () => {
+        expect(callerFor(call, 'blurred')).toEqual({ id: 'WhatsApp caller', displayName: 'Asha' });
+        expect(JSON.stringify(callerFor({ ...call, contactName: '919876543210' }, 'blurred'))).not.toMatch(/9876/);
     });
 });

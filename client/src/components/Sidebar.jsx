@@ -19,6 +19,7 @@ const userNavItems = [
         requiredModule: 'whatsapp_inbox',
         subItems: [
             { label: 'Live Chat', path: '/whatsapp', perm: 'menu_whatsapp_inbox' },
+            { label: 'Voice Calls', path: '/calls', perm: 'menu_calls' },
             { label: 'Bulk Broadcast', path: '/campaigns', perm: 'menu_send_message' },
             { label: 'Broadcast History', path: '/campaign-list', perm: 'menu_campaigns' },
             { label: 'Contacts', path: '/contacts', perm: 'menu_contacts' },

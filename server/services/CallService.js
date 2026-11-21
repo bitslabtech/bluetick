@@ -40,7 +40,10 @@ async function hasVoiceAddon(ownerId) {
     const addon = await Addon.findOne({ where: { module_key: elig.VOICE_ADDON_KEY } });
     if (!addon) return false;
     const ua = await UserAddon.findOne({ where: { userId: ownerId, addonId: addon.id, status: 'active' } });
-    return !!ua;
+    if (!ua) return false;
+    // Same rule as the web marketplace: an active row whose paid period has ended no longer counts,
+    // even before the scheduler flips its status. No end date (plan-included / lifetime) = active.
+    return !ua.currentPeriodEnd || new Date(ua.currentPeriodEnd) > new Date();
 }
 
 /**
@@ -68,12 +71,77 @@ async function getCallStatus(ownerId) {
     return { state: 'ready', ...base };
 }
 
+// ── keep Meta's calling switch in line with entitlement (S3) ───────────────────────────────────
+
+/**
+ * Why calling must be off at Meta right now, or null if it may be on. Only definite reasons count:
+ * an unknown messaging limit (tier not fetched yet) never switches anyone off.
+ */
+async function suspendReason(ownerId, settings) {
+    if (!settings?.metaAccessToken || !settings?.metaPhoneNumberId) return null; // cannot reach Meta anyway
+    if (!(await hasVoiceAddon(ownerId))) return 'addon_required';
+    const owner = await User.findByPk(ownerId, { attributes: ['id', 'metaTier'] });
+    const tier = elig.checkTier(owner?.metaTier);
+    if (tier.limit > 0 && !tier.eligible) return 'not_eligible';
+    return null;
+}
+
+/**
+ * Switch calling off at Meta when a workspace that turned calling on loses the add-on (expired,
+ * downgraded, removed) or drops below the messaging limit, so customers no longer see a call button
+ * that is then refused. Switch it back on when it qualifies again. The owner's own on/off choice
+ * (`enabled`) is never changed; the suspension is tracked in `callSettings.suspended`.
+ * Returns 'suspended' | 'restored' | null. Never throws.
+ */
+async function reconcileCalling(settings) {
+    try {
+        const cs = elig.resolveCallSettings(settings.callSettings);
+        if (!cs.enabled) return null;
+        const reason = await suspendReason(settings.userId, settings);
+        if (reason && !cs.suspended) {
+            await meta.setCallingStatus(settings, false);
+            settings.callSettings = { ...cs, suspended: { reason, at: new Date().toISOString() } };
+            settings.changed('callSettings', true);
+            await settings.save();
+            log(`calling switched off at Meta for ${settings.userId}: ${reason}`);
+            return 'suspended';
+        }
+        if (!reason && cs.suspended) {
+            await meta.setCallingStatus(settings, true);
+            const { suspended, ...rest } = cs; // eslint-disable-line no-unused-vars
+            settings.callSettings = rest;
+            settings.changed('callSettings', true);
+            await settings.save();
+            log(`calling switched back on at Meta for ${settings.userId}`);
+            return 'restored';
+        }
+        return null;
+    } catch (e) {
+        warn(`reconcile failed for ${settings?.userId}:`, e.response?.data?.error?.message || e.message);
+        return null;
+    }
+}
+
+/** Scheduler: reconcile every workspace that has calling turned on. */
+async function reconcileAllCalling() {
+    const all = await Settings.findAll({ where: { metaPhoneNumberId: { [Op.ne]: '' } } });
+    let suspended = 0; let restored = 0;
+    for (const s of all) {
+        if (!elig.resolveCallSettings(s.callSettings).enabled) continue;
+        const r = await reconcileCalling(s);
+        if (r === 'suspended') suspended += 1;
+        if (r === 'restored') restored += 1;
+    }
+    if (suspended || restored) log(`reconcile: ${suspended} switched off, ${restored} switched back on`);
+    return { suspended, restored };
+}
+
 // ── people & devices ───────────────────────────────────────────────────────────────────────────
 
 async function workspaceUsers(ownerId) {
     return User.findAll({
         where: { [Op.or]: [{ id: ownerId }, { parentUserId: ownerId }] },
-        attributes: ['id', 'name', 'teamRole', 'parentUserId'],
+        attributes: ['id', 'name', 'teamRole', 'parentUserId', 'teamPolicy'],
     });
 }
 
@@ -102,17 +170,35 @@ async function stageTwoTargets(ownerId, exclude = []) {
 
 // ── ringing ────────────────────────────────────────────────────────────────────────────────────
 
-function incomingEvent(call) {
+/** The owner's phone privacy rule for a member ('visible' for the owner). Same rule as the web inbox. */
+function phonePrivacyOf(user) {
+    if (!user?.parentUserId) return 'visible';
+    const p = user.teamPolicy?.phonePrivacy;
+    return p === 'masked' || p === 'blurred' ? p : 'visible';
+}
+
+/**
+ * Who is calling, as this person may see it on the phone's ringing screen and call log.
+ * Hidden numbers leave phoneNumber out, so the phone shows a plain label instead of a tel: handle.
+ */
+function callerFor(call, privacy = 'visible') {
+    const raw = String(call.contactName || '').trim();
+    const name = raw && raw.toLowerCase() !== 'unknown' && !/^\+?[\d\s\-()]+$/.test(raw) ? raw : null;
+    if (privacy === 'masked') {
+        const masked = `****${String(call.phoneNumber).slice(-4)}`;
+        return { id: masked, displayName: name || masked };
+    }
+    if (privacy === 'blurred') return { id: 'WhatsApp caller', displayName: name || 'WhatsApp caller' };
+    return { id: call.phoneNumber, displayName: call.contactName || `+${call.phoneNumber}`, phoneNumber: `+${call.phoneNumber}` };
+}
+
+function incomingEvent(call, privacy = 'visible') {
     return {
         eventId: require('crypto').randomUUID(),
         serverCallId: call.id,
         hasVideo: false,
         startedAt: new Date(call.startedAt).toISOString(),
-        caller: {
-            id: call.phoneNumber,
-            displayName: call.contactName || `+${call.phoneNumber}`,
-            phoneNumber: `+${call.phoneNumber}`,
-        },
+        caller: callerFor(call, privacy),
         metadata: { conversationId: call.conversationId || null },
     };
 }
@@ -125,10 +211,12 @@ async function dropDead(deadTokens) {
 async function ring(call, userIds) {
     if (!userIds.length) return;
     const devices = await callDevices(userIds);
-    const event = incomingEvent(call);
+    // Each person's ringing screen follows the owner's phone privacy setting for them.
+    const users = await User.findAll({ where: { id: { [Op.in]: userIds } }, attributes: ['id', 'parentUserId', 'teamPolicy'] });
+    const privacy = new Map(users.map((u) => [u.id, phonePrivacyOf(u)]));
     const dead = [];
     await Promise.all(devices.map(async (d) => {
-        const r = await push.pushIncomingCall(d, event);
+        const r = await push.pushIncomingCall(d, incomingEvent(call, privacy.get(d.userId)));
         if (r.dead) dead.push(d.token);
     }));
     await dropDead(dead);
@@ -370,6 +458,19 @@ async function handleIncoming({ ownerId, settings, call: c, contactName }) {
     const phone = String(c.from || '').replace(/\D/g, '');
     const sdp = c.session?.sdp || c.connection?.webrtc?.sdp || null;
 
+    // No caller number (hidden / username-only callers): we cannot ring a chat, merge it with a
+    // conversation, or message them back. Refuse it at Meta and keep a record for call history.
+    if (!phone) {
+        const row = await Call.create({
+            userId: ownerId, conversationId: null, metaCallId: c.id, phoneNumber: '',
+            contactName: contactName || null, status: 'rejected', endReason: 'no_caller_id', sdpOffer: null, endedAt: new Date(),
+        });
+        await meta.rejectCall(settings, c.id).catch((e) => warn(`reject failed ${c.id}:`, e.response?.data?.error?.message || e.message));
+        emit(`team_${ownerId}`, 'call_update', publicCall(row));
+        log(`refused ${c.id}: no_caller_id`);
+        return;
+    }
+
     let conv = await Conversation.findOne({ where: { phoneNumber: phone, userId: ownerId } });
     if (!conv) {
         conv = await Conversation.create({ userId: ownerId, phoneNumber: phone, contactName: contactName || phone, status: 'open', unreadCount: 0 });
@@ -522,6 +623,8 @@ module.exports = {
     RING_TIMEOUT_SEC,
     hasVoiceAddon,
     getCallStatus,
+    reconcileCalling,
+    reconcileAllCalling,
     handleCallsWebhook,
     handleIncoming,
     handleTerminate,
@@ -536,4 +639,5 @@ module.exports = {
     rangMembers,
     stageOneTargets,
     stageTwoTargets,
+    callerFor,
 };
