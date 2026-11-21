@@ -158,6 +158,7 @@ export default function Team() {
             title: 'WhatsApp Operations',
             options: [
                 { id: 'menu_whatsapp_inbox', label: 'Inbox' },
+                { id: 'menu_calls', label: 'Voice Calls' },
                 { id: 'menu_whatsapp_settings', label: 'Settings' },
                 { id: 'menu_templates', label: 'Templates' },
                 { id: 'menu_send_message', label: 'Send Message' },

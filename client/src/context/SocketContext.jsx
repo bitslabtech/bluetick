@@ -234,6 +234,9 @@ export const SocketProvider = ({ children }) => {
             // ── Global incoming WhatsApp message handler ──────────────────────────
             newSocket.on('new_message', ({ conversation, message }) => {
                 if (message.direction !== 'INBOUND') return;
+                // Call events ("Missed voice call") are logged by the server, not typed by the customer:
+                // no chime or pop-up for them. Calls are answered in the mobile app.
+                if (message.type === 'call') return;
 
                 const isViewingChat =
                     activeChatIdRef.current === conversation.id && !document.hidden;

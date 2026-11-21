@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
+const { encryptedAttribute } = require('../utils/secretBox');
 const { encrypt, decrypt } = require('../utils/encryption');
 
 const User = sequelize.define('User', {
@@ -155,7 +156,9 @@ const User = sequelize.define('User', {
     // WhatsApp Integration Fields
     fbAccessToken: {
         type: DataTypes.TEXT, // Access tokens can be long
-        allowNull: true
+        allowNull: true,
+        // Encrypted at rest when TOKEN_ENCRYPTION_KEY is set (utils/secretBox.js).
+        ...encryptedAttribute('fbAccessToken'),
     },
     wabaId: {
         type: DataTypes.STRING,
@@ -296,6 +299,11 @@ const User = sequelize.define('User', {
         type: DataTypes.DATE,
         allowNull: true,
         comment: 'Timestamp when the account was soft-deleted'
+    },
+    deletionScheduledFor: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        comment: 'Owner asked to delete the workspace; it is purged at this time (30-day grace) unless cancelled'
     },
 
     // ── Billing / GST Profile ──────────────────────────────────────────────────

@@ -40,6 +40,8 @@ function csrfProtection(req, res, next) {
         '/api/v1',
         '/api/auth',
         '/api/vcards/public',
+        // Crash reports from the web and the mobile app (public, may come before login)
+        '/api/admin-notifications/public',
         // ── Public storefront endpoints ─────────────────────────────────────────
         // These are called from customer custom domains (e.g. www.amardryfruits.in)
         // where the browser cannot read the api.bluetick.cloud CSRF cookie.

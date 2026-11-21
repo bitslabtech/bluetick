@@ -48,6 +48,15 @@ async function loadCall(req, res) {
 router.get('/status', async (req, res) => {
     try {
         const s = await CallService.getCallStatus(ownerOf(req));
+        // Calling was switched off at Meta automatically and the workspace qualifies again (e.g. the
+        // add-on was just renewed): switch it back on now instead of waiting for the hourly job.
+        if (s.callSettings?.suspended && s.state === 'ready') {
+            const settings = await Settings.findOne({ where: { userId: ownerOf(req) } });
+            if (settings && (await CallService.reconcileCalling(settings)) === 'restored') {
+                const fresh = await CallService.getCallStatus(ownerOf(req));
+                return res.json({ ...fresh, canManage: canManage(req) });
+            }
+        }
         res.json({ ...s, canManage: canManage(req) });
     } catch (e) {
         console.error('[CALLS] status:', e.message);
@@ -101,6 +110,8 @@ router.put('/settings', requireVoice, async (req, res) => {
                 return fail(res, 502, `WhatsApp refused the change: ${msg}`, { code: 'meta_error' });
             }
         }
+        // The owner just set Meta's switch themselves, so any automatic suspension no longer applies.
+        if (next.enabled !== cur.enabled) delete next.suspended;
         settings.callSettings = next;
         settings.changed('callSettings', true);
         await settings.save();
@@ -151,9 +162,11 @@ router.post('/message-templates', requireVoice, async (req, res) => {
     }
 });
 
-// GET /api/calls/ice-servers: STUN always; TURN when configured (static env or Cloudflare)
+// GET /api/calls/ice-servers: STUN always; TURN only when TURN_ENABLED=true and configured
+// (Cloudflare or static env). Off by default: calls connect directly to Meta on most networks.
 router.get('/ice-servers', requireVoice, async (req, res) => {
     const iceServers = [{ urls: ['stun:stun.cloudflare.com:3478', 'stun:stun.l.google.com:19302'] }];
+    if (process.env.TURN_ENABLED !== 'true') return res.json({ iceServers });
     try {
         const { CF_TURN_KEY_ID, CF_TURN_API_TOKEN, TURN_URLS, TURN_USERNAME, TURN_CREDENTIAL } = process.env;
         if (CF_TURN_KEY_ID && CF_TURN_API_TOKEN) {

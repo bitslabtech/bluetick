@@ -20,7 +20,7 @@ function bumpVersion(current) {
 }
 
 // Policy keys we track versions for (matches publicPages keys + custom pages)
-const TRACKED_POLICY_KEYS = ['privacy', 'terms', 'return', 'shipping', 'about'];
+const TRACKED_POLICY_KEYS = ['privacy', 'terms', 'refund-policy', 'return', 'shipping', 'about'];
 const _landingCache = cacheManager.createSimpleCache('landing_page', 60_000);
  // Multer Setup for Blog Images replaced by storageProvider 
 

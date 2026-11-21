@@ -52,7 +52,7 @@ describe('outbound gateway guard', () => {
             while ((m = re.exec(text))) used.add(m[1]);
         }
         // Keys used for other purposes in the same files (ChatMessage.source values, Meta CAPI, etc.)
-        const NOT_GATEWAY = new Set(['campaign', 'inbox', 'flowbot', 'auto_reply', 'ai_bot', 'admin', 'online', 'pos', 'meta', 'local', 'empty', 'error', 'not_connected']);
+        const NOT_GATEWAY = new Set(['campaign', 'inbox', 'flowbot', 'auto_reply', 'ai_bot', 'admin', 'online', 'pos', 'meta', 'local', 'empty', 'error', 'not_connected', 'call']);
         const unknown = [...used].filter(s => !SOURCES[s] && !NOT_GATEWAY.has(s));
         expect(unknown).toEqual([]);
     });
