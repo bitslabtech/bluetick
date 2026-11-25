@@ -75,7 +75,7 @@ const WhatsAppInbox = () => {
     const canDeleteChats = !isSubMember || !!teamPolicy.canDeleteChats;
 
     // A saved "Unknown" (older chats) counts as no name, so the phone number is shown instead
-    const realName = (name) => (name && name.trim() && name.trim() !== 'Unknown' ? name : null);
+    const realName = (name) => (name && name.trim() && name.trim().toLowerCase() !== 'unknown' ? name : null);
 
     const renderName = (rawName, phone) => {
         const name = realName(rawName);
@@ -1516,6 +1516,24 @@ const WhatsAppInbox = () => {
                                         </span>
                                     </div>
                                 );
+
+                                // Voice call event (logged by the server): a centred system line, not a customer bubble.
+                                if (item.type === 'call') {
+                                    const callStatus = item.templateData?.call?.status;
+                                    const bad = ['missed', 'declined', 'failed', 'rejected'].includes(callStatus);
+                                    const time = item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                                    return (
+                                        <div key={item.id || i} className="flex justify-center my-1.5">
+                                            <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full shadow-sm ${bad
+                                                ? 'bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-300'
+                                                : 'bg-white/80 text-slate-600 dark:bg-[#202c33]/90 dark:text-slate-300'}`}>
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
+                                                {item.body || 'Voice call'}
+                                                {time && <span className="opacity-60">· {time}</span>}
+                                            </span>
+                                        </div>
+                                    );
+                                }
 
                                 const isMe = item.direction === 'OUTBOUND';
                                 return (

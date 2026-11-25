@@ -163,7 +163,7 @@ export default function ContactInfoPanel({ conversation, onClose, onUpdate, team
     if (!conversation) return null;
 
     // A saved "Unknown" (older chats) counts as no name, so the phone number is shown instead
-    const realName = (n) => (n && n.trim() && n.trim() !== 'Unknown' ? n : null);
+    const realName = (n) => (n && n.trim() && n.trim().toLowerCase() !== 'unknown' ? n : null);
 
     const renderName = (rawName, phone) => {
         const name = realName(rawName);

@@ -59,6 +59,25 @@ async function pruneExpiredTags() {
 function initScheduler() {
     console.log('Campaign Scheduler initialized. Checking every 60 seconds...');
 
+    // ── ACCOUNT DELETION (hourly): purge workspaces whose 30-day grace period has ended ──
+    setInterval(() => {
+        require('../services/AccountDeletion').runDueDeletions()
+            .catch((err) => console.error('[ACCOUNT DELETE] Job error:', err.message));
+    }, 60 * 60 * 1000);
+
+    // ── VOICE CALLING (hourly): switch calling off at Meta when the add-on lapses or the
+    //    messaging limit drops, and back on when the workspace qualifies again ──
+    setInterval(() => {
+        require('../services/CallService').reconcileAllCalling()
+            .catch((err) => console.error('[CALL] Reconcile job error:', err.message));
+    }, 60 * 60 * 1000);
+
+    // ── DELIVERY LOG RETENTION (daily): drop logs of accounts deleted 180+ days ago ──
+    setInterval(() => {
+        require('../services/AccountDeletion').purgeExpiredLogs()
+            .catch((err) => console.error('[ACCOUNT DELETE] Log purge job error:', err.message));
+    }, 24 * 60 * 60 * 1000);
+
     // ── STALE CAMPAIGN RECOVERY (Run once on startup) ──
     // If the server crashed mid-campaign, the campaign is stuck in SENDING state.
     // Since we just booted, we know no campaigns are actually running in memory.

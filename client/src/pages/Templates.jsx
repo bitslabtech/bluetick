@@ -3,6 +3,7 @@ import TrialBanner from '../components/TrialBanner';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useUI } from '../context/UIContext';
+import { callTemplateKind } from '../components/calls/callText';
 import ThemeToggle from '../components/ThemeToggle';
 import NotificationBell from '../components/NotificationBell';
 import UserDropdown from '../components/UserDropdown';
@@ -190,11 +191,26 @@ const Templates = () => {
         fetchTemplates();
     };
 
+    // Templates used by the voice-call automatic messages, so we can label them and warn before deleting.
+    const [callUse, setCallUse] = useState({});
+    useEffect(() => {
+        axios.get(`${import.meta.env.VITE_API_URL}/api/calls/status`).then(({ data }) => {
+            const cs = data?.callSettings || {};
+            const use = {};
+            if (cs.missedCallMessage?.mode === 'template' && cs.missedCallMessage.templateId) use[cs.missedCallMessage.templateId] = 'Missed call message';
+            if (cs.closedMessage?.mode === 'template' && cs.closedMessage.templateId) use[cs.closedMessage.templateId] = use[cs.closedMessage.templateId] ? 'Missed call and closed messages' : 'Closed message';
+            setCallUse(use);
+        }).catch(() => {});
+    }, []);
+
     const handleDeleteTemplate = async (id) => {
+        const inUse = callUse[id];
         showModal({
             type: 'warning',
             title: 'Delete Template',
-            message: "Are you sure you want to delete this template?",
+            message: inUse
+                ? `This template is used for the voice call ${inUse.toLowerCase()}. If you delete it, callers get the text message instead (only if they messaged you in the last 24 hours). Delete anyway?`
+                : "Are you sure you want to delete this template?",
             confirmText: 'Delete',
             cancelText: 'Cancel',
             onConfirm: async () => {
@@ -509,6 +525,11 @@ const Templates = () => {
                                             <div className="flex-1 min-w-0 pr-3">
                                                 <div className="flex items-center gap-2 mb-1">
                                                     <h3 className="text-slate-900 dark:text-white font-bold text-base truncate">{template.name}</h3>
+                                                    {(callUse[template.id] || callTemplateKind(template.name)) ? (
+                                                        <span title={callUse[template.id] ? 'In use for voice calls' : 'Created for voice calls'} className="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 whitespace-nowrap">
+                                                            {callUse[template.id] || callTemplateKind(template.name)}
+                                                        </span>
+                                                    ) : null}
                                                 </div>
                                                 <p className="text-xs text-slate-500 dark:text-text-secondary truncate font-mono tracking-wider opacity-60">ID: {template.id.slice(0, 8)}</p>
                                             </div>

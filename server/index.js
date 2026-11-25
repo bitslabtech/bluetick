@@ -360,6 +360,7 @@ app.use('/api/system', require('./routes/system')); // NEW // NEW
 app.use('/api/billing', require('./routes/billing')); // NEW
 app.use('/api/invoices', require('./routes/invoices')); // Invoice management & downloads
 app.use('/api/devices', require('./routes/devices')); // Mobile push token registration
+app.use('/api/account', require('./routes/account')); // owner self-service account deletion (30-day grace)
 app.use('/api/calls', require('./routes/calls')); // WhatsApp voice calling (mobile app)
 app.use('/api/labels', require('./routes/labels')); // NEW
 app.use('/api/coupons', require('./routes/coupons')); // NEW
@@ -1243,6 +1244,11 @@ const startServer = async () => {
         } catch (e) {
             console.error('[CALL] startup setup failed (calls unavailable until fixed):', e.message);
         }
+
+        // Encrypt any access tokens still stored as plain text (only when TOKEN_ENCRYPTION_KEY is set).
+        // Runs in the background and never blocks or crashes startup.
+        require('./services/encryptStoredTokens').encryptStoredTokens()
+            .catch((e) => console.error('[SECRETS] Token encryption on start failed:', e.message));
 
         // Initialize Scheduler
         const { initScheduler } = require('./utils/scheduler');

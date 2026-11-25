@@ -3,7 +3,7 @@
 # Used by Coolify for the API/backend service
 # Build context: ./server
 # ─────────────────────────────────────────────────────────────────────────────
-FROM node:20-alpine
+FROM node:22-alpine
 
 # Install dumb-init for proper signal handling in Docker
 RUN apk add --no-cache dumb-init

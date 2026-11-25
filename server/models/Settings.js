@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
+const { encryptedAttribute } = require('../utils/secretBox');
 
 const Settings = sequelize.define('Settings', {
     id: {
@@ -13,7 +14,9 @@ const Settings = sequelize.define('Settings', {
     },
     metaAccessToken: {
         type: DataTypes.TEXT, // Permanent System User tokens can be 400-600+ chars; TEXT avoids DB limits
-        defaultValue: ''
+        defaultValue: '',
+        // Encrypted at rest when TOKEN_ENCRYPTION_KEY is set (utils/secretBox.js).
+        ...encryptedAttribute('metaAccessToken'),
     },
     metaBusinessAccountId: {
         type: DataTypes.STRING(500),

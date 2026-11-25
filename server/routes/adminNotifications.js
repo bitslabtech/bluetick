@@ -71,7 +71,10 @@ router.delete('/clear-all', [auth, admin], async (req, res) => {
 // 6. POST /api/admin-notifications/public/crash-report - Log Frontend Crash
 router.post('/public/crash-report', async (req, res) => {
     try {
-        const { message, stack, url, userId } = req.body;
+        const { url, userId } = req.body;
+        // The message column is a 255-char string; long errors (and stacks) are cut so they still save.
+        const message = req.body.message ? String(req.body.message).slice(0, 250) : '';
+        const stack = req.body.stack ? String(req.body.stack).slice(0, 8000) : undefined;
         if (!message) return res.status(400).json({ error: 'Message required' });
 
         const Op = require('sequelize').Op;

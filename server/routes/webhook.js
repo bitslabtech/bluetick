@@ -6,7 +6,7 @@ const axios = require('axios');
 const { Sequelize, Op } = require('sequelize');
 const { normalizePhone, phoneVariants } = require('../utils/normalizePhone');
 const { getIo } = require('../socket');
-const { pushToWorkspace } = require('../utils/pushNotifications');
+const { pushToWorkspace, senderLabel } = require('../utils/pushNotifications');
 const Conversation = require('../models/Conversation');
 const ChatMessage = require('../models/ChatMessage');
 const MessageLog = require('../models/MessageLog');
@@ -857,7 +857,8 @@ router.post('/:userId', (req, res, next) => {
 
                         // Mobile push (best-effort, not awaited)
                         pushToWorkspace(userId, {
-                            title: contactName || contactWaId,
+                            // Unsaved senders have contactName 'Unknown': show their number, per each recipient's phone privacy
+                            title: (privacy) => senderLabel(contactName, contactWaId, privacy),
                             body: messageType === 'text' ? (messageBody || 'New message') : `📎 ${messageType}`,
                             data: { type: 'new_message', conversationId: conversation.id },
                         });

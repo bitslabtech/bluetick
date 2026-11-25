@@ -364,94 +364,10 @@ router.delete('/users/:id', async (req, res) => {
             return res.status(403).json({ error: 'Superadmin accounts cannot be deleted.' });
         }
 
-        const crypto = require('crypto');
-        const { Op } = require('sequelize');
-        const uid = user.id;
-
         // Log the action FIRST while real data is still available
         await logActivity(req, 'Delete User', `Admin soft-deleted user ${user.email} (ID: ${user.id})`);
 
-        // ── Step 1: Delete child records that have no direct userId FK ──────────
-        // Must be deleted BEFORE their parent to avoid FK constraint errors.
-        try {
-            // WaStore children
-            await sequelize.query(`DELETE FROM "WaProducts" WHERE "storeId" IN (SELECT id FROM "WaStores" WHERE "userId" = :uid)`, { replacements: { uid } });
-            await sequelize.query(`DELETE FROM "WaOrders" WHERE "storeId" IN (SELECT id FROM "WaStores" WHERE "userId" = :uid)`, { replacements: { uid } });
-            await sequelize.query(`DELETE FROM "WaStoreCoupons" WHERE "storeId" IN (SELECT id FROM "WaStores" WHERE "userId" = :uid)`, { replacements: { uid } });
-            // Conversation children
-            await sequelize.query(`DELETE FROM "ChatMessages" WHERE "conversationId" IN (SELECT id FROM "Conversations" WHERE "userId" = :uid)`, { replacements: { uid } });
-            // Contact children
-            await sequelize.query(`DELETE FROM "ContactMessages" WHERE "contactId" IN (SELECT id FROM "Contacts" WHERE "userId" = :uid)`, { replacements: { uid } });
-            await sequelize.query(`DELETE FROM "ContactFlowStates" WHERE "contactId" IN (SELECT id FROM "Contacts" WHERE "userId" = :uid)`, { replacements: { uid } });
-        } catch (e) {
-            console.warn('[ADMIN DELETE] Nested cleanup warning (non-fatal):', e.message);
-        }
-
-        // ── Step 2: Delete direct-userId operational models ────────────────────
-        // ⚠️  INTENTIONALLY EXCLUDED to preserve admin dashboard reports:
-        //     Transaction, AiTokenLog, MessageLog, ActivityLog
-        const OPERATIONAL_MODELS_WITH_USERID = [
-            'WaStore',          // parent safe after step 1 cleaned children
-            'VcardEnquiry', 'Vcard',
-            'NfcOrder', 'NfcCard',
-            'TechPartnerPayout', // has userId field
-            'TechPartner',
-            'MetaAdCampaign',
-            'FlowExecutionLog', 'Flow',
-            'FormResponse', 'Form',
-            'Message',          // outbox campaign messages (NOT MessageLog aggregate)
-            'Conversation',
-            'Contact',
-            'ApiUsageLog', 'ApiKey', 'Webhook',
-            'Group', 'Label', 'QuickReply', 'AutoTagRule',
-            'Campaign', 'Template',
-            'MediaFile',
-            'PaymentSession',
-            'UserAddon',
-            'SystemNotification',
-        ];
-
-        for (const modelName of OPERATIONAL_MODELS_WITH_USERID) {
-            try {
-                const Model = require(`../models/${modelName}`);
-                if (Model && typeof Model.destroy === 'function') {
-                    // force: true — permanent delete even for soft-delete models (e.g. Conversation)
-                    await Model.destroy({ where: { userId: uid }, force: true });
-                }
-            } catch (e) {
-                // Model file may not exist or field name may differ — skip silently
-            }
-        }
-
-        // ── Step 2b: Models with non-standard FK field names ───────────────────
-        try {
-            const ReferralReward = require('../models/ReferralReward');
-            await ReferralReward.destroy({ where: { [Op.or]: [{ referrerId: uid }, { referredUserId: uid }] } });
-        } catch (e) { /* ignore */ }
-
-        try {
-            const TechPartnerEarning = require('../models/TechPartnerEarning');
-            await TechPartnerEarning.destroy({ where: { [Op.or]: [{ referrerId: uid }, { referredUserId: uid }] } });
-        } catch (e) { /* ignore */ }
-
-        // Delete Settings
-        try {
-            const Settings = require('../models/Settings');
-            await Settings.destroy({ where: { userId: uid } });
-        } catch (e) { /* ignore */ }
-
-        // ── Step 3: Soft-delete the User row ──────────────────────────────────
-        // We KEEP name and email — admin JOINs for Top Token Consumers,
-        // Activity Logs, and historical reports rely on these for identity.
-        // We CLEAR only auth/security-sensitive fields.
-        user.status = 'deleted';
-        user.deletedAt = new Date();
-        user.password = '$DELETED$' + crypto.randomBytes(32).toString('hex');
-        user.fbAccessToken = null;
-        user.metaAdsToken = null;
-        user.inviteToken = null;
-        user.referralCode = null;
-        await user.save();
+        await require('../services/AccountDeletion').purgeUser(user);
 
         res.json({ message: 'User deleted successfully.' });
     } catch (err) {
