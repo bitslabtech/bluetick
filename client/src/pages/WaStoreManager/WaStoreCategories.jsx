@@ -205,7 +205,7 @@ function CategoryModal({ mode, initial, onSave, onClose, onOpenPicker, parentCat
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function WaStoreCategories() {
-    const { storeId } = useOutletContext();
+    const { storeId, setParentStore } = useOutletContext();
     const [categories, setCategories]       = useState([]);
     const [categoryImages, setCategoryImages] = useState({});
     const [hiddenCategories, setHiddenCategories] = useState([]);
@@ -321,6 +321,8 @@ export default function WaStoreCategories() {
                     categoryAutoplay: autoplay
                 }
             );
+            // Keep the other store tabs (e.g. Navigation) up to date without a reload
+            setParentStore?.(prev => ({ ...prev, categories: newList, subcategories: newSubcategories }));
         } catch {
             toast.error('Failed to save categories');
         } finally {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { ShoppingBag, ShoppingCart, X, Plus, Minus, Search, Home, ChevronRight, Menu, Filter, MessageCircle, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -119,6 +119,12 @@ export default function PublicWaStoreCategory({ customSlug }) {
         const urlParams = new URLSearchParams(window.location.search);
         return urlParams.get('sub') || '';
     });
+
+    // A menu link can move between subcategories while this page stays open
+    const location = useLocation();
+    useEffect(() => {
+        setSelectedSubCategory(new URLSearchParams(location.search).get('sub') || '');
+    }, [location.key, location.search, categoryName]);
 
     const handleSelectSubCategory = (subName) => {
         const next = subName === selectedSubCategory ? '' : subName;

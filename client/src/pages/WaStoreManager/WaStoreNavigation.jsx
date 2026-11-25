@@ -4,6 +4,7 @@ import axios from 'axios';
 import { GripVertical, Plus, Trash2, Link as LinkIcon, Save, AlertCircle, LayoutList, CheckCircle2, Search, ShoppingCart, Menu as MenuIcon, ChevronDown, ChevronUp, ListTree, Globe, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getThemeConfig } from '../../utils/wastoreThemes';
+import CategoryLinkPicker from './CategoryLinkPicker';
 
 const API_BASE = `${import.meta.env.VITE_API_URL}`;
 const imgUrl = (url) => {
@@ -23,6 +24,15 @@ export default function WaStoreNavigation() {
             try { return JSON.parse(cats); } catch { return []; }
         }
         return Array.isArray(cats) ? cats : [];
+    }, [store]);
+
+    // { "Parent category": [{ name, ... }] }
+    const subcategories = React.useMemo(() => {
+        const subs = store?.subcategories || {};
+        if (typeof subs === 'string') {
+            try { return JSON.parse(subs) || {}; } catch { return {}; }
+        }
+        return subs;
     }, [store]);
 
     const customPages = React.useMemo(() => {
@@ -239,17 +249,12 @@ export default function WaStoreNavigation() {
                     )}
 
                     {type === 'category' && (
-                        <>
-                            <ListTree className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                            <select
-                                value={item.link.replace('/?cat=', '')}
-                                onChange={(e) => updateFn('link', `/?cat=${e.target.value}`)}
-                                className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white transition-all appearance-none"
-                            >
-                                {categories.length === 0 && <option value="">No categories found</option>}
-                                {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
-                        </>
+                        <CategoryLinkPicker
+                            categories={categories}
+                            subcategories={subcategories}
+                            link={item.link}
+                            onChange={(link) => updateFn('link', link)}
+                        />
                     )}
 
                     {type === 'internal' && (

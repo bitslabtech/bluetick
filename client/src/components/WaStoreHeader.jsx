@@ -5,6 +5,7 @@ import { ShoppingCart, Search, Menu, X, ShoppingBag, Home, Tag, ChevronDown, Che
 import WaStoreMobileBottomMenu from './WaStoreMobileBottomMenu';
 import { cdnImg } from '../utils/cdnImage';
 import { getStoreRoute } from '../utils/storeRouting';
+import { isCategoryLink, categoryLinkPath } from '../utils/storeMenuLinks';
 
 // Helper to slugify product names for URLs
 const slugifyProduct = (productOrName, id) => {
@@ -303,9 +304,9 @@ export default function WaStoreHeader({
                                                 href={menuItem.link || '#'} 
                                                 onClick={(e) => {
                                                     if (!menuItem.link) e.preventDefault();
-                                                    else if (menuItem.link.startsWith('/?cat=')) {
+                                                    else if (isCategoryLink(menuItem.link)) {
                                                         e.preventDefault();
-                                                        navigate(getStoreRoute(slug, `/category/${encodeURIComponent(menuItem.link.split('=')[1])}`));
+                                                        navigate(getStoreRoute(slug, categoryLinkPath(menuItem.link)));
                                                     } else if (menuItem.link.startsWith('/')) {
                                                         e.preventDefault();
                                                         let target = menuItem.link;
@@ -332,9 +333,9 @@ export default function WaStoreHeader({
                                                                     href={child.link || '#'}
                                                                     onClick={(e) => {
                                                                         if (!child.link) e.preventDefault();
-                                                                        else if (child.link.startsWith('/?cat=')) {
+                                                                        else if (isCategoryLink(child.link)) {
                                                                             e.preventDefault();
-                                                                            navigate(getStoreRoute(slug, `/category/${encodeURIComponent(child.link.split('=')[1])}`));
+                                                                            navigate(getStoreRoute(slug, categoryLinkPath(child.link)));
                                                                         } else if (child.link.startsWith('/')) {
                                                                             e.preventDefault();
                                                                             let target = child.link;
@@ -618,9 +619,9 @@ export default function WaStoreHeader({
                                             href={menuItem.link || '#'} 
                                             onClick={(e) => {
                                                 if (!menuItem.link) e.preventDefault();
-                                                else if (menuItem.link.startsWith('/?cat=')) {
+                                                else if (isCategoryLink(menuItem.link)) {
                                                     e.preventDefault();
-                                                    navigate(getStoreRoute(slug, `/category/${encodeURIComponent(menuItem.link.split('=')[1])}`));
+                                                    navigate(getStoreRoute(slug, categoryLinkPath(menuItem.link)));
                                                 } else if (menuItem.link.startsWith('/')) {
                                                     e.preventDefault();
                                                     let target = menuItem.link;
@@ -648,9 +649,9 @@ export default function WaStoreHeader({
                                                                 href={child.link || '#'}
                                                                 onClick={(e) => {
                                                                     if (!child.link) e.preventDefault();
-                                                                    else if (child.link.startsWith('/?cat=')) {
+                                                                    else if (isCategoryLink(child.link)) {
                                                                         e.preventDefault();
-                                                                        navigate(getStoreRoute(slug, `/category/${encodeURIComponent(child.link.split('=')[1])}`));
+                                                                        navigate(getStoreRoute(slug, categoryLinkPath(child.link)));
                                                                     } else if (child.link.startsWith('/')) {
                                                                         e.preventDefault();
                                                                         let target = child.link;
@@ -849,8 +850,8 @@ export default function WaStoreHeader({
                                                                         onClick={() => {
                                                                             setIsMobileMenuOpen(false);
                                                                             if (!child.link) return;
-                                                                            if (child.link.startsWith('/?cat=')) {
-                                                                                navigate(getStoreRoute(slug, `/category/${encodeURIComponent(child.link.split('=')[1])}`));
+                                                                            if (isCategoryLink(child.link)) {
+                                                                                navigate(getStoreRoute(slug, categoryLinkPath(child.link)));
                                                                             } else if (child.link.startsWith('/')) {
                                                                                 let target = child.link;
                                                                                 if (!target.startsWith('/store/')) target = target === '/' ? getStoreRoute(slug) : getStoreRoute(slug, `${target}`);
@@ -872,8 +873,8 @@ export default function WaStoreHeader({
                                                         onClick={() => {
                                                             setIsMobileMenuOpen(false);
                                                             if (!menuItem.link) return;
-                                                            if (menuItem.link.startsWith('/?cat=')) {
-                                                                navigate(getStoreRoute(slug, `/category/${encodeURIComponent(menuItem.link.split('=')[1])}`));
+                                                            if (isCategoryLink(menuItem.link)) {
+                                                                navigate(getStoreRoute(slug, categoryLinkPath(menuItem.link)));
                                                             } else if (menuItem.link.startsWith('/')) {
                                                                 let target = menuItem.link;
                                                                 if (!target.startsWith('/store/')) target = target === '/' ? getStoreRoute(slug) : getStoreRoute(slug, `${target}`);
