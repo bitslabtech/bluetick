@@ -4,6 +4,7 @@ const router = express.Router();
 const axios = require('axios');
 const auth = require('../middleware/auth');
 const User = require('../models/User');
+const { hasMetaConsent, recordMetaConsent, MISSING_MESSAGE } = require('../utils/metaConsent');
 
 // POST /api/whatsapp/exchange-token
 // Exchanges the Facebook OAuth code for a System User Access Token and retrieves the WABA ID
@@ -20,6 +21,9 @@ router.post('/exchange-token', auth, async (req, res) => {
         if (!code) {
             console.error('[WA DEBUG] ❌ No code provided in request body');
             return res.status(400).json({ error: 'OAuth code is required from the frontend' });
+        }
+        if (!hasMetaConsent(req.body)) {
+            return res.status(400).json({ error: MISSING_MESSAGE, code: 'META_CONSENT_REQUIRED' });
         }
 
         const clientId = process.env.FB_CLIENT_ID;
@@ -430,6 +434,7 @@ router.post('/exchange-token', auth, async (req, res) => {
         }
 
         console.log('[WA DEBUG] ========== /exchange-token SUCCESS ==========');
+        await recordMetaConsent(req, 'whatsapp');
 
         res.json({
             message: 'WhatsApp Business connected successfully',
