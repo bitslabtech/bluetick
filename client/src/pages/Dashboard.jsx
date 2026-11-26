@@ -311,6 +311,8 @@ const Dashboard = () => {
         try {
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/whatsapp/exchange-token`, {
                 code,
+                // Only reachable after ticking the Meta terms box in the setup checklist; the server records it
+                consent: { accepted: true },
                 hintWabaId: capturedWabaId,
                 hintPhoneNumberId: capturedPhoneNumberId
             });

@@ -108,7 +108,8 @@ const StepConnectFacebook = ({ onConnected }) => {
     const exchangeToken = async (token) => {
         try {
             setLoading(true);
-            await axios.post('/api/ctwa/auth', { accessToken: token }, {
+            // The Connect button is disabled until the Meta terms box is ticked; the server records it
+            await axios.post('/api/ctwa/auth', { accessToken: token, consent: { accepted: true } }, {
                 withCredentials: true
             });
             onConnected();

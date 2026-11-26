@@ -4,6 +4,7 @@ const router = express.Router();
 const axios = require('axios');
 const auth = require('../middleware/auth');
 const User = require('../models/User');
+const { hasMetaConsent, recordMetaConsent, MISSING_MESSAGE } = require('../utils/metaConsent');
 const Contact = require('../models/Contact');
 const ChatMessage = require('../models/ChatMessage');
 const outbound = require('../services/outbound');
@@ -18,6 +19,7 @@ router.post('/auth', auth, async (req, res) => {
     try {
         const { accessToken } = req.body;
         if (!accessToken) return res.status(400).json({ error: 'Facebook access token is required' });
+        if (!hasMetaConsent(req.body)) return res.status(400).json({ error: MISSING_MESSAGE, code: 'META_CONSENT_REQUIRED' });
 
         const clientId = process.env.FB_CLIENT_ID;
         const clientSecret = process.env.FB_CLIENT_SECRET;
@@ -45,6 +47,7 @@ router.post('/auth', auth, async (req, res) => {
         await user.save();
 
         console.log(`[CTWA] Long-lived token saved for user ${req.user.id}`);
+        await recordMetaConsent(req, 'meta_ads');
         res.json({ success: true, message: 'Facebook Ads account connected successfully.' });
 
     } catch (err) {
