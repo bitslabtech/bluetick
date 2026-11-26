@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Plus, Edit3, Trash2, Link as LinkIcon, Image as ImageIcon, Eye, BarChart2, CheckCircle2, X, ChevronLeft, Save, Loader2, Sparkles, Megaphone, Smartphone, Layout, Globe, Tag, Calendar } from 'lucide-react';
-import ReactQuill from 'react-quill-new';
-import 'react-quill-new/dist/quill.snow.css';
+import RichTextEditor from '../RichTextEditor';
 import { useUI } from '../../context/UIContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDate } from '../../utils/dateFormat';
@@ -12,7 +11,8 @@ const quillModules = {
     toolbar: [
         [{ 'header': [1, 2, 3, 4, false] }],
         ['bold', 'italic', 'underline', 'strike', 'blockquote'],
-        [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
+        [{ 'color': [] }, { 'background': [] }, { 'script': 'sub' }, { 'script': 'super' }],
+        [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }, { 'align': [] }],
         ['link', 'image', 'video'],
         ['clean']
     ]
@@ -331,10 +331,10 @@ const BlogManager = () => {
                                             .ql-editor { padding: 2rem 0 !important; }
                                             .ql-editor.ql-blank::before { left: 0 !important; font-style: normal !important; color: #94a3b8 !important; opacity: 0.6; }
                                         `}} />
-                                        <ReactQuill 
-                                            theme="snow"
+                                        <RichTextEditor
+                                            article
                                             value={form.content}
-                                            onChange={(val) => setForm({...form, content: val})}
+                                            onChange={(val) => setForm(f => ({ ...f, content: val }))}
                                             modules={quillModules}
                                             placeholder="Write your amazing story here..."
                                         />
