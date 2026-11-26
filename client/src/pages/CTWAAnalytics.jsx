@@ -9,6 +9,7 @@ import {
     ExternalLink, Image as ImageIcon, Shield, FlaskConical, Save
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import MetaConsentCheckbox from '../components/MetaConsentCheckbox';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const fmt = (n, decimals = 0) => {
@@ -62,6 +63,7 @@ const StatCard = ({ icon: Icon, label, value, sub, color = 'indigo' }) => {
 // ── Wizard Step 1: Facebook Login ─────────────────────────────────────────────
 const StepConnectFacebook = ({ onConnected }) => {
     const [loading, setLoading] = useState(false);
+    const [agreed, setAgreed] = useState(false);
     const [error, setError] = useState(null);
 
     const handleFBLogin = () => {
@@ -126,7 +128,7 @@ const StepConnectFacebook = ({ onConnected }) => {
             </div>
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">Connect Your Facebook Ads</h2>
             <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-md mx-auto">
-                Link your Facebook account to pull real-time Ad Spend data. We only request <strong className="text-slate-700 dark:text-slate-200">read-only</strong> access to your ad reporting.
+                Link your Facebook account to see real-time ad spend and results here, and to create and manage Click-to-WhatsApp ads from OneDash. You can remove this access at any time in Meta Business Settings.
             </p>
 
             {error && (
@@ -136,9 +138,18 @@ const StepConnectFacebook = ({ onConnected }) => {
                 </div>
             )}
 
+            <MetaConsentCheckbox
+                product="ads"
+                checked={agreed}
+                onChange={setAgreed}
+                className="max-w-md mx-auto mb-5"
+                textClassName="text-slate-600 dark:text-slate-300"
+            />
+
             <button
                 onClick={handleFBLogin}
-                disabled={loading}
+                disabled={loading || !agreed}
+                title={agreed ? undefined : "Tick the box above to agree to Meta's terms first"}
                 className="inline-flex items-center gap-3 bg-[#1877F2] hover:bg-[#0866E0] text-white font-bold px-4 md:px-8 py-3.5 rounded-xl transition-all shadow-lg shadow-blue-500/30 disabled:opacity-50"
             >
                 {loading ? (
@@ -152,7 +163,7 @@ const StepConnectFacebook = ({ onConnected }) => {
             </button>
 
             <p className="text-xs text-slate-400 mt-4">
-                Permissions requested: <code className="bg-slate-100 dark:bg-white/10 px-1 rounded">ads_read</code>, <code className="bg-slate-100 dark:bg-white/10 px-1 rounded">business_management</code>
+                Permissions requested: <code className="bg-slate-100 dark:bg-white/10 px-1 rounded">ads_read</code>, <code className="bg-slate-100 dark:bg-white/10 px-1 rounded">ads_management</code>, <code className="bg-slate-100 dark:bg-white/10 px-1 rounded">business_management</code>
             </p>
         </div>
     );

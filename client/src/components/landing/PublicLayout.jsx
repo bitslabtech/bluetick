@@ -4,6 +4,7 @@ import axios from 'axios';
 import { Twitter, Facebook, Linkedin, Instagram, MessageSquare, Loader2 } from 'lucide-react';
 import DOMPurify from 'dompurify';
 import PublicHeader from './PublicHeader';
+import { normalizeEditorHtml } from '../../utils/richContent';
 import FloatingChatbot from './FloatingChatbot';
 
 const PublicLayout = ({ children, title, pageKey, fullWidth = false }) => {
@@ -59,13 +60,14 @@ const PublicLayout = ({ children, title, pageKey, fullWidth = false }) => {
                         <div className="w-16 h-1.5 bg-indigo-600 mx-auto rounded-full opacity-80"></div>
                     </header>
                 )}
-                <div className={fullWidth ? 'w-full' : 'bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-200/60 p-6 sm:p-10 md:p-14 prose prose-slate md:prose-lg max-w-none overflow-hidden break-words'}>
+                {/* custom-page-content (index.css) styles headings, lists, links and tables the way the page editor shows them */}
+                <div className={fullWidth ? 'w-full' : 'custom-page-content bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-200/60 p-6 sm:p-10 md:p-14 max-w-none overflow-hidden break-words'}>
                     {(() => {
                         const content = pageKey ? config.publicPages?.[pageKey] : null;
                         const hasRealContent = content && typeof content === 'string' && content.replace(/<[^>]*>?/gm, '').trim().length > 0;
                         
                         if (hasRealContent) {
-                            return <div className="max-w-full overflow-x-auto" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content, { ADD_ATTR: ['class', 'style', 'target', 'allow', 'allowfullscreen', 'frameborder', 'scrolling', 'href', 'src', 'alt', 'title'], ADD_TAGS: ['iframe', 'style', 'script'] }) }} />;
+                            return <div className="max-w-full overflow-x-auto" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(normalizeEditorHtml(content), { ADD_ATTR: ['class', 'style', 'target', 'allow', 'allowfullscreen', 'frameborder', 'scrolling', 'href', 'src', 'alt', 'title'], ADD_TAGS: ['iframe', 'style', 'script'] }) }} />;
                         }
                         return children;
                     })()}
