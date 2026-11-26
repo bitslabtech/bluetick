@@ -8,8 +8,8 @@ import { useUI } from '../context/UIContext';
 import AdminHeader from '../components/AdminHeader';
 import ThemeToggle from '../components/ThemeToggle';
 import BlogManager from '../components/landing/BlogManager';
-import ReactQuill from 'react-quill-new';
-import 'react-quill-new/dist/quill.snow.css';
+import RichTextEditor from '../components/RichTextEditor';
+import { unsupportedHtmlFeatures } from '../utils/richContent';
 import { advancedFeatures, FEATURE_CATEGORIES, industries } from './LandingPage';
 import { formatDate, formatDateTime } from '../utils/dateFormat';
 
@@ -1771,6 +1771,8 @@ const AdminLandingPage = () => {
                                                                         setEditingPageKey(`custom:${page.id}`);
                                                                         setPageEditorTitle(page.title);
                                                                         setPageEditorContent(page.content || '');
+                                                                        // Open in HTML Source when the visual editor can't keep the page's formatting
+                                                                        setShowHtmlEditor(unsupportedHtmlFeatures(page.content || '').length > 0);
                                                                         setShowPageEditor(true);
                                                                     }}
                                                                     className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors"
@@ -1847,6 +1849,7 @@ const AdminLandingPage = () => {
                                                                 setPageEditorTitle(page.title);
                                                                 setPageEditorContent(config.publicPages?.[page.key] || '');
                                                                 setPageEditorVersionNote('');
+                                                                setShowHtmlEditor(unsupportedHtmlFeatures(config.publicPages?.[page.key] || '').length > 0);
                                                                 setShowPageEditor(true);
                                                             }}
                                                             className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors"
@@ -2839,20 +2842,10 @@ const AdminLandingPage = () => {
 
                             <div className="p-4 md:p-6 overflow-y-auto flex-1">
                                 {!showHtmlEditor ? (
-                                    <ReactQuill
-                                        theme="snow"
+                                    <RichTextEditor
                                         value={pageEditorContent}
                                         onChange={setPageEditorContent}
                                         className="bg-white dark:bg-surface-dark dark:text-white h-[400px] mb-12"
-                                        modules={{
-                                            toolbar: [
-                                                [{ 'header': [1, 2, 3, false] }],
-                                                ['bold', 'italic', 'underline', 'strike'],
-                                                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                                                ['link', 'image'],
-                                                ['clean']
-                                            ]
-                                        }}
                                     />
                                 ) : (
                                     <textarea

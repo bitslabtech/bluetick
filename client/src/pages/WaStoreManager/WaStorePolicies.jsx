@@ -3,8 +3,8 @@ import { useOutletContext } from 'react-router-dom';
 import axios from 'axios';
 import { FileText, Save, Loader2, Info, ChevronDown, ChevronUp, Code, LayoutTemplate, Plus, Trash2, Link as LinkIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
-import ReactQuill from 'react-quill-new';
-import 'react-quill-new/dist/quill.snow.css';
+import RichTextEditor from '../../components/RichTextEditor';
+import { unsupportedHtmlFeatures } from '../../utils/richContent';
 
 export default function WaStorePolicies() {
     const { storeId: id } = useOutletContext();
@@ -31,6 +31,10 @@ export default function WaStorePolicies() {
                 const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/wastore`);
                 const myStore = res.data.find(s => s.id === id);
                 if (myStore) {
+                    // Pages with formatting the visual editor can't keep open in HTML mode
+                    const html = { aboutUs: myStore.aboutUs, termsConditions: myStore.termsConditions, privacyPolicy: myStore.privacyPolicy, returnPolicy: myStore.returnPolicy, shippingPolicy: myStore.shippingPolicy };
+                    (myStore.customPages || []).forEach(p => { html[`customPage_${p.id}`] = p.content; });
+                    setHtmlMode(Object.fromEntries(Object.entries(html).map(([k, v]) => [k, unsupportedHtmlFeatures(v || '').length > 0])));
                     setForm({
                         aboutUs: myStore.aboutUs || '',
                         termsConditions: myStore.termsConditions || '',
@@ -69,16 +73,6 @@ export default function WaStorePolicies() {
     const toggleHtmlMode = (section, e) => {
         e.stopPropagation(); // prevent accordion toggle
         setHtmlMode(prev => ({ ...prev, [section]: !prev[section] }));
-    };
-
-    const modules = {
-        toolbar: [
-            [{ 'header': [1, 2, 3, false] }],
-            ['bold', 'italic', 'underline', 'strike'],
-            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-            ['link', 'image'],
-            ['clean']
-        ]
     };
 
     const renderEditor = (label, description, field, placeholder, value, onChange, isDeletable = false, onDelete = null, extraContent = null) => {
@@ -143,14 +137,12 @@ export default function WaStorePolicies() {
                         {extraContent}
                         
                         {!isHtmlMode ? (
-                            <div className="editor-container h-[300px] sm:h-[400px] mb-10 sm:mb-12">
-                                <ReactQuill
-                                    theme="snow"
+                            <div className="editor-container mb-10 sm:mb-12">
+                                <RichTextEditor
                                     value={value}
                                     onChange={onChange}
                                     placeholder={placeholder}
-                                    className="bg-white dark:bg-surface-dark dark:text-white h-full"
-                                    modules={modules}
+                                    className="bg-white dark:bg-surface-dark dark:text-white h-[300px] sm:h-[400px]"
                                 />
                             </div>
                         ) : (
