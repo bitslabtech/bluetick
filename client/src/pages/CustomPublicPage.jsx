@@ -5,6 +5,7 @@ import DOMPurify from 'dompurify';
 import { Loader2 } from 'lucide-react';
 import PublicLayout from '../components/landing/PublicLayout';
 import NotFound404 from './NotFound404';
+import { normalizeEditorHtml } from '../utils/richContent';
 
 const CustomPublicPage = () => {
     const { slug } = useParams();
@@ -31,9 +32,9 @@ const CustomPublicPage = () => {
     return (
         <PublicLayout key={slug} title={result.page.title}>
             <div
-                className="custom-page-content max-w-full overflow-x-auto"
+                className="max-w-full overflow-x-auto"
                 dangerouslySetInnerHTML={{
-                    __html: DOMPurify.sanitize(result.page.content, {
+                    __html: DOMPurify.sanitize(normalizeEditorHtml(result.page.content), {
                         ADD_ATTR: ['class', 'style', 'target', 'allow', 'allowfullscreen', 'frameborder', 'scrolling', 'href', 'src', 'alt', 'title'],
                         ADD_TAGS: ['iframe', 'style']
                     })

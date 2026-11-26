@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -7,6 +7,7 @@ import {
     AlertCircle, Info, CreditCard, Mail, Hash, Lock,
     Store, Sparkles, ArrowUpRight
 } from 'lucide-react';
+import MetaConsentCheckbox from './MetaConsentCheckbox';
 
 export default function EmbeddedSignupChecklist({ isOpen, onClose, onProceed, fbLoading }) {
     const navigate = useNavigate();
@@ -156,24 +157,34 @@ export default function EmbeddedSignupChecklist({ isOpen, onClose, onProceed, fb
                 </div>
 
                 {/* ── Footer / CTA ───────────────────────────────────────── */}
-                <div className="shrink-0 px-6 py-5 border-t border-gray-100 bg-white flex justify-end">
-                    <button
-                        onClick={onProceed}
-                        disabled={fbLoading}
-                        className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#1877F2] hover:bg-[#166FE5] active:bg-[#1465D8] text-white text-base font-bold shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                    >
-                        {fbLoading ? (
-                            <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                        ) : (
-                            <Facebook className="w-5 h-5" />
-                        )}
-                        <span>{fbLoading ? 'Connecting…' : 'Connect WhatsApp Business'}</span>
-                        {!fbLoading && <ArrowRight className="w-4 h-4" />}
-                    </button>
-                </div>
+                <ConsentAndConnect onProceed={onProceed} fbLoading={fbLoading} />
             </div>
         </div>
     );
 }
 
-
+// Mounted only while the checklist is open, so the consent box starts unticked every time.
+function ConsentAndConnect({ onProceed, fbLoading }) {
+    const [agreed, setAgreed] = useState(false);
+    return (
+            <div className="shrink-0 px-6 py-5 border-t border-gray-100 bg-white flex flex-col gap-4">
+                <MetaConsentCheckbox product="whatsapp" checked={agreed} onChange={setAgreed} />
+                <div className="flex justify-end">
+                <button
+                    onClick={onProceed}
+                    disabled={fbLoading || !agreed}
+                    title={agreed ? undefined : "Tick the box above to agree to Meta's terms first"}
+                    className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#1877F2] hover:bg-[#166FE5] active:bg-[#1465D8] text-white text-base font-bold shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                    {fbLoading ? (
+                        <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                    ) : (
+                        <Facebook className="w-5 h-5" />
+                    )}
+                    <span>{fbLoading ? 'Connecting…' : 'Connect WhatsApp Business'}</span>
+                    {!fbLoading && <ArrowRight className="w-4 h-4" />}
+                </button>
+                </div>
+            </div>
+    );
+}

@@ -8,6 +8,7 @@ import PublicLayout from '../components/landing/PublicLayout';
 import 'react-quill-new/dist/quill.snow.css'; // Import quill styles for correct rendering of editor content
 import DOMPurify from 'dompurify';
 import { formatDate } from '../utils/dateFormat';
+import { normalizeEditorHtml } from '../utils/richContent';
 
 const BlogPost = () => {
     const { slug } = useParams();
@@ -166,8 +167,8 @@ const BlogPost = () => {
                         .blog-content-wrapper p:empty { min-height: 1.5rem; }
                     `}} />
                     <div 
-                        className="blog-content-wrapper prose prose-lg md:prose-xl dark:prose-invert max-w-none prose-indigo prose-headings:font-extrabold prose-headings:tracking-tight prose-a:text-indigo-600 dark:prose-a:text-indigo-400 prose-img:rounded-3xl prose-img:shadow-xl"
-                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(blog.content, { ADD_TAGS: ['iframe'], ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling'] }) }} 
+                        className="blog-content-wrapper custom-page-content theme-colors is-article max-w-none"
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(normalizeEditorHtml(blog.content), { ADD_TAGS: ['iframe'], ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling'] }) }} 
                     />
 
                     {/* Tags */}

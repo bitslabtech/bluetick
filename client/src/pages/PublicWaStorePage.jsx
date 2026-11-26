@@ -5,6 +5,7 @@ import { Loader2, ArrowLeft, Home, SearchX } from 'lucide-react';
 import DOMPurify from 'dompurify';
 import { motion } from 'framer-motion';
 import { getStoreRoute } from '../utils/storeRouting';
+import { normalizeEditorHtml } from '../utils/richContent';
 
 import WaStoreFooter from '../components/WaStoreFooter';
 import WaStoreHeader from '../components/WaStoreHeader';
@@ -264,7 +265,7 @@ export default function PublicWaStorePage({ customSlug, customPageType }) {
                             animate={{ scale: 1, opacity: 1 }}
                             transition={{ type: "spring", bounce: 0.5 }}
                             className="w-24 h-24 mb-6 rounded-3xl flex items-center justify-center"
-                            style={{ background: `${theme.text}10`, color: theme.text }}
+                            style={{ background: 'color-mix(in srgb, currentColor 8%, transparent)' }}
                         >
                             <SearchX size={48} strokeWidth={1.5} />
                         </motion.div>
@@ -301,14 +302,14 @@ export default function PublicWaStorePage({ customSlug, customPageType }) {
                             <button 
                                 onClick={() => navigate(-1)}
                                 className="w-full sm:w-auto px-6 py-3 rounded-xl border flex items-center justify-center gap-2 font-semibold transition-colors text-sm"
-                                style={{ borderColor: `${theme.text}30`, color: theme.text }}
+                                style={{ borderColor: 'color-mix(in srgb, currentColor 25%, transparent)' }}
                             >
                                 <ArrowLeft size={16} /> Go Back
                             </button>
                             <button 
                                 onClick={() => navigate(getStoreRoute(slug))}
                                 className="w-full sm:w-auto px-6 py-3 rounded-xl flex items-center justify-center gap-2 font-semibold transition-opacity hover:opacity-90 text-sm"
-                                style={{ background: theme.text, color: theme.pageBg }}
+                                style={{ background: 'color-mix(in srgb, currentColor 12%, transparent)' }}
                             >
                                 <Home size={16} /> Store Home
                             </button>
@@ -317,14 +318,15 @@ export default function PublicWaStorePage({ customSlug, customPageType }) {
                 ) : isContactPage ? (
                     <WaStoreContactUs store={store} theme={theme} />
                 ) : (
-                    <div className="w-full bg-white dark:bg-surface-dark px-4 sm:px-6 md:px-8 lg:px-12 py-8 md:py-12">
+                    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 py-8 md:py-12">
+                        {/* No background of its own: the page sits on the store theme's background and uses its text colour */}
                         <div className="max-w-4xl mx-auto">
-                            <h1 className={`text-2xl md:text-4xl font-bold mb-8 ${theme.text} pb-6 border-b border-gray-100 dark:border-white/10`}>
+                            <h1 className={`text-2xl md:text-4xl font-bold mb-8 ${theme.text} pb-6 border-b`} style={{ borderColor: 'color-mix(in srgb, currentColor 12%, transparent)' }}>
                                 {title}
                             </h1>
                             <div
-                                className={`prose prose-sm sm:prose-base dark:prose-invert max-w-none ${theme.text} leading-relaxed break-words overflow-x-auto`}
-                                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content, {
+                                className={`custom-page-content theme-colors max-w-none ${theme.text} break-words overflow-x-auto`}
+                                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(normalizeEditorHtml(content), {
                                     ADD_ATTR: ['class', 'style', 'target', 'allow', 'allowfullscreen', 'frameborder', 'scrolling'],
                                     ADD_TAGS: ['iframe', 'style']
                                 }) }}
